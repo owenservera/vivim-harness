@@ -1,5 +1,5 @@
 // Synthetic, private-data-free, offline scenario. This script never opens a browser or sends.
-import {resolveAttachment,capabilityTruth,effectBoundary,reconcileLifecycle} from '../../src/studio/core-runtime-bridge.mjs';
+import {resolveAttachment,capabilityTruth,effectBoundary,reconcileLifecycle} from '../../../src/studio/core-runtime-bridge.mjs';
 const digest='a'.repeat(64), when='2026-10-24T14:00:00.000Z';
 export const source=(captureRef, sequence=10)=>({kind:'native-route',captureRef,sequence,reference:`fixture:${captureRef}:${sequence}`,evidenceClass:'synthetic-fixture'});
 export function scenario(siteId='unknown-lab', registered=false){
