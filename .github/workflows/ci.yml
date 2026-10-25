@@ -24,3 +24,5 @@ jobs:
         run: node scripts/architecture-inventory.mjs --check
       - name: Capture Studio unit suite
         run: npm test
+      - name: Migrated AION QA and saved-session outcome tests
+        run: npm run test:migrated

@@ -34,6 +34,9 @@
     "always-on:status": "node scripts/always-on.mjs --status",
     "always-on:stop": "node scripts/always-on.mjs --stop",
     "chrome:cdp": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/chrome-cdp.ps1",
-    "help": "node bin/studio.mjs help"
+    "help": "node bin/studio.mjs help",
+    "test:migrated": "node --test \"test/qa/*.test.mjs\"",
+    "outcome:packet": "node src/export/outcome-packet.mjs",
+    "outcome:saved": "node src/export/saved-session-outcome.mjs"
   }
 }

@@ -1,0 +1,17 @@
+{
+  "meta": {
+    "id": "synthetic-session-001",
+    "target": { "title": "Synthetic AION Capture Studio planning", "url": "https://example.invalid/fixture" },
+    "browser": "fixture",
+    "profile": null,
+    "status": "complete",
+    "endReason": "fixture-ended",
+    "createdAt": "2026-10-22T12:00:00.000Z"
+  },
+  "timeline": [],
+  "streams": [],
+  "turns": [
+    { "id": "turn-user-1", "role": "user", "text": "Please outline a local-only handoff packet. No network sends." },
+    { "id": "turn-ai-1", "role": "assistant", "text": "Summary: The local handoff should show a verified, evidence-linked packet from a saved synthetic response.\nDecision: Use existing transcript JSON as the initial input format.\nNext action: Run the standalone packet generator against the saved fixture.\nNext action: Inspect the exact source lines before approving any project task.\nQuestion: Does the Windows checkout preserve the same transcript JSON shape?\nUnknown: Real Windows owner time savings have not been measured." }
+  ]
+}
