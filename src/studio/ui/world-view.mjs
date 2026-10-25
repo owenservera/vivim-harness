@@ -11,6 +11,8 @@ export const FIND_KINDS = Object.freeze(['message', 'project', 'note', 'source-r
 const FIND_LABELS = { message: 'Messages', project: 'Projects', note: 'Notes', 'source-reference': 'Local objects', selection: 'Selections' };
 const SHELL_VIEWS = new Set(['capture', 'find', 'transfer', 'relations', ...VIEWS]);
 const STANDARD_RELATION_BASIS = 'local association; not native equality';
+const EXPORT_MODE_LABEL = { references: 'References only — no message text', transcript: 'Transcript — saved message text and simple formatting', 'full-saved': 'Full saved — every recorded block' };
+const EXPORT_OMIT_LABEL = { 'reasoning-blocks-excluded': 'Saved reasoning blocks left out', 'tool-activity-blocks-excluded': 'Tool and status activity blocks left out', 'non-transcript-blocks-excluded': 'Blocks Studio does not recognize left out' };
 const ID_RE = { conversations: /^c-[a-z0-9-]{1,60}$/, projects: /^p-[a-z0-9-]{1,60}$/, notes: /^n-[a-z0-9-]{1,60}$/ };
 
 const clip = (s, n) => (s.length > n ? s.slice(0, n) + '…' : s);
@@ -638,7 +640,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     custody: 'observed',
     relations: { id: '', typed: '', map: null, error: '', status: '', loading: false, recordId: null },
     transfer: {
-      includeSources: false, selected: {}, bundle: null, blobUrl: '', exportError: '', exportStatus: '',
+      exportMode: 'references', exportParts: { reasoning: false, toolActivity: false }, selected: {}, bundle: null, blobUrl: '', exportError: '', exportStatus: '',
       importText: '', importError: '', importStatus: '', check: null, checkText: '', dryRun: null, confirm: false, restore: null, loading: '',
     },
   };
@@ -1492,26 +1494,80 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
         choices.append(el('label', { class: 'pick', for: 'export-' + item.id }, [box, el('span', {}, [el('b', { text: item.title || item.id }), el('span', { class: 'mono', text: ' ' + item.id })])]));
       }
     }
-    const sources = el('input', { type: 'checkbox', id: 'worldIncludeSources' });
-    sources.checked = t.includeSources === true;
-    on(sources, 'change', () => { t.includeSources = sources.checked; clearExportBundle(); t.exportStatus = ''; renderTransfer(); });
+    const exportMode = t.exportMode === 'transcript' || t.exportMode === 'full-saved' ? t.exportMode : 'references';
+    const modePicker = el('div', { id: 'worldExportModes', role: 'radiogroup', 'aria-label': 'What the export includes' });
+    for (const [value, label, sentence] of [
+      ['references', EXPORT_MODE_LABEL.references, 'Leaves out everything you read: no message text, no reasoning, no tool or status activity.'],
+      ['transcript', EXPORT_MODE_LABEL.transcript, 'Leaves out reasoning, tool and status activity, and any block type Studio does not recognize.'],
+      ['full-saved', EXPORT_MODE_LABEL['full-saved'], 'Keeps every recorded block Studio has, even ones it does not recognize. Only the two boxes below can leave anything out.'],
+    ]) {
+      const radio = el('input', { type: 'radio', id: 'worldExportMode-' + value, name: 'worldExportMode', value });
+      radio.checked = exportMode === value;
+      on(radio, 'change', () => {
+        if (!radio.checked || exportMode === value) return;
+        t.exportMode = value;
+        clearExportBundle();
+        t.exportStatus = '';
+        renderTransfer();
+      });
+      modePicker.append(el('label', { class: 'pick', for: 'worldExportMode-' + value }, [radio, el('span', { text: label }), el('span', { class: 'note', text: ' ' + sentence })]));
+    }
+    const partBox = (key, label) => {
+      const box = el('input', { type: 'checkbox', id: 'worldExportPart-' + key });
+      box.checked = t.exportParts[key] === true;
+      box.disabled = exportMode === 'references';
+      on(box, 'change', () => {
+        if (box.disabled) return;
+        t.exportParts[key] = box.checked;
+        clearExportBundle();
+        t.exportStatus = '';
+        renderTransfer();
+      });
+      return el('label', { class: 'pick', for: 'worldExportPart-' + key }, [box, el('span', { text: label })]);
+    };
+    const partsHint = exportMode === 'references'
+      ? el('p', { class: 'note', text: 'References only has no message text, so there is nothing to turn on here. Choose Transcript or Full saved first.' })
+      : el('p', { class: 'note', text: 'These stay off until you turn them on. What is ticked goes into the file unredacted.' });
     const preview = el('button', { type: 'button', id: 'worldExportPreview', text: t.loading === 'export' ? 'Previewing…' : 'Preview' });
     preview.disabled = t.loading === 'export' || !selectedExportIds().length;
     on(preview, 'click', () => runExport());
     const previewBox = el('div', { id: 'worldExportPreviewOut' });
     if (t.bundle) {
+      const scope = t.bundle.scope && typeof t.bundle.scope === 'object' ? t.bundle.scope : null;
+      const coverage = t.bundle.coverage && typeof t.bundle.coverage === 'object' ? t.bundle.coverage : null;
+      const appliedMode = typeof scope?.mode === 'string' ? scope.mode : null;
       const counts = custodyCounts(t.bundle.records);
       previewBox.append(factList('Records by custody', Object.entries(counts).map(([label, count]) => ({ label, value: String(count) }))));
+      previewBox.append(el('p', { text: appliedMode ? `Export used this mode: ${EXPORT_MODE_LABEL[appliedMode] ?? appliedMode}.` : 'The bundle did not say which mode was applied. Check it before you share it.' }));
+      if (appliedMode && appliedMode !== exportMode) previewBox.append(el('p', { class: 'err', text: `You asked for ${EXPORT_MODE_LABEL[exportMode] ?? exportMode}, but the bundle says ${EXPORT_MODE_LABEL[appliedMode] ?? appliedMode}. It may not be what you asked for.` }));
+      if (scope?.parts && typeof scope.parts === 'object') {
+        previewBox.append(el('p', { class: 'note', text: `Saved reasoning included: ${scope.parts.reasoning === true ? 'yes' : 'no'}. Tool and status activity included: ${scope.parts.toolActivity === true ? 'yes' : 'no'}.` }));
+      }
       const omitted = Array.isArray(t.bundle.omitted) ? t.bundle.omitted : [];
       previewBox.append(el('h3', { text: 'Left out' }));
       if (!omitted.length) previewBox.append(el('p', { class: 'note', text: 'Nothing was listed as left out.' }));
-      for (const item of omitted.slice(0, 30)) previewBox.append(el('p', { text: `${item?.id ?? 'record'}: ${item?.reason ?? 'reason not given'}` }));
-      const coverage = t.bundle.coverage && typeof t.bundle.coverage === 'object' ? t.bundle.coverage : null;
-      previewBox.append(el('p', { text: t.includeSources !== true
-        ? 'References only. Calling that scope complete does not mean message text is in the file.'
-        : (coverage?.complete === true ? 'The bundle calls its declared scope complete. That is not a claim about a provider.' : 'The bundle does not call its declared scope complete.') }));
-      if (typeof coverage?.qualification === 'string') previewBox.append(el('p', { class: 'note', text: coverage.qualification }));
-      previewBox.append(el('p', { class: 'note', text: 'Selected content is not automatically redacted. The hash checks the file only. It does not prove who wrote it or that a provider still has it.' }));
+      else {
+        const totals = {};
+        for (const item of omitted) {
+          const reason = typeof item?.reason === 'string' && item.reason ? item.reason : 'reason not given';
+          totals[reason] = (totals[reason] ?? 0) + (Number.isInteger(item?.count) ? item.count : 1);
+        }
+        for (const [reason, count] of Object.entries(totals)) previewBox.append(el('p', { text: `${EXPORT_OMIT_LABEL[reason] ?? reason}: ${count}` }));
+        for (const item of omitted.slice(0, 30)) previewBox.append(el('p', { class: 'note', text: `${item?.id ?? 'record'}: ${EXPORT_OMIT_LABEL[item?.reason] ?? item?.reason ?? 'reason not given'}${Number.isInteger(item?.count) ? ` (${item.count})` : ''}` }));
+      }
+      previewBox.append(el('p', { class: 'note', text: typeof coverage?.modeSemantics === 'string' ? coverage.modeSemantics : 'The bundle did not say what its mode means.' }));
+      previewBox.append(el('p', { text: coverage?.complete === true
+        ? 'The bundle calls its declared scope complete. That is about the declared scope and its mode, not about everything, and not a claim about a provider.'
+        : 'The bundle does not call its declared scope complete.' }));
+      if (appliedMode === 'references') previewBox.append(el('p', { text: 'References only: calling that scope complete does not mean message text is in the file.' }));
+      if (typeof coverage?.qualification === 'string' && coverage.qualification) previewBox.append(el('p', { class: 'note', text: coverage.qualification }));
+      const strongWarning = scope?.parts && typeof scope.parts === 'object'
+        ? scope.parts.reasoning === true || scope.parts.toolActivity === true
+        : exportMode !== 'references' && (t.exportParts.reasoning === true || t.exportParts.toolActivity === true);
+      previewBox.append(el('p', { class: 'note', text: 'The hash is integrity only. It checks the file, not who wrote it and not that a provider still has it.' }));
+      previewBox.append(el('p', { class: 'note', text: strongWarning
+        ? 'Selected content is not automatically redacted, and this may contain content you did not mean to share. Read every line before you share it.'
+        : 'Selected content is not automatically redacted.' }));
       if (t.bundle.integrity?.sha256) previewBox.append(el('p', { class: 'mono', text: String(t.bundle.integrity.sha256).slice(0, 12) }));
       let href = '';
       try {
@@ -1562,7 +1618,10 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
       status,
       el('h3', { text: 'Export' }),
       choices,
-      el('label', { class: 'pick', for: 'worldIncludeSources' }, [sources, el('span', { text: 'Include saved message text. Leave this off to keep references only. Text that is included is not redacted.' })]),
+      modePicker,
+      partBox('reasoning', 'Include saved reasoning'),
+      partBox('toolActivity', 'Include saved tool and status activity'),
+      partsHint,
       el('div', { class: 'row' }, [preview]),
       exportError,
       previewBox,
@@ -1628,7 +1687,12 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     state.transfer.loading = 'export';
     state.transfer.exportError = '';
     if (state.view === 'transfer') renderTransfer();
-    const result = await call('/transfer/export', { method: 'POST', signal: controller?.signal, body: { ids, includeSources: state.transfer.includeSources === true } });
+    const template = state.transfer.exportMode === 'references' || state.transfer.exportMode === 'transcript' || state.transfer.exportMode === 'full-saved'
+      ? state.transfer.exportMode : 'references';
+    state.transfer.exportMode = template;
+    const body = { ids, mode: template };
+    if (template !== 'references') body.parts = { reasoning: state.transfer.exportParts.reasoning === true, toolActivity: state.transfer.exportParts.toolActivity === true };
+    const result = await call('/transfer/export', { method: 'POST', signal: controller?.signal, body });
     if (ticket !== exportTicket || state.view !== 'transfer') return;
     state.transfer.loading = '';
     if (result.aborted) return;

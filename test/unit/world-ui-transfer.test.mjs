@@ -63,7 +63,9 @@ test('transfer is a peer view and does not treat a partial restore as success', 
 
 test('export preview can be downloaded, import waits for a check, and imported rows stay labeled', async () => {
   const calls = [];
-  const bundle = { schema: 'vivim.world-export/1', records: [{ id: pid, kind: 'project', custody: 'user-overlay' }], omitted: [{ id: cid, reason: 'SOURCES_NOT_REQUESTED' }], coverage: { complete: false, qualification: 'Selected content is not automatically redacted.' }, integrity: { sha256: 'abc123abc123', purpose: 'integrity only' } };
+  const bundle = { schema: 'vivim.world-export/1', namespace: { id: 'w-1', kind: 'namespace' }, records: [{ id: pid, kind: 'project', custody: 'user-overlay' }], omitted: [{ id: cid, reason: 'SOURCES_NOT_REQUESTED' }],
+    scope: { ids: [pid], includeSources: false, mode: 'references', parts: { reasoning: false, toolActivity: false }, dependencyClosure: 'outgoing-world-references' },
+    coverage: { complete: false, mode: 'references', modeSemantics: 'metadata only; source conversations may not be present', qualification: 'Selected content is not automatically redacted.' }, integrity: { sha256: 'abc123abc123', purpose: 'integrity only' } };
   const checked = { valid: true, digest: 'abc123abc123abcd', counts: { records: 1, unresolved: 1, omitted: 1, errors: 0 }, idMap: { [pid]: 'p-new' }, unresolved: [{ id: 'n-missing', reason: 'NOT_IN_BUNDLE' }], omitted: [{ id: cid, reason: 'SOURCES_NOT_REQUESTED' }], errors: [], extraNote: 'kept-detail' };
   const fetchImpl = async (url, init = {}) => {
     const path = String(url).replace(/^.*\/api\/v1\/world/, '');
@@ -94,7 +96,8 @@ test('export preview can be downloaded, import waits for a check, and imported r
   await box.dispatch('change');
   await byId(root, 'worldExportPreview').click();
   const exported = calls.find((call) => call.path === '/transfer/export');
-  assert.deepEqual(exported.body, { ids: [pid], includeSources: false });
+  assert.deepEqual(exported.body, { ids: [pid], mode: 'references' });
+  assert.equal('includeSources' in exported.body, false);
   assert.match(root.textContent, /user-overlay/);
   assert.match(root.textContent, /SOURCES_NOT_REQUESTED/);
   assert.match(root.textContent, /not automatically redacted/i);
