@@ -53,6 +53,7 @@ test('imported snapshot messages are searchable and keep imported custody', (t) 
   assert.equal(hit.source.sessionId, null);
   assert.equal(Object.hasOwn(hit.source, 'originSessionId'), false);
   assert.equal(hit.source.sessionId === source.session.id, false);
+  assert.equal(hit.id, `${hit.conversation.id}:turn:0`, 'the hit id is the local imported message id');
   assert.equal(typeof hit.importedFrom.digest, 'string');
   assert.equal(typeof hit.importedFrom.originalId, 'string');
   assert.equal(typeof hit.importedFrom.namespaceId, 'string');
@@ -131,6 +132,24 @@ test('imported classification follows custody and importedFrom, not conversation
   assert.equal(observed.custody, 'observed');
   assert.equal(observed.conversation.id, observedId);
   assert.equal(observed.source.sessionId, 'local-session');
+});
+
+test('same-machine export and restore keeps observed and imported hits distinct and resolvable by id', (t) => {
+  const target = world(t, 'self-import-marker');
+  const bundle = bundleOf(target.service);
+  restore(target.service, bundle);
+  const result = searchOf(target.service)({ q: 'self-import-marker', kind: 'message' });
+  assert.equal(result.total, 2, 'the observed copy and the imported copy both match');
+  assert.equal(new Set(result.items.map((hit) => hit.id)).size, 2, 'an imported hit must keep its own id when the origin also exists locally');
+  const imported = result.items.find((hit) => hit.custody === 'imported-snapshot');
+  const observed = result.items.find((hit) => hit.custody === 'observed');
+  assert.equal(imported.id, `${imported.conversation.id}:turn:0`, 'imported hit ids are built from the local imported conversation id');
+  assert.equal(observed.id, `${observed.conversation.id}:turn:0`);
+  assert.match(imported.conversation.id, /^c-i[a-f0-9]{38}$/);
+  assert.notEqual(imported.id, observed.id);
+  const detail = target.service.conversation(imported.conversation.id);
+  assert.equal(detail.coverage.state, 'imported-snapshot');
+  assert.ok(detail.messages[0].text.includes('self-import-marker'));
 });
 
 test('invalid custody is rejected before scanning', (t) => {

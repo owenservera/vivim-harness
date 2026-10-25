@@ -157,7 +157,6 @@ export function createWorldSearch({ service, limits } = {}) {
           scanned.messages++;
           const content = [message?.text, richText(message?.blocks)].filter((part) => typeof part === 'string' && part.trim()).join('\n');
           if (!content) continue;
-          const id = typeof message?.id === 'string' && message.id ? message.id : `${meta.id}:turn:${position}`;
           const role = typeof message?.role === 'string' ? message.role : 'unknown';
           const recorded = message?.source && typeof message.source === 'object' ? { ...message.source } : {};
           delete recorded.originSessionId;
@@ -166,6 +165,11 @@ export function createWorldSearch({ service, limits } = {}) {
             if (recorded.kind === 'saved-observation' || recorded.kind === 'saved-session' || recorded.kind == null) recorded.kind = 'imported-reference';
             recorded.sessionId = null;
           }
+          // Imported hit ids are built from the LOCAL imported conversation id so they stay resolvable
+          // in this world and distinct from any locally observed copy of the same origin conversation.
+          // Origin ids remain only inside importedFrom.
+          const id = imported ? `${meta.id}:turn:${position}`
+            : typeof message?.id === 'string' && message.id ? message.id : `${meta.id}:turn:${position}`;
           put(id, {
             id, kind: 'message', title: `${role} message ${position + 1}`,
             role, conversation: { id: meta.id, title: meta.title ?? null },
