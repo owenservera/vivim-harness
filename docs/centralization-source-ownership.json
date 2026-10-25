@@ -1,0 +1,444 @@
+{
+  "schema": "vivim-harness.centralization-inventory/1",
+  "sourceRepositories": [
+    "owenservera/aion",
+    "owenservera/vivim-harness"
+  ],
+  "refs": {
+    "aionMainBeforeGovernance": "2f50a56356fb9355fb012bc219e90b4f39ec1834",
+    "harnessBranch": "22d695dad87c03ee33a2e0cab8f2f3c5c58d14d7",
+    "aionGovernanceCommit": "820725a709bdbc8e5ee572c52457ac3c709da31b"
+  },
+  "originalStudio": {
+    "sourcePath": "workspace/aion/sessions/roles/09-global-research/labs/website-to-local-streaming/capture-studio/",
+    "trackedFiles": 386,
+    "identicalInHarnessMain": 385,
+    "nonIdentical": 1
+  },
+  "candidateScope": "AION main: Agent14, capture-studio ops, QA, capture-studio CI; omits independent Chrome Relay and historical research docs",
+  "additionalTrackedAssetPaths": 66,
+  "assetClassificationCounts": {
+    "legacy-active-ci-until-cutover": 1,
+    "historical-bundle-metadata": 7,
+    "already-present-identical": 10,
+    "unported-test-review": 6,
+    "unported-fixture-review": 1,
+    "divergent-canonical-module-review": 14,
+    "unresolved-implementation-review": 1,
+    "migrated-to-review-branch": 26
+  },
+  "assetPaths": [
+    {
+      "source": ".github/workflows/capture-studio-intel.yml",
+      "sourceBlob": "29c6cef64d919ec47a86dab391f1c409d872b3f7",
+      "canonical": ".github/workflows/ci.yml",
+      "classification": "legacy-active-ci-until-cutover"
+    },
+    {
+      "source": "workspace/aion/ops/capture-studio-core/LAYERED-CAKE.json",
+      "sourceBlob": "19bf489b62b6b657d4895206bbf3953608f21cc4",
+      "canonical": null,
+      "classification": "historical-bundle-metadata"
+    },
+    {
+      "source": "workspace/aion/ops/capture-studio-core/handoffs/parallel-2026-10-24/core-runtime-bridge.mjs",
+      "sourceBlob": "90967c465e1abe5c6e0fe9fe390850234c2a8603",
+      "canonical": "src/studio/core-runtime-bridge.mjs",
+      "classification": "already-present-identical"
+    },
+    {
+      "source": "workspace/aion/ops/capture-studio-core/handoffs/parallel-2026-10-24/core-runtime-bridge.test.mjs",
+      "sourceBlob": "5d3b38925c0bdc3cd9228c073a3d3071013cb13d",
+      "canonical": null,
+      "classification": "unported-test-review"
+    },
+    {
+      "source": "workspace/aion/ops/capture-studio-core/handoffs/parallel-2026-10-24/offline-fixture.mjs",
+      "sourceBlob": "a0d236e57f6b0ae39ea9054253e0dd7dd50edf4e",
+      "canonical": null,
+      "classification": "unported-fixture-review"
+    },
+    {
+      "source": "workspace/aion/ops/capture-studio-knowledge-learning/handoffs/parallel-2026-10-24/PROPOSAL-EXAMPLE.json",
+      "sourceBlob": "bae50c8c1233f1e1041d5e7dd7942a5d4293cf72",
+      "canonical": "test/fixtures/agent14/proposal-example.json",
+      "classification": "already-present-identical"
+    },
+    {
+      "source": "workspace/aion/ops/capture-studio-knowledge-learning/handoffs/parallel-2026-10-24/capture-to-signals.mjs",
+      "sourceBlob": "e45390f7c114f14949b502108752c1f2b690a9c9",
+      "canonical": "src/studio/adapter-capture-to-signals.mjs",
+      "classification": "divergent-canonical-module-review"
+    },
+    {
+      "source": "workspace/aion/ops/capture-studio-knowledge-learning/handoffs/parallel-2026-10-24/capture-to-signals.test.mjs",
+      "sourceBlob": "5af9805bc4cb7bdf6300ef5658235266c2ec941b",
+      "canonical": null,
+      "classification": "unported-test-review"
+    },
+    {
+      "source": "workspace/aion/ops/capture-studio-knowledge-learning/handoffs/parallel-2026-10-24/intake.mjs",
+      "sourceBlob": "1745f8d2128102e271f64c3070479da0c6e1ac14",
+      "canonical": "src/studio/adapter-evidence-intake.mjs",
+      "classification": "divergent-canonical-module-review"
+    },
+    {
+      "source": "workspace/aion/ops/capture-studio-knowledge-learning/handoffs/parallel-2026-10-24/pipeline.mjs",
+      "sourceBlob": "f8fd976bff03bab7ac048abe605c522aadc113b3",
+      "canonical": "src/studio/adapter-improvement-pipeline.mjs",
+      "classification": "divergent-canonical-module-review"
+    },
+    {
+      "source": "workspace/aion/ops/capture-studio-knowledge-learning/handoffs/parallel-2026-10-24/studio-bridge.mjs",
+      "sourceBlob": "e31e5979c37ea1acc472ad02e444ba6c928be15b",
+      "canonical": "src/studio/adapter-studio-bridge.mjs",
+      "classification": "divergent-canonical-module-review"
+    },
+    {
+      "source": "workspace/aion/ops/capture-studio-knowledge-learning/handoffs/parallel-2026-10-24/supplier.test.mjs",
+      "sourceBlob": "824bbbc7296b0189a40ebb68c2f62e5081f905bd",
+      "canonical": null,
+      "classification": "unported-test-review"
+    },
+    {
+      "source": "workspace/aion/ops/capture-studio-systems/handoffs/parallel-2026-10-24/RESULTS.json",
+      "sourceBlob": "7af83a4ce7cccf599a5e7b09c0ac1b4c57f1a58e",
+      "canonical": null,
+      "classification": "historical-bundle-metadata"
+    },
+    {
+      "source": "workspace/aion/ops/capture-studio-systems/handoffs/parallel-2026-10-24/bench.mjs",
+      "sourceBlob": "e946099bb11f4ab86b7027421390b26c6aad74ed",
+      "canonical": null,
+      "classification": "unresolved-implementation-review"
+    },
+    {
+      "source": "workspace/aion/ops/capture-studio-systems/handoffs/parallel-2026-10-24/fixtures.json",
+      "sourceBlob": "ceba9c5326ad10b4a22f7ad06ed3addab66d7a51",
+      "canonical": "test/fixtures/agent14/systems-fixtures.json",
+      "classification": "already-present-identical"
+    },
+    {
+      "source": "workspace/aion/ops/capture-studio-systems/handoffs/parallel-2026-10-24/systems-probes.mjs",
+      "sourceBlob": "076ca6b66b2ae93f58deb8b48356332ac88d55f1",
+      "canonical": "src/studio/systems-probes.mjs",
+      "classification": "already-present-identical"
+    },
+    {
+      "source": "workspace/aion/ops/capture-studio-systems/handoffs/parallel-2026-10-24/systems-probes.test.mjs",
+      "sourceBlob": "e4cfa4ce7621be596d615ef62de8af057825b50c",
+      "canonical": null,
+      "classification": "unported-test-review"
+    },
+    {
+      "source": "workspace/aion/ops/capture-studio-ui/handoffs/parallel-2026-10-24/fixtures.mjs",
+      "sourceBlob": "0b437585ad038d922b19a6d5b98acd6d282d7b60",
+      "canonical": "test/fixtures/agent14/universal-chat-fixtures.mjs",
+      "classification": "already-present-identical"
+    },
+    {
+      "source": "workspace/aion/ops/capture-studio-ui/handoffs/parallel-2026-10-24/universal-chat.mjs",
+      "sourceBlob": "922fccf07d92a6c620e12d7bdec674358a872521",
+      "canonical": "src/studio/ui/universal-chat.mjs",
+      "classification": "divergent-canonical-module-review"
+    },
+    {
+      "source": "workspace/aion/ops/capture-studio-ui/handoffs/parallel-2026-10-24/universal-chat.test.mjs",
+      "sourceBlob": "e9feb12d71de34e7da5586fede2051a76e88b1d9",
+      "canonical": null,
+      "classification": "unported-test-review"
+    },
+    {
+      "source": "workspace/aion/ops/capture-studio-value-oracle/prototypes/demo-saved-session-runner.mjs",
+      "sourceBlob": "12843b963d2fc9212628c7b0a4bab60ffe6e3c64",
+      "canonical": "scripts/value-oracle-demo.mjs",
+      "classification": "migrated-to-review-branch"
+    },
+    {
+      "source": "workspace/aion/ops/capture-studio-value-oracle/prototypes/fixtures/demo.json",
+      "sourceBlob": "196fc4ab807cb2fab7b301038d0268cca03daaec",
+      "canonical": "test/fixtures/value-oracle/demo.json",
+      "classification": "migrated-to-review-branch"
+    },
+    {
+      "source": "workspace/aion/ops/capture-studio-value-oracle/prototypes/outcome-packet.mjs",
+      "sourceBlob": "a3882b0ec8055745410e0b1f4a7b8d14acbb19a1",
+      "canonical": "src/export/outcome-packet.mjs",
+      "classification": "migrated-to-review-branch"
+    },
+    {
+      "source": "workspace/aion/ops/capture-studio-value-oracle/prototypes/outcome-packet.test.mjs",
+      "sourceBlob": "04052842d995ce156dcbe6b8b7b296fb304dc852",
+      "canonical": "test/qa/outcome-packet.test.mjs",
+      "classification": "migrated-to-review-branch"
+    },
+    {
+      "source": "workspace/aion/ops/capture-studio-value-oracle/prototypes/saved-session-outcome.mjs",
+      "sourceBlob": "d2326b11216509f64f83ffadc9941dd285065f10",
+      "canonical": "src/export/saved-session-outcome.mjs",
+      "classification": "migrated-to-review-branch"
+    },
+    {
+      "source": "workspace/aion/ops/capture-studio-value-oracle/prototypes/saved-session-outcome.test.mjs",
+      "sourceBlob": "7edb3b24e6764a63b09ac9fb87b959c15e28e3a0",
+      "canonical": "test/qa/saved-session-outcome.test.mjs",
+      "classification": "migrated-to-review-branch"
+    },
+    {
+      "source": "workspace/aion/qa/capture-studio/tests/native-shape-fidelity.test.mjs",
+      "sourceBlob": "747a65c0eeccdc75a93e9293b3a1c63333832812",
+      "canonical": "test/qa/native-shape-fidelity.test.mjs",
+      "classification": "migrated-to-review-branch"
+    },
+    {
+      "source": "workspace/aion/qa/capture-studio/tests/replay-fidelity.test.mjs",
+      "sourceBlob": "b37d6d02302a37ae6fca1614c27dc108ad0f55d5",
+      "canonical": "test/qa/replay-fidelity.test.mjs",
+      "classification": "migrated-to-review-branch"
+    },
+    {
+      "source": "workspace/aion/qa/capture-studio/tests/sprint01-temporal-graph.test.mjs",
+      "sourceBlob": "537a022a9b3d5d36a0ee86defdddcf3c2f1da317",
+      "canonical": "test/qa/sprint01-temporal-graph.test.mjs",
+      "classification": "migrated-to-review-branch"
+    },
+    {
+      "source": "workspace/aion/qa/capture-studio/tests/sprint02-capture-safety.test.mjs",
+      "sourceBlob": "aad172db4400800179fb7f834601192cee93a819",
+      "canonical": "test/qa/sprint02-capture-safety.test.mjs",
+      "classification": "migrated-to-review-branch"
+    },
+    {
+      "source": "workspace/aion/qa/capture-studio/tools/count-metrics.mjs",
+      "sourceBlob": "25f0067e9f52ea8d07f7517f7fccd9ca18f66843",
+      "canonical": "scripts/qa-count-metrics.mjs",
+      "classification": "migrated-to-review-branch"
+    },
+    {
+      "source": "workspace/aion/sessions/roles/14-webapp-native-harness/implementations/round6/harness-executor-preflight.mjs",
+      "sourceBlob": "316fb94f0819782c18986c0dd49dc5e32a8df163",
+      "canonical": "src/studio/harness-executor-preflight.mjs",
+      "classification": "already-present-identical"
+    },
+    {
+      "source": "workspace/aion/sessions/roles/14-webapp-native-harness/implementations/round6/harness-executor-preflight.test.mjs",
+      "sourceBlob": "e9af5435704b79080476383e5b3d53f830fcf431",
+      "canonical": "test/qa/agent14-round6-preflight.test.mjs",
+      "classification": "migrated-to-review-branch"
+    },
+    {
+      "source": "workspace/aion/sessions/roles/14-webapp-native-harness/implementations/round6/harness-runs.mjs",
+      "sourceBlob": "e20717a21d285ead175fd57a8b379bde4b0aeb42",
+      "canonical": "src/capture/harness-runs.mjs",
+      "classification": "divergent-canonical-module-review"
+    },
+    {
+      "source": "workspace/aion/sessions/roles/14-webapp-native-harness/implementations/round6/harness-runs.test.mjs",
+      "sourceBlob": "ed9da383170b0556642b7888c158d61fc463ce04",
+      "canonical": "test/qa/agent14-round6-runs.test.mjs",
+      "classification": "migrated-to-review-branch"
+    },
+    {
+      "source": "workspace/aion/sessions/roles/14-webapp-native-harness/implementations/round7/uncertain-step-reconciler.mjs",
+      "sourceBlob": "fc73d2b57d752924ca895fbe4b567cfbd8c2b56f",
+      "canonical": "src/studio/uncertain-step-reconciler.mjs",
+      "classification": "already-present-identical"
+    },
+    {
+      "source": "workspace/aion/sessions/roles/14-webapp-native-harness/implementations/round7/uncertain-step-reconciler.test.mjs",
+      "sourceBlob": "eba436dce5151d0996d9c986fa7443b874f94371",
+      "canonical": "test/qa/agent14-round7-reconciler.test.mjs",
+      "classification": "migrated-to-review-branch"
+    },
+    {
+      "source": "workspace/aion/sessions/roles/14-webapp-native-harness/implementations/round8/adaptive-adapter-factory.mjs",
+      "sourceBlob": "b080681d195a07f081a1dc152702152ec97909af",
+      "canonical": "src/studio/adaptive-adapter-factory.mjs",
+      "classification": "divergent-canonical-module-review"
+    },
+    {
+      "source": "workspace/aion/sessions/roles/14-webapp-native-harness/implementations/round8/adaptive-adapter-factory.test.mjs",
+      "sourceBlob": "3bb8a274753b9c8f866178fdfa8c5ac64ae7d4cc",
+      "canonical": "test/qa/agent14-round8-adapter-factory.test.mjs",
+      "classification": "migrated-to-review-branch"
+    },
+    {
+      "source": "workspace/aion/sessions/roles/14-webapp-native-harness/implementations/round9/adapter-holdout-gate.mjs",
+      "sourceBlob": "1bd55b4d3f6617a71975610524aa4426e761feea",
+      "canonical": "src/studio/adapter-holdout-gate.mjs",
+      "classification": "already-present-identical"
+    },
+    {
+      "source": "workspace/aion/sessions/roles/14-webapp-native-harness/implementations/round9/guardrails.test.mjs",
+      "sourceBlob": "b492e27d48cfaf575a4cd13d3d134ec0bed68ba5",
+      "canonical": "test/qa/agent14-round9-guardrails.test.mjs",
+      "classification": "migrated-to-review-branch"
+    },
+    {
+      "source": "workspace/aion/sessions/roles/14-webapp-native-harness/implementations/round9/intent-bindings.mjs",
+      "sourceBlob": "5737e5add6228f58894c98c93e595c6a67a5d5c1",
+      "canonical": "src/studio/intent-bindings.mjs",
+      "classification": "divergent-canonical-module-review"
+    },
+    {
+      "source": "workspace/aion/sessions/roles/14-webapp-native-harness/integration-campaigns/parallel-four-lane-2026-10-24/CONSOLIDATED/SHA256-MANIFEST.json",
+      "sourceBlob": "5553ececbbe5358a9c85137241f8be6031116762",
+      "canonical": null,
+      "classification": "historical-bundle-metadata"
+    },
+    {
+      "source": "workspace/aion/sessions/roles/14-webapp-native-harness/integration-campaigns/parallel-four-lane-2026-10-24/CONSOLIDATED/SOURCE-LEDGER.json",
+      "sourceBlob": "2c4281573d6bb49402a9e210c90e3b449f2853dd",
+      "canonical": null,
+      "classification": "historical-bundle-metadata"
+    },
+    {
+      "source": "workspace/aion/sessions/roles/14-webapp-native-harness/integration-campaigns/parallel-four-lane-2026-10-24/CONSOLIDATED/integration-gates.mjs",
+      "sourceBlob": "e76048aeefbf2c932f3ef5109c41f0c4e5436fc6",
+      "canonical": "src/studio/four-lane-gates.mjs",
+      "classification": "divergent-canonical-module-review"
+    },
+    {
+      "source": "workspace/aion/sessions/roles/14-webapp-native-harness/integration-campaigns/parallel-four-lane-2026-10-24/CONSOLIDATED/integration-gates.test.mjs",
+      "sourceBlob": "f1fae490e7fe04d2c9020d7aa3686a928f7083a2",
+      "canonical": "test/qa/agent14-integration-gates.test.mjs",
+      "classification": "migrated-to-review-branch"
+    },
+    {
+      "source": "workspace/aion/sessions/roles/14-webapp-native-harness/integration-campaigns/parallel-four-lane-2026-10-24/CONSOLIDATED/lanes/core/core-runtime-bridge.mjs",
+      "sourceBlob": "90967c465e1abe5c6e0fe9fe390850234c2a8603",
+      "canonical": "src/studio/core-runtime-bridge.mjs",
+      "classification": "already-present-identical"
+    },
+    {
+      "source": "workspace/aion/sessions/roles/14-webapp-native-harness/integration-campaigns/parallel-four-lane-2026-10-24/CONSOLIDATED/lanes/core/core-runtime-bridge.test.mjs",
+      "sourceBlob": "5d3b38925c0bdc3cd9228c073a3d3071013cb13d",
+      "canonical": "test/qa/agent14-core-runtime-bridge.test.mjs",
+      "classification": "migrated-to-review-branch"
+    },
+    {
+      "source": "workspace/aion/sessions/roles/14-webapp-native-harness/integration-campaigns/parallel-four-lane-2026-10-24/CONSOLIDATED/lanes/core/offline-fixture.mjs",
+      "sourceBlob": "a0d236e57f6b0ae39ea9054253e0dd7dd50edf4e",
+      "canonical": "test/fixtures/agent14/offline-fixture.mjs",
+      "classification": "migrated-to-review-branch"
+    },
+    {
+      "source": "workspace/aion/sessions/roles/14-webapp-native-harness/integration-campaigns/parallel-four-lane-2026-10-24/CONSOLIDATED/lanes/intelligence/PROPOSAL-EXAMPLE.json",
+      "sourceBlob": "bae50c8c1233f1e1041d5e7dd7942a5d4293cf72",
+      "canonical": "test/fixtures/agent14/proposal-example.json",
+      "classification": "migrated-to-review-branch"
+    },
+    {
+      "source": "workspace/aion/sessions/roles/14-webapp-native-harness/integration-campaigns/parallel-four-lane-2026-10-24/CONSOLIDATED/lanes/intelligence/capture-to-signals.mjs",
+      "sourceBlob": "e45390f7c114f14949b502108752c1f2b690a9c9",
+      "canonical": "src/studio/adapter-capture-to-signals.mjs",
+      "classification": "divergent-canonical-module-review"
+    },
+    {
+      "source": "workspace/aion/sessions/roles/14-webapp-native-harness/integration-campaigns/parallel-four-lane-2026-10-24/CONSOLIDATED/lanes/intelligence/capture-to-signals.test.mjs",
+      "sourceBlob": "5af9805bc4cb7bdf6300ef5658235266c2ec941b",
+      "canonical": "test/qa/agent14-capture-signals.test.mjs",
+      "classification": "migrated-to-review-branch"
+    },
+    {
+      "source": "workspace/aion/sessions/roles/14-webapp-native-harness/integration-campaigns/parallel-four-lane-2026-10-24/CONSOLIDATED/lanes/intelligence/intake.mjs",
+      "sourceBlob": "1745f8d2128102e271f64c3070479da0c6e1ac14",
+      "canonical": "src/studio/adapter-evidence-intake.mjs",
+      "classification": "divergent-canonical-module-review"
+    },
+    {
+      "source": "workspace/aion/sessions/roles/14-webapp-native-harness/integration-campaigns/parallel-four-lane-2026-10-24/CONSOLIDATED/lanes/intelligence/pipeline.mjs",
+      "sourceBlob": "f8fd976bff03bab7ac048abe605c522aadc113b3",
+      "canonical": "src/studio/adapter-improvement-pipeline.mjs",
+      "classification": "divergent-canonical-module-review"
+    },
+    {
+      "source": "workspace/aion/sessions/roles/14-webapp-native-harness/integration-campaigns/parallel-four-lane-2026-10-24/CONSOLIDATED/lanes/intelligence/studio-bridge.mjs",
+      "sourceBlob": "9c1e12ad76014969707b70b33481fb298edd1fd5",
+      "canonical": "src/studio/adapter-studio-bridge.mjs",
+      "classification": "divergent-canonical-module-review"
+    },
+    {
+      "source": "workspace/aion/sessions/roles/14-webapp-native-harness/integration-campaigns/parallel-four-lane-2026-10-24/CONSOLIDATED/lanes/intelligence/supplier.test.mjs",
+      "sourceBlob": "824bbbc7296b0189a40ebb68c2f62e5081f905bd",
+      "canonical": null,
+      "classification": "unported-test-review"
+    },
+    {
+      "source": "workspace/aion/sessions/roles/14-webapp-native-harness/integration-campaigns/parallel-four-lane-2026-10-24/CONSOLIDATED/lanes/systems/RESULTS.json",
+      "sourceBlob": "7af83a4ce7cccf599a5e7b09c0ac1b4c57f1a58e",
+      "canonical": null,
+      "classification": "historical-bundle-metadata"
+    },
+    {
+      "source": "workspace/aion/sessions/roles/14-webapp-native-harness/integration-campaigns/parallel-four-lane-2026-10-24/CONSOLIDATED/lanes/systems/bench.mjs",
+      "sourceBlob": "e946099bb11f4ab86b7027421390b26c6aad74ed",
+      "canonical": "scripts/bench-agent14-systems.mjs",
+      "classification": "migrated-to-review-branch"
+    },
+    {
+      "source": "workspace/aion/sessions/roles/14-webapp-native-harness/integration-campaigns/parallel-four-lane-2026-10-24/CONSOLIDATED/lanes/systems/fixtures.json",
+      "sourceBlob": "ceba9c5326ad10b4a22f7ad06ed3addab66d7a51",
+      "canonical": "test/fixtures/agent14/systems-fixtures.json",
+      "classification": "migrated-to-review-branch"
+    },
+    {
+      "source": "workspace/aion/sessions/roles/14-webapp-native-harness/integration-campaigns/parallel-four-lane-2026-10-24/CONSOLIDATED/lanes/systems/systems-probes.mjs",
+      "sourceBlob": "076ca6b66b2ae93f58deb8b48356332ac88d55f1",
+      "canonical": "src/studio/systems-probes.mjs",
+      "classification": "already-present-identical"
+    },
+    {
+      "source": "workspace/aion/sessions/roles/14-webapp-native-harness/integration-campaigns/parallel-four-lane-2026-10-24/CONSOLIDATED/lanes/systems/systems-probes.test.mjs",
+      "sourceBlob": "e4cfa4ce7621be596d615ef62de8af057825b50c",
+      "canonical": "test/qa/agent14-systems-probes.test.mjs",
+      "classification": "migrated-to-review-branch"
+    },
+    {
+      "source": "workspace/aion/sessions/roles/14-webapp-native-harness/integration-campaigns/parallel-four-lane-2026-10-24/CONSOLIDATED/lanes/ui/fixtures.mjs",
+      "sourceBlob": "0b437585ad038d922b19a6d5b98acd6d282d7b60",
+      "canonical": "test/fixtures/agent14/universal-chat-fixtures.mjs",
+      "classification": "migrated-to-review-branch"
+    },
+    {
+      "source": "workspace/aion/sessions/roles/14-webapp-native-harness/integration-campaigns/parallel-four-lane-2026-10-24/CONSOLIDATED/lanes/ui/universal-chat.mjs",
+      "sourceBlob": "922fccf07d92a6c620e12d7bdec674358a872521",
+      "canonical": "src/studio/ui/universal-chat.mjs",
+      "classification": "divergent-canonical-module-review"
+    },
+    {
+      "source": "workspace/aion/sessions/roles/14-webapp-native-harness/integration-campaigns/parallel-four-lane-2026-10-24/CONSOLIDATED/lanes/ui/universal-chat.test.mjs",
+      "sourceBlob": "e9feb12d71de34e7da5586fede2051a76e88b1d9",
+      "canonical": "test/qa/agent14-universal-chat.test.mjs",
+      "classification": "migrated-to-review-branch"
+    },
+    {
+      "source": "workspace/aion/sessions/roles/14-webapp-native-harness/integration-campaigns/parallel-four-lane-2026-10-24/CONSOLIDATED/package.json",
+      "sourceBlob": "aa7ea5ed297cbebba050c2f814d5c7358c474326",
+      "canonical": null,
+      "classification": "historical-bundle-metadata"
+    },
+    {
+      "source": "workspace/aion/sessions/roles/14-webapp-native-harness/integration-campaigns/parallel-four-lane-2026-10-24/CONSOLIDATED/sha256-manifest.mjs",
+      "sourceBlob": "02dc98c9009ef8b818d0a2351350b72a58c44c50",
+      "canonical": null,
+      "classification": "historical-bundle-metadata"
+    }
+  ],
+  "branchCoverage": {
+    "branchesCompared": 17,
+    "divergedWithExclusiveSourceCommits": [
+      "agents/adapter-evolution-20261025"
+    ],
+    "divergedNonProduct": "handoff/windows-zai-fourlane-20261024",
+    "otherComparedBranchesBehindMain": 15
+  },
+  "verification": {
+    "sourceTreeShaCompared": true,
+    "relativeModuleImportsStaticallyResolved": true,
+    "nodeTestSuite": "not-run-ci-jobs-failed-without-steps",
+    "windowsLocalAcceptance": "not-verified",
+    "legacyAionRuntimeRetained": true,
+    "pr": "https://github.com/owenservera/vivim-harness/pull/1"
+  }
+}
