@@ -95,7 +95,15 @@ export function createWorldService({ paths, isSessionActive = () => false }) {
     },
     conversation(id) {
       const imported = importedConversation(id);
-      if (imported) return { ...conversationMetadata(id), messages: imported.messages,
+      if (imported) return { ...conversationMetadata(id),
+        messages: imported.messages.map((message, index) => {
+          // Read-time projection: message ids derive from the addressed LOCAL imported id, so detail ids,
+          // search hit ids and re-export ids agree. Stored bytes (and their origin ids) are never rewritten.
+          if (!message || typeof message !== 'object') return message;
+          const localId = `${id}:turn:${index}`, source = message.source && typeof message.source === 'object' ? { ...message.source } : {};
+          if (typeof source.messageId === 'string') source.messageId = localId;
+          return { ...message, id: localId, source };
+        }),
         coverage: { state: 'imported-snapshot', reason: null, fullNativeThread: 'unknown', acceptance: 'not-assessed', richContent: 'imported-as-supplied' } };
       const m = resolve(id);
       const unavailable = (reason) => ({ ...metadata(m), messages: [], coverage: { state: 'unavailable', reason,
