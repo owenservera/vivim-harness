@@ -44,7 +44,7 @@ code, .mono { font-family: var(--mono); font-size: 12.5px; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* every Chat control has at least a 44px hit area */
-button, select, input[type=text], textarea, summary, a.hit { min-height: 44px; }
+button, select, input[type=text], input[type=search], input[type=file], textarea, summary, a.hit { min-height: 44px; }
 a.hit { display: inline-flex; align-items: center; }
 .pick { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 4px 10px; cursor: pointer; border-radius: 8px; }
 .pick input { width: 22px; height: 22px; min-height: 0; margin: 0; padding: 0; flex: none; accent-color: var(--l1); }
@@ -211,6 +211,23 @@ ul.convs button { align-items: baseline; }
 .conv-title { font-weight: 600; overflow-wrap: anywhere; flex: 1 1 10rem; }
 .conv-meta { flex-basis: 100%; }
 @media (prefers-reduced-motion: no-preference) { .codeblk, .tablewrap { transition: border-color .15s; } .codeblk:focus-within { border-color: var(--l1); } }
+
+/* Saved-world views share the chat shell. The pressed view is only what is open, not a home. */
+.modes { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 8px 22px 0; }
+.modes button[aria-pressed="true"] { border-color: var(--l1); font-weight: 650; box-shadow: inset 0 -2px 0 var(--l1); }
+.modes-note { margin: 4px 22px 0; }
+.world-grid { display: grid; grid-template-columns: minmax(16rem, 22rem) minmax(0, 1fr); gap: 16px; align-items: start; }
+.local-mark { border-left: 4px solid var(--l3); }
+.unknown-part { border: 1px dashed var(--line); border-radius: 8px; padding: 8px 10px; margin: 8px 0 0; }
+.world .rowbtn { width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.world .rowbtn[aria-current="true"] { background: var(--hover); }
+.member { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.member .grow { flex: 1 1 12rem; overflow-wrap: anywhere; }
+@media (max-width: 800px) {
+  .modes { padding-left: 12px; padding-right: 12px; }
+  .modes-note { margin-left: 12px; margin-right: 12px; }
+  .world-grid { grid-template-columns: minmax(0, 1fr); }
+}
 </style>
 </head>
 <body>
@@ -221,6 +238,17 @@ ul.convs button { align-items: baseline; }
   <a href="/drive">Calibrate sites</a>
   <span id="connectionNote" class="note" role="status"></span>
 </header>
+
+<nav class="modes" id="shellModes" aria-label="Views">
+  <button type="button" id="viewCapture" data-view="capture" aria-pressed="true" aria-controls="chatApp">Capture</button>
+  <button type="button" id="viewConversations" data-view="conversations" aria-pressed="false" aria-controls="worldShell">Saved conversations</button>
+  <button type="button" id="viewProjects" data-view="projects" aria-pressed="false" aria-controls="worldShell">Projects</button>
+  <button type="button" id="viewNotes" data-view="notes" aria-pressed="false" aria-controls="worldShell">Notes</button>
+  <button type="button" id="viewFind" data-view="find" aria-pressed="false" aria-controls="worldShell">Find</button>
+  <button type="button" id="viewTransfer" data-view="transfer" aria-pressed="false" aria-controls="worldShell">Transfer</button>
+  <button type="button" id="viewRelations" data-view="relations" aria-pressed="false" aria-controls="worldShell">Relations</button>
+</nav>
+<p class="note modes-note" id="viewNote">Browse saved conversations, projects, and notes, find text in what is saved here, see local relations, or transfer a JSON bundle. Local edits do not change provider content. Your open view is remembered for this tab.</p>
 
 <div class="wrap" id="chatApp">
   <main>
@@ -409,6 +437,7 @@ ul.convs button { align-items: baseline; }
     </details>
   </aside>
 </div>
+<section id="worldShell" class="wrap world" hidden aria-label="Saved local world"></section>
 <div class="sr" id="announce" role="status" aria-live="polite" aria-atomic="true"></div>
 </body>
 </html>

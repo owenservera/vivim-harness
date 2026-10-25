@@ -1881,6 +1881,21 @@ function boot() {
     }).catch((err) => console.warn('universal intelligence panel unavailable', err));
   } catch (err) { console.warn('universal intelligence panel unavailable', err); }
 
+  // Saved local world: conversations, projects and notes are peer views in this shell.
+  // Same dynamic-import rule as U1 so the offline page tests never resolve the module.
+  if (inBrowser) try {
+    import('./world-view.mjs').then((mod) => {
+      const worldRoot = document.getElementById('worldShell');
+      const worldModes = document.getElementById('shellModes');
+      const worldChat = document.getElementById('chatApp');
+      if (!worldRoot || !worldModes || !worldChat || typeof mod.mountWorldView !== 'function') return;
+      mod.mountWorldView({
+        document, root: worldRoot, modes: worldModes, chat: worldChat, rich,
+        announce: (m) => { const n = document.getElementById('announce'); if (n) n.textContent = m; },
+      });
+    }).catch((err) => console.warn('saved world view unavailable', err));
+  } catch (err) { console.warn('saved world view unavailable', err); }
+
   render(); renderConnect();
   (async () => {
     await Promise.allSettled([loadTargets(), loadList()]);
