@@ -28,3 +28,9 @@ These two files are specialized subagent profiles, **not** automatically running
 2. Keep development inside existing modules. Verify focused tests then full suite; also check actual browser behavior when reachable.
 3. Report truthfully: source-only, synthetic/offline, saved-real-data observation, or live Windows/provider proof. GitHub action `startup_failure` is **not** a passing test.
 4. Publish exact changed paths, tests run, measured outcome, SHA, and remaining genuine blockers.
+
+## Git management
+For staging, commits and pushes of verified increments, dispatch [git-manager](.opencode/agents/git-manager.md) (free model). It stages explicit paths only and pushes only when the task says "push authorized".
+
+## Coordination trigger
+When coordinating ongoing integration or resuming queued work, read docs/agents/integration-coordinator.md, docs/agents/ralph-loop.md, docs/track/queue.md and docs/INTEGRATION-PROGRESS.md before dispatch.
