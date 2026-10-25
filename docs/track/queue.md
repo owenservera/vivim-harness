@@ -42,6 +42,7 @@ journey exists, which `1569abc` contradicts.
   secret-exclusion scan, and no import→export round trip through the UI.
 - Exact part deep link: `partPath` travels in a Find hit but `openHit()` (`src/studio/ui/world-view.mjs:1421`) focuses
   the message node by index and never reads `partPath`; no part-level target is opened.
+- search side: emit partPath for message hits (needs block-level match info) so Find part focus is live
 - Secret-exclusion proof: scan an actual exported bundle for cookies/tokens/profile data. Exclusion is by construction
   only today. Needs a real (or realistic) bundle, not a fixture assertion.
 - VD-0046 atomic knowledge-unit taxonomy (notes are title + free-text body; no addressable provenance-qualified unit).
