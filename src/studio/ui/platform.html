@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Capture Studio — Platform</title>
+  <script type="module" src="/ui/platform.mjs"></script>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --fg: #14181d;
+      --muted: #5b6672;
+      --line: #d7dde4;
+      --panel: #f6f8fa;
+      --accent: #1c5fd6;
+      --ok: #17683a;
+      --warn: #8a4b00;
+      --bad: #a01818;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #14181d;
+        --fg: #e6eaf0;
+        --muted: #9aa6b4;
+        --line: #2c333c;
+        --panel: #1b212a;
+        --accent: #6fa3ff;
+        --ok: #62d18a;
+        --warn: #e0a44e;
+        --bad: #ff8080;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font: 15px/1.5 ui-sans-serif, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 18px;
+      align-items: center;
+    }
+    h1 { font-size: 18px; margin: 0; }
+    h2 { font-size: 16px; margin: 0 0 10px; }
+    h3 { font-size: 14px; margin: 16px 0 6px; }
+    main { padding: 18px; max-width: 1200px; }
+    nav { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 18px 0; border-bottom: 1px solid var(--line); }
+    nav button {
+      background: transparent;
+      border: 1px solid transparent;
+      border-bottom: none;
+      color: var(--muted);
+      cursor: pointer;
+      font: inherit;
+      padding: 8px 14px;
+      border-radius: 6px 6px 0 0;
+    }
+    nav button[aria-selected="true"] {
+      background: var(--panel);
+      border-color: var(--line);
+      color: var(--fg);
+      font-weight: 600;
+    }
+    .panel { display: none; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
+    .panel.active { display: block; }
+    .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px; }
+    label { color: var(--muted); }
+    select, input[type="text"], input[type="search"], textarea, button.action {
+      font: inherit;
+      color: var(--fg);
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 6px 8px;
+    }
+    textarea { width: 100%; min-height: 140px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    button.action { cursor: pointer; }
+    button.action:hover { border-color: var(--accent); }
+    table { border-collapse: collapse; width: 100%; margin-top: 8px; }
+    th, td { border: 1px solid var(--line); padding: 5px 8px; text-align: left; vertical-align: top; font-size: 14px; }
+    th { background: var(--bg); }
+    table.table-wrap { overflow: auto; max-height: 460px; }
+    pre { white-space: pre-wrap; word-break: break-word; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 10px; margin: 6px 0; }
+    .kv { display: grid; grid-template-columns: max-content 1fr; gap: 2px 14px; font-size: 14px; }
+    .kv dt { color: var(--muted); }
+    .kv dd { margin: 0; }
+    .badge { display: inline-block; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line); font-size: 13px; }
+    .badge.ok { color: var(--ok); border-color: var(--ok); }
+    .badge.bad { color: var(--bad); border-color: var(--bad); }
+    .badge.warn { color: var(--warn); border-color: var(--warn); }
+    .err { color: var(--bad); border: 1px solid var(--bad); border-radius: 6px; padding: 8px 10px; margin: 8px 0; }
+    .muted { color: var(--muted); }
+    .bar { background: var(--line); border-radius: 999px; height: 10px; overflow: hidden; min-width: 120px; }
+    .bar > span { display: block; height: 100%; background: var(--accent); }
+    .bars { display: grid; grid-template-columns: max-content max-content 1fr max-content; gap: 4px 10px; align-items: center; font-size: 14px; }
+    mark { background: #ffe08a; color: #14181d; padding: 0 1px; border-radius: 2px; }
+    ul.plain { list-style: none; margin: 4px 0; padding: 0; }
+    ul.plain li { padding: 2px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+    .hit { border-bottom: 1px solid var(--line); padding: 8px 0; }
+    .hit:last-child { border-bottom: none; }
+    .grow { flex: 1 1 260px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Capture Studio — Platform</h1>
+    <span id="up-state" class="badge">studio: checking…</span>
+    <label for="session-select">Session</label>
+    <select id="session-select" class="grow"><option value="">All sessions</option></select>
+    <button class="action" id="reload-sessions" type="button">Reload sessions</button>
+  </header>
+
+  <nav id="tabs" role="tablist">
+    <button type="button" role="tab" data-tab="overview" aria-selected="true">Overview</button>
+    <button type="button" role="tab" data-tab="search" aria-selected="false">Search</button>
+    <button type="button" role="tab" data-tab="autodetect" aria-selected="false">Autodetect</button>
+    <button type="button" role="tab" data-tab="graph" aria-selected="false">Graph</button>
+    <button type="button" role="tab" data-tab="dedupe" aria-selected="false">Dedupe</button>
+    <button type="button" role="tab" data-tab="csv" aria-selected="false">CSV</button>
+    <button type="button" role="tab" data-tab="registry" aria-selected="false">Registry</button>
+    <button type="button" role="tab" data-tab="bench" aria-selected="false">Bench</button>
+  </nav>
+
+  <main>
+    <section class="panel active" id="panel-overview" role="tabpanel">
+      <h2>Overview</h2>
+      <div class="row">
+        <button class="action" id="load-overview" type="button">Refresh stats</button>
+      </div>
+      <div id="overview-out"></div>
+    </section>
+
+    <section class="panel" id="panel-search" role="tabpanel">
+      <h2>Search</h2>
+      <div class="row">
+        <label for="search-q">Query</label>
+        <input type="search" id="search-q" class="grow" placeholder="text to find" autocomplete="off">
+        <label for="search-limit">Limit</label>
+        <input type="text" id="search-limit" value="20" size="4" autocomplete="off">
+        <label for="search-only-session"><input type="checkbox" id="search-only-session"> selected session only</label>
+        <button class="action" id="run-search" type="button">Search</button>
+      </div>
+      <p class="muted" id="search-note">Uses <code>/api/search</code>; falls back to <code>/api/v1/search</code> when that endpoint is absent.</p>
+      <div id="search-out"></div>
+    </section>
+
+    <section class="panel" id="panel-autodetect" role="tabpanel">
+      <h2>Autodetect</h2>
+      <div class="row">
+        <label for="detect-text">Text</label>
+      </div>
+      <textarea id="detect-text" spellcheck="false" placeholder="Paste text to detect the format and scan for secrets"></textarea>
+      <div class="row">
+        <button class="action" id="run-detect" type="button">Detect and scan</button>
+      </div>
+      <div id="detect-out"></div>
+    </section>
+
+    <section class="panel" id="panel-graph" role="tabpanel">
+      <h2>Graph</h2>
+      <div class="row">
+        <button class="action" id="run-graph" type="button">Analyze session graph</button>
+        <span class="muted" id="graph-session"></span>
+      </div>
+      <div id="graph-out"></div>
+    </section>
+
+    <section class="panel" id="panel-dedupe" role="tabpanel">
+      <h2>Dedupe</h2>
+      <div class="row">
+        <label for="dedupe-max">Max items</label>
+        <input type="text" id="dedupe-max" value="3000" size="6" autocomplete="off">
+        <button class="action" id="run-dedupe" type="button">Scan duplicates</button>
+        <span class="muted" id="dedupe-session"></span>
+      </div>
+      <div id="dedupe-out"></div>
+    </section>
+
+    <section class="panel" id="panel-csv" role="tabpanel">
+      <h2>CSV</h2>
+      <div class="row">
+        <label for="csv-text">CSV text</label>
+      </div>
+      <textarea id="csv-text" spellcheck="false" placeholder="name,email&#10;Ada,ada@example.com"></textarea>
+      <div class="row">
+        <button class="action" id="run-csv" type="button">Analyze CSV</button>
+      </div>
+      <div id="csv-out"></div>
+    </section>
+
+    <section class="panel" id="panel-registry" role="tabpanel">
+      <h2>Registry</h2>
+      <div class="row">
+        <button class="action" id="run-registry" type="button">Refresh registry</button>
+      </div>
+      <div id="registry-out"></div>
+    </section>
+
+    <section class="panel" id="panel-bench" role="tabpanel">
+      <h2>Bench</h2>
+      <div class="row">
+        <button class="action" id="run-bench" type="button">Run bench</button>
+      </div>
+      <div id="bench-out"></div>
+    </section>
+  </main>
+</body>
+</html>

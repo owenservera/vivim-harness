@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Capture Studio — Live text</title>
+  <script type="module" src="/live/view.mjs"></script>
+</head>
+<body>
+  <h1>Live capture text</h1>
+  <p><a href="/">Studio</a> · <a href="/chat">Chat</a> · <a href="/drive">Live drive</a> · Private local preview. Recording must be started in Studio.</p>
+  <form id="filters">
+    <label>Stream ID <input name="sid" autocomplete="off"></label>
+    <label>Kind <input name="kind" autocomplete="off" placeholder="Optional comma-separated kinds"></label>
+    <button type="submit">Connect</button>
+    <button type="button" id="disconnect">Disconnect</button>
+    <button type="button" id="clear">Clear text</button>
+  </form>
+  <p id="status" role="status">Connecting…</p>
+  <p>Display is bounded to 100 streams and 200,000 characters per stream. Full evidence remains in the recording; oversized feed events and expired cursors are reported.</p>
+  <main id="streams" aria-label="Captured streams"></main>
+</body>
+</html>

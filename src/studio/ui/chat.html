@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Capture Studio — Chat</title>
+<script type="module" src="/ui/chat.mjs"></script>
+<style>
+:root {
+  --paper: #EEF1F4; --panel: #FFFFFF; --ink: #1D2733; --muted: #5D6B7A; --line: #D3DAE2; --hover: #E4E9EF;
+  --l1: #2F6FB3; --l2: #7A4FB5; --l3: #2E8C6E; --act: #C2721B; --gap: #C23B3B; --ok: #2E8C6E;
+  --sans: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: "Cascadia Mono", "Cascadia Code", Consolas, "SF Mono", Menlo, monospace;
+  /* Text-safe tones, used only by the Chat state chips (4.5:1 or better on paper, panel and tinted panels). */
+  --chip-ok: #1C6B50; --chip-info: #235A96; --chip-warn: #8A4A00; --chip-bad: #A32A2A; --chip-mute: #556373;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --paper: #141A21; --panel: #1B232C; --ink: #DCE3EA; --muted: #8C9AA8; --line: #2C3742; --hover: #233039;
+    --l1: #6EA6E6; --l2: #B08CE8; --l3: #5CC4A2; --act: #E9A55A; --gap: #EF6B6B; --ok: #5CC4A2;
+    --chip-ok: #5CC4A2; --chip-info: #7DB2EC; --chip-warn: #E9A55A; --chip-bad: #F28080; --chip-mute: #9AA7B4; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body { background: var(--paper); color: var(--ink); font: 14px/1.45 var(--sans); }
+button, select, input, textarea { font: inherit; color: inherit; }
+button { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 5px 14px; cursor: pointer; }
+button:hover:not(:disabled) { background: var(--hover); }
+button.primary { background: var(--l1); border-color: var(--l1); color: #fff; font-weight: 600; }
+button.primary:hover:not(:disabled) { background: var(--l1); filter: brightness(1.08); }
+button.live { background: transparent; border-color: var(--act); color: var(--act); font-weight: 600; }
+button.live:hover:not(:disabled) { background: var(--act); color: var(--panel); }
+button:disabled { opacity: .45; cursor: not-allowed; }
+:focus-visible { outline: 2px solid var(--l1); outline-offset: 2px; }
+input, select, textarea { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; }
+textarea { width: 100%; resize: vertical; }
+a { color: var(--l1); }
+code, .mono { font-family: var(--mono); font-size: 12.5px; }
+.muted { color: var(--muted); }
+.note { color: var(--muted); font-size: 12.5px; }
+.note:empty, .err:empty { display: none; }
+.err { color: var(--gap); overflow-wrap: anywhere; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* every Chat control has at least a 44px hit area */
+button, select, input[type=text], textarea, summary, a.hit { min-height: 44px; }
+a.hit { display: inline-flex; align-items: center; }
+.pick { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 4px 10px; cursor: pointer; border-radius: 8px; }
+.pick input { width: 22px; height: 22px; min-height: 0; margin: 0; padding: 0; flex: none; accent-color: var(--l1); }
+.pick:hover { background: var(--hover); }
+.pick:focus-within { outline: 2px solid var(--l1); outline-offset: 2px; }
+
+header { display: flex; align-items: center; gap: 4px 18px; padding: 4px 18px; border-bottom: 1px solid var(--line); background: var(--panel); flex-wrap: wrap; }
+header h1 { font-size: 15px; font-weight: 650; margin: 0; letter-spacing: -.01em; }
+header .crumb b { font-weight: 600; }
+header a { display: inline-flex; align-items: center; min-height: 44px; }
+
+h2 { font-size: 17px; margin: 0 0 4px; font-weight: 650; letter-spacing: -.01em; }
+h3 { font-size: 14px; margin: 14px 0 6px; font-weight: 650; }
+p.lede { color: var(--muted); margin: 0 0 14px; max-width: 70ch; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+.pad { padding: 12px 14px; }
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.empty { color: var(--muted); padding: 22px; text-align: center; }
+
+.wrap { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; padding: 18px 22px 24px; max-width: 1320px; margin: 0 auto; align-items: start; }
+.wrap > * { min-width: 0; }
+@media (min-width: 1100px) {
+  .wrap { grid-template-columns: minmax(0, 1fr) 340px; }
+  aside { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto; }
+  #detailsBox > summary { display: none; }
+}
+@media (max-width: 700px) { .wrap { padding: 12px; } header { padding: 4px 12px; } }
+
+details.panel > summary { cursor: pointer; font-weight: 650; padding: 0 14px; display: flex; align-items: center; }
+details.panel[open] > summary { border-bottom: 1px solid var(--line); }
+fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+legend { font-weight: 650; padding: 0; margin-bottom: 4px; }
+.field { display: block; margin-top: 10px; }
+.field > .lab { display: block; font-weight: 600; margin-bottom: 4px; }
+select { width: 100%; max-width: 420px; }
+
+.targets { border: 1px solid var(--line); border-radius: 8px; padding: 4px; margin-top: 6px; }
+.target .t-title { font-weight: 600; overflow-wrap: anywhere; }
+.target .t-sub { color: var(--muted); font-size: 12.5px; overflow-wrap: anywhere; }
+.target.off { opacity: .55; cursor: not-allowed; }
+
+/* chips */
+.chips { display: flex; gap: 6px 8px; flex-wrap: wrap; align-items: center; }
+.pill { display: inline-flex; align-items: center; gap: 6px; border: 1px solid currentColor; border-radius: 99px; padding: 0 10px; font-size: 12px; font-weight: 600; white-space: nowrap; line-height: 1.7; }
+.t-ok { color: var(--chip-ok); } .t-info { color: var(--chip-info); } .t-warn { color: var(--chip-warn); } .t-bad { color: var(--chip-bad); } .t-mute { color: var(--chip-mute); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.t-rec .dot, .t-live .dot { animation: pulse 1.2s ease-in-out infinite; }
+.t-rec { color: var(--chip-bad); } .t-live { color: var(--chip-info); }
+.stage { margin: 14px 0 0; font-weight: 650; }
+@keyframes pulse { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .t-rec .dot, .t-live .dot { animation: none; } }
+
+/* transcript */
+#transcript { margin-top: 14px; padding: 12px 14px; min-height: 120px; }
+.msg { margin: 0 0 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; }
+.msg h3 { margin: 0 0 4px; font-size: 12.5px; color: var(--muted); font-weight: 650; }
+.msg.you { background: color-mix(in srgb, var(--l1) 8%, var(--panel)); margin-left: min(12%, 80px); }
+.body { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; }
+.blk { border-top: 1px solid var(--line); margin-top: 8px; }
+.blk > summary { cursor: pointer; font-weight: 600; display: flex; align-items: center; }
+.srcline { margin: 8px 0 0; }
+
+.banner { border: 1px solid var(--act); border-left-width: 4px; background: color-mix(in srgb, var(--act) 7%, var(--panel)); border-radius: 8px; padding: 10px 14px; margin-top: 14px; }
+.banner b { font-weight: 650; }
+.banner p { margin: 4px 0 8px; }
+.banner.bad { border-color: var(--gap); background: color-mix(in srgb, var(--gap) 6%, var(--panel)); }
+
+/* composer */
+.composer { position: sticky; bottom: 0; margin-top: 14px; padding: 10px 14px 12px; box-shadow: 0 -6px 14px -10px rgba(0, 0, 0, .35); z-index: 2; }
+/* Keep the connection action visible while choosing a tab; pin the composer only after setup is collapsed. */
+main:has(#connectBox[open]) .composer { position: static; box-shadow: none; }
+/* Keep this after the base composer rule so short-screen scrolling actually wins the cascade. */
+@media (max-height: 640px) { .composer { position: static; box-shadow: none; } }
+.composer label.lab { font-weight: 650; display: block; margin-bottom: 4px; }
+.finish { margin-top: 14px; padding: 10px 14px 12px; }
+
+dl.kv { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 0; font-size: 13px; }
+dl.kv dt { color: var(--muted); }
+dl.kv dd { margin: 0; overflow-wrap: anywhere; }
+ul.plain { list-style: none; margin: 0; padding: 0; }
+ul.plain li { padding: 5px 0; border-bottom: 1px solid var(--line); font-size: 13px; overflow-wrap: anywhere; }
+ul.plain li:last-child { border-bottom: 0; }
+ul.convs button { width: 100%; text-align: left; border: 0; border-radius: 0; background: none; display: flex; gap: 4px 10px; flex-wrap: wrap; align-items: center; }
+ul.convs button[aria-current="true"] { background: var(--hover); font-weight: 600; }
+
+/* chat thread identity and the page read */
+.thread { margin-top: 12px; padding: 8px 14px 10px; border-left: 4px solid var(--chip-info); }
+.thread.unbound, .thread.other { border-left-color: var(--chip-mute); }
+.thread.unverified { border-left-color: var(--act); background: color-mix(in srgb, var(--act) 7%, var(--panel)); }
+.thread-head { display: flex; align-items: center; gap: 4px 12px; flex-wrap: wrap; }
+.thread-head h3 { margin: 0; }
+.thread .ref, .ref { display: inline-block; margin-top: 6px; font-family: var(--mono); font-size: 12.5px; overflow-wrap: anywhere; user-select: all; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 2px 8px; }
+.thread ul.plain { margin-top: 4px; }
+.thread ul.plain li { border-bottom: 0; padding: 2px 0; }
+.target .t-sub.t-warn { color: var(--chip-warn); }
+.readbox { margin-top: 14px; padding: 10px 14px 12px; }
+.reads { list-style: none; margin: 12px 0 0; padding: 0; }
+.rd { margin: 0 0 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; }
+.rd.user { background: color-mix(in srgb, var(--l1) 8%, var(--panel)); margin-left: min(12%, 80px); }
+.rd-head { display: flex; align-items: center; gap: 4px 10px; flex-wrap: wrap; margin-bottom: 4px; font-size: 12.5px; color: var(--muted); }
+.rd-head b { color: var(--ink); font-weight: 650; }
+.rd-n { font-family: var(--mono); }
+.cov { margin-top: 10px; }
+.cov > summary { min-height: 44px; }
+@media (max-width: 700px) {
+  .msg.you, .rd.user { margin-left: 0; }
+  .composer button, .finish button, .read-actions button { width: 100%; }
+}
+
+/* formatted reply: built from DOM nodes only; code, tables, quotes, links, sources and artifacts */
+button.mini { padding: 2px 10px; font-size: 12.5px; }
+.reply-tools { gap: 6px 8px; margin: 0 0 8px; }
+.rich > * { margin: 0 0 10px; }
+.rich > *:last-child { margin-bottom: 0; }
+.rich p { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0 0 10px; }
+.rich > p { margin-bottom: 10px; }
+.rich ul, .rich ol { margin: 0 0 10px; padding-left: 24px; }
+.rich li { margin: 2px 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.rich li > ul, .rich li > ol { margin: 2px 0 0; }
+.rich li.task { list-style: none; margin-left: -18px; }
+.rich hr { border: 0; border-top: 1px solid var(--line); margin: 12px 0; }
+.rich blockquote { margin: 0 0 10px; padding: 2px 0 2px 12px; border-left: 3px solid var(--l1); color: var(--muted); }
+.rich blockquote > *:last-child { margin-bottom: 0; }
+.rh { font-weight: 650; letter-spacing: -.01em; margin: 14px 0 6px; line-height: 1.3; }
+.rich > .rh:first-child { margin-top: 0; }
+.rh1 { font-size: 17px; } .rh2 { font-size: 15.5px; } .rh3 { font-size: 14.5px; } .rh4, .rh5, .rh6 { font-size: 14px; }
+.rh5, .rh6 { color: var(--muted); }
+code.ic { background: var(--paper); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; overflow-wrap: anywhere; }
+.rich a, .sources a { overflow-wrap: anywhere; }
+.deadlink { text-decoration: underline dotted; }
+sup.cite { font-size: .72em; line-height: 0; margin-left: 1px; font-variant-numeric: tabular-nums; }
+sup.cite a { text-decoration: none; padding: 0 1px; }
+sup.cite a:hover { text-decoration: underline; }
+
+.codeblk { margin: 0 0 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); overflow: hidden; min-width: 0; }
+.codeblk-head { display: flex; align-items: center; flex-wrap: wrap; gap: 2px 10px; padding: 0 6px 0 12px; border-bottom: 1px solid var(--line); background: var(--panel); font-size: 12px; }
+.codeblk-lang { font-weight: 650; color: var(--ink); font-family: var(--mono); }
+.codeblk-meta { color: var(--muted); }
+.codeblk-actions { margin-left: auto; display: inline-flex; gap: 4px; align-items: center; }
+.codeblk pre { margin: 0; padding: 10px 12px; overflow: auto; max-height: 30rem; tab-size: 2; }
+.codeblk pre code { font-family: var(--mono); font-size: 12.5px; line-height: 1.5; white-space: pre; background: none; border: 0; padding: 0; }
+.codeblk.artifact { border-color: var(--l2); border-left-width: 4px; }
+.codeblk.artifact .codeblk-head { background: color-mix(in srgb, var(--l2) 10%, var(--panel)); }
+.codeblk-note { margin: 0; padding: 4px 12px 6px; border-top: 1px solid var(--line); }
+.artifacts { margin-top: 12px; }
+
+.tablebox { margin: 0 0 10px; }
+.tablewrap { overflow: auto; max-width: 100%; border: 1px solid var(--line); border-radius: 8px; }
+.tablewrap table { border-collapse: collapse; min-width: 100%; font-size: 13px; }
+.tablewrap th, .tablewrap td { padding: 6px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+.tablewrap th { background: var(--paper); font-weight: 650; white-space: nowrap; }
+.tablewrap tr:last-child td { border-bottom: 0; }
+.tablewrap .al-r { text-align: right; } .tablewrap .al-c { text-align: center; }
+.tablebar { display: flex; justify-content: flex-end; margin-top: 2px; }
+
+.sources { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 8px; }
+.sources .rh { margin: 0 0 2px; }
+.sourcelist li { display: block; }
+.source-n { font-family: var(--mono); font-size: 12.5px; color: var(--muted); }
+.source-host { color: var(--muted); font-size: 12.5px; }
+.sourcelist p.note { margin: 2px 0 0 26px; }
+
+ul.convs button { align-items: baseline; }
+.conv-title { font-weight: 600; overflow-wrap: anywhere; flex: 1 1 10rem; }
+.conv-meta { flex-basis: 100%; }
+@media (prefers-reduced-motion: no-preference) { .codeblk, .tablewrap { transition: border-color .15s; } .codeblk:focus-within { border-color: var(--l1); } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Capture Studio</h1>
+  <span class="crumb"><b>Chat</b></span>
+  <a href="/">← Back to Studio</a>
+  <a href="/drive">Calibrate sites</a>
+  <span id="connectionNote" class="note" role="status"></span>
+</header>
+
+<div class="wrap" id="chatApp">
+  <main>
+    <h2>Chat</h2>
+    <p class="lede">Connect to a website you’re logged in to, send a message, and read the reply while Studio records it. You can follow up in the same chat, one turn at a time. Connecting only watches. Nothing is sent until you press Send.</p>
+
+    <details class="panel" id="connectBox" open>
+      <summary id="connectSummary">Connection</summary>
+      <div class="pad">
+        <fieldset aria-describedby="connectHelp">
+          <legend>Where to chat</legend>
+          <label class="pick" for="modeNew"><input type="radio" name="mode" id="modeNew" value="new" checked><span><b>Open a new tab</b><br><span class="note">Studio opens its own tab with your logged-in session.</span></span></label>
+          <label class="pick" for="modeExisting"><input type="radio" name="mode" id="modeExisting" value="existing"><span><b>Use a tab I already have open</b><br><span class="note">Studio never reloads, navigates or closes it.</span></span></label>
+        </fieldset>
+        <div class="field" id="siteField">
+          <label for="site" class="lab">Site</label>
+          <select id="site" aria-describedby="siteNote"><option value="">Loading sites…</option></select>
+          <div class="note" id="siteNote"></div>
+        </div>
+        <div class="field" id="existingField" hidden>
+          <div class="row" style="justify-content:space-between">
+            <span class="lab" id="tabsLabel" style="margin:0">Open browser tabs</span>
+            <button type="button" id="btnTabs">Refresh tabs</button>
+          </div>
+          <p class="note" id="tabsHelp" style="margin:4px 0 0">These are tabs open in the capture browser right now. It isn’t a list of the chats in your account.</p>
+          <div class="targets" id="targetList" role="radiogroup" aria-labelledby="tabsLabel" aria-describedby="tabsHelp targetNote"></div>
+          <div class="note" id="targetNote" role="status" style="margin-top:6px"></div>
+        </div>
+        <p class="note" id="connectHelp">Connect starts recording that tab. It doesn’t type, send, clear or reload anything. Traffic from before you connected isn’t captured.</p>
+        <div class="row">
+          <button type="button" class="primary" id="btnConnect" aria-describedby="connectHint connectHelp" disabled>Connect and start recording</button>
+        </div>
+        <div class="note" id="connectHint" role="status" style="margin-top:6px"></div>
+        <div class="err" id="connectError" role="alert" style="margin-top:6px"></div>
+      </div>
+    </details>
+
+    <section aria-labelledby="convHeading">
+      <h3 id="convHeading" class="sr">Conversation</h3>
+      <p class="stage" id="stageLine"></p>
+      <div class="chips" id="chips" style="margin-top:6px"></div>
+
+      <div class="panel thread" id="threadStrip" aria-labelledby="threadHeading" hidden>
+        <div class="thread-head">
+          <h3 id="threadHeading">Chat thread</h3>
+          <div class="chips" id="identityChips"></div>
+        </div>
+        <code class="ref" id="threadRef" hidden></code>
+        <ul class="plain" id="identityLines"></ul>
+      </div>
+
+      <div class="banner" id="uncertain" tabindex="-1" aria-labelledby="uncertainHead" hidden>
+        <p><b id="uncertainHead">We can’t confirm your message was sent. Studio will not send it again.</b></p>
+        <ul class="plain" id="uncertainLines"></ul>
+        <p id="chromeGuide">Open the tab in Chrome to see whether it was sent.</p>
+        <div class="row">
+          <button type="button" class="primary" id="btnReconcile">Check again (read-only)</button>
+          <button type="button" id="btnSendAgain" hidden>Send again</button>
+        </div>
+        <p class="note" style="margin:6px 0 0">Checking again only reads the page. It never types or presses Send.</p>
+        <div class="err" id="reconcileError" role="alert"></div>
+      </div>
+
+      <p class="note" id="checkedNote"></p>
+
+      <div class="banner" id="readyPanel" hidden>
+        <p><b id="readyHead">Resolve draft in Chrome</b></p>
+        <p class="note" id="readyNote"></p>
+        <ul class="plain" id="readyReasons"></ul>
+        <div class="row" style="margin-top:8px"><button type="button" class="primary" id="btnCheck">Check again (read-only)</button></div>
+        <p class="note" style="margin:6px 0 0">Checking only reads the page. It never types, clears or sends.</p>
+        <div class="note" id="readyChecked" role="status"></div>
+        <div class="err" id="readyError" role="alert"></div>
+      </div>
+
+      <div class="banner bad" id="problem" role="status" hidden></div>
+      <div class="row" style="margin-top:8px"><button type="button" id="btnRetry" hidden>Retry now</button></div>
+
+      <div class="panel" id="transcript" role="log" aria-live="off" aria-label="Conversation" tabindex="0">
+        <p class="empty" id="emptyState">No conversation yet. Connect to a site above.</p>
+        <ol class="plain" id="turnList" aria-label="Turns in this chat, oldest first" hidden></ol>
+        <article class="msg you" id="youMsg" hidden>
+          <h3 id="youHead">You</h3>
+          <p class="body" id="youText"></p>
+          <p class="note" id="youNote"></p>
+          <button type="button" id="btnCopy" hidden>Copy my message</button>
+        </article>
+        <div class="chips" id="phaseLine" style="margin:0 0 12px" hidden></div>
+        <article class="msg" id="replyMsg" hidden>
+          <h3 id="replyHead">Reply</h3>
+          <div class="row reply-tools">
+            <button type="button" id="btnCopyReply" class="mini" disabled>Copy reply</button>
+            <button type="button" id="btnRawToggle" class="mini" aria-describedby="rawHelp">Show plain text</button>
+            <span class="note" id="rawHelp">Code, tables and links are shown formatted. Plain text is exactly what was received.</span>
+          </div>
+          <div id="replyBlocks"></div>
+          <div class="artifacts" id="replyArtifacts" hidden></div>
+          <section class="sources" id="replySources" aria-labelledby="sourcesHead" hidden>
+            <h4 class="rh" id="sourcesHead">Sources</h4>
+            <p class="note" id="sourcesNote"></p>
+            <ol class="plain sourcelist" id="sourcesList"></ol>
+          </section>
+          <div class="chips srcline" id="replyChips"></div>
+          <p class="note" id="replyCount"></p>
+          <p id="replyPartial" hidden></p>
+          <p class="note" id="replyTrunc"></p>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel readbox" id="readBox" aria-labelledby="readHeading" aria-busy="false" hidden>
+      <h3 id="readHeading" style="margin-top:0">Read the chat page</h3>
+      <p class="note" id="readHelp" style="margin:0 0 8px">Reads the messages the tab is showing right now. It never types, sends, clears, scrolls or reloads, and it leaves anything in the chat box as it is. Studio only reads when you press the button.</p>
+      <div class="row read-actions">
+        <button type="button" id="btnRead" aria-describedby="readHint readHelp" disabled>Read what’s on the page</button>
+        <button type="button" id="btnReadMore" hidden>Read more (up to 200 messages)</button>
+      </div>
+      <div class="note" id="readHint" role="status" style="margin-top:6px"></div>
+      <div class="err" id="readError" role="alert" style="margin-top:6px"></div>
+      <p class="empty" id="readEmpty">Nothing read yet.</p>
+      <div id="readResult" hidden>
+        <p class="stage" id="readHeadline" style="margin-top:12px"></p>
+        <div class="chips" id="readChips" style="margin-top:6px"></div>
+        <p class="note" id="readMeta"></p>
+        <p class="note" id="readDraft"></p>
+        <details class="blk cov" open>
+          <summary>What this read covers</summary>
+          <ul class="plain" id="readCoverage"></ul>
+        </details>
+        <ol class="reads" id="readMessages" aria-label="Messages read from the page, oldest first"></ol>
+      </div>
+    </section>
+
+    <section class="panel finish" id="finishBar" aria-labelledby="finishHeading" hidden>
+      <h3 id="finishHeading" tabindex="-1" style="margin-top:0">Capture</h3>
+      <div class="chips" id="finishOutcome" hidden></div>
+      <ul class="plain" id="finishReasons"></ul>
+      <div class="note" id="finishNote"></div>
+      <p class="note" id="turnNote" hidden>Each Send adds one turn to this same chat. Studio sends the next message only after the previous reply is complete and its recording has stopped. Finish when you are done.</p>
+      <label class="pick" for="closeTab" id="closeTabField" hidden><input type="checkbox" id="closeTab"><span>Also close the tab Studio opened</span></label>
+      <div class="row" style="margin-top:6px">
+        <button type="button" id="btnFinish">Finish capture</button>
+        <button type="button" id="btnNew" hidden>Start a new conversation</button>
+      </div>
+      <div class="row" id="finishLinks"></div>
+      <div class="err" id="finishError" role="alert" style="margin-top:6px"></div>
+    </section>
+
+    <form class="panel composer" id="composer" novalidate aria-label="Message composer">
+      <label for="prompt" class="lab">Message</label>
+      <textarea id="prompt" rows="3" maxlength="250000" placeholder="Write a message to this website" aria-describedby="sendHint sendNote"></textarea>
+      <div class="note" id="sendHint" role="status" style="margin-top:4px"></div>
+      <div class="row" style="margin-top:8px">
+        <button type="button" class="primary" id="btnSend" disabled>Send</button>
+      </div>
+      <p class="note" id="sendNote" style="margin:6px 0 0">Sends 1 message with your logged-in account. It uses quota and adds to this chat’s history. One turn at a time. Up to 250,000 characters. Enter adds a new line.</p>
+      <div class="err" id="sendError" role="alert" style="margin-top:6px"></div>
+    </form>
+  </main>
+
+  <aside aria-label="Conversation details">
+    <details class="panel" id="detailsBox">
+      <summary>Details</summary>
+      <div class="pad" id="detailsBody">
+        <dl class="kv" id="detailsKv"></dl>
+        <h3>Evidence checks</h3>
+        <ul class="plain" id="gates"></ul>
+        <p class="note" id="unknowns"></p>
+        <h3>Recording limits</h3>
+        <div class="note" id="limits"></div>
+        <h3>What Studio could not see</h3>
+        <ul class="plain" id="limitations"></ul>
+        <div class="row" id="sessionLinks" style="margin-top:8px"></div>
+      </div>
+    </details>
+    <details class="panel" id="listBox" style="margin-top:14px">
+      <summary>Earlier conversations</summary>
+      <div class="pad">
+        <div class="row" style="justify-content:space-between">
+          <div class="note" id="listState" role="status">Loading…</div>
+          <button type="button" id="btnListRefresh" class="mini">Refresh list</button>
+        </div>
+        <ul class="plain convs" id="convList"></ul>
+        <button type="button" id="btnListMore" class="mini" hidden>Show all</button>
+      </div>
+    </details>
+  </aside>
+</div>
+<div class="sr" id="announce" role="status" aria-live="polite" aria-atomic="true"></div>
+</body>
+</html>

@@ -1,0 +1,1814 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Capture Studio</title>
+<style>
+:root {
+  --paper: #EEF1F4; --panel: #FFFFFF; --ink: #1D2733; --muted: #5D6B7A; --line: #D3DAE2; --hover: #E4E9EF;
+  --l1: #2F6FB3; --l2: #7A4FB5; --l3: #2E8C6E; --act: #C2721B; --gap: #C23B3B; --ok: #2E8C6E;
+  --sans: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: "Cascadia Mono", "Cascadia Code", Consolas, "SF Mono", Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --paper: #141A21; --panel: #1B232C; --ink: #DCE3EA; --muted: #8C9AA8; --line: #2C3742; --hover: #233039;
+    --l1: #6EA6E6; --l2: #B08CE8; --l3: #5CC4A2; --act: #E9A55A; --gap: #EF6B6B; --ok: #5CC4A2; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { background: var(--paper); color: var(--ink); font: 14px/1.45 var(--sans); display: grid; grid-template-rows: auto auto 1fr; }
+button, select, input, textarea { font: inherit; color: inherit; }
+button { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 5px 12px; cursor: pointer; }
+button:hover { background: var(--hover); }
+button.primary { background: var(--l1); border-color: var(--l1); color: #fff; }
+button.stop { background: var(--gap); border-color: var(--gap); color: #fff; }
+button:disabled { opacity: .45; cursor: default; }
+:focus-visible { outline: 2px solid var(--l1); outline-offset: 2px; }
+input, select, textarea { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; }
+code, pre, .mono { font-family: var(--mono); font-size: 12.5px; }
+a { color: var(--l1); }
+
+/* top bar */
+header { display: flex; align-items: center; gap: 18px; padding: 10px 18px; border-bottom: 1px solid var(--line); background: var(--panel); flex-wrap: wrap; }
+header h1 { font-size: 15px; font-weight: 650; margin: 0; letter-spacing: -.01em; }
+.state { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); }
+.recording .dot { background: var(--gap); animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .recording .dot { animation: none; } }
+.counters { display: flex; gap: 16px; color: var(--muted); font-variant-numeric: tabular-nums; flex-wrap: wrap; }
+.counters b { color: var(--ink); font-weight: 600; }
+.counters .gapn b { color: var(--gap); }
+.target { color: var(--muted); max-width: 40ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* layer strip: the signature element */
+#strip { position: relative; background: var(--panel); border-bottom: 1px solid var(--line); }
+#strip canvas { display: block; width: 100%; height: 112px; }
+#strip .lanes { position: absolute; left: 0; top: 0; bottom: 0; width: 132px; display: grid; grid-template-rows: repeat(4, 1fr); pointer-events: none; }
+#strip .lanes span { display: flex; align-items: center; padding-left: 18px; font-size: 12px; font-weight: 600; }
+.c-l1 { color: var(--l1); } .c-l2 { color: var(--l2); } .c-l3 { color: var(--l3); } .c-act { color: var(--act); } .c-gap { color: var(--gap); }
+
+/* body */
+main { display: grid; grid-template-columns: 172px 1fr; min-height: 0; }
+nav { border-right: 1px solid var(--line); padding: 14px 10px; display: flex; flex-direction: column; gap: 2px; }
+nav button { text-align: left; border: 0; background: none; padding: 7px 10px; border-radius: 6px; }
+nav button[aria-current="page"] { background: var(--hover); font-weight: 600; }
+nav a.navlink { padding: 7px 10px; border-radius: 6px; color: inherit; text-decoration: none; white-space: nowrap; }
+nav a.navlink:hover { background: var(--hover); }
+nav .src { margin-top: auto; font-size: 12px; color: var(--muted); padding: 10px; border-top: 1px solid var(--line); }
+section.view { display: none; padding: 18px 22px; overflow: auto; min-height: 0; }
+section.view.on { display: block; }
+h2 { font-size: 17px; margin: 0 0 4px; font-weight: 650; letter-spacing: -.01em; }
+h3 { font-size: 14px; margin: 18px 0 8px; font-weight: 650; }
+p.lede { color: var(--muted); margin: 0 0 16px; max-width: 72ch; }
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+.pad { padding: 12px 14px; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+th { text-align: left; font-weight: 600; color: var(--muted); font-size: 12.5px; padding: 6px 10px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--panel); }
+td { padding: 6px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr.click { cursor: pointer; } tr.click:hover td { background: var(--hover); } tr.sel td { background: var(--hover); }
+td.num { text-align: right; }
+.pill { display: inline-block; border: 1px solid currentColor; border-radius: 99px; padding: 0 7px; font-size: 11.5px; font-weight: 600; white-space: nowrap; }
+.empty { color: var(--muted); padding: 24px; text-align: center; }
+.scroll { max-height: 60vh; overflow: auto; }
+
+/* targets */
+.targets label { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; padding: 9px 12px; border-bottom: 1px solid var(--line); cursor: pointer; }
+.targets label:hover { background: var(--hover); }
+.targets .t-url { grid-column: 2; color: var(--muted); font-size: 12.5px; overflow-wrap: anywhere; }
+
+/* feed */
+#feed td { font-size: 12.5px; padding: 3px 10px; }
+#feed .k { font-family: var(--mono); }
+
+/* stream detail */
+.detail { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+.detail .panel { display: flex; flex-direction: column; min-height: 0; max-height: 64vh; }
+.detail h4 { margin: 0; padding: 9px 12px; border-bottom: 1px solid var(--line); font-size: 13px; display: flex; justify-content: space-between; gap: 8px; }
+.detail .body { overflow: auto; padding: 8px 12px; flex: 1; }
+.raw span { white-space: pre-wrap; word-break: break-all; font-family: var(--mono); font-size: 12px; }
+.raw span.c0 { background: color-mix(in srgb, var(--l1) 9%, transparent); }
+.raw span.c1 { background: color-mix(in srgb, var(--l1) 18%, transparent); }
+.raw span.pre { box-shadow: inset 0 -2px 0 var(--act); }
+.raw span.red { box-shadow: inset 0 -2px 0 var(--gap); }
+.ev { border-bottom: 1px solid var(--line); padding: 6px 0; }
+.ev summary { cursor: pointer; font-size: 12.5px; }
+.ev pre { margin: 6px 0 0; white-space: pre-wrap; word-break: break-word; max-height: 300px; overflow: auto; }
+
+/* suggestions */
+.sugg { display: grid; grid-template-columns: 6px 1fr auto; gap: 0 14px; padding: 12px 14px 12px 0; border-bottom: 1px solid var(--line); }
+.sugg .bar { border-radius: 3px; }
+.sugg .t { font-weight: 600; }
+.sugg .d { color: var(--muted); margin-top: 2px; max-width: 80ch; }
+.sugg .acts { display: flex; gap: 6px; align-items: start; }
+.sugg.done { opacity: .5; }
+.conf { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 12px; margin-left: 6px; }
+.domp { padding: 8px 12px; border-bottom: 1px solid var(--line); cursor: default; }
+.domp:hover { background: var(--hover); }
+
+.receipt { white-space: pre-wrap; max-height: 50vh; overflow: auto; margin: 0; padding: 12px; }
+textarea.json { width: 100%; min-height: 50vh; font-family: var(--mono); font-size: 12.5px; }
+.toast { position: fixed; right: 18px; bottom: 18px; background: var(--ink); color: var(--paper); padding: 9px 14px; border-radius: 8px; max-width: 60ch; opacity: 0; transition: opacity .2s; pointer-events: none; }
+.toast.on { opacity: 1; }
+.split { display: grid; grid-template-columns: minmax(260px, 1fr) 2fr; gap: 14px; }
+@media (max-width: 900px) {
+  main { grid-template-columns: 1fr; } nav { flex-direction: row; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+  nav .src { display: none; } .detail, .split { grid-template-columns: 1fr; } #strip .lanes { width: 90px; }
+}
+
+/* UI sprint: keyboard targets and compact-screen reading */
+.session-tools { display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:10px 12px; border-bottom:1px solid var(--line); }
+.session-tools label { flex:1; min-width:170px; }
+.session-tools input { margin-left:6px; width:min(270px, 100%); max-width:100%; }
+.session-tools output { color:var(--muted); font-size:12px; font-variant-numeric:tabular-nums; }
+.row-action { text-align:left; border:0; background:transparent; padding:2px 0; color:var(--l1); font-weight:600; overflow-wrap:anywhere; }
+.row-action:hover { text-decoration:underline; }
+.small-note { color:var(--muted); font-size:12.5px; margin-top:6px; }
+.continuity-summary { display:flex; flex-wrap:wrap; gap:8px 16px; padding:8px 0; font-variant-numeric:tabular-nums; }
+.continuity-summary b { font-weight:650; color:var(--ink); }
+.continuity-history { width:100%; overflow-x:auto; margin-top:8px; }
+.continuity-history th, .continuity-history td { overflow-wrap:anywhere; }
+#continuityDetail { padding:10px 12px; margin-top:12px; }
+#continuityDetail pre { white-space:pre-wrap; overflow-wrap:anywhere; max-height:250px; overflow:auto; }
+.feedback-error { color:var(--gap); padding:10px 0; overflow-wrap:anywhere; }
+@media (max-width:650px) {
+  section.view { padding:12px; }
+  header { padding:8px 12px; gap:8px; }
+  #strip canvas { height:82px; }
+  main { min-width:0; }
+  nav { gap:4px; padding:6px; }
+  nav button { white-space:nowrap; padding:8px 9px; }
+  .split, .detail, .panel { min-width:0; }
+  .scroll { max-width:100%; }
+  .knowledge-grid { grid-template-columns:1fr; }
+  #sessionDetail, #continuityOut { min-width:0; overflow-wrap:anywhere; }
+}
+
+/* Evidence-first knowledge workspace */
+.knowledge-grid { display:grid; grid-template-columns:minmax(280px, 1fr) minmax(300px, 1.2fr); gap:14px; align-items:start; }
+.knowledge-grid > * { min-width:0; }
+.knowledge-metrics { display:flex; flex-wrap:wrap; gap:8px 16px; margin:12px 0; font-variant-numeric:tabular-nums; }
+.knowledge-metrics span { padding:4px 0; }
+.knowledge-entry { border-top:1px solid var(--line); padding:9px 12px; display:flex; align-items:center; gap:9px; }
+.knowledge-entry .row-action { flex:1; overflow-wrap:anywhere; min-width:0; }
+.knowledge-detail-field { overflow-wrap:anywhere; border-bottom:1px solid var(--line); padding:6px 0; }
+.knowledge-detail-field pre { white-space:pre-wrap; overflow-wrap:anywhere; max-height:230px; overflow:auto; }
+.knowledge-toolbar { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin:6px 0 12px; }
+.knowledge-warning { padding:8px 12px; border-left:3px solid var(--act); background:var(--hover); margin:8px 0; }
+.knowledge-link { border:0; background:transparent; color:var(--l1); text-decoration:underline; cursor:pointer; padding:0; }
+@media (max-width:950px) { .knowledge-grid { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<header id="top">
+  <h1>Capture Studio</h1>
+  <span class="state" id="state"><span class="dot"></span><span id="stateText">Idle</span></span>
+  <span class="target" id="targetText"></span>
+  <span class="counters" id="counters"></span>
+  <span id="connectionNote" class="small-note" role="status" aria-live="polite"></span>
+</header>
+
+<div id="appTrail" class="row" role="navigation" aria-label="Investigation path" style="padding:7px 18px;border-bottom:1px solid var(--line);background:var(--panel)"><span class="small-note">Capture Studio · Choose a recording to investigate</span></div>
+
+<div id="strip" aria-label="Live layer activity">
+  <canvas id="stripCanvas" height="112"></canvas>
+  <div class="lanes"><span class="c-l1">Raw bytes</span><span class="c-l2">Events</span><span class="c-l3">Page</span><span class="c-act">Your actions</span></div>
+</div>
+
+<main>
+  <nav aria-label="Sections">
+    <button data-view="capture" aria-current="page">Capture</button>
+    <button data-view="streams">Streams</button>
+    <button data-view="shapes">Shapes</button>
+    <button data-view="sessions">Sessions</button>
+    <button data-view="knowledge">Knowledge</button>
+    <button data-view="profiles">Profiles</button>
+    <button data-view="search">Search</button>
+    <a class="navlink" href="/chat">Chat</a>
+    <a class="navlink" href="/drive">Live drive</a>
+    <div class="src" id="srcNote">Showing the live recording</div>
+  </nav>
+
+  <div style="min-height:0;display:grid">
+    <section class="view on" id="v-capture">
+      <h2>Capture a tab</h2>
+      <p class="lede">Open the capture browser, sign in and go to the page you want, then pick its tab and start recording. Recording only observes: nothing is clicked or sent for you.</p>
+      <div class="row" style="margin-bottom:14px">
+        <button id="btnLaunch">Open capture browser</button>
+        <input id="launchUrl" placeholder="Start page, e.g. https://chatgpt.com/" size="34">
+        <span id="chromeState" class="mono" style="color:var(--muted)"></span>
+      </div>
+      <div class="split">
+        <div class="panel">
+          <div class="pad row" style="justify-content:space-between;border-bottom:1px solid var(--line)"><b>Open tabs</b><button id="btnTargets">Refresh</button></div>
+          <div class="targets" id="targets"><div class="empty">No tabs yet. Open the capture browser first.</div></div>
+        </div>
+        <div>
+          <div class="panel pad" style="margin-bottom:14px">
+            <div class="row" style="margin-bottom:10px">
+              <label>Profile <select id="profileSel"><option value="">Match the site automatically</option></select></label>
+              <label>Name <input id="label" placeholder="optional" size="14"></label>
+            </div>
+            <div class="row">
+              <button class="primary" id="btnStart">Start recording</button>
+              <button class="stop" id="btnStop" disabled>Stop and save</button>
+              <button id="btnSnap" disabled>Save page snapshot</button>
+            </div>
+            <div id="stopResult" style="margin-top:10px"></div>
+          </div>
+          <div class="panel">
+            <div class="pad" style="border-bottom:1px solid var(--line)"><b>Incoming records</b> <span style="color:var(--muted)">newest first, last 200</span></div>
+            <div class="scroll" style="max-height:44vh"><table id="feed"><tbody></tbody></table></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="v-streams">
+      <h2>Streams</h2>
+      <p class="lede">Every response and socket the tab received in scope. Select one to compare its raw bytes, decoded events and assembled content side by side.</p>
+      <div class="panel scroll" style="max-height:38vh"><table id="streams"><thead><tr><th>Endpoint</th><th>Transport</th><th>Status</th><th class="num">Chunks</th><th class="num">Bytes</th><th class="num">Events</th><th class="num">Revisions</th><th>Coverage</th></tr></thead><tbody></tbody></table></div>
+      <div class="detail" id="detail" hidden>
+        <div class="panel"><h4><span class="c-l1">Raw bytes</span><span id="rawMeta" class="conf"></span></h4><div class="body raw" id="rawBody"></div></div>
+        <div class="panel"><h4><span class="c-l2">Decoded events</span><span id="evMeta" class="conf"></span></h4><div class="body" id="evBody"></div><div id="evMore" class="pad" role="status" aria-live="polite"></div></div>
+        <div class="panel"><h4><span>Assembled content</span><span id="asMeta" class="conf"></span></h4><div class="body" id="asBody"></div></div>
+      </div>
+    </section>
+
+    <section class="view" id="v-shapes">
+      <h2>Shapes</h2>
+      <p class="lede">What the studio thinks the data means. Accept a suggestion to save it to the site profile as a new version; reject it to stop seeing it. Raw data is kept either way.</p>
+      <div class="row" style="margin-bottom:12px">
+        <button id="btnShapes">Refresh suggestions</button>
+        <button id="btnInspect">Inspect the page</button>
+        <span id="shapeProfile" style="color:var(--muted)"></span>
+      </div>
+      <div class="split">
+        <div>
+          <div class="panel"><div class="pad" style="border-bottom:1px solid var(--line)"><b>Page structures</b> <span style="color:var(--muted)">hover to highlight in the browser</span></div><div id="domProps"><div class="empty">Inspect the page while recording to find lists, tables, code and links.</div></div></div>
+          <h3>Endpoints</h3>
+          <div class="panel scroll" style="max-height:34vh"><table id="endpoints"><tbody></tbody></table></div>
+        </div>
+        <div class="panel"><div id="suggestions"><div class="empty">No suggestions yet. Record some activity, then refresh.</div></div></div>
+      </div>
+    </section>
+
+    <section class="view" id="v-sessions">
+      <h2>Sessions</h2>
+      <p class="lede">Saved recordings on this computer. Choosing one makes Streams, Shapes and Search look at it instead of the live recording.</p>
+      <div id="deepLinkNotice" role="status" aria-live="polite" class="small-note" hidden></div>
+      <div class="split">
+        <div class="panel scroll"><div class="session-tools"><label for="sessionFilter">Filter <input id="sessionFilter" type="search" placeholder="Title, website or session ID" autocomplete="off"></label><output id="sessionCount" aria-live="polite"></output><button id="refreshSessions">Refresh</button></div><table id="sessions"><tbody><tr><td class="empty">Open Sessions to load recordings.</td></tr></tbody></table></div>
+        <div id="sessionDetail"><div class="empty">Choose a session.</div></div>
+      </div>
+    </section>
+
+    <section class="view" id="v-knowledge">
+      <h2>Knowledge workspace</h2>
+      <p class="lede">Explore what the Studio inferred from saved observations. Source recordings are evidence; entities, relationships and drift candidates are interpretations, not verified account identities.</p>
+      <div class="row" style="margin-bottom:10px">
+        <label for="knowledgeSession">Recording <select id="knowledgeSession" aria-label="Select saved recording"><option value="">Choose a recording</option></select></label>
+        <button id="knowledgeRefresh">Explore knowledge</button>
+        <label for="knowledgeAt">As of <input id="knowledgeAt" type="datetime-local" aria-label="Knowledge history as of time"></label>
+        <button id="knowledgeOpenSession">Open recording</button>
+      </div>
+      <div class="row small-note" aria-label="Evidence legend" style="gap:12px; margin:8px 0">
+        <span><b class="c-l1">Recorded</b> · observation from a saved recording</span>
+        <span><b class="c-l2">Inferred</b> · a derived type or relationship</span>
+        <span><b class="c-l3">Linked by key</b> · conservative origin-qualified match</span>
+        <span><b class="c-act">Incomplete</b> · missing, failed, unknown or preview-limited evidence</span>
+      </div>
+      <div id="knowledgeState" role="status" aria-live="polite" class="small-note">Choose a saved session to explore. No network scan runs until requested.</div>
+      <div class="knowledge-metrics" id="knowledgeMetrics"></div>
+      <div class="knowledge-grid">
+        <div class="panel">
+          <div class="pad"><b>Entities across recordings</b><p class="small-note">Linked by exact website origin, inferred type and keyed identity. A matching origin does not prove account identity.</p>
+            <label for="knowledgeFilter">Find entity <input id="knowledgeFilter" type="search" placeholder="Type, key, origin or ID" autocomplete="off"></label>
+          </div>
+          <div class="scroll" style="max-height:45vh"><div id="knowledgeEntities" aria-label="Knowledge entities"><div class="empty">Load knowledge to see entities.</div></div></div>
+        </div>
+        <div class="panel pad" id="knowledgeDetail" role="region" aria-label="Selected evidence details"><div class="empty">Select an entity or relationship to inspect evidence.</div></div>
+      </div>
+      <div class="knowledge-grid" style="margin-top:14px">
+        <div class="panel">
+          <div class="pad"><b>Session graph</b><p class="small-note">Relationship edges are inferred, unless their saved status says otherwise. A temporal association is not proof of causation.</p>
+            <label for="graphFilter">Find graph node <input id="graphFilter" type="search" placeholder="Type, key or identity" autocomplete="off"></label>
+          </div>
+          <div class="scroll" style="max-height:42vh" id="knowledgeGraph"><div class="empty">Open a derived recording to inspect its graph.</div></div>
+        </div>
+        <div class="panel pad" id="knowledgeModel"><div class="empty">Model types and structural interpretation will appear here.</div></div>
+      </div>
+      <div class="panel pad" style="margin-top:14px">
+        <h3>Possible type changes across recordings</h3>
+        <p class="small-note">Review only. These are unconfirmed structural similarities, never automatic identity merges or correction actions.</p>
+        <div id="knowledgeDrift"><div class="empty">No drift hints loaded.</div></div>
+      </div>
+    </section>
+
+    <section class="view" id="v-profiles">
+      <h2>Site profiles</h2>
+      <p class="lede">Each save creates a new version. Roll back if a site redesign or a bad suggestion broke capture.</p>
+      <div class="split">
+        <div class="panel scroll"><table id="profiles"><tbody></tbody></table></div>
+        <div id="profileDetail"><div class="empty">Choose a profile.</div></div>
+      </div>
+    </section>
+
+    <section class="view" id="v-search">
+      <h2>Search</h2>
+      <p class="lede">Find text across decoded events and rendered page blocks in recent sessions.</p>
+      <form class="row" id="searchForm" style="margin-bottom:12px">
+        <label for="q">Text <input id="q" size="32" placeholder="Search captured text" required></label>
+        <label for="searchScope">Scope <select id="searchScope"><option value="recent">20 recent recordings</option><option value="selected">Selected recording only</option></select></label>
+        <button class="primary">Search evidence</button>
+      </form>
+      <p class="small-note" id="searchStatus" role="status" aria-live="polite">Search scans saved decoded events and page blocks, not every raw byte. Results may omit sampled or unavailable evidence.</p>
+      <div class="panel scroll"><table id="hits"><tbody></tbody></table></div>
+    </section>
+  </div>
+</main>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmtB = (n) => n == null ? '' : n > 1048576 ? (n / 1048576).toFixed(1) + ' MB' : n > 1024 ? (n / 1024).toFixed(1) + ' KB' : n + ' B';
+const S = { status: null, liveId: null, sessionId: null, view: 'capture', sid: null, profile: null, recording: false, sessions: [], sessionLoadSeq: 0, sessionRequestSeq: 0, streamRequestSeq: 0, continuityRequestSeq: 0, knowledgeRequestSeq: 0, knowledgeDetailSeq: 0, searchRequestSeq: 0, workflowStep: '', historicalAsOfLocal: '', trail: [], authExpired: false, knowledge: null };
+
+async function api(path, opts = {}) {
+  let r;
+  try {
+    r = await fetch('/api/' + path, { method: opts.body ? 'POST' : 'GET', headers: opts.body ? { 'content-type': 'application/json' } : {}, body: opts.body ? JSON.stringify(opts.body) : undefined });
+  } catch {
+    if (!S.authExpired) $('#connectionNote').textContent = 'Studio is unreachable. Previously loaded details may be stale. Reopen or refresh after local Studio recovers; no action was automatically retried.';
+    const e = new Error('Cannot reach the local Studio; no request was automatically retried.'); e.status = 0; throw e;
+  }
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) {
+    if (r.status === 401 || r.status === 403) {
+      S.authExpired = true;
+      $('#connectionNote').textContent = 'Studio request rejected. Local mode needs no token; check address/Origin or reopen the startup URL if token mode is enabled.';
+    }
+    const err = new Error(j.error || r.statusText || 'Request failed');
+    err.status = r.status; throw err;
+  }
+  if (S.authExpired) {
+    S.authExpired = false; $('#connectionNote').textContent = '';
+  }
+  return j;
+}
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 3200); }
+const guard = (fn) => async (...a) => { try { await fn(...a); } catch (e) { toast(e.message); } };
+const src = () => (S.sessionId && S.sessionId !== S.liveId) ? { kind: 'session', id: S.sessionId } : (S.recording ? { kind: 'live', id: S.liveId } : (S.sessionId ? { kind: 'session', id: S.sessionId } : null));
+
+/* ---------------- navigation ---------------- */
+document.querySelectorAll('nav button[data-view]').forEach((b) => b.onclick = () => show(b.dataset.view));
+function show(v, skipLoad = false) {
+  S.view = v;
+  document.querySelectorAll('nav button[data-view]').forEach((b) => {
+    if (b.dataset.view === v) b.setAttribute('aria-current', 'page');
+    else b.removeAttribute('aria-current');
+  });
+  document.querySelectorAll('section.view').forEach((s) => s.classList.toggle('on', s.id === 'v-' + v));
+  const load = ({ streams: loadStreams, shapes: loadShapes, sessions: loadSessions, profiles: loadProfiles, capture: loadTargets, knowledge: loadKnowledge })[v];
+  if (load && !skipLoad) guard(load)();
+  updateInvestigationTrail();
+}
+function updateInvestigationTrail() {
+  const trail = $('#appTrail'); if (!trail) return;
+  const selected = S.sessionId ? String(S.sessionId).slice(0, 14) : '';
+  const current = S.view || 'capture';
+  trail.innerHTML = '<button id="trailCapture">Capture</button>' +
+    (selected ? '<button id="trailSession">Recording ' + esc(selected) + '</button>' : '') +
+    ((current === 'knowledge' || current === 'search' || S.workflowStep)
+      ? '<button id="trailKnowledge">Knowledge</button>' : '') +
+    (current === 'search' ? '<span class="small-note">→ Recorded evidence search</span>' :
+      S.workflowStep ? '<span class="small-note">→ ' + esc(S.workflowStep) + '</span>' : '');
+  $('#trailCapture').onclick = () => { S.workflowStep = ''; show('capture'); };
+  const session = $('#trailSession'); if (session) session.onclick = guard(async () => {
+    S.workflowStep = ''; show('sessions'); await openSession(S.sessionId);
+  });
+  const knowledge = $('#trailKnowledge'); if (knowledge) knowledge.onclick = () => {
+    S.workflowStep = ''; show('knowledge');
+  };
+}
+function selectSessionContext(id) {
+  const selected = id || null;
+  if (S.sessionId === selected) return;
+  S.sessionId = selected; S.sid = null;
+  ++S.sessionRequestSeq; ++S.streamRequestSeq; ++S.continuityRequestSeq; ++S.knowledgeRequestSeq; ++S.knowledgeDetailSeq; ++S.searchRequestSeq;
+  S.knowledge = null;
+  const state = $('#knowledgeState');
+  if (state) state.textContent = selected ? 'Recording changed. Explore knowledge to read its own derived evidence.' : 'No saved recording selected. Prior derived evidence is no longer displayed.';
+  const metrics = $('#knowledgeMetrics'); if (metrics) metrics.textContent = '';
+  for (const id of ['#knowledgeEntities','#knowledgeDetail','#knowledgeGraph','#knowledgeModel','#knowledgeDrift']) {
+    const host = $(id);
+    if (host) host.innerHTML = '<div class="empty">Select a saved recording and load its knowledge.</div>';
+  }
+  updateSrcNote();
+  const picker = $('#knowledgeSession');
+  if (picker && picker.value !== (selected || '')) picker.value = selected || '';
+  const detail = $('#sessionDetail');
+  if (detail) detail.innerHTML = knowledgeFallback(selected ? 'Recording selection changed. Open it from Sessions to inspect this recording.' : 'No saved recording selected.');
+  if ($('#sessions tbody') && S.sessions.length) renderSessions();
+  const scope = $('#searchScope');
+  if (scope?.value === 'selected') {
+    ++S.searchRequestSeq;
+    const hits = $('#hits tbody'), status = $('#searchStatus');
+    if (hits) hits.innerHTML = '<tr><td colspan="3" class="empty">Recording changed. Search again for this source.</td></tr>';
+    if (status) status.textContent = 'Search scope changed; run search again for the selected recording.';
+  }
+}
+function updateHistoricalContext(value) {
+  S.historicalAsOfLocal = value || '';
+  const continuity = $('#continuityAsOf'), knowledge = $('#knowledgeAt');
+  if (continuity && continuity.value !== S.historicalAsOfLocal) continuity.value = S.historicalAsOfLocal;
+  if (knowledge && knowledge.value !== S.historicalAsOfLocal) knowledge.value = S.historicalAsOfLocal;
+  if (S.knowledge) {
+    S.knowledge = null; ++S.knowledgeRequestSeq; ++S.knowledgeDetailSeq;
+    $('#knowledgeState').textContent = 'Historical time changed. Select Explore knowledge to refresh results for this time.';
+    $('#knowledgeMetrics').textContent = '';
+    ['#knowledgeEntities','#knowledgeGraph','#knowledgeModel','#knowledgeDrift','#knowledgeDetail'].forEach((q) => $(q).innerHTML = knowledgeFallback('Historical time changed; reload knowledge.'));
+  }
+}
+function updateSrcNote() {
+  const s = src();
+  $('#srcNote').textContent = !s ? 'Nothing selected yet' : s.kind === 'live' ? 'Showing the live recording' : 'Showing saved session ' + s.id.slice(0, 15);
+  updateInvestigationTrail();
+}
+
+/* ---------------- layer strip ---------------- */
+const strip = { items: [], gaps: [], windowMs: 60000 };
+const laneOf = (r) => ({ req: 0, res: 0, chunk: 0, body: 0, 'ws.frame': 0, 'stream.armed': 0, done: 0, fail: 0, 'dom.batch': 2, 'dom.snapshot': 2, action: 3, nav: 3 })[r.k];
+function drawStrip() {
+  const c = $('#stripCanvas'), dpr = devicePixelRatio || 1, w = c.clientWidth, h = 112;
+  if (c.width !== w * dpr) { c.width = w * dpr; c.height = h * dpr; }
+  const x = c.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0); x.clearRect(0, 0, w, h);
+  const css = getComputedStyle(document.documentElement), col = ['--l1', '--l2', '--l3', '--act'].map((v) => css.getPropertyValue(v).trim());
+  const left = innerWidth > 900 ? 132 : 90, now = Date.now(), span = w - left - 12, laneH = h / 4;
+  x.strokeStyle = css.getPropertyValue('--line'); x.lineWidth = 1;
+  for (let i = 1; i < 4; i++) { x.beginPath(); x.moveTo(left, i * laneH + .5); x.lineTo(w, i * laneH + .5); x.stroke(); }
+  x.fillStyle = css.getPropertyValue('--gap').trim();
+  for (const g of strip.gaps) { const gx = left + span * (1 - (now - g.t) / strip.windowMs); if (gx > left) { x.globalAlpha = .25; x.fillRect(gx - 3, 0, 6, h); x.globalAlpha = 1; } }
+  strip.items = strip.items.filter((it) => now - it.t < strip.windowMs);
+  for (const it of strip.items) {
+    const px = left + span * (1 - (now - it.t) / strip.windowMs);
+    const hh = Math.max(3, Math.min(laneH - 6, 3 + Math.log2(1 + (it.n || 1)) * 2.2));
+    x.fillStyle = col[it.lane]; x.fillRect(px, it.lane * laneH + (laneH - hh) / 2, 2, hh);
+  }
+  requestAnimationFrame(drawStrip);
+}
+requestAnimationFrame(drawStrip);
+
+/* ---------------- live feed ---------------- */
+const feedRows = [];
+function onRecord(r) {
+  const lane = laneOf(r);
+  if (lane !== undefined) strip.items.push({ t: Date.now(), lane, n: r.n || r.size || r.items || 1 });
+  if (r.k === 'gap') strip.gaps.push({ t: Date.now() });
+  feedRows.unshift(r); if (feedRows.length > 200) feedRows.pop();
+  if (S.view === 'capture') scheduleFeed();
+}
+function onEvent(e) {
+  strip.items.push({ t: Date.now(), lane: 1, n: (e.data || e.text || '').length || 1 });
+  if (S.view === 'streams' && S.sid === e.sid && src()?.kind === 'live') appendEvent(e);
+}
+let feedTimer = null;
+function scheduleFeed() { if (feedTimer) return; feedTimer = setTimeout(() => { feedTimer = null; renderFeed(); }, 250); }
+function renderFeed() {
+  $('#feed tbody').innerHTML = feedRows.map((r) => {
+    const lane = laneOf(r), cls = r.k === 'gap' ? 'c-gap' : ['c-l1', 'c-l2', 'c-l3', 'c-act'][lane] || '';
+    const what = r.k === 'req' ? `${r.method} ${r.url}` : r.k === 'res' ? `${r.status} ${r.mime || ''}` : r.k === 'chunk' ? `${fmtB(r.n)}${r.pre ? ' buffered before arming' : ''}${r.redactions ? ` · ${r.redactions} masked` : ''}`
+      : r.k === 'action' ? `${r.kind}${r.label ? ' “' + r.label + '”' : ''}` : r.k === 'gap' ? `${r.droppedRecords} records dropped (disk too slow)` : r.k === 'dom.batch' ? `${r.items} block(s) changed` : (r.url || r.reason || r.error || r.event || r.policy || '');
+    return `<tr><td class="k ${cls}">${esc(r.k)}</td><td class="mono" style="color:var(--muted)">${esc(r.sid || '')}</td><td style="overflow-wrap:anywhere">${esc(what)}</td></tr>`;
+  }).join('');
+}
+
+/* ---------------- status ---------------- */
+function onStatus(st) {
+  S.status = st; S.recording = st.state === 'recording';
+  if (S.recording) S.liveId = st.id;
+  $('#top').classList.toggle('recording', S.recording);
+  $('#stateText').textContent = S.recording ? 'Recording' : st.state === 'stopping' ? 'Saving…' : 'Idle';
+  $('#targetText').textContent = S.recording ? st.pageUrl : '';
+  $('#btnStart').disabled = S.recording; $('#btnStop').disabled = !S.recording; $('#btnSnap').disabled = !S.recording;
+  if (S.recording && st.stats) {
+    const n = st.stats.network, raw = st.stats.raw;
+    $('#counters').innerHTML = `<span><b>${n.requests}</b> requests</span><span><b>${n.streamed}</b> streamed</span><span><b>${fmtB(n.bytes)}</b> received</span><span><b>${st.openStreams}</b> open</span><span><b>${fmtB(st.queue.bytes)}</b> waiting for disk</span><span class="gapn"><b>${raw.gaps}</b> gaps</span><span>${esc(st.profile.name)} v${st.profile.version}</span>`;
+  } else $('#counters').innerHTML = '';
+  updateSrcNote();
+}
+
+function connectLive() {
+  const es = new EventSource('/api/live');
+  es.addEventListener('status', (m) => {
+    onStatus(JSON.parse(m.data));
+    if (!S.authExpired) $('#connectionNote').textContent = '';
+  });
+  es.addEventListener('record', (m) => onRecord(JSON.parse(m.data)));
+  es.addEventListener('event', (m) => onEvent(JSON.parse(m.data)));
+  es.addEventListener('started', (m) => { const d = JSON.parse(m.data); S.liveId = d.id; S.sessionId = null; feedRows.length = 0; toast(`Recording ${d.target.title || d.target.url}`); });
+  es.addEventListener('stopped', (m) => { const d = JSON.parse(m.data); toast(`Saved session ${d.id.slice(0, 15)} (${d.reason})`); });
+  es.addEventListener('warn', (m) => toast(JSON.parse(m.data).message));
+  es.onerror = () => {
+    $('#stateText').textContent = 'Studio disconnected';
+    if (!S.authExpired) $('#connectionNote').textContent = 'Connection interrupted — live updates will retry automatically. Saved recordings remain available if authorization is valid.';
+  };
+}
+
+/* ---------------- capture ---------------- */
+async function loadTargets() {
+  const st = await api('status').catch(() => null);
+  $('#chromeState').textContent = st?.chrome ? `Connected to ${st.chrome} on port ${st.cdpPort}` : 'Capture browser not running';
+  const ps = await api('profiles').catch(() => []);
+  const sel = $('#profileSel'), cur = sel.value;
+  sel.innerHTML = '<option value="">Match the site automatically</option>' + ps.map((p) => `<option value="${esc(p.name)}">${esc(p.name)} (v${p.current})</option>`).join('');
+  sel.value = cur;
+  if (!st?.chrome) return;
+  const ts = await api('targets');
+  $('#targets').innerHTML = ts.length ? ts.map((t, i) => `<label><input type="radio" name="tgt" value="${esc(t.id)}" ${i === 0 ? 'checked' : ''}><b>${esc(t.title || '(untitled)')}</b><span class="t-url">${esc(t.url)}</span></label>`).join('') : '<div class="empty">No tabs are open.</div>';
+}
+$('#btnTargets').onclick = guard(loadTargets);
+$('#btnLaunch').onclick = guard(async () => { const r = await api('chrome/launch', { body: { url: $('#launchUrl').value.trim() } }); toast(r.alreadyRunning ? 'Capture browser already running' : 'Capture browser opened. Sign in there if needed.'); setTimeout(loadTargets, 800); });
+$('#btnStart').onclick = guard(async () => {
+  const t = document.querySelector('input[name=tgt]:checked')?.value;
+  if (!t) return toast('Choose a tab to record first.');
+  await api('record/start', { body: { target: t, profile: $('#profileSel').value, label: $('#label').value.trim() } });
+  $('#stopResult').innerHTML = '';
+});
+$('#btnStop').onclick = guard(async () => {
+  $('#btnStop').disabled = true;
+  const r = await api('record/stop', { body: {} });
+  S.sessionId = r.id;
+  const rc = r.receipt;
+  $('#stopResult').innerHTML = `<div class="${r.verify.ok ? 'c-l3' : 'c-gap'}"><b>${r.verify.ok ? 'Saved and verified' : 'Saved with integrity warnings'}</b></div><div style="color:var(--muted)">Verdict ${esc(rc.verdict)}, transport ${esc(rc.actual_response_transport)}, ${rc.raw_chunks_received} chunks, ${fmtB(rc.raw_bytes_received)}, ${rc.replay_and_gap_diagnostics.gap_records} gaps. </div>`;
+  $('#stopResult').insertAdjacentHTML('beforeend', '<button id="openLastCapture">Investigate this recording</button>');
+  $('#openLastCapture').onclick = guard(async () => { show('sessions'); await openSession(r.id); });
+  updateSrcNote();
+});
+$('#btnSnap').onclick = guard(async () => { const r = await api('live/snapshot', { body: {} }); toast(`Snapshot saved (${fmtB(r.bytes)})`); });
+
+/* ---------------- streams ---------------- */
+let streamsCache = [];
+async function loadStreams() {
+  const s = src();
+  if (!s) { $('#streams tbody').innerHTML = '<tr><td colspan="8" class="empty">Start a recording or choose a saved session.</td></tr>'; return; }
+  const rows = s.kind === 'live' ? (await api('live/streams')).streams : await api(`sessions/${s.id}/streams`);
+  if (src()?.id !== s.id || src()?.kind !== s.kind) return [];
+  if (!Array.isArray(rows)) throw new Error('Studio did not return a stream list.');
+  streamsCache = rows;
+  const tcls = (t) => ({ HTTP_SSE: 'c-l2', HTTP_NDJSON: 'c-l2', EVENT_SOURCE: 'c-l2', WEBSOCKET: 'c-l3', HTTP_STREAMED: 'c-l1' })[t] || '';
+  $('#streams tbody').innerHTML = rows.length ? rows.map((r) => `<tr class="click ${r.sid === S.sid ? 'sel' : ''}" data-sid="${esc(r.sid)}">
+    <td style="overflow-wrap:anywhere"><span class="mono">${esc(r.method || (r.kind === 'ws' ? 'WS' : ''))}</span> ${esc(shortUrl(r.url))}${r.bodyExcluded ? ` <span class="pill" style="color:var(--muted)">metadata only: ${esc(r.bodyExcluded.replace(/_/g, ' '))}</span>` : ''}</td>
+    <td><span class="pill ${tcls(r.transport)}">${esc((r.transport || '').replace(/_/g, ' ').toLowerCase())}</span></td>
+    <td>${esc(r.status_code ?? '')} ${esc(r.status)}</td><td class="num">${r.chunks || r.frames || 0}</td><td class="num">${fmtB(r.bytes)}</td><td class="num">${r.events}</td><td class="num">${r.deltaRevisions || ''}</td>
+    <td>${r.gaps ? '<span class="c-gap">gap in stream</span>' : r.status === 'incomplete_at_stop' ? '<span class="c-act">ended before the stream did</span>' : r.armError ? '<span class="c-act">retrospective only</span>' : r.retrospective ? 'retrospective' : r.preBytes ? 'from start (buffered prefix)' : 'from start'}</td></tr>`).join('') : '<tr><td colspan="8" class="empty">No in-scope traffic yet. Use the page in the capture browser.</td></tr>';
+  document.querySelectorAll('#streams tr.click').forEach((tr) => tr.onclick = guard(() => openStream(tr.dataset.sid)));
+  return rows;
+}
+function shortUrl(u) { try { const x = new URL(u); return x.host + x.pathname + (x.search ? '?…' : ''); } catch { return u || ''; } }
+/* ---------------- stream events paging (cursor pages of saved events, read-only) ---------------- */
+// Pages come from GET sessions/:id/events/:sid?after=<seq>. The next cursor is the X-Next-After header, present only
+// when more events exist. The existing request helper is unchanged; apiPaged reads the header from the same kind of GET.
+const EV_ROWS_CAP = 100000;
+let evPaging = null;
+async function apiPaged(path) {
+  let r;
+  try { r = await fetch('/api/' + path); }
+  catch { const e = new Error('Cannot reach the local Studio; no request was automatically retried.'); e.status = 0; throw e; }
+  const json = await r.json().catch(() => ({}));
+  if (!r.ok) { const err = new Error((json && json.error) || r.statusText || 'Request failed'); err.status = r.status; throw err; }
+  const header = r.headers && typeof r.headers.get === 'function' ? r.headers.get('X-Next-After') : null;
+  const text = header == null ? '' : String(header).trim();
+  return { json, nextAfter: /^\d+$/.test(text) ? text : null };
+}
+function eventsPagePath(id, sid, after) {
+  return 'sessions/' + encodeURIComponent(id) + '/events/' + encodeURIComponent(sid) + (after === null ? '' : '?after=' + encodeURIComponent(after));
+}
+function newEventPaging(id, sid, live) {
+  return { id, sid, live: !!live, rows: 0, keys: new Set(), cursor: null, dropped: false, busy: false, cap: EV_ROWS_CAP };
+}
+// Same seq and n is the same event (sid#seq.n). Events without n never collide: the row ordinal makes them unique.
+function eventRowKey(sid, e, ordinal) {
+  return e.n != null ? sid + '#' + e.seq + '.' + e.n : sid + '#' + e.seq + '~' + ordinal;
+}
+function mergeEventPage(state, events, nextAfter) {
+  for (const e of Array.isArray(events) ? events : []) {
+    if (e === null || typeof e !== 'object') continue;
+    if (state.rows >= state.cap) { state.dropped = true; break; }
+    const key = eventRowKey(state.sid, e, state.rows);
+    if (state.keys.has(key)) continue;
+    state.keys.add(key); state.rows++;
+    appendEvent(e);
+  }
+  state.cursor = state.dropped || nextAfter === null || nextAfter === undefined ? null : String(nextAfter);
+  return state.rows;
+}
+function eventPagingStopped(state) { return state.dropped || (state.rows >= state.cap && state.cursor !== null); }
+function isCurrentEventPaging(state) { return evPaging === state && src()?.id === state.id && S.sid === state.sid; }
+function canLoadEventPage(state) {
+  return !!state && !state.live && !state.busy && state.cursor !== null && !eventPagingStopped(state) && isCurrentEventPaging(state);
+}
+function renderEventMore(state) {
+  const meta = $('#evMeta'), more = $('#evMore');
+  if (!state || !meta || !more) return;
+  const n = state.rows;
+  if (state.live) { meta.textContent = n + ' events'; more.innerHTML = ''; return; }
+  if (eventPagingStopped(state)) {
+    meta.textContent = 'stopped at cap: ' + n + ' events in memory (limit ' + state.cap + '); more events exist but are not loaded';
+    more.innerHTML = ''; return;
+  }
+  if (state.cursor !== null) {
+    meta.textContent = 'showing ' + n + ' events, more available';
+    more.innerHTML = '<button type="button" id="evLoadMore"' + (state.busy ? ' disabled' : '') + '>' + (state.busy ? 'Loading…' : 'Load more events') + '</button>';
+    const b = $('#evLoadMore');
+    if (b) b.onclick = guard(() => loadEventPage(state));
+    return;
+  }
+  meta.textContent = 'all ' + n + ' events loaded';
+  more.innerHTML = '';
+}
+// Requests the next page only when a cursor exists. A response for a replaced stream or session is dropped.
+async function loadEventPage(state) {
+  if (!canLoadEventPage(state)) return false;
+  state.busy = true; renderEventMore(state);
+  let page;
+  try { page = await apiPaged(eventsPagePath(state.id, state.sid, state.cursor)); }
+  catch (e) {
+    if (isCurrentEventPaging(state)) { state.busy = false; renderEventMore(state); }
+    throw e;
+  }
+  if (!isCurrentEventPaging(state)) return false;
+  state.busy = false;
+  mergeEventPage(state, page.json, page.nextAfter);
+  renderEventMore(state);
+  return true;
+}
+async function openStream(sid) {
+  const streamSeq = ++S.streamRequestSeq;
+  S.sid = sid; document.querySelectorAll('#streams tr').forEach((tr) => tr.classList.toggle('sel', tr.dataset.sid === sid));
+  $('#detail').hidden = false;
+  const s = src(), id = s.id;
+  const [raw, evRes, as] = await Promise.all([
+    api(`sessions/${id}/raw/${encodeURIComponent(sid)}`).catch((e) => ({ error: e.message })),
+    s.kind === 'live' ? api(`live/stream/${encodeURIComponent(sid)}/events`).then((json) => ({ json, nextAfter: null })) : apiPaged(eventsPagePath(id, sid, null)),
+    s.kind === 'live' ? api(`live/stream/${encodeURIComponent(sid)}/assembled`) : api(`sessions/${id}/assembled/${encodeURIComponent(sid)}`),
+  ]);
+  if (streamSeq !== S.streamRequestSeq || src()?.id !== id || S.sid !== sid) return false;
+  if (raw.error) $('#rawBody').innerHTML = `<div class="empty">${esc(raw.error)}</div>`;
+  else {
+    $('#rawMeta').textContent = `${raw.chunks.length} chunks, ${fmtB(raw.total)}${raw.truncatedForView ? ' (view truncated, file complete)' : ''}`;
+    $('#rawBody').innerHTML = raw.chunks.length ? raw.chunks.map((c, i) => `<span data-seq="${esc(c.seq ?? '')}" class="c${i % 2}${c.pre ? ' pre' : ''}${c.redactions ? ' red' : ''}" title="seq ${c.seq}, ${c.length} bytes at offset ${c.offset}${c.pre ? ', received before capture was armed' : ''}${c.retrospective ? ', read after completion' : ''}${c.redactions ? ', ' + c.redactions.length + ' credential(s) masked' : ''}${c.dir ? ', ' + c.dir : ''}">${esc(c.text)}</span>`).join('') : '<div class="empty">No body bytes for this stream.</div>';
+  }
+  if (!Array.isArray(evRes.json)) throw new Error('Studio did not return decoded events.');
+  const evs = evRes.json;
+  $('#evBody').innerHTML = ''; $('#evMore').innerHTML = '';
+  evPaging = newEventPaging(id, sid, s.kind === 'live');
+  mergeEventPage(evPaging, evs, evRes.nextAfter);
+  renderEventMore(evPaging);
+  if (!evs.length) $('#evBody').innerHTML = '<div class="empty">Nothing decoded yet.</div>';
+  const doc = s.kind === 'live' ? as?.doc : as?.doc;
+  $('#asMeta').textContent = as ? `${as.revisions} revisions` : '';
+  $('#asBody').innerHTML = doc !== undefined && doc !== null ? `<pre class="mono" style="white-space:pre-wrap;margin:0">${esc(JSON.stringify(doc, null, 2))}</pre>` : '<div class="empty">This stream has no assembled document. Events are shown individually.</div>';
+  return true;
+}
+function appendEvent(e) {
+  const body = $('#evBody'); if (body.querySelector('.empty')) body.innerHTML = '';
+  const d = document.createElement('details'); d.className = 'ev';
+  const label = e.type === 'sse' ? `${e.event}${e.terminal ? ' (end marker)' : ''}` : e.type === 'ws.text' || e.type === 'ws.binary' ? `${e.dir === 'in' ? 'received' : 'sent'} frame` : e.type;
+  d.dataset.seq = e.seq == null ? '' : String(e.seq);
+  d.innerHTML = `<summary><span class="mono c-l2">#${e.index ?? ''}</span> ${esc(label)} <span style="color:var(--muted)">${e.revision ? 'revision ' + e.revision : ''} ${e.span ? 'bytes ' + e.span.join('–') : ''}</span></summary><pre class="mono">${esc(e.json !== undefined ? JSON.stringify(e.json, null, 2) : e.jsonPreview || e.data || e.text || '')}</pre>`;
+  body.appendChild(d);
+}
+
+/* ---------------- shapes ---------------- */
+const KIND_COLOR = { stream_endpoint: 'var(--l1)', beacon_exclusion: 'var(--muted)', event_type: 'var(--l2)', collection: 'var(--l2)', delta_stream: 'var(--l2)', identity_field: 'var(--l2)', timestamp_field: 'var(--l2)', text_field: 'var(--l2)', relationship: 'var(--l2)', correlation: 'var(--l3)', uncorrelated_ui: 'var(--act)', action_effect: 'var(--act)', coverage_gap: 'var(--gap)', coverage_arm: 'var(--gap)' };
+async function loadShapes() {
+  const s = src();
+  if (!s) return;
+  let report, profileName;
+  if (s.kind === 'live') { report = await api('live/shapes'); profileName = S.status?.profile?.name; }
+  else { const d = await api(`sessions/${s.id}`); profileName = d.meta.profile?.name; report = await api(`sessions/${s.id}/shapes`); if (!report) { await api(`sessions/${s.id}/derive`, { body: {} }); report = await api(`sessions/${s.id}/shapes`); } }
+  S.profile = profileName;
+  const prof = profileName ? await api(`profiles/${profileName}`).catch(() => null) : null;
+  const done = new Set([...(prof?.shapes?.accepted || []), ...(prof?.shapes?.excluded || [])].map((x) => x.id));
+  $('#shapeProfile').textContent = profileName ? `Decisions save to profile “${profileName}” (v${prof?.version})` : '';
+  $('#suggestions').innerHTML = report.suggestions.length ? report.suggestions.map((g) => `<div class="sugg ${done.has(g.id) ? 'done' : ''}" data-id="${esc(g.id)}">
+      <div class="bar" style="background:${KIND_COLOR[g.kind] || 'var(--line)'}"></div>
+      <div><div class="t">${esc(g.title)}<span class="conf" title="raw ${Math.round(g.confidence * 100)}%">${Math.round((g.calibratedConfidence ?? g.confidence) * 100)}%</span></div><div class="d">${esc(g.detail)}</div></div>
+      <div class="acts">${done.has(g.id) ? '<span style="color:var(--muted)">decided</span>' : `<button data-act="accept">${g.proposal ? 'Accept' : 'Confirm'}</button><button data-act="reject">Reject</button>`}</div></div>`).join('') : '<div class="empty">No suggestions yet.</div>';
+  const byId = Object.fromEntries(report.suggestions.map((g) => [g.id, g]));
+  document.querySelectorAll('.sugg button').forEach((b) => b.onclick = guard(async () => {
+    const id = b.closest('.sugg').dataset.id, g = byId[id];
+    let edits = {};
+    if (b.dataset.act === 'accept' && g.proposal?.op === 'record_rule') { const name = prompt('Name this record type', g.proposal.rule.name); if (name === null) return; edits = { rule: { name } }; }
+    if (b.dataset.act === 'accept' && g.proposal?.op === 'rename_shape') { const name = prompt('Name this event type', g.proposal.name); if (name === null) return; edits = { name }; }
+    if (b.dataset.act === 'accept' && g.proposal?.op === 'retain_revisions') { const keep = confirm('Keep every intermediate revision in derived records? Cancel keeps only the final state.'); edits = { choice: keep ? 'all' : 'final' }; }
+    const saved = await api(`profiles/${S.profile}/apply`, { body: { suggestion: g, action: b.dataset.act, edits } });
+    toast(`Profile “${saved.name}” saved as v${saved.version}`);
+    loadShapes();
+  }));
+  $('#endpoints tbody').innerHTML = report.endpoints.map((e) => `<tr><td style="overflow-wrap:anywhere">${esc(e.endpoint)}</td><td>${esc(Object.keys(e.transports).join(', ').replace(/_/g, ' ').toLowerCase())}</td><td class="num">${e.streams}</td><td class="num">${fmtB(e.bytes)}</td></tr>`).join('') || '<tr><td class="empty">No endpoints yet.</td></tr>';
+}
+$('#btnShapes').onclick = guard(loadShapes);
+$('#btnInspect').onclick = guard(async () => {
+  if (!S.recording) return toast('Page inspection needs a live recording.');
+  const r = await api('live/inspect-dom', { body: {} });
+  const label = (p) => p.kind === 'collection' ? `List of ${p.count} similar items, ${p.fields.length} fields each` : p.kind === 'table' ? `Table, ${p.rows} rows × ${p.columns} columns${p.headers.length ? ': ' + p.headers.join(', ') : ''}` : p.kind === 'code_blocks' ? `${p.count} code block(s)${p.languages.length ? ' (' + p.languages.join(', ') + ')' : ''}` : p.kind === 'headings' ? `${p.count} heading(s)` : p.kind === 'links' ? `${p.count} links, ${p.external} external` : p.kind === 'inputs' ? `${p.count} input area(s)` : p.kind === 'live_regions' ? `${p.count} live/updating region(s)` : p.kind;
+  $('#domProps').innerHTML = r.proposals.map((p) => `<div class="domp" data-node="${p.parentId || p.id || p.ids?.[0] || p.outline?.[0]?.id || p.sample?.[0]?.id || p.items?.[0]?.id || ''}"><b>${esc(label(p))}</b><div class="mono" style="color:var(--muted);overflow-wrap:anywhere">${esc(p.path || p.itemSig || '')}</div>${p.sampleText ? `<div style="color:var(--muted)">${esc(p.sampleText)}</div>` : ''}</div>`).join('') || '<div class="empty">No repeated structures found on this page.</div>';
+  document.querySelectorAll('.domp').forEach((el) => { el.onmouseenter = () => el.dataset.node && api('live/highlight', { body: { id: Number(el.dataset.node) } }).catch(() => {}); });
+});
+
+/* ---------------- sessions ---------------- */
+function renderSessions() {
+  const q = $('#sessionFilter').value.trim().toLocaleLowerCase();
+  const list = S.sessions.filter((s) => [s.target?.title, s.target?.url, s.site, s.id].some((v) => String(v ?? '').toLocaleLowerCase().includes(q)));
+  $('#sessionCount').textContent = list.length + ' / ' + S.sessions.length;
+  $('#sessions tbody').innerHTML = list.length ? list.map((s) =>
+    '<tr class="' + (s.id === S.sessionId ? 'sel' : '') + '"><td><button class="row-action" data-id="' + esc(s.id) + '" aria-label="Open session ' + esc(s.target?.title || s.site || s.id) + '">' +
+    esc(s.target?.title || s.site || s.id) + '</button><div class="small-note">' + esc(s.createdAt ? new Date(s.createdAt).toLocaleString() : 'Time unavailable') +
+    '</div></td><td class="num">' + fmtB(s.rawBytes) + '</td><td>' + (s.status === 'recording' && s.id !== S.liveId ? '<span class="c-act">interrupted</span>' : esc(s.status)) + '</td></tr>'
+  ).join('') : '<tr><td colspan="3" class="empty">' + (q ? 'No recordings match this filter.' : 'No sessions yet.') + '</td></tr>';
+  document.querySelectorAll('#sessions button[data-id]').forEach((b) => b.onclick = guard(() => openSession(b.dataset.id)));
+}
+async function loadSessions() {
+  const seq = ++S.sessionLoadSeq;
+  $('#sessions tbody').innerHTML = '<tr><td colspan="3" class="empty">Loading saved sessions…</td></tr>';
+  try {
+    const list = await api('sessions');
+    if (seq !== S.sessionLoadSeq) return;
+    if (!Array.isArray(list)) throw new Error('Unexpected sessions response.');
+    S.sessions = list;
+    renderSessions();
+  } catch (e) {
+    if (seq === S.sessionLoadSeq) {
+      $('#sessions tbody').innerHTML = '<tr><td colspan="3" class="feedback-error">Could not load recordings: ' + esc(e.message) + '</td></tr>';
+      $('#sessionCount').textContent = 'Unavailable';
+    }
+  }
+}
+$('#sessionFilter').oninput = renderSessions;
+$('#refreshSessions').onclick = guard(loadSessions);
+async function openSession(id) {
+  selectSessionContext(id);
+  const requestSeq = ++S.sessionRequestSeq;
+  ++S.continuityRequestSeq;
+  ++S.knowledgeRequestSeq;
+  ++S.knowledgeDetailSeq;
+  S.knowledge = null;
+  S.sid = null; S.workflowStep = ''; updateSrcNote();
+  renderSessions();
+  $('#sessionDetail').innerHTML = '<div class="empty" role="status">Loading session details…</div>';
+  let d;
+  try {
+    d = await api('sessions/' + encodeURIComponent(id));
+  } catch (e) {
+    if (requestSeq === S.sessionRequestSeq) {
+      // Do not leave an unverified recording selected in Streams, Knowledge, or scoped Search.
+      selectSessionContext(null);
+      $('#sessionDetail').innerHTML = '<div class="feedback-error" role="alert">' +
+        (e.status === 404 ? 'This recording is no longer available. It may have been deleted.' :
+          (e.status === 401 || e.status === 403 ? 'Studio request rejected. Check local address/Origin; if token mode is enabled, reopen its startup URL.' :
+            'Could not open recording: ' + esc(e.message) + '. Selection cleared; no previous evidence is shown as current.')) + '</div>';
+    }
+    return false;
+  }
+  if (requestSeq !== S.sessionRequestSeq) return false;
+  const m = d.meta;
+  const datasets = Array.isArray(d.datasets) ? d.datasets : [];
+  $('#sessionDetail').innerHTML = `<div class="panel pad">
+    <h3 style="margin-top:0">${esc(m.target?.title || m.site)}</h3>
+    <div style="color:var(--muted);overflow-wrap:anywhere">${esc(m.target?.url || '')}</div>
+    <div style="margin:8px 0">${esc(m.browser || '')}, profile ${esc(m.profile?.name)} v${m.profile?.version}, ended: ${esc(m.endReason || m.status)}${m.integrity ? `, integrity ${m.integrity.ok ? '<span class="c-l3">verified</span>' : '<span class="c-gap">warnings</span>'}` : ''}</div>
+    <div class="row"><button id="bGoKnowledge">Explore knowledge</button><button id="bDerive">Rebuild datasets</button><button id="bVerify">Check integrity</button><a href="/api/sessions/${encodeURIComponent(id)}/transcript"><button>Download transcript</button></a></div>
+    <h3>Capture acceptance <span class="small-note" style="font-weight:400">read-only label</span></h3>
+    <div class="panel pad" id="acceptancePanel">
+      <div id="acceptanceOut" role="status" aria-live="polite"></div>
+    </div>
+    <h3>Export</h3><div class="row">${datasets.map((ds) => `<span>${esc(ds)}: ${['jsonl', 'json', 'csv', 'md'].map((f) => `<a href="/api/sessions/${encodeURIComponent(id)}/export?dataset=${encodeURIComponent(ds)}&format=${f}">${f}</a>`).join(' ')}</span>`).join('') || '<span style="color:var(--muted)">Rebuild datasets first.</span>'}</div>
+    <h3>Records <span class="small-note" style="font-weight:400">read-only</span></h3>
+    <div class="panel pad" id="recPanel">
+      <div class="row" style="margin-bottom:8px"><label>Dataset <select id="recPicker" aria-label="Saved dataset to read">${recordPickerOptions(datasets)}</select></label><span class="small-note">First ${REC_PAGE} rows of a saved dataset. Nothing is written from this panel.</span></div>
+      <div id="recOut" role="status" aria-live="polite"></div>
+    </div>
+    <h3>Stream to page <span class="small-note" style="font-weight:400">read-only</span></h3>
+    <div class="panel pad" id="joinPanel">
+      <div class="small-note">Ties parsed stream messages to the rendered DOM turns they produced, as derived by Rebuild datasets. Nothing is derived or sent from this panel.</div>
+      <div id="joinOut" role="status" aria-live="polite" style="margin-top:8px"></div>
+    </div>
+    <h3>Page components <span class="small-note" style="font-weight:400">read-only</span></h3>
+    <div class="panel pad" id="compPanel">
+      <div class="small-note">Components the saved stream messages built, from the stream-components derivation made by Rebuild datasets. Nothing is derived or sent from this panel.</div>
+      <div id="compOut" role="status" aria-live="polite" style="margin-top:8px"></div>
+    </div>
+    <h3>Time travel</h3><div class="row"><input type="range" id="tt" min="0" max="1000" value="1000" style="flex:1"><span id="ttLabel" class="mono"></span></div><div id="ttOut" style="margin-top:8px"></div>
+    <div id="sessionKnowledgeStatus" role="status" class="small-note"></div>
+    <h3>Continuity across sessions</h3>
+    <div class="row"><button id="bContinuity">Load same-site knowledge</button><input id="continuityAsOf" type="datetime-local" aria-label="Optional time for historical state" value="${esc(S.historicalAsOfLocal)}"></div>
+    <div id="continuityOut" role="status" aria-live="polite" style="margin:8px 0;color:var(--muted)">Joins only exact keyed identities. Keyless records remain session-local; absence is not deletion.</div>
+    <h3>Lab receipt <button id="bCopy" style="margin-left:8px">Copy</button></h3>
+    <div style="color:var(--muted);margin-bottom:6px">Metadata only, safe to paste into the research issue.</div>
+    <pre class="panel receipt mono" id="receipt">${esc(d.receipt ? JSON.stringify(d.receipt, null, 2) : 'Rebuild datasets to produce the receipt.')}</pre></div>`;
+  $('#sessionKnowledgeStatus').innerHTML = knowledgeOutcomeMarkup(d.knowledgeOutcome);
+  $('#bGoKnowledge').onclick = () => { S.workflowStep = ''; show('knowledge'); };
+  $('#bDerive').onclick = guard(async () => { await api(`sessions/${id}/derive`, { body: {} }); toast('Datasets rebuilt from raw'); openSession(id); });
+  $('#bVerify').onclick = guard(async () => { const v = await api(`sessions/${id}/verify`); toast(v.ok ? `Verified: ${v.records} records, ${v.gapRecords} declared gaps` : `Integrity problem: ${JSON.stringify(v.unexplained || v.segments.filter((s) => s.torn || s.shaMatches === false))}`); });
+  $('#continuityAsOf').onchange = () => updateHistoricalContext($('#continuityAsOf').value);
+  $('#bContinuity').onclick = guard(async () => {
+    const callSeq = ++S.continuityRequestSeq;
+    const button = $('#bContinuity'), out = $('#continuityOut');
+    button.disabled = true;
+    out.textContent = 'Loading same-site evidence across saved sessions…';
+    try {
+      const selectedTime = $('#continuityAsOf').value;
+      if (selectedTime !== S.historicalAsOfLocal) updateHistoricalContext(selectedTime);
+      const at = selectedTime ? new Date(selectedTime) : null;
+      if (at && !Number.isFinite(at.getTime())) throw new Error('Enter a valid historical time.');
+      const timeQuery = at ? '&at=' + encodeURIComponent(at.toISOString()) : '';
+      const endpoint = 'sessions/' + encodeURIComponent(id) + '/continuity';
+      const view = await api(endpoint + '?limit=50' + timeQuery);
+      if (callSeq !== S.continuityRequestSeq || requestSeq !== S.sessionRequestSeq) return;
+      renderContinuity(view, endpoint, timeQuery, requestSeq, callSeq);
+    } catch (e) {
+      if (callSeq === S.continuityRequestSeq && requestSeq === S.sessionRequestSeq)
+        out.innerHTML = '<div class="feedback-error">Could not load continuity: ' + esc(e.message) + '</div>';
+    } finally {
+      if (callSeq === S.continuityRequestSeq && requestSeq === S.sessionRequestSeq) button.disabled = false;
+    }
+  });
+  $('#bCopy').onclick = () => navigator.clipboard.writeText($('#receipt').textContent).then(() => toast('Receipt copied'));
+  const recDefault = datasets[0] ?? REC_EXPECTED[0];
+  $('#recPicker').value = recDefault;
+  $('#recPicker').onchange = () => loadRecords(id, datasets, requestSeq, $('#recPicker').value);
+  loadRecords(id, datasets, requestSeq, recDefault);
+  guard(loadJoin)(id, requestSeq);
+  guard(loadComponents)(id, requestSeq);
+  guard(loadAcceptance)(id, requestSeq);
+  const t0 = Date.parse(m.createdAt), t1 = Date.parse(m.endedAt || new Date().toISOString());
+  const tt = $('#tt'), lab = $('#ttLabel');
+  const tAt = () => t0 + (t1 - t0) * tt.value / 1000;
+  const upd = () => lab.textContent = '+' + ((tAt() - t0) / 1000).toFixed(1) + ' s';
+  upd(); tt.oninput = upd;
+  tt.onchange = guard(async () => {
+    const st = await api(`sessions/${id}/at?t=${Math.round(tAt())}`);
+    $('#ttOut').innerHTML = `<div style="color:var(--muted)">${st.streams.length} streams, ${st.dom.length} visible page blocks, ${st.gaps.length} gaps at this moment</div>` + st.streams.filter((x) => x.assembledTexts?.length).slice(0, 4).map((x) => `<div class="panel pad" style="margin-top:6px"><div class="mono" style="color:var(--muted)">${esc(x.endpoint)} (${esc(x.status)})</div>${esc(x.assembledTexts[0].text.slice(0, 600))}</div>`).join('');
+  });
+  return true;
+}
+
+
+/* ---------------- capture acceptance (read-only label from GET sessions/:id/acceptance) ---------------- */
+// Information, not a gate: nothing here derives, evaluates, accepts or sends. Every value goes through esc() or accText().
+const ACC_SCHEMA = 'capture-studio.acceptance/1', ACC_REASON_MAX = 200, ACC_ROWS_MAX = 50, ACC_LEGACY = 'no acceptance.json';
+const ACC_NOTE = 'This label does not change what the studio does with the capture: it is information, not a gate.';
+const ACC_VERDICT = {
+  capture_accepted: ['[OK]', 'capture accepted', 'all seven gates passed.'],
+  capture_rejected: ['[X]', 'capture rejected', 'at least one gate failed.'],
+  capture_incomplete: ['[~]', 'capture incomplete', 'no gate failed, but at least one could not be checked (not enough evidence).'],
+  unassessed: ['[?]', 'unassessed', 'there is no evaluation, or the saved evaluation no longer matches the raw log.'],
+};
+const ACC_GATE_IDS = ['G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7'];
+const ACC_GATE_NAME = { G1: 'prompt matched', G2: 'reply words in order', G3: 'reply stable and complete', G4: 'recording stopped cleanly', G5: 'raw log verified with no gaps', G6: 'derive complete', G7: 'stream text matches rendered text' };
+const ACC_GATE_CUE = { passed: 'passed', failed: 'failed', 'not-checked': 'not checked', unknown: 'unknown' };
+const ACC_CONTEXT_GATES = ['G1', 'G2', 'G3'];
+const ACC_CONTEXT_NOTE = 'needs a conversation context (a driven chat turn); not available for passively recorded sessions';
+const accOwn = (table, key) => (Object.prototype.hasOwnProperty.call(table, key) ? table[key] : null);
+// Free text (reasons, schema): capped at 200 characters with the real length. Slices the raw text, then escapes.
+function accText(value) {
+  const text = value == null ? '' : String(value);
+  if (text.length <= ACC_REASON_MAX) return esc(text);
+  return esc(text.slice(0, ACC_REASON_MAX)) + ' <span class="pill" style="color:var(--muted)">truncated, real length ' + text.length + ' chars</span>';
+}
+// Evidence is not shown, except one short count: the first numeric field, labelled with its key.
+function accCount(evidence) {
+  if (!evidence || typeof evidence !== 'object' || Array.isArray(evidence)) return '';
+  const key = Object.keys(evidence).find((k) => Number.isFinite(evidence[k]));
+  return key === undefined ? '' : esc(evidence[key]) + ' <span class="small-note">' + esc(key) + '</span>';
+}
+function accGateRow(id, g) {
+  const gate = g && typeof g === 'object' ? g : {};
+  const raw = gate.value;
+  const cue = raw === undefined ? 'missing' : (accOwn(ACC_GATE_CUE, String(raw)) ?? 'unrecognized value');
+  const reason = gate.reason == null ? 'no reason recorded' : accText(gate.reason);
+  const context = raw === 'not-checked' && ACC_CONTEXT_GATES.includes(id) ? '<div class="small-note">' + esc(ACC_CONTEXT_NOTE) + '</div>' : '';
+  return '<tr data-gate="' + esc(id) + '"><td class="mono">' + esc(id) + '</td><td>' + esc(ACC_GATE_NAME[id]) + '</td><td>' + esc(cue) +
+    '</td><td>' + reason + context + '</td><td class="num">' + accCount(gate.evidence) + '</td></tr>';
+}
+function accBinding(doc) {
+  const b = doc.binding && typeof doc.binding === 'object' ? doc.binding : null;
+  if (!b) return '<p class="small-note">Binding: not available for this document.</p>';
+  const range = Array.isArray(b.seqRange) ? b.seqRange : [];
+  const seq = range[0] == null && range[1] == null ? 'seq range none' : 'seq ' + esc(range[0] ?? '?') + ' to ' + esc(range[1] ?? '?');
+  const digest = typeof b.rawDigest === 'string' ? b.rawDigest.slice(0, 12) : '';
+  const version = doc.evaluator && typeof doc.evaluator === 'object' ? doc.evaluator.version : undefined;
+  return '<p class="small-note">Binding: evaluator ' + esc(version ?? 'unknown') + '; evaluated ' + esc(doc.evaluatedAt ?? 'time unavailable') +
+    '; ' + seq + '; raw digest ' + (digest ? esc(digest) : 'none') + '</p>';
+}
+// Pure: doc is the parsed GET sessions/:id/acceptance response.
+function renderAcceptanceHtml(doc) {
+  const bad = (msg) => '<div class="feedback-error" role="alert">' + msg + '</div>';
+  if (!doc || typeof doc !== 'object' || Array.isArray(doc)) return bad('Unexpected capture acceptance response. Nothing is shown.');
+  if (doc.schema === undefined && doc.verdict === 'unassessed' && doc.reason === ACC_LEGACY) {
+    return '<div class="acc-verdict" data-verdict="legacy"><b>' + esc(ACC_VERDICT.unassessed[0] + ' ' + ACC_VERDICT.unassessed[1]) + '</b> <span>' +
+      esc('no acceptance.json for this recording: it was recorded before this label existed, or it was never evaluated. This is unassessed; it is not a failed check.') +
+      '</span></div><p class="small-note">' + esc(ACC_NOTE) + '</p>';
+  }
+  const verdict = typeof doc.verdict === 'string' ? accOwn(ACC_VERDICT, doc.verdict) : null;
+  if (doc.schema !== ACC_SCHEMA || !verdict) {
+    return bad('This is an unrecognized acceptance document (schema: ' + accText(doc.schema == null ? 'none' : doc.schema) + '). Nothing is shown.');
+  }
+  const gates = doc.gates && typeof doc.gates === 'object' && !Array.isArray(doc.gates) ? doc.gates : null;
+  const head = '<div class="acc-verdict" data-verdict="' + esc(doc.verdict) + '"><b>' + esc(verdict[0] + ' ' + verdict[1]) + '</b> <span>' + esc(verdict[2]) + '</span></div>';
+  const reasons = Array.isArray(doc.reasons) ? doc.reasons : [];
+  const reasonList = doc.verdict !== 'unassessed' ? '' : reasons.length
+    ? '<p class="small-note">Reasons (' + esc(reasons.length) + '):</p><ul>' + reasons.slice(0, ACC_ROWS_MAX).map((r) => '<li>' + accText(r) + '</li>').join('') + '</ul>' +
+      (reasons.length > ACC_ROWS_MAX ? '<p class="small-note">Showing ' + ACC_ROWS_MAX + ' of ' + esc(reasons.length) + ' reasons.</p>' : '')
+    : '<p class="small-note">No reasons recorded.</p>';
+  const table = gates
+    ? '<div class="panel scroll" style="max-height:40vh;margin-top:8px"><table><thead><tr><th>Gate</th><th>Check</th><th>Value</th><th>Reason</th><th class="num">Count</th></tr></thead><tbody>' +
+      ACC_GATE_IDS.map((id) => accGateRow(id, gates[id])).join('') + '</tbody></table></div>'
+    : '<p class="small-note">No gate results: no evaluation was read for this recording.</p>';
+  return head + '<p class="small-note">' + esc(ACC_NOTE) + '</p>' + accBinding(doc) + reasonList + table;
+}
+let acceptanceSeq = 0;
+// GET only. Stale guard: a response for an older request or another session is dropped.
+async function loadAcceptance(id, sessionSeq) {
+  const seq = ++acceptanceSeq;
+  const current = () => (seq === acceptanceSeq && sessionSeq === S.sessionRequestSeq && S.sessionId === id) ? $('#acceptanceOut') : null;
+  let out = current(); if (!out) return;
+  out.innerHTML = '<div class="empty">Loading capture acceptance...</div>';
+  let doc;
+  try { doc = await api('sessions/' + encodeURIComponent(id) + '/acceptance'); }
+  catch (e) {
+    out = current(); if (out) out.innerHTML = '<div class="feedback-error" role="alert">Could not load capture acceptance: ' + esc(e.message) + '</div>';
+    return;
+  }
+  out = current(); if (!out) return;
+  let html;
+  try { html = renderAcceptanceHtml(doc); }
+  catch (e) { html = '<div class="feedback-error" role="alert">Could not display capture acceptance: ' + esc(e.message) + '</div>'; }
+  out.innerHTML = html;
+}
+
+/* ---------------- records (read-only view of saved datasets) ---------------- */
+const REC_PAGE = 50, REC_CELL_MAX = 200, REC_MAX_COLS = 12, REC_EXPECTED = ['family-ai-chat-message'];
+let recordsSeq = 0;
+function recordPickerOptions(datasets) {
+  const names = [...new Set([...datasets, ...REC_EXPECTED])];
+  return names.map((n) => '<option value="' + esc(n) + '">' + esc(n) + (datasets.includes(n) ? '' : ' (not derived yet)') + '</option>').join('');
+}
+function recordCell(v) {
+  const text = v === undefined ? '' : v !== null && typeof v === 'object' ? JSON.stringify(v) : String(v);
+  if (text.length <= REC_CELL_MAX) return esc(text);
+  return esc(text.slice(0, REC_CELL_MAX)) + ' <span class="pill" style="color:var(--muted)">truncated, real length ' + text.length + ' chars</span>';
+}
+function renderRecordTable(rows, hasMore) {
+  if (!rows.length) return '<div class="empty">No rows in this dataset.</div>';
+  const objs = rows.map((r) => r !== null && typeof r === 'object' && !Array.isArray(r) ? r : { value: r });
+  const cols = [];
+  for (const r of objs) for (const k of Object.keys(r)) if (!cols.includes(k)) cols.push(k);
+  const shownCols = cols.slice(0, REC_MAX_COLS);
+  const count = hasMore ? 'showing ' + objs.length + ' of more than ' + objs.length + ' rows (API limit ' + REC_PAGE + '; total not reported)'
+    : objs.length + ' row' + (objs.length === 1 ? '' : 's');
+  const colNote = cols.length > REC_MAX_COLS ? '; showing ' + REC_MAX_COLS + ' of ' + cols.length + ' columns' : '';
+  return '<p class="small-note">' + esc(count + colNote) + '</p>' +
+    '<div class="panel scroll" style="max-height:40vh"><table><thead><tr>' + shownCols.map((k) => '<th>' + esc(k) + '</th>').join('') + '</tr></thead><tbody>' +
+    objs.map((r) => '<tr>' + shownCols.map((k) => '<td>' + (Object.prototype.hasOwnProperty.call(r, k) ? recordCell(r[k]) : '') + '</td>').join('') + '</tr>').join('') +
+    '</tbody></table></div>';
+}
+async function loadRecords(id, datasets, sessionSeq, name) {
+  const seq = ++recordsSeq;
+  const current = () => (seq === recordsSeq && sessionSeq === S.sessionRequestSeq && S.sessionId === id) ? $('#recOut') : null;
+  let out = current(); if (!out) return;
+  if (!datasets.includes(name)) {
+    // Missing dataset: no request and no write action; the API would only return an empty list.
+    out.innerHTML = '<div class="empty">“' + esc(name) + '” has not been derived yet for this recording. This panel only reads saved datasets.</div>';
+    return;
+  }
+  out.innerHTML = '<div class="empty">Loading ' + esc(name) + '…</div>';
+  try {
+    const rows = await api('sessions/' + encodeURIComponent(id) + '/dataset/' + encodeURIComponent(name) + '?limit=' + (REC_PAGE + 1));
+    out = current(); if (!out) return;
+    if (!Array.isArray(rows)) throw new Error('Studio did not return dataset rows.');
+    out.innerHTML = renderRecordTable(rows.slice(0, REC_PAGE), rows.length > REC_PAGE);
+  } catch (e) {
+    out = current(); if (out) out.innerHTML = '<div class="feedback-error" role="alert">Could not read ' + esc(name) + ': ' + esc(e.message) + '</div>';
+  }
+}
+
+/* Read-only rendering of Core's read-through continuity contract. */
+function formatEvidenceTime(t) {
+  if (t === null || t === undefined || !Number.isFinite(Number(t))) return 'Time unavailable';
+  const d = new Date(Number(t));
+  return Number.isFinite(d.getTime()) ? d.toLocaleString() : 'Time unavailable';
+}
+function renderContinuity(view, endpoint, timeQuery, requestSeq, callSeq) {
+  const out = $('#continuityOut'), st = view?.stats || {};
+  const entities = Array.isArray(view?.entities) ? view.entities : [];
+  const missing = (st.sessionsWithoutKnowledge?.length || 0) + (st.sessionsWithDerivationError?.length || 0);
+  const summary = '<div class="continuity-summary"><span><b>' + esc(st.joinedEntities ?? 0) + '</b> cross-session keyed matches</span>' +
+    '<span><b>' + esc(st.sessionsWithDerivedKnowledge ?? 0) + ' / ' + esc(st.sessionsDiscovered ?? 0) + '</b> sessions derived</span>' +
+    '<span><b>' + esc(st.entitiesTotal ?? 0) + '</b> entities in scope</span></div>';
+  const incomplete = missing ? '<div class="feedback-error">' + esc(missing) + ' saved session(s) lack successful derived knowledge. This view may be incomplete.</div>' : '';
+  const notices = '<p class="small-note">Conservative matches require the same detected website origin, inferred type, key and identity. Session-local or ambiguous identities stay separate. Missing observations do not mean deletion; cross-session confidence is not calibrated.</p>' +
+    (view?.asOf != null ? '<p class="small-note">Historical state as of ' + esc(formatEvidenceTime(view.asOf)) + '. Untimed revisions cannot establish past state.</p>' : '') +
+    (st.untimedRevisions ? '<p class="small-note">' + esc(st.untimedRevisions) + ' untimed revision(s) are not evidence of historical state.</p>' : '');
+  const rows = entities.map((e, i) => '<tr><td><button class="continuity-detail" data-index="' + i + '" aria-label="Inspect evidence for ' + esc(e.typeName || e.type || e.id) + '">Evidence</button></td>' +
+    '<td>' + esc(e.typeName || e.type || 'Unknown') + '<div class="small-note">' + (e.identityBasis === 'exact-site-type-key' ? 'Exact keyed identity' : 'Session-local identity') + '</div></td>' +
+    '<td class="mono">' + esc(e.key ?? '—') + '</td><td class="num">' + esc(e.sessionCount ?? 0) +
+    '</td><td class="num">' + esc(e.revisions ?? 0) + '</td></tr>').join('');
+  const truncation = Number(st.truncated) > 0 ?
+    '<p class="small-note">Showing ' + esc(entities.length) + ' of ' + esc(st.entitiesTotal ?? entities.length) + ' entities. ' +
+      esc(st.truncated) + ' additional entries are not displayed (50-row API request limit); use the CLI/API for complete output.</p>' : '';
+  out.innerHTML = summary + incomplete + notices +
+    '<div class="panel scroll" style="max-height:32vh;margin:8px 0"><table><thead><tr><th>Inspect</th><th>Type / matching</th><th>Key</th><th class="num">Sessions</th><th class="num">Revisions</th></tr></thead><tbody>' +
+    (rows || '<tr><td colspan="5" class="empty">No saved entities at this point in time.</td></tr>') + '</tbody></table></div>' +
+    truncation + '<div id="continuityDetail" class="panel" hidden></div>';
+  let evidenceRequestSeq = 0;
+  out.querySelectorAll('.continuity-detail').forEach((b) => b.onclick = guard(async () => {
+    const evidenceSeq = ++evidenceRequestSeq;
+    const entity = entities[Number(b.dataset.index)];
+    if (!entity) return;
+    const detail = $('#continuityDetail');
+    detail.hidden = false;
+    detail.textContent = 'Loading evidence and history…';
+    try {
+      const full = await api(endpoint + '?eid=' + encodeURIComponent(entity.id) + timeQuery);
+      if (evidenceSeq !== evidenceRequestSeq || callSeq !== S.continuityRequestSeq || requestSeq !== S.sessionRequestSeq || !detail.isConnected) return;
+      const e = full?.entities?.[0];
+      if (!e) { detail.textContent = 'This entity has no matching evidence at the selected time.'; return; }
+      const provenance = Array.isArray(e.history) ? e.history : [];
+      const displayRevisions = provenance.slice(-200);
+      const historyRows = displayRevisions.map((r) => '<tr><td>' + esc(formatEvidenceTime(r.t)) + '</td><td class="mono">' +
+        esc(r.session || '') + '</td><td>' + esc(Array.isArray(r.changed) ? r.changed.join(', ') : 'Not recorded') +
+        '</td><td>' + esc(r.provenanceBasis || 'Recorded revision') + '</td></tr>').join('');
+      detail.innerHTML = '<h3>Entity evidence</h3><p class="small-note">Identity: ' +
+        esc(e.identityBasis === 'exact-site-type-key' ? 'Exact detected origin + inferred type + key + identity' : 'Session-local; not merged') +
+        ' · ' + esc(e.sessionCount ?? 0) + ' session(s) · ' + esc(e.revisions ?? 0) + ' revision(s)</p>' +
+        '<h3>Observed attributes</h3><pre class="mono">' + esc(JSON.stringify(e.attrs ?? {}, null, 2)) + '</pre>' +
+        '<h3>Revision provenance</h3>' + (provenance.length > 200 ? '<p class="small-note">Showing latest 200 of ' + esc(provenance.length) + ' revisions; use the API for the full record.</p>' : '') + '<div class="continuity-history"><table><thead><tr><th>Observed</th><th>Source session</th><th>Fields changed</th><th>Evidence basis</th></tr></thead><tbody>' +
+        (historyRows || '<tr><td colspan="4" class="empty">No revision details available.</td></tr>') + '</tbody></table></div>' +
+        '<p class="small-note">Derived interpretation; absence does not prove deletion. Source recordings remain authoritative.</p>';
+    } catch (e) {
+      if (evidenceSeq === evidenceRequestSeq && callSeq === S.continuityRequestSeq && requestSeq === S.sessionRequestSeq && detail.isConnected)
+        detail.innerHTML = '<div class="feedback-error">Could not retrieve entity evidence: ' + esc(e.message) + '</div>';
+    }
+  }));
+}
+
+
+/* ---------------- stream to page (read-only join of stream messages and rendered DOM turns) ---------------- */
+// Reads kv STREAM_DOM_JOIN (GET sessions/:id/join) and DOM_TURNS (GET sessions/:id/turns). No write action.
+const JOIN_SCHEMA = 'capture-studio.stream-dom-join/1', JOIN_TURN_MAX = 160, JOIN_ROWS_MAX = 200;
+// Each status pairs a bracketed text cue with its label; colour is never the only signal.
+const JOIN_STATUS = {
+  verified: ['[OK]', 'order and normalized text agree'],
+  partial: ['[~]', 'stream not final or render ahead'],
+  near_match: ['[~~]', 'close but not verified'],
+  ambiguous: ['[?]', 'more than one candidate turn; no single link chosen'],
+  text_mismatch: ['[X]', 'aligned by order but text differs'],
+  unlinked_stream: ['[ ]', 'no DOM turn matched this stream message'],
+  unlinked_dom: ['[-]', 'no stream message claimed this turn'],
+};
+const JOIN_RULES = { 'order+text': 'order+text (position and text)', ordinal: 'ordinal (duplicate text; earlier messages aligned)', 'text-only': 'text-only (order not used)' };
+const JOIN_TEXT = { exact: 'exact', prefix: 'prefix (stream is a prefix of the render)', near: 'near', differs: 'differs', none: 'none compared' };
+const joinOwn = (table, key) => (Object.prototype.hasOwnProperty.call(table, key) ? table[key] : null);
+const joinIsUser = (role) => ['user', 'human', 'me', 'customer'].includes(String(role ?? '').trim().toLowerCase());
+const joinCue = (status) => { const s = joinOwn(JOIN_STATUS, String(status ?? '')); return s ? s[0] : '[!]'; };
+function joinChip(status) {
+  return '<span class="pill" data-status="' + esc(status) + '">' + esc(joinCue(status)) + ' ' + esc(status ?? 'unknown') + '</span>';
+}
+function joinTurnBody(t) {
+  const text = t && typeof t.text === 'string' ? t.text : '';
+  const mark = text.length > JOIN_TURN_MAX ? ' <span class="pill" style="color:var(--muted)">truncated, real length ' + text.length + ' chars</span>' : '';
+  return '<div style="overflow-wrap:anywhere">' + esc(text.slice(0, JOIN_TURN_MAX)) + mark + '</div>';
+}
+function joinBlockLine(b) {
+  const bl = b && typeof b === 'object' ? b : {};
+  return '<li>' + esc(joinCue(bl.status)) + ' stream block ' + esc(bl.blockKey ?? 'none') + ' -> DOM block ord ' + esc(bl.ord ?? 'none') + ': ' + esc(bl.status ?? 'unknown') + ' (text ' + esc(bl.textMatch ?? 'none') + ')</li>';
+}
+function joinRelation(l) {
+  const ev = l.evidence && typeof l.evidence === 'object' ? l.evidence : {};
+  const rule = ev.rule == null ? 'none (unlinked)' : (joinOwn(JOIN_RULES, String(ev.rule)) ?? String(ev.rule));
+  const tm = l.textMatch == null ? 'none' : (joinOwn(JOIN_TEXT, String(l.textMatch)) ?? String(l.textMatch));
+  const s = joinOwn(JOIN_STATUS, String(l.status ?? ''));
+  let head;
+  if (l.messageIndex == null) head = 'DOM turn #' + esc(l.turnIndex) + ' -> no stream message claimed this turn' + (joinIsUser(l.role) ? '. User prompts travel in the request body, not in a stream.' : '.');
+  else head = 'stream message #' + esc(l.messageIndex) + ' -> ' + (l.turnIndex != null ? 'DOM turn #' + esc(l.turnIndex) : (l.status === 'ambiguous' ? 'no single DOM turn' : 'no DOM turn'));
+  const cand = l.status === 'ambiguous' ? '<div>' + (Array.isArray(ev.candidates) && ev.candidates.length
+    ? 'candidate turns ' + ev.candidates.map((c) => '#' + esc(c)).join(', ') + ': no single link chosen'
+    : 'no candidate turns recorded; no link chosen') + '</div>' : '';
+  const notes = Array.isArray(ev.notes) && ev.notes.length ? '<ul class="small-note">' + ev.notes.map((n) => '<li>' + esc(n) + '</li>').join('') + '</ul>' : '';
+  const blocks = Array.isArray(l.blockLinks) && l.blockLinks.length ? '<div>Blocks:</div><ul>' + l.blockLinks.map(joinBlockLine).join('') + '</ul>' : '';
+  return '<li class="join-rel"' + (l.messageIndex != null ? ' data-rel="' + esc(l.messageIndex) + '"' : '') + '>' +
+    '<div>' + joinChip(l.status) + ' ' + esc(s ? s[1] : 'unknown status') + '</div>' +
+    '<div>' + head + '</div>' +
+    '<div>textMatch: ' + esc(tm) + ' · rule: ' + esc(rule) + '</div>' + cand + notes + blocks + '</li>';
+}
+// Pure: value is the join response, turns the DOM_TURNS array (or null), focus a messageIndex from a deep link.
+function renderJoinHtml(value, turns, turnsError, focus) {
+  const bad = (msg) => '<div class="feedback-error" role="alert">' + msg + '</div>';
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return bad('Unexpected stream-to-page response. Nothing is shown.');
+  if (value.status === 'not_derived') return '<div class="empty">The stream-to-page join has not been derived for this recording. Rebuild datasets derives it; this panel only reads it.</div>';
+  if (value.status === 'no_dom_turns') return '<div class="empty">No rendered DOM turns were captured for this recording, so no stream message can be tied to the page.</div>';
+  if (value.status === 'no_stream_messages') return '<div class="empty">No stream messages were parsed for this recording, so there is nothing to tie to the page.</div>';
+  if (value.error !== undefined) return bad('The stream-to-page join could not be computed: ' + esc(value.error) + '. No links are shown.');
+  if (value.schema !== JOIN_SCHEMA || !value.summary || typeof value.summary !== 'object' || !Array.isArray(value.links)) return bad('Unrecognized stream-to-page response. Nothing is shown.');
+  const links = value.links.filter((l) => l && typeof l === 'object');
+  const ms = value.summary.messageStatus && typeof value.summary.messageStatus === 'object' ? value.summary.messageStatus : {};
+  const msgLinks = links.filter((l) => l.messageIndex != null).sort((a, b) => a.messageIndex - b.messageIndex);
+  const domOnly = links.filter((l) => l.messageIndex == null);
+  const turnList = Array.isArray(turns) ? turns.filter((t) => t && typeof t === 'object') : [];
+  const claimOf = new Map(), candidateOf = new Map();
+  for (const l of links) {
+    if (l.turnIndex != null) claimOf.set(Number(l.turnIndex), l);
+    const cands = l.evidence && Array.isArray(l.evidence.candidates) ? l.evidence.candidates : [];
+    for (const c of cands) { const k = Number(c); if (!candidateOf.has(k)) candidateOf.set(k, []); candidateOf.get(k).push(l.messageIndex); }
+  }
+  const cap = (n, shown, what) => n > shown ? '<p class="small-note">Showing ' + shown + ' of ' + esc(n) + ' ' + what + '.</p>' : '';
+  const counts = Object.keys(JOIN_STATUS).map((k) => '<span>' + esc(JOIN_STATUS[k][0]) + ' ' + esc(k) + ' <b>' + esc(joinOwn(ms, k) ?? 0) + '</b></span>').join(' &nbsp; ');
+  const msgItems = msgLinks.slice(0, JOIN_ROWS_MAX).map((l) => '<li><button type="button" class="row-action" data-join="' + esc(l.messageIndex) +
+    '" data-link-turn="' + esc(l.turnIndex ?? '') + '" aria-pressed="false" aria-label="Focus stream message ' + esc(l.messageIndex) + ', ' + esc(l.status) + '">#' +
+    esc(l.messageIndex) + ' ' + esc(l.role || 'unknown role') + ' ' + esc(l.messageId ?? 'no message id') + '</button> ' + joinChip(l.status) + '</li>').join('');
+  const turnItems = turnList.slice(0, JOIN_ROWS_MAX).map((t) => {
+    const i = Number(t.index), claim = claimOf.get(i), cands = candidateOf.get(i);
+    let state;
+    if (claim && claim.status === 'unlinked_dom') state = joinChip('unlinked_dom') + ' no stream message claimed this turn' + (joinIsUser(t.role) ? '. User prompts travel in the request body, not in a stream.' : '.');
+    else if (claim) state = joinChip(claim.status) + ' claimed by stream message #' + esc(claim.messageIndex);
+    else if (cands) state = joinChip('ambiguous') + ' candidate for stream message ' + cands.map((c) => '#' + esc(c)).join(', ') + '; no link chosen';
+    else state = 'not in this join (DOM turns may have changed since derive)';
+    return '<li data-turn="' + esc(t.index) + '"><b>turn #' + esc(t.index) + '</b> ' + esc(t.role || 'unknown role') + '<div>' + state + '</div>' + joinTurnBody(t) + '</li>';
+  }).join('');
+  const turnBlock = turnsError ? bad('DOM turns could not be read: ' + esc(turnsError)) :
+    '<ul>' + turnItems + '</ul>' + cap(turnList.length, Math.min(turnList.length, JOIN_ROWS_MAX), 'DOM turns');
+  const relItems = [...msgLinks, ...domOnly].slice(0, JOIN_ROWS_MAX).map(joinRelation).join('');
+  const missing = focus != null && !msgLinks.some((l) => l.messageIndex === focus);
+  return '<p class="small-note">Read-only. The join holds ids, statuses and DOM text only; stream message text is not included. Unmatched elements stay unlinked and ambiguous ties are never forced.</p>' +
+    '<p class="small-note">Stream messages ' + esc(value.summary.messages ?? 0) + ' · DOM turns ' + esc(value.summary.turns ?? 0) + '</p>' +
+    '<p class="small-note">' + counts + '</p>' +
+    (links.length
+      ? '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div><h4>Stream messages</h4>' +
+        cap(msgLinks.length, Math.min(msgLinks.length, JOIN_ROWS_MAX), 'stream messages') + '<ul>' + msgItems + '</ul></div>' +
+        '<div><h4>Rendered DOM turns</h4>' + turnBlock + '</div></div>' +
+        '<h4>Relationship per link</h4>' + cap(links.length, Math.min(msgLinks.length + domOnly.length, JOIN_ROWS_MAX), 'links') + '<ol>' + relItems + '</ol>'
+      : '<div class="empty">The join has no links.</div>') +
+    (missing ? '<p class="small-note">Requested stream message #' + esc(focus) + ' is not in this join.</p>' : '');
+}
+let joinSeq = 0;
+// Highlights one stream message, its linked DOM turn and its relationship row. Ambiguous and unlinked messages
+// have no linked turn, so only the message and its row are highlighted. Updates the hash with replaceState
+// (no hashchange, so the session is not reloaded).
+function selectJoinMessage(index) {
+  const out = $('#joinOut');
+  const btn = out && out.querySelector ? out.querySelector('button[data-join="' + String(index) + '"]') : null;
+  if (!btn) return false;
+  const turn = btn.dataset.linkTurn ?? '';
+  out.querySelectorAll('button[data-join]').forEach((b) => { const on = b === btn; b.setAttribute('aria-pressed', String(on)); b.classList.toggle('sel', on); });
+  out.querySelectorAll('[data-rel]').forEach((el) => el.classList.toggle('sel', el.dataset.rel === String(index)));
+  out.querySelectorAll('li[data-turn]').forEach((el) => el.classList.toggle('sel', turn !== '' && el.dataset.turn === turn));
+  history.replaceState(null, '', joinDeepLinkHref(S.sessionId, index));
+  return true;
+}
+async function loadJoin(id, sessionSeq) {
+  const seq = ++joinSeq;
+  const focus = pendingJoinFocus && pendingJoinFocus.id === id ? pendingJoinFocus.index : null;
+  pendingJoinFocus = null;
+  const current = () => (seq === joinSeq && sessionSeq === S.sessionRequestSeq && S.sessionId === id) ? $('#joinOut') : null;
+  let out = current(); if (!out) return;
+  out.innerHTML = '<div class="empty">Loading stream-to-page join…</div>';
+  const enc = encodeURIComponent(id);
+  const [joinRes, turnRes] = await Promise.allSettled([api('sessions/' + enc + '/join'), api('sessions/' + enc + '/turns')]);
+  out = current(); if (!out) return;
+  if (joinRes.status === 'rejected') {
+    out.innerHTML = '<div class="feedback-error" role="alert">Could not load the stream-to-page join: ' + esc(joinRes.reason?.message ?? 'request failed') + '</div>';
+    return;
+  }
+  const turns = turnRes.status === 'fulfilled' && Array.isArray(turnRes.value) ? turnRes.value : null;
+  const turnsError = turnRes.status === 'rejected' ? (turnRes.reason?.message ?? 'request failed') : (turns ? null : 'Studio did not return DOM turns.');
+  let html;
+  try { html = renderJoinHtml(joinRes.value, turns, turnsError, focus); }
+  catch (e) { html = '<div class="feedback-error" role="alert">Could not display the stream-to-page join: ' + esc(e.message) + '</div>'; }
+  out.innerHTML = html;
+  out.querySelectorAll('button[data-join]').forEach((b) => b.onclick = guard(() => selectJoinMessage(Number(b.dataset.join))));
+  if (focus !== null) selectJoinMessage(focus);
+}
+
+/* ---------------- page components (read-only view of the saved stream-components derivation) ---------------- */
+// Reads kv STREAM_COMPONENTS (GET sessions/:id/components). No write action; nothing is derived or guessed here.
+const COMP_SCHEMA = 'capture-studio.stream-components/1', COMP_PREVIEW_MAX = 160, COMP_ROWS_MAX = 200;
+let compSeq = 0;
+function compPreview(c) {
+  const full = typeof c.text === 'string' ? c.text : '';
+  const real = Number.isFinite(Number(c.textLength)) && c.textLength !== null ? Number(c.textLength) : full.length;
+  const cut = full.length > COMP_PREVIEW_MAX || c.textTruncated === true;
+  return '<div style="overflow-wrap:anywhere">' + esc(full.slice(0, COMP_PREVIEW_MAX)) +
+    (cut ? ' <span class="pill" style="color:var(--muted)">truncated, ' + esc(real) + ' chars</span>' : '') + '</div>';
+}
+function compMark(m) { return m && typeof m === 'object' ? esc(m.seq ?? '?') + '.' + esc(m.n ?? '-') : '<span class="small-note">none</span>'; }
+function compRow(si, cj, c) {
+  const key = si + '.' + cj;
+  const kind = typeof c.component === 'string' ? c.component : 'unknown';
+  const id = c.componentKey == null ? '<span class="small-note">no id observed</span>' : '<span class="mono">' + esc(c.componentKey) + '</span>';
+  const closed = c.closed && typeof c.closed === 'object' ? '<span class="mono">' + compMark(c.closed) + '</span>' :
+    '<span class="c-act">still open</span> <span class="small-note">stream not finalized</span>';
+  return '<tr data-comp-row="' + esc(key) + '"><td><button type="button" class="row-action" data-comp="' + esc(key) + '" aria-pressed="false" aria-label="Focus component ' + esc(key) + ', ' + esc(kind) + '">' + esc(kind) + '</button></td>' +
+    '<td>' + id + '</td><td>' + compPreview(c) + '</td><td class="mono">' + compMark(c.opened) + '</td><td>' + closed + '</td></tr>';
+}
+function compStream(s, si) {
+  const sid = '<span class="mono">' + esc(s.sid ?? 'unknown stream') + '</span>';
+  const omitted = Number(s.eventsOmitted) > 0 ? '<p class="small-note">' + esc(s.eventsOmitted) + ' earlier event(s) left the in-memory window; text may be incomplete.</p>' : '';
+  if (typeof s.mapId !== 'string' || !s.mapId) {
+    const cands = Array.isArray(s.candidates) && s.candidates.length
+      ? '<p class="small-note">Candidate maps, none chosen:</p><ul>' + s.candidates.map((c) => '<li>' + esc(c && c.id != null ? c.id : 'unnamed map') + ' matched ' + esc(c && c.matched != null ? c.matched : 0) + ' event(s)</li>').join('') + '</ul>'
+      : '<p class="small-note">No candidate maps were recorded.</p>';
+    return '<div style="margin-top:8px"><h4>Stream #' + si + ' ' + sid + '</h4>' +
+      '<div class="empty">no built-in map matched this stream. No components are shown and none were guessed.</div>' + cands + omitted + '</div>';
+  }
+  const st = s.stats && typeof s.stats === 'object' ? s.stats : {};
+  const comps = Array.isArray(s.components) ? s.components : [];
+  const statsLine = '<p class="small-note">Map <span class="mono">' + esc(s.mapId) + '</span> · events ' + esc(st.events ?? 0) +
+    ' · components ' + esc(st.components ?? comps.length) + ' · still open ' + esc(st.openComponents ?? 0) +
+    ' · finalized ' + (st.finalized ? 'yes' : 'no') + ' · unmapped ' + esc(s.unmappedCount ?? 0) + '</p>';
+  const rows = comps.slice(0, COMP_ROWS_MAX).map((c, cj) => compRow(si, cj, c && typeof c === 'object' ? c : {})).join('');
+  const table = comps.length
+    ? '<div class="panel scroll" style="max-height:32vh"><table><thead><tr><th>Kind</th><th>Key</th><th>Text preview</th><th>Opened seq.n</th><th>Closed seq.n</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+      (comps.length > COMP_ROWS_MAX ? '<p class="small-note">Showing ' + COMP_ROWS_MAX + ' of ' + esc(comps.length) + ' components.</p>' : '')
+    : '<div class="empty">No components were built from this stream.</div>';
+  const samples = Array.isArray(s.unmappedSample) ? s.unmappedSample : [];
+  const unmappedCount = Number(s.unmappedCount) || 0;
+  const unmapped = unmappedCount > 0
+    ? '<p class="small-note">' + esc(unmappedCount) + ' stream message(s) not placed into any component. Sample:</p><ul>' +
+      samples.map((u) => '<li>#' + esc(u && u.seq != null ? u.seq : '?') + ' ' + esc(u && u.reason != null ? u.reason : 'no reason recorded') + '</li>').join('') + '</ul>' +
+      (unmappedCount > samples.length ? '<p class="small-note">Showing ' + esc(samples.length) + ' of ' + esc(unmappedCount) + '.</p>' : '')
+    : '';
+  return '<div style="margin-top:8px"><h4>Stream #' + si + ' ' + sid + '</h4>' + statsLine + omitted + table + unmapped + '</div>';
+}
+// Pure: value is the endpoint response, focus is {stream, component} from a deep link or null.
+function renderComponentsHtml(value, focus) {
+  const bad = (msg) => '<div class="feedback-error" role="alert">' + msg + '</div>';
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return bad('Unexpected page-components response. Nothing is shown.');
+  if (value.status === 'not_derived') return '<div class="empty">Page components have not been derived for this recording. Rebuild datasets derives them; this panel only reads them.</div>';
+  if (value.status === 'no_events') return '<div class="empty">This recording has no decoded stream events, so no page components can be built.</div>';
+  if (value.error !== undefined) return bad('Page components could not be computed: ' + esc(value.error) + '. No components are shown.');
+  if (value.schema !== COMP_SCHEMA || !Array.isArray(value.streams)) return bad('Unrecognized page-components response. Nothing is shown.');
+  const t = value.totals && typeof value.totals === 'object' ? value.totals : {};
+  const summary = '<p class="small-note">Streams ' + esc(t.streams ?? value.streams.length) + ' · mapped ' + esc(t.mapped ?? 0) + ' · no built-in map ' + esc(t.noMap ?? 0) +
+    ' · components ' + esc(t.components ?? 0) + ' · unmapped stream messages ' + esc(t.unmappedCount ?? 0) +
+    (Number(t.eventsOmitted) > 0 ? ' · events omitted from window ' + esc(t.eventsOmitted) : '') + '</p>';
+  const note = '<p class="small-note">Read-only. Components come from a declared map over saved stream events; when no map matches, none are guessed.</p>';
+  if (!value.streams.length) return note + summary + '<div class="empty">No streams in this derivation.</div>';
+  const body = value.streams.map((s, si) => compStream(s && typeof s === 'object' ? s : {}, si)).join('');
+  const wanted = focus && Number.isSafeInteger(focus.stream) && Number.isSafeInteger(focus.component) ? focus : null;
+  const target = wanted ? value.streams[wanted.stream] : null;
+  const found = !!(target && typeof target === 'object' && Array.isArray(target.components) && target.components[wanted.component]);
+  const missing = wanted && !found ? '<p class="small-note">Requested component ' + esc(wanted.stream + '.' + wanted.component) + ' is not in this derivation.</p>' : '';
+  return note + summary + body + missing;
+}
+function compDeepLinkHref(id, key) {
+  return '#session=' + encodeURIComponent(id) + '&view=sessions&comp=' + encodeURIComponent(String(key));
+}
+// Highlights one component row and sets comp= with replaceState (no hashchange, so the session is not reloaded).
+function selectComponent(key) {
+  const out = $('#compOut');
+  const btn = out && out.querySelector ? out.querySelector('button[data-comp="' + String(key) + '"]') : null;
+  if (!btn) return false;
+  out.querySelectorAll('button[data-comp]').forEach((b) => { const on = b === btn; b.setAttribute('aria-pressed', String(on)); b.classList.toggle('sel', on); });
+  out.querySelectorAll('tr[data-comp-row]').forEach((r) => r.classList.toggle('sel', r.dataset.compRow === String(key)));
+  history.replaceState(null, '', compDeepLinkHref(S.sessionId, key));
+  return true;
+}
+async function loadComponents(id, sessionSeq) {
+  const seq = ++compSeq;
+  const focus = pendingCompFocus && pendingCompFocus.id === id ? pendingCompFocus.comp : null;
+  pendingCompFocus = null;
+  const current = () => (seq === compSeq && sessionSeq === S.sessionRequestSeq && S.sessionId === id) ? $('#compOut') : null;
+  let out = current(); if (!out) return;
+  out.innerHTML = '<div class="empty">Loading page components…</div>';
+  let value;
+  try { value = await api('sessions/' + encodeURIComponent(id) + '/components'); }
+  catch (e) {
+    out = current(); if (out) out.innerHTML = '<div class="feedback-error" role="alert">Could not load page components: ' + esc(e.message) + '</div>';
+    return;
+  }
+  out = current(); if (!out) return;
+  let html;
+  try { html = renderComponentsHtml(value, focus); }
+  catch (e) { html = '<div class="feedback-error" role="alert">Could not display page components: ' + esc(e.message) + '</div>'; }
+  out.innerHTML = html;
+  out.querySelectorAll('button[data-comp]').forEach((b) => b.onclick = guard(() => selectComponent(b.dataset.comp)));
+  // Enter and Space on a focused row select it (idempotent with the native button click).
+  out.onkeydown = (ev) => {
+    const b = ev.target;
+    if (b && b.dataset && b.dataset.comp && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); selectComponent(b.dataset.comp); }
+  };
+  if (focus) selectComponent(focus.stream + '.' + focus.component);
+}
+
+/* ---------------- Knowledge workspace (read-only, existing Core API) ---------------- */
+function knowledgeText(value) { return value == null ? 'Unavailable' : String(value); }
+function knowledgeTime(value) {
+  if (value === undefined || value === null || value === '') return 'Time not recorded';
+  const n = typeof value === 'number' ? value : Date.parse(value);
+  return Number.isFinite(n) ? new Date(n).toLocaleString() : 'Time not recorded';
+}
+function knowledgeSessionId() { return $('#knowledgeSession').value || ''; }
+function knowledgeMarkupError(message) { return '<div class="feedback-error" role="alert">' + esc(message) + '</div>'; }
+function knowledgeFallback(message) { return '<div class="empty">' + esc(message) + '</div>'; }
+function knowledgeSafeList(value) { return Array.isArray(value) ? value : []; }
+function knowledgeSummary(view) {
+  const st = view?.stats || {};
+  const empty = knowledgeSafeList(st.sessionsSuccessfulEmpty).length;
+  const legacy = knowledgeSafeList(st.sessionsLegacyUnverified).length;
+  const collisions = Number(st.legacyEidCollisions) || 0;
+  const issues = knowledgeSafeList(st.sessionsWithoutKnowledge).length + knowledgeSafeList(st.sessionsWithDerivationError).length;
+  const missing = issues ? '<div class="knowledge-warning">' + esc(issues) + ' recording(s) have absent or failed derived knowledge. This is incomplete evidence, not an empty result.</div>' : '';
+  const limits = [];
+  if ((st.truncated ?? 0) > 0) limits.push(esc(st.truncated) + ' entities beyond this preview');
+  if ((st.typeDriftHintsTruncated ?? 0) > 0) limits.push(esc(st.typeDriftHintsTruncated) + ' additional type-drift hints');
+  if ((st.typeDriftVariantsOmitted ?? 0) > 0) limits.push(esc(st.typeDriftVariantsOmitted) + ' comparison variants not assessed');
+  return '<span><b>' + esc(st.entitiesTotal ?? 0) + '</b> entities</span>' +
+    '<span><b>' + esc(st.joinedEntities ?? 0) + '</b> linked by key</span>' +
+    '<span><b>' + esc(st.sessionsWithDerivedKnowledge ?? 0) + '/' + esc(st.sessionsDiscovered ?? 0) + '</b> recordings derived</span>' +
+    (issues ? '<span class="c-gap"><b>' + esc(issues) + '</b> incomplete</span>' : '') +
+    (empty ? '<span class="c-l3"><b>' + esc(empty) + '</b> successfully empty</span>' : '') +
+    (legacy ? '<span class="c-act"><b>' + esc(legacy) + '</b> legacy-unverified</span>' : '') +
+    (collisions ? '<span class="c-gap"><b>' + esc(collisions) + '</b> legacy identity collisions isolated</span>' : '') +
+    (limits.length ? '<span class="c-act">' + limits.join(' · ') + '</span>' : '') + missing;
+}
+function knowledgeOutcomeMarkup(outcome) {
+  if (!outcome || outcome.status === 'legacy-unverified' || outcome.status === 'legacy')
+    return '<span class="c-act">Derivation not verifiable for this older recording. Missing outcome metadata is not proof of failure or success.</span>';
+  const status = outcome.status;
+  if (status === 'complete') {
+    if (outcome.entityCount === 0)
+      return '<span class="c-l3">Derived successfully: zero entities found.</span> The capture may still contain useful raw observations.';
+    return '<span class="c-l3">Derived successfully</span> · ' + esc(outcome.entityCount ?? 'Unknown') +
+      ' entities · ' + esc(outcome.typeCount ?? 'Unknown') + ' inferred types.';
+  }
+  if (status === 'failed') return '<span class="c-gap">Derivation failed' +
+    (outcome.stage ? ' during ' + esc(outcome.stage) : '') + '</span>' +
+    (outcome.error ? ' · ' + esc(outcome.error) : '') + '. Saved raw source is separate.';
+  if (status === 'deriving') return '<span class="c-act">Derivation in progress, interrupted, or not yet finalized.</span> Do not trust older model/graph results during rebuild.';
+  if (status === 'status-unavailable') return '<span class="c-gap">Could not verify derivation outcome: ' + esc(outcome.error || 'Unknown reason') + '.</span> Derived content is unverified.';
+  return '<span class="c-act">Unknown derivation outcome: ' + esc(status ?? 'Unavailable') + '.</span> Inspect source evidence.';
+}
+function knowledgeStatusPromise(id) {
+  return api('sessions/' + encodeURIComponent(id) + '/knowledge-status').then((r) => ({ data:r }))
+    .catch((e) => ({ error:e.message, status:e.status ?? null }));
+}
+function renderKnowledgeEntities() {
+  const k = S.knowledge; if (!k) return;
+  const q = $('#knowledgeFilter').value.trim().toLocaleLowerCase();
+  const entities = knowledgeSafeList(k.continuity?.entities);
+  const visible = entities.filter((e) => [e.typeName, e.type, e.key, e.origin, e.id].some((x) => String(x ?? '').toLocaleLowerCase().includes(q)));
+  $('#knowledgeEntities').innerHTML = visible.length ? visible.map((e) => {
+    const index = entities.indexOf(e);
+    const scope = e.identityBasis === 'exact-site-type-key' ? 'Linked by key · same detected origin, not verified account' : 'Session-local · no automatic cross-session join';
+    return '<div class="knowledge-entry"><button class="row-action" data-ke="' + index + '">' + esc(e.typeName || e.type || 'Unknown entity') + ' · ' + esc(e.key ?? 'No key') +
+      '<div class="small-note">' + esc(scope) + ' · ' + esc(e.sessionCount ?? 0) + ' recording(s) · ' + esc(e.revisions ?? 0) + ' revisions</div></button></div>';
+  }).join('') : knowledgeFallback(q ? 'No entities match this filter.' : 'No derived entities are visible in this preview.');
+  $('#knowledgeEntities').querySelectorAll('button[data-ke]').forEach((b) => b.onclick = guard(() => openKnowledgeEntity(entities[Number(b.dataset.ke)])));
+}
+function knowledgeGraphMap(graph) {
+  const all = knowledgeSafeList(graph?.nodes), edges = knowledgeSafeList(graph?.edges);
+  if (!all.length) return '';
+  const degree = new Map();
+  edges.forEach((e) => { degree.set(e.from, (degree.get(e.from) || 0) + 1); degree.set(e.to, (degree.get(e.to) || 0) + 1); });
+  const nodes = all.slice().sort((a, b) => (degree.get(b.eid) || 0) - (degree.get(a.eid) || 0) || String(a.eid).localeCompare(String(b.eid))).slice(0, 16);
+  const coords = new Map(nodes.map((n, i) => [n.eid, {
+    x: Math.round(400 + 335 * Math.cos(i * 2 * Math.PI / nodes.length - Math.PI / 2)),
+    y: Math.round(177 + 130 * Math.sin(i * 2 * Math.PI / nodes.length - Math.PI / 2)),
+  }]));
+  const lines = edges.filter((e) => e.status !== 'rejected' && coords.has(e.from) && coords.has(e.to) && e.from !== e.to).slice(0, 45).map((e) => {
+    const a = coords.get(e.from), b = coords.get(e.to);
+    const dash = e.status === 'confirmed' ? '' : ' stroke-dasharray="5 5"';
+    return '<line x1="' + a.x + '" y1="' + a.y + '" x2="' + b.x + '" y2="' + b.y + '" stroke="var(--l2)" opacity=".55" stroke-width="1.8"' + dash + '></line>';
+  }).join('');
+  const markers = nodes.map((n) => {
+    const pos = coords.get(n.eid), label = String(n.key ?? n.typeName ?? n.eid).slice(0, 12);
+    return '<g><circle cx="' + pos.x + '" cy="' + pos.y + '" r="13" fill="var(--panel)" stroke="var(--l1)" stroke-width="3"></circle>' +
+      '<text x="' + pos.x + '" y="' + (pos.y + 25) + '" font-size="12" text-anchor="middle" fill="var(--ink)">' + esc(label) + '</text></g>';
+  }).join('');
+  return '<div class="pad"><b>Relationship map</b><p class="small-note">Preview: ' + nodes.length + ' of ' + all.length +
+    ' nodes. Solid lines: confirmed status; dashed lines: hypotheses or unconfirmed status; rejected edges are omitted from this map. Click a node in the list below to inspect full status.</p>' +
+    '<svg viewBox="0 0 800 360" role="img" aria-label="Static relationship graph preview; inspect accessible node list below" style="width:100%;height:auto;max-height:300px;background:var(--paper);border-radius:6px">' +
+    lines + markers + '</svg></div>';
+}
+function renderKnowledgeGraph() {
+  const k = S.knowledge; if (!k) return;
+  const g = k.graph;
+  const host = $('#knowledgeGraph');
+  if (g?.error) { host.innerHTML = knowledgeMarkupError('Could not load graph: ' + g.error); return; }
+  if (!g?.data) { host.innerHTML = knowledgeFallback('No saved graph. This recording may not have been derived.'); return; }
+  const nodes = knowledgeSafeList(g.data.nodes), edges = knowledgeSafeList(g.data.edges);
+  const q = $('#graphFilter').value.trim().toLocaleLowerCase();
+  const matching = nodes.map((n, i) => ({ n, i })).filter(({ n }) => [n.typeName, n.eid, n.key].some((x) => String(x ?? '').toLocaleLowerCase().includes(q))).slice(0, 200);
+  host.innerHTML = knowledgeGraphMap(g.data) + '<div class="pad small-note">' + esc(nodes.length) + ' nodes · ' + esc(edges.length) + ' edges' +
+    (nodes.length > 200 ? ' · at most 200 matching nodes shown' : '') + '</div>' +
+    (matching.map(({ n, i }) => '<div class="knowledge-entry"><button class="row-action" data-gn="' + i + '">' + esc(n.typeName || 'Graph node') +
+      ' · ' + esc(n.key ?? n.eid) + '<div class="small-note">Inferred node · ' + esc(knowledgeSafeList(n.history).length) + ' revisions</div></button></div>').join('') ||
+      knowledgeFallback(q ? 'No graph nodes match this filter.' : 'This derived graph has no nodes.'));
+  host.querySelectorAll('button[data-gn]').forEach((b) => b.onclick = guard(() => openKnowledgeNode(nodes[Number(b.dataset.gn)], edges)));
+}
+function renderKnowledgeModel() {
+  const k = S.knowledge; if (!k) return;
+  const host = $('#knowledgeModel'), result = k.model;
+  if (result?.error) { host.innerHTML = knowledgeMarkupError('Could not load model: ' + result.error); return; }
+  if (!result?.data) { host.innerHTML = knowledgeFallback('No derived model saved for this recording.'); return; }
+  const data = result.data;
+  if (data.error) { host.innerHTML = knowledgeMarkupError('Derivation failed at ' + knowledgeText(data.stage) + ': ' + knowledgeText(data.error)); return; }
+  const types = knowledgeSafeList(data.types);
+  host.innerHTML = '<h3>Inferred record types</h3><p class="small-note">' + esc(types.length) + ' modeled types. Types are interpretations of captured data; a field rename may create a new type.</p>' +
+    (types.slice(0, 100).map((t) => '<div class="knowledge-detail-field"><b>' + esc(t.name || t.id || 'Unnamed type') + '</b><div class="small-note">Key field: ' +
+      esc(t.key?.field ?? t.keyField ?? 'Not established') + ' · Fields: ' + esc(knowledgeSafeList(t.fields).map((f) => f.name || f).join(', ') || 'Not declared') + '</div></div>').join('') ||
+      knowledgeFallback('Model exists, but no inferred record types were saved.')) +
+    (types.length > 100 ? '<p class="small-note">Preview limited to 100 types.</p>' : '');
+}
+function renderKnowledgeDrift() {
+  const k = S.knowledge; if (!k) return;
+  const hints = knowledgeSafeList(k.continuity?.typeDriftHints);
+  const candidates = [];
+  $('#knowledgeDrift').innerHTML = hints.length ? hints.map((h) => {
+    const links = knowledgeSafeList(h.candidates).map((c) => {
+      const i = candidates.length; candidates.push(c);
+      return '<button class="knowledge-link" data-drift="' + i + '" aria-label="Inspect unconfirmed type candidate ' + esc(c.typeName || c.type || c.id) + '">' +
+        esc(c.typeName || c.type || 'Type') + ' · ' + esc(c.id || 'No qualified ID') + '</button>';
+    }).join(' ⇄ ');
+    return '<div class="knowledge-detail-field"><b>Unconfirmed possible same record type</b>' +
+      '<div class="small-note">Detected origin: ' + esc(h.origin ?? 'Unknown') + ' · Key: ' + esc(h.keyField ?? 'Unknown') + ' = ' + esc(h.key ?? '') +
+      ' · Field overlap: ' + esc(Math.round((Number(h.structuralFieldOverlap) || 0) * 100)) + '% (structural, not confidence)</div>' +
+      '<div class="knowledge-toolbar">' + links + '</div>' +
+      '<div class="small-note">No merge or correction performed. Same origin cannot establish same account.</div></div>';
+  }).join('') : knowledgeFallback('No review-only type-drift hints returned. This does not prove the schema was unchanged.');
+  $('#knowledgeDrift').querySelectorAll('button[data-drift]').forEach((button) =>
+    button.onclick = guard(() => openKnowledgeEntity(candidates[Number(button.dataset.drift)])));
+}
+/* A source permalink is available only when Core supplied a real recording and stream.
+   It does not convert a conversation send boundary or a page-only observation into a stream. */
+function recordedEvidenceHref(source) {
+  const session = source?.session, sid = source?.sid;
+  if (typeof session !== 'string' || !session || session.length > 128 || /[\u0000-\u001f\u007f]/.test(session)) return null;
+  if (typeof sid !== 'string' || !sid || sid.length > 256 || /[\u0000-\u001f\u007f]/.test(sid)) return null;
+  const parts = ['session=' + encodeURIComponent(session), 'view=streams', 'sid=' + encodeURIComponent(sid)];
+  const seq = source?.seq;
+  if ((typeof seq === 'number' && Number.isSafeInteger(seq) && seq >= 0) ||
+      (typeof seq === 'string' && /^\d+$/.test(seq) && Number.isSafeInteger(Number(seq)))) {
+    parts.push('seq=' + encodeURIComponent(String(seq)));
+  }
+  return '/#' + parts.join('&');
+}
+function knowledgeSourceLinks(history) {
+  const seen = new Set();
+  const ids = knowledgeSafeList(history).map((r) => r.evidence?.session ?? r.session).filter((id) => {
+    if (!id || seen.has(id)) return false;
+    seen.add(id); return true;
+  }).slice(0, 10);
+  return ids.length ? '<div class="knowledge-toolbar">' + ids.map((id, i) =>
+    '<button data-source="' + i + '">Open source recording ' + esc(String(id).slice(0, 14)) + '</button>').join('') + '</div>' : '<p class="small-note">Specific source recording was not recorded for this item.</p>';
+}
+function wireKnowledgeSources(history) {
+  const seen = [...new Set(knowledgeSafeList(history).map((r) => r.evidence?.session ?? r.session).filter(Boolean))].slice(0, 10);
+  $('#knowledgeDetail').querySelectorAll('button[data-source]').forEach((b) => b.onclick = guard(async () => {
+    const id = seen[Number(b.dataset.source)]; if (!id) return;
+    await openRecordedEvidence({session:id});
+  }));
+}
+async function openKnowledgeEntity(entity) {
+  const k = S.knowledge, epoch = S.knowledgeRequestSeq, detailSeq = ++S.knowledgeDetailSeq;
+  if (!k || !entity) return;
+  const host = $('#knowledgeDetail');
+  S.workflowStep = 'Entity history'; updateInvestigationTrail();
+  host.innerHTML = '<div role="status" class="empty">Loading entity revisions…</div>';
+  try {
+    const query = new URLSearchParams({ eid: entity.id, limit: '1' });
+    if (k.at) query.set('at', k.at);
+    const full = await api('sessions/' + encodeURIComponent(k.sessionId) + '/continuity?' + query.toString());
+    if (detailSeq !== S.knowledgeDetailSeq || epoch !== S.knowledgeRequestSeq || S.view !== 'knowledge') return;
+    const e = knowledgeSafeList(full.entities)[0];
+    if (!e) { host.innerHTML = knowledgeFallback('Entity history unavailable at the selected time.'); return; }
+    const history = knowledgeSafeList(e.history);
+    host.innerHTML = '<h3>' + esc(e.typeName || e.type || 'Entity') + '</h3><div class="small-note">Inferred identity: ' + esc(e.id) +
+      '</div><div class="knowledge-warning">' + (e.identityBasis === 'exact-site-type-key' ? 'Linked by key and exact detected origin; same account is not verified.' : 'Provisional/session-local identity, not linked across recordings.') +
+      ' Attributes represent observations, not a guaranteed current or complete state.</div>' +
+      '<div class="knowledge-detail-field"><b>Recorded attribute values</b><pre class="mono">' + esc(JSON.stringify(e.attrs ?? {}, null, 2)) + '</pre></div>' +
+      '<h3>Revision provenance</h3><div class="scroll" style="max-height:30vh"><table><thead><tr><th>Observed</th><th>Source</th><th>Changed fields</th><th>Basis</th><th>Original evidence</th></tr></thead><tbody>' +
+      history.slice(-150).map((r, i) => '<tr><td>' + esc(knowledgeTime(r.t)) + '</td><td class="mono">' + esc(r.session || 'Unknown') +
+        '</td><td>' + esc(knowledgeSafeList(r.changed).join(', ') || 'Unspecified') +
+        (knowledgeSafeList(r.removed).length ? '<div class="c-gap">Explicitly removed: ' + esc(r.removed.join(', ')) + '</div>' : '') +
+        '</td><td>' + esc(r.provenanceBasis || 'Recorded revision') + '</td><td>' +
+        (recordedEvidenceHref(r) ? '<a class="knowledge-link" href="' + esc(recordedEvidenceHref(r)) + '">Open stream</a>' : 'No exact stream reference') + '</td></tr>').join('') +
+      '</tbody></table></div>' + (history.length > 150 ? '<p class="small-note">Latest 150 revisions shown; full history available through Core API.</p>' : '') +
+      '<h3>Source recordings</h3>' + knowledgeSourceLinks(history) +
+      (String(e.key ?? e.typeName ?? '').trim() ? '<div class="knowledge-toolbar"><button id="knowledgeSearch">Search captured text for this key/type</button></div>' : '');
+    wireKnowledgeSources(history);
+    const searchButton = host.querySelector?.('#knowledgeSearch');
+    if (searchButton) searchButton.onclick = () => {
+      const value = String(e.key ?? e.typeName ?? '').trim().slice(0, 200);
+      if (!value) return;
+      $('#q').value = value;
+      $('#searchScope').value = 'recent';
+      show('search');
+      $('#searchForm').requestSubmit();
+    };
+  } catch (err) {
+    if (detailSeq === S.knowledgeDetailSeq && epoch === S.knowledgeRequestSeq && S.view === 'knowledge') host.innerHTML = knowledgeMarkupError('Could not load entity history: ' + err.message);
+  }
+}
+async function openRecordedEvidence(source) {
+  if (!source?.session) return toast('No source recording was attached to this observation.');
+  S.workflowStep = 'Original recorded evidence';
+  ++S.knowledgeRequestSeq; ++S.knowledgeDetailSeq;
+  show('sessions');
+  await openSession(source.session);
+  if (S.sessionId !== source.session) return;
+  if (!source.sid) {
+    toast('Opened source recording; exact stream was not recorded with this observation.');
+    return;
+  }
+  show('streams');
+  try {
+    await openStream(source.sid);
+    if (S.sessionId !== source.session) return;
+    const seq = source.seq;
+    if (seq !== undefined && seq !== null) {
+      const event = [...$('#evBody').querySelectorAll('details.ev')].find((node) =>
+        node.dataset.seq === String(seq));
+      if (event) { event.open = true; event.scrollIntoView({behavior:'auto',block:'center'}); }
+      else toast('Source stream opened; exact sequence is outside the decoded event preview.');
+    }
+    S.workflowStep = 'Original recorded evidence'; updateInvestigationTrail();
+  } catch (e) { toast('Could not open original stream: ' + e.message); }
+}
+function openKnowledgeNode(node, edges) {
+  ++S.knowledgeDetailSeq;
+  if (!node) return;
+  const related = knowledgeSafeList(edges).filter((e) => e.from === node.eid || e.to === node.eid);
+  const history = knowledgeSafeList(node.history);
+  const host = $('#knowledgeDetail');
+  S.workflowStep = 'Graph relationships'; updateInvestigationTrail();
+  host.innerHTML = '<h3>' + esc(node.typeName || 'Graph node') + '</h3><p class="small-note">Inferred, session-specific graph identity ' + esc(node.eid) + '</p>' +
+    '<div class="knowledge-detail-field"><b>Observed attributes</b><pre class="mono">' + esc(JSON.stringify(node.attrs ?? {}, null, 2)) + '</pre></div>' +
+    '<h3>Relationships (' + esc(related.length) + ')</h3>' +
+    (related.slice(0, 100).map((r) => '<div class="knowledge-detail-field"><b>' + esc(r.kind || 'relationship') +
+      '</b><div class="small-note">From ' + esc(r.from) + ' → ' + esc(r.to) + ' · ' + esc(r.status || 'hypothesis') +
+      ' · ' + (r.confidence == null ? 'Confidence not provided' : 'Inferred score: ' + esc(r.confidence)) +
+      ' · Observed ' + esc(knowledgeTime(r.t)) + '</div></div>').join('') || knowledgeFallback('No relationships recorded for this node.')) +
+    (related.length > 100 ? '<p class="small-note">Latest preview limited to 100 relationships.</p>' : '') +
+    '<h3>Evidence</h3>' + knowledgeSourceLinks(history);
+  wireKnowledgeSources(history);
+}
+async function loadKnowledge() {
+  const picker = $('#knowledgeSession'), prior = picker.value || S.sessionId || '';
+  const data = await api('sessions');
+  const sessions = knowledgeSafeList(data);
+  picker.innerHTML = '<option value="">Choose a recording</option>' + sessions.map((m) =>
+    '<option value="' + esc(m.id) + '">' + esc((m.target?.title || m.site || m.id) + ' · ' + (m.createdAt ? new Date(m.createdAt).toLocaleDateString() : 'unknown date')) + '</option>').join('');
+  picker.value = sessions.some((m) => m.id === prior) ? prior : '';
+  $('#knowledgeAt').value = S.historicalAsOfLocal;
+  if (!picker.value) $('#knowledgeState').textContent = 'Choose a saved session, then select Explore knowledge.';
+}
+async function refreshKnowledge() {
+  const id = knowledgeSessionId();
+  if (!id) { $('#knowledgeState').textContent = 'Select a saved recording first.'; return; }
+  const selectedTime = $('#knowledgeAt').value;
+  if (selectedTime !== S.historicalAsOfLocal) updateHistoricalContext(selectedTime);
+  const at = selectedTime ? new Date(selectedTime) : null;
+  if (at && !Number.isFinite(at.getTime())) { $('#knowledgeState').innerHTML = knowledgeMarkupError('Enter a valid as-of time.'); return; }
+  selectSessionContext(id);
+  const epoch = ++S.knowledgeRequestSeq;
+  ++S.knowledgeDetailSeq;
+  S.knowledge = null;
+  $('#knowledgeState').textContent = 'Reading derived model, graph and exact-origin continuity from saved recordings…';
+  for (const target of ['#knowledgeEntities', '#knowledgeGraph', '#knowledgeModel', '#knowledgeDrift', '#knowledgeDetail'])
+    $(target).innerHTML = knowledgeFallback('Loading…');
+  $('#knowledgeMetrics').textContent = '';
+  const suffix = at ? '&at=' + encodeURIComponent(at.toISOString()) : '';
+  const endpoints = ['sessions/' + encodeURIComponent(id) + '/continuity?limit=100' + suffix,
+    'sessions/' + encodeURIComponent(id) + '/graph',
+    'sessions/' + encodeURIComponent(id) + '/model'];
+  const results = await Promise.allSettled([...endpoints.map((p) => api(p)), knowledgeStatusPromise(id)]);
+  if (epoch !== S.knowledgeRequestSeq || S.view !== 'knowledge') return;
+  const [continuity, graph, model] = results.slice(0,3).map((r) => r.status === 'fulfilled'
+    ? { data: r.value } : { error: r.reason?.message || 'Unknown API error' });
+  const derivation = results[3].status === 'fulfilled' ? results[3].value : {error: results[3].reason?.message || 'Status endpoint unavailable'};
+  const rawStatus = derivation?.data;
+  const legacy = !!derivation?.error && (derivation.status === 404 || derivation.status === 405);
+  const outcome = legacy ? {status:'legacy-unverified'} : rawStatus || (derivation?.error ? {status:'status-unavailable',error:derivation.error} : {status:'legacy-unverified'});
+
+  S.knowledge = { sessionId: id, at: at ? at.toISOString() : '', continuity: continuity.data, graph, model, outcome };
+  S.workflowStep = 'Derived knowledge'; updateInvestigationTrail();
+  const partial = results.slice(0,3).filter((r) => r.status === 'rejected').length;
+  $('#knowledgeState').innerHTML = partial
+    ? knowledgeMarkupError(partial + ' of 3 read-only knowledge requests failed; successful sections are still available.')
+    : '<span class="c-l3">Read-only knowledge loaded.</span> Choose an entity or graph node to inspect. No identities or corrections were changed.';
+  $('#knowledgeMetrics').innerHTML = '<div class="knowledge-warning" style="width:100%">' + knowledgeOutcomeMarkup(outcome) + '</div>' +
+    (continuity.data ? knowledgeSummary(continuity.data) : knowledgeMarkupError('Continuity unavailable: ' + continuity.error));
+  if (continuity.error) $('#knowledgeEntities').innerHTML = knowledgeMarkupError('Continuity unavailable: ' + continuity.error);
+  else renderKnowledgeEntities();
+  if (outcome.status === 'deriving' || outcome.status === 'failed') {
+    $('#knowledgeGraph').innerHTML = knowledgeFallback('The current derivation is ' + outcome.status + '; old graph results are not shown as current.');
+    $('#knowledgeModel').innerHTML = knowledgeFallback('The current derivation is ' + outcome.status + '; old model results are not shown as current.');
+    $('#knowledgeEntities').innerHTML = knowledgeFallback('Entities are not shown while the current derivation is ' + outcome.status + '.');
+  } else { renderKnowledgeGraph(); renderKnowledgeModel(); }
+  if (continuity.error) $('#knowledgeDrift').innerHTML = knowledgeMarkupError('Type-drift hints unavailable: ' + continuity.error);
+  else if (outcome.status === 'deriving' || outcome.status === 'failed') $('#knowledgeDrift').innerHTML = knowledgeFallback('Type comparisons are not shown while this recording is ' + outcome.status + '.');
+  else renderKnowledgeDrift();
+  $('#knowledgeDetail').innerHTML = knowledgeFallback('Select an entity or graph node to inspect its evidence.');
+}
+$('#knowledgeRefresh').onclick = guard(refreshKnowledge);
+$('#knowledgeFilter').oninput = renderKnowledgeEntities;
+$('#graphFilter').oninput = renderKnowledgeGraph;
+$('#knowledgeAt').onchange = () => updateHistoricalContext($('#knowledgeAt').value);
+$('#knowledgeSession').onchange = () => {
+  selectSessionContext($('#knowledgeSession').value || null);
+  ++S.knowledgeRequestSeq;
+  ++S.knowledgeDetailSeq;
+  S.knowledge = null;
+  $('#knowledgeMetrics').textContent = '';
+  $('#knowledgeState').textContent = 'Selection changed. Choose Explore knowledge to load this recording.';
+  ['#knowledgeEntities','#knowledgeGraph','#knowledgeModel','#knowledgeDrift','#knowledgeDetail'].forEach((target) => $(target).innerHTML = knowledgeFallback('Select Explore knowledge to refresh.'));
+};
+$('#knowledgeOpenSession').onclick = guard(async () => {
+  const id = knowledgeSessionId();
+  if (!id) return toast('Select a saved recording first.');
+  show('sessions');
+  await openSession(id);
+});
+
+/* ---------------- profiles ---------------- */
+async function loadProfiles() {
+  const ps = await api('profiles');
+  $('#profiles tbody').innerHTML = ps.map((p) => `<tr class="click" data-n="${esc(p.name)}"><td><b>${esc(p.name)}</b></td><td>v${p.current} of ${p.versions.length}</td></tr>`).join('');
+  document.querySelectorAll('#profiles tr.click').forEach((tr) => tr.onclick = guard(() => openProfile(tr.dataset.n)));
+}
+async function openProfile(name) {
+  const [p, all] = await Promise.all([api(`profiles/${name}`), api('profiles')]);
+  const meta = all.find((x) => x.name === name);
+  const diff = p.version > 1 ? await api(`profiles/${name}/diff?a=${p.version - 1}&b=${p.version}`).catch(() => []) : [];
+  $('#profileDetail').innerHTML = `<div class="panel pad"><h3 style="margin-top:0">${esc(name)}, version ${p.version}</h3><div style="color:var(--muted)">${esc(p.description || '')}</div>
+    <h3>History</h3><table>${meta.versions.slice().reverse().map((v) => `<tr><td>v${v.version}${v.version === meta.current ? ' (active)' : ''}</td><td style="color:var(--muted)">${esc(v.note || '')}</td><td>${v.version !== meta.current ? `<button data-rb="${v.version}">Roll back to this</button>` : ''}</td></tr>`).join('')}</table>
+    ${diff.length ? `<h3>Changed since v${p.version - 1}</h3><pre class="mono" style="white-space:pre-wrap">${esc(diff.map((d) => `${d.path}: ${JSON.stringify(d.from)} ⇒ ${JSON.stringify(d.to)}`).join('\n'))}</pre>` : ''}
+    <h3>Edit</h3><textarea class="json" id="pjson">${esc(JSON.stringify(p, null, 2))}</textarea>
+    <div class="row" style="margin-top:8px"><button class="primary" id="bSaveP">Save as new version</button></div></div>`;
+  document.querySelectorAll('[data-rb]').forEach((b) => b.onclick = guard(async () => { await api(`profiles/${name}/rollback`, { body: { version: Number(b.dataset.rb) } }); toast(`Rolled back to v${b.dataset.rb}`); openProfile(name); loadProfiles(); }));
+  $('#bSaveP').onclick = guard(async () => { let j; try { j = JSON.parse($('#pjson').value); } catch (e) { return toast('That JSON does not parse: ' + e.message); } const s = await api(`profiles/${name}/save`, { body: { profile: j, note: 'edited in studio' } }); toast(`Saved v${s.version}`); openProfile(name); loadProfiles(); });
+}
+
+/* ---------------- search ---------------- */
+function renderSearchHits(hits) {
+  const rows = Array.isArray(hits) ? hits : [];
+  $('#hits tbody').innerHTML = rows.length ? rows.map((h, i) =>
+    '<tr><td><span class="pill ' + (h.layer === 'L2' ? 'c-l2' : 'c-l3') + '">' +
+      (h.layer === 'L2' ? 'Recorded event' : 'Recorded page') + '</span></td>' +
+    '<td><button class="row-action" data-search-hit="' + i + '" aria-label="Open source recording">' + esc(String(h.session || '').slice(0, 15) || 'Unknown session') + '</button>' +
+    '<div class="small-note">Stream ' + esc(h.sid || '—') + ' · ' + esc(knowledgeTime(h.t)) + '</div>' +
+    (recordedEvidenceHref(h) ? '<a class="knowledge-link" href="' + esc(recordedEvidenceHref(h)) + '">Open exact stream</a>' : '<span class="small-note"> Exact stream not recorded</span>') + '</td>' +
+    '<td style="overflow-wrap:anywhere">' + esc(h.snippet ?? '') + '</td></tr>'
+  ).join('') : '<tr><td colspan="3" class="empty">No matching recorded text. This is not evidence that the subject did not exist.</td></tr>';
+  $('#hits tbody').querySelectorAll('button[data-search-hit]').forEach((button) =>
+    button.onclick = guard(async () => {
+      const hit = rows[Number(button.dataset.searchHit)];
+      if (!hit?.session) return toast('No source recording was attached to this search hit.');
+      show('sessions');
+      await openSession(hit.session);
+    }));
+}
+$('#searchForm').onsubmit = guard(async (e) => {
+  e.preventDefault();
+  const q = $('#q').value.trim();
+  if (!q) { $('#searchStatus').textContent = 'Enter text to search saved evidence.'; return; }
+  const scope = $('#searchScope').value;
+  if (scope === 'selected' && !S.sessionId) {
+    $('#searchStatus').innerHTML = knowledgeMarkupError('No saved recording is selected; choose one in Sessions or search recent recordings.');
+    return;
+  }
+  const epoch = ++S.searchRequestSeq;
+  $('#searchStatus').textContent = 'Searching ' + (scope === 'selected' ? 'selected recording' : '20 recent recordings') + '…';
+  $('#hits tbody').innerHTML = '<tr><td colspan="3" class="empty">Searching saved evidence…</td></tr>';
+  try {
+    const path = 'search?q=' + encodeURIComponent(q) + (scope === 'selected' ? '&session=' + encodeURIComponent(S.sessionId) : '&sessions=20');
+    const hits = await api(path);
+    if (epoch !== S.searchRequestSeq || S.view !== 'search') return;
+    if (!Array.isArray(hits)) throw new Error('Unexpected search response.');
+    $('#searchStatus').textContent = hits.length + ' match(es) in ' + (scope === 'selected' ? 'the selected recording' : 'up to 20 recent recordings') +
+      '; returned results are limited by the API (default 100), and missing evidence is not a negative finding.';
+    renderSearchHits(hits);
+  } catch (err) {
+    if (epoch === S.searchRequestSeq && S.view === 'search') {
+      $('#searchStatus').innerHTML = knowledgeMarkupError('Search unavailable: ' + err.message);
+      $('#hits tbody').innerHTML = '<tr><td colspan="3" class="empty">No results loaded due to an error.</td></tr>';
+    }
+  }
+});
+
+connectLive();
+loadTargets();
+/* Safe saved-recording navigation used by Chat, Live drive and the main Studio.
+   No capture, derivation, site send or implicit acceptance is triggered here. */
+function parseSessionDeepLink(hash) {
+  if (typeof hash !== 'string' || !hash.startsWith('#session=')) return null;
+  const raw = hash.slice(1);
+  if (/%(?![0-9a-f]{2})/i.test(raw)) return null;
+  const params = new URLSearchParams(raw);
+  if ([...params.keys()].some((key) => !['session', 'view', 'sid', 'seq', 'join', 'comp'].includes(key))) return null;
+  if (['session', 'view', 'sid', 'seq', 'join', 'comp'].some((key) => params.getAll(key).length > 1) ||
+      params.getAll('session').length !== 1) return null;
+  const id = params.get('session'), view = params.get('view') || 'sessions', sid = params.get('sid'), rawSeq = params.get('seq'), rawJoin = params.get('join'), rawComp = params.get('comp');
+  if (!id || id.length > 128 || /[\u0000-\u001f\u007f]/.test(id)) return null;
+  if (!['sessions', 'knowledge', 'streams'].includes(view)) return null;
+  if ((sid !== null || rawSeq !== null) && view !== 'streams') return null;
+  if (sid !== null && (!sid || sid.length > 256 || /[\u0000-\u001f\u007f]/.test(sid))) return null;
+  if (rawSeq !== null && (sid === null || !/^\d+$/.test(rawSeq) || !Number.isSafeInteger(Number(rawSeq)))) return null;
+  // join=<messageIndex> selects a row in the Sessions "Stream to page" panel. It never opens a stream.
+  if (rawJoin !== null && (view !== 'sessions' || !/^\d+$/.test(rawJoin) || !Number.isSafeInteger(Number(rawJoin)))) return null;
+  // comp=<streamIndex>.<componentIndex> selects a row in the Sessions "Page components" panel. Sessions view only; never opens a stream.
+  if (rawComp !== null && (view !== 'sessions' || rawJoin !== null || !/^\d+\.\d+$/.test(rawComp))) return null;
+  const compParts = rawComp === null ? null : rawComp.split('.').map(Number);
+  if (compParts && !compParts.every((x) => Number.isSafeInteger(x))) return null;
+  return { id, view, sid, seq: rawSeq === null ? null : Number(rawSeq), join: rawJoin === null ? null : Number(rawJoin),
+    ...(compParts ? { comp: { stream: compParts[0], component: compParts[1] } } : {}) };
+}
+// Hash for a selected stream message; the parser above reads it back. Built only from the saved session id and an index.
+function joinDeepLinkHref(id, index) {
+  return '#session=' + encodeURIComponent(id) + '&view=sessions&join=' + encodeURIComponent(String(index));
+}
+let pendingJoinFocus = null;
+let pendingCompFocus = null;
+let deepLinkEpoch = 0;
+async function openSessionDeepLink(hash) {
+  const epoch = ++deepLinkEpoch, request = parseSessionDeepLink(hash);
+  if (typeof hash !== 'string' || !hash.startsWith('#session=')) return false;
+  show('sessions');
+  const notice = $('#deepLinkNotice');
+  notice.hidden = false;
+  if (!request) {
+    selectSessionContext(null);
+    notice.textContent = 'Invalid recording link. Choose a saved recording below; no linked evidence was loaded.';
+    return false;
+  }
+  notice.textContent = 'Opening the linked saved recording…';
+  pendingJoinFocus = request.join === null ? null : { id: request.id, index: request.join };
+  pendingCompFocus = request.comp ? { id: request.id, comp: request.comp } : null;
+  const loaded = await openSession(request.id);
+  if (epoch !== deepLinkEpoch) return false;
+  if (!loaded) {
+    if (S.sessionId === request.id) selectSessionContext(null);
+    notice.textContent = 'Could not open the linked recording. It may be missing or access may have expired. Choose a saved recording below.';
+    return false;
+  }
+  if (request.view === 'knowledge') {
+    show('knowledge');
+    $('#knowledgeState').textContent = 'Recording selected. Choose Explore knowledge to inspect derived evidence. The derivation may be incomplete or unverified.';
+  } else if (request.view === 'streams') {
+    // Verify the stream belongs to the exact saved session before displaying any bytes.
+    let rows;
+    try { rows = await loadStreams(); }
+    catch (e) {
+      if (epoch === deepLinkEpoch) notice.textContent = 'The recording opened, but its stream list could not be read: ' + e.message;
+      return false;
+    }
+    if (epoch !== deepLinkEpoch || S.sessionId !== request.id) return false;
+    if (request.sid && !rows.some((r) => r.sid === request.sid)) {
+      notice.textContent = 'Recording opened, but the linked stream is missing or outside the available stream list. No substitute stream was selected.';
+      return false;
+    }
+    show('streams', true);
+    if (request.sid) {
+      try {
+        const opened = await openStream(request.sid);
+        if (epoch !== deepLinkEpoch || S.sessionId !== request.id) return false;
+        if (!opened) throw new Error('Stream selection changed before evidence loaded.');
+        if (request.seq !== null) {
+          const key = String(request.seq);
+          const ev = [...$('#evBody').querySelectorAll('details.ev')].find((n) => n.dataset.seq === key);
+          const raw = [...$('#rawBody').querySelectorAll('span[data-seq]')].find((n) => n.dataset.seq === key);
+          const item = ev || raw;
+          if (item) { if (ev) ev.open = true; item.scrollIntoView?.({behavior:'auto',block:'center'}); }
+          else {
+            $('#evMeta').textContent += ' · linked sequence #' + key + ' not present in this bounded preview';
+            toast('Recording and stream opened; exact sequence is unavailable in the current preview.');
+          }
+        }
+      } catch (e) {
+        if (epoch !== deepLinkEpoch) return false;
+        show('sessions');
+        notice.textContent = 'Recording opened, but the linked stream could not be loaded: ' + e.message + '. No other stream was substituted.';
+        return false;
+      }
+    }
+  }
+  notice.hidden = true;
+  notice.textContent = '';
+  return true;
+}
+if (location.hash.startsWith('#session=')) guard(openSessionDeepLink)(location.hash);
+window.addEventListener('hashchange', () => {
+  if (location.hash.startsWith('#session=')) guard(openSessionDeepLink)(location.hash);
+});
+setInterval(() => { if (S.recording && S.view === 'streams') loadStreams().catch(() => {}); }, 2000);
+</script>
+</body>
+</html>
