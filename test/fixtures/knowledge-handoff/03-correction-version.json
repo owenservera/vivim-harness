@@ -1,0 +1,66 @@
+{
+  "schema": "aion.l4l5.local-handoff-fixture/1",
+  "id": "KH-03",
+  "round": "L4",
+  "owner": "Knowledge & Learning",
+  "purpose": "Rejected proposals never train; accepted account-specific correction has immutable version; rollback creates new revision",
+  "field": "subject",
+  "description": {
+    "type": "string",
+    "string": {
+      "avgLen": 19,
+      "uniqueness": 0.7,
+      "formats": {}
+    }
+  },
+  "role": "text",
+  "ctx": {
+    "site": "example",
+    "origin": "https://example.test",
+    "account": "alice"
+  },
+  "otherAccount": "bob",
+  "events": [
+    {
+      "action": "propose",
+      "review": "reject",
+      "evidence": {
+        "session": "kh03-reject",
+        "seq": 4
+      }
+    },
+    {
+      "action": "propose",
+      "review": "accept",
+      "evidence": {
+        "session": "kh03-accept",
+        "seq": 5
+      }
+    },
+    {
+      "action": "rollback",
+      "toRevision": 1
+    }
+  ],
+  "expected": {
+    "versions": [
+      1,
+      2,
+      3
+    ],
+    "rejectedRevision": 1,
+    "acceptedRevision": 2,
+    "rollbackRevision": 3,
+    "rejectedUnchanged": true,
+    "acceptedImprovesAlice": true,
+    "otherAccountUnchanged": true,
+    "rollbackRestoresBaseline": true,
+    "archivedAcceptedVersionPreserved": true
+  },
+  "truthConstraints": [
+    "snapshot revision not retroactively overwritten",
+    "current correction is not proof it was known at earlier time",
+    "account scope may not affect other account",
+    "rollback is new audited revision"
+  ]
+}

@@ -1,0 +1,74 @@
+{
+  "schema": "aion.l4l5.local-handoff-fixture/1",
+  "id": "KH-04",
+  "round": "L4",
+  "owner": "Knowledge & Learning",
+  "purpose": "Derived SHAPES does not establish trustworthy capture acceptance or supervised learning eligibility",
+  "cases": [
+    {
+      "session": "kh04-complete-accepted",
+      "derivedShapes": true,
+      "knowledgeStatus": "complete",
+      "acceptance": {
+        "status": "accepted",
+        "verified": true
+      },
+      "expectedEligible": true
+    },
+    {
+      "session": "kh04-derived-no-acceptance",
+      "derivedShapes": true,
+      "knowledgeStatus": "complete",
+      "acceptance": null,
+      "expectedEligible": false
+    },
+    {
+      "session": "kh04-derived-failed",
+      "derivedShapes": true,
+      "knowledgeStatus": "failed",
+      "acceptance": {
+        "status": "rejected",
+        "verified": true
+      },
+      "expectedEligible": false
+    },
+    {
+      "session": "kh04-derived-incomplete",
+      "derivedShapes": true,
+      "knowledgeStatus": "incomplete",
+      "acceptance": {
+        "status": "incomplete",
+        "verified": false
+      },
+      "expectedEligible": false
+    },
+    {
+      "session": "kh04-verified-not-accepted",
+      "derivedShapes": true,
+      "knowledgeStatus": "complete",
+      "acceptance": {
+        "status": "verified",
+        "verified": true
+      },
+      "expectedEligible": false
+    },
+    {
+      "session": "kh04-accepted-without-derived",
+      "derivedShapes": false,
+      "knowledgeStatus": "complete",
+      "acceptance": {
+        "status": "accepted",
+        "verified": true
+      },
+      "expectedEligible": false
+    }
+  ],
+  "currentSourceGap": "src/families/build.mjs collectSessions sets hasDerived = !!shapes; currently no trustworthy G1-G7 acceptance sidecar/promotion gate",
+  "expectedBlockerOwner": "Core",
+  "truthConstraints": [
+    "no derived-only promotion",
+    "do not treat matching AI reply as capture accepted",
+    "do not synthesize acceptance status",
+    "keep raw rejected/missing sources inspectable; not trainable"
+  ]
+}
