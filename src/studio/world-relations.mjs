@@ -123,8 +123,9 @@ export function createWorldRelations({ store, service, save }) {
       const graph = new TemporalGraph();
       const conversations = service.conversations({ limit: 1000, custody: 'all' }), projects = service.projects({ limit: 1000 }), notes = service.notes({ limit: 1000 });
       const names = store.names(), objectNames = names.filter((id) => id.startsWith('o-')), selectionNames = names.filter((id) => id.startsWith('s-'));
+      const mapCtx = context();
       const nodes = [...conversations.items.map((r) => ({ ...r, kind: 'conversation' })), ...projects.items, ...notes.items,
-        ...objectNames.slice(0, 1000).map((id) => load(id, 'source-reference')), ...selectionNames.slice(0, 1000).map((id) => load(id, 'selection'))];
+        ...objectNames.slice(0, 1000).map((id) => object(id, mapCtx)), ...selectionNames.slice(0, 1000).map((id) => selection(id, mapCtx))];
       const inputTruncated = conversations.total > 1000 || projects.total > 1000 || notes.total > 1000 || objectNames.length > 1000 || selectionNames.length > 1000;
       const metadataRequest = {};
       let edgesScanned = 0, placeholders = 0, scanTruncated = false;

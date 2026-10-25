@@ -193,3 +193,28 @@ test('review regression: corrupt metadata has controlled coverage instead of a p
   assert.equal(f.world.conversation(cid).coverage.reason, 'METADATA_UNREADABLE');
   assert.equal(f.world.object(o.id).availabilityReason, 'METADATA_UNREADABLE');
 });
+
+test('review regression: map nodes compute availability through the same object/selection readers', (t) => {
+  const f = fixture(t);
+  const cidA = f.world.conversations().items[0].id, cidB = f.world.conversations().items[1].id;
+  const oA = f.world.createObject({ conversationId: cidA, expectedVersion: null });
+  const sA = f.world.createSelection({ objectId: oA.id, selectionType: 'message', messageIndex: 0, expectedVersion: null });
+  const sourceA = f.sessions.find((x) => x.id === oA.source.sessionId);
+  sourceA.kv.set('DOM_TURNS', [{ id: 'changed-message', text: 'changed', blocks: [] }]);
+  const map = f.world.map({ limit: 1000 });
+  const selectionNode = map.nodes.find((r) => r.id === sA.id);
+  assert.equal(selectionNode.availability, 'stale', 'a selection pinned to a changed revision is stale in the map');
+  assert.equal(selectionNode.availabilityReason, 'REVISION_CHANGED');
+  const objectNode = map.nodes.find((r) => r.id === oA.id);
+  assert.equal(objectNode.availability, 'locally-available', 'the object read, not a raw load, feeds the node');
+  const oB = f.world.createObject({ conversationId: cidB, expectedVersion: null });
+  const oMissing = f.world.createObject({ conversationId: cidB, expectedVersion: null });
+  rmSync(f.sessions.find((x) => x.id === oMissing.source.sessionId).dir, { recursive: true });
+  let reads = 0; const original = f.world.conversation;
+  f.world.conversation = (...args) => { reads++; return original(...args); };
+  f.world.map({ limit: 1000 });
+  assert.equal(reads, 2, 'two distinct sources, each projected once per map request');
+  const next = f.world.map({ limit: 1000 });
+  assert.equal(reads, 4, 'the projection cache is per request, not shared forever');
+  assert.equal(next.nodes.find((r) => r.id === oMissing.id).availability, 'missing');
+});

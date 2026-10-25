@@ -10,7 +10,7 @@ export const VIEWS = Object.freeze(['conversations', 'projects', 'notes']);
 export const FIND_KINDS = Object.freeze(['message', 'project', 'note', 'source-reference', 'selection']);
 const FIND_LABELS = { message: 'Messages', project: 'Projects', note: 'Notes', 'source-reference': 'Local objects', selection: 'Selections' };
 const SHELL_VIEWS = new Set(['capture', 'find', 'transfer', 'relations', ...VIEWS]);
-const RELATION_LABELS = { associates: 'Associates', comments_on: 'Comments on', references: 'References' };
+const STANDARD_RELATION_BASIS = 'local association; not native equality';
 const ID_RE = { conversations: /^c-[a-z0-9-]{1,60}$/, projects: /^p-[a-z0-9-]{1,60}$/, notes: /^n-[a-z0-9-]{1,60}$/ };
 
 const clip = (s, n) => (s.length > n ? s.slice(0, n) + '…' : s);
@@ -286,9 +286,15 @@ function blockToMarkdown(block, lines, unknowns, depth) {
   if (type === 'graphic') { unknowns.push({ type, note: 'Graphic recorded. Studio does not redraw it.' }); return; }
   const label = labelledPart(type);
   if (label) {
-    lines.push(`**${label}**`, '');
+    lines.push(`## ${label}`, '');
     const recorded = typeof text === 'string' ? text : (typeof block.summary === 'string' ? block.summary : null);
     if (recorded) lines.push(recorded, '');
+    const nested = Array.isArray(block.blocks) ? block.blocks : Array.isArray(block.parts) ? block.parts : [];
+    if (nested.length) {
+      for (const kid of nested.slice(0, 64)) blockToMarkdown(kid, lines, unknowns, depth + 1);
+    } else if (!recorded) {
+      unknowns.push({ type, note: `${label}. The details of this part were not formatted and are not shown.` });
+    }
     return;
   }
   unknowns.push(unknownPart(type));
@@ -406,37 +412,60 @@ export function restoreSummary(report) {
 }
 
 export function provenanceChip(node) {
+  if (node?.availability === 'unresolved' || node?.availabilityReason === 'NOT_SCANNED') return ['Not scanned / unresolved', 't-warn'];
   const provenance = node?.provenance;
   const custody = node?.custody;
   if (provenance === 'imported-snapshot' || custody === 'imported' || custody === 'imported-snapshot') return ['Imported snapshot', 't-warn'];
-  if (provenance === 'user-authored') return ['Yours', 't-info'];
+  if (provenance === 'user-authored' || provenance === 'user-selected' || provenance === 'user-linked-source') return ['Yours', 't-info'];
   if (provenance === 'source-observation') return ['Observed', 't-mute'];
   return ['Provenance unknown', 't-warn'];
 }
 
+function relationGroupRank(kind) {
+  return kind === 'associates' ? 0 : kind === 'comments_on' ? 1 : kind === 'references' ? 2 : 3;
+}
+function relationLabel(kind, outgoing) {
+  if (kind === 'associates') return 'Associates';
+  if (kind === 'comments_on') return outgoing ? 'Comments on' : 'Commented on by';
+  if (kind === 'references') return outgoing ? 'References' : 'Referenced by';
+  const safe = /^[a-z0-9][a-z0-9_-]{0,39}$/i.test(kind) ? kind : 'unknown';
+  return outgoing ? `Unrecognised relation: ${safe}` : `Unrecognised relation: ${safe} (incoming)`;
+}
+
 export function relationGroups(focusId, map) {
   const nodes = new Map((Array.isArray(map?.nodes) ? map.nodes : []).filter((node) => node && typeof node.id === 'string').map((node) => [node.id, node]));
-  const groups = { associates: [], comments_on: [], references: [] };
+  const order = [], byKey = new Map();
   for (const edge of Array.isArray(map?.edges) ? map.edges : []) {
     if (!edge || (edge.from !== focusId && edge.to !== focusId)) continue;
-    const otherId = edge.from === focusId ? edge.to : edge.from;
+    const outgoing = edge.from === focusId;
+    const otherId = outgoing ? edge.to : edge.from;
     if (typeof otherId !== 'string' || !otherId) continue;
-    const kind = Object.hasOwn(groups, edge.kind) ? edge.kind : 'references';
-    groups[kind].push({ id: otherId, node: nodes.get(otherId) ?? { id: otherId }, basis: edge.evidence?.basis ?? '' });
+    const kind = typeof edge.kind === 'string' && edge.kind ? edge.kind : 'unknown';
+    const key = `${kind}:${outgoing ? 'out' : 'in'}`;
+    let group = byKey.get(key);
+    if (!group) { group = { kind, outgoing, label: relationLabel(kind, outgoing), rows: [] }; byKey.set(key, group); order.push(group); }
+    group.rows.push({ id: otherId, node: nodes.get(otherId) ?? { id: otherId },
+      basis: typeof edge.evidence?.basis === 'string' ? edge.evidence.basis : '' });
   }
-  return groups;
+  return order.sort((a, b) => relationGroupRank(a.kind) - relationGroupRank(b.kind));
+}
+
+export function relationShown(groups) {
+  return (Array.isArray(groups) ? groups : []).reduce((total, group) => total + group.rows.length, 0);
 }
 
 export function relationStatus(map, shown) {
   const count = Number.isInteger(shown) ? shown : 0;
   if (map?.truncated === true || map?.complete === false) return `Showing ${count}, more exist.`;
-  return `Showing ${count}.`;
+  if (map?.complete === true) return `Showing ${count}.`;
+  return `Showing ${count}. Whether more exist was not reported.`;
 }
 
 export function availabilityLabel(hit) {
   const value = typeof hit?.availability === 'string' && hit.availability ? hit.availability : '';
   if (!value || value === 'locally-available') return '';
   const reason = typeof hit.availabilityReason === 'string' && hit.availabilityReason ? ` (${hit.availabilityReason})` : '';
+  if (value === 'unresolved') return `Not scanned / unresolved${reason}. Studio has not read this record, so there is nothing to open.`;
   if (value === 'missing') return `Missing${reason}. This is not the same as deleted.`;
   if (value === 'stale') return `Stale${reason}. The saved address may no longer match. This is not deleted.`;
   return `Unavailable${reason}. This is not evidence that it was deleted.`;
@@ -607,7 +636,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     messageNodes: new Map(),
     find: { query: '', kind: '', items: [], total: null, nextOffset: null, coverage: null, error: '', status: '', loading: false, recordId: null },
     custody: 'observed',
-    relations: { id: '', map: null, error: '', status: '', loading: false, recordId: null },
+    relations: { id: '', typed: '', map: null, error: '', status: '', loading: false, recordId: null },
     transfer: {
       includeSources: false, selected: {}, bundle: null, blobUrl: '', exportError: '', exportStatus: '',
       importText: '', importError: '', importStatus: '', check: null, checkText: '', dryRun: null, confirm: false, restore: null, loading: '',
@@ -1738,10 +1767,39 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
   }
   function relationChoices() {
     const rows = [];
-    for (const [kind, list] of [['conversation', state.lists.conversations], ['project', state.lists.projects], ['note', state.lists.notes]]) {
-      for (const item of list.items ?? []) if (item && validWorldId(item.id)) rows.push({ id: item.id, title: item.title || item.id, kind });
+    for (const [kind, list] of [['conversation', state.lists.conversations], ['project', state.lists.projects], ['note', state.lists.notes],
+      ['source-reference', state.lists.objects], ['selection', state.lists.selections]]) {
+      for (const item of list.items ?? []) if (item && validWorldId(item.id)) rows.push({ id: item.id, title: item.title, kind });
     }
     return rows;
+  }
+  function relationRowElements(group, row) {
+    const node = row.node;
+    if (node?.availability === 'unresolved' || node?.availabilityReason === 'NOT_SCANNED') {
+      return el('div', { class: 'member' }, [
+        el('span', { class: 'conv-title', text: node.title || row.id }),
+        el('span', { class: 'pill t-warn', text: 'Not scanned / unresolved' }),
+        el('p', { class: 'note', text: `Linked but never read (${node.availabilityReason ?? 'NOT_SCANNED'}). There is nothing to open.` }),
+      ]);
+    }
+    const chip = provenanceChip(node);
+    const availability = availabilityLabel(node);
+    const basisLine = row.basis && row.basis !== STANDARD_RELATION_BASIS ? row.basis : null;
+    const button = el('button', { type: 'button', class: 'rowbtn', 'aria-label': `Open ${row.id}` }, [
+      el('span', { class: 'conv-title', text: node.title || row.id }),
+      el('span', { class: 'note', text: row.id }),
+      el('span', { class: `pill ${chip[1]}`, text: chip[0] }),
+    ]);
+    on(button, 'click', () => openRelation(row));
+    return el('div', { class: 'member' }, [
+      button,
+      availability ? el('p', { text: availability }) : null,
+      basisLine ? el('p', { class: 'note', text: `Recorded basis: ${basisLine}` }) : null,
+    ]);
+  }
+  function gatherRelations() {
+    const groups = relationGroups(state.relations.id, state.relations.map);
+    return { groups, shown: relationShown(groups) };
   }
   function renderRelations() {
     ensureFrame();
@@ -1749,44 +1807,53 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     const select = el('select', { id: 'worldRelationStart', 'aria-label': 'Record to show relations for' });
     const choices = relationChoices();
     select.append(el('option', { value: '', text: choices.length ? 'Choose a saved record' : 'No saved records loaded' }));
-    for (const choice of choices) select.append(el('option', { value: choice.id, text: `${choice.title} · ${choice.id}` }));
+    for (const choice of choices) select.append(el('option', { value: choice.id, text: choice.title && choice.title !== choice.id ? `${choice.title} · ${choice.id}` : choice.id }));
     select.value = choices.some((choice) => choice.id === rel.id) ? rel.id : '';
-    on(select, 'change', () => { rel.id = select.value; renderRelations(); });
+    on(select, 'change', () => {
+      const next = select.value;
+      if (next !== rel.id) {
+        relationsTicket += 1;
+        relationsAbort?.abort();
+        relationsAbort = null;
+        rel.map = null;
+        rel.status = '';
+        rel.error = '';
+        rel.loading = false;
+      }
+      rel.id = next;
+      renderRelations();
+    });
+    const typed = el('input', { id: 'worldRelationId', type: 'text', 'aria-label': 'Paste an exact record id',
+      placeholder: 'Or paste an exact record id (c-, p-, n-, o-, s-)' });
+    typed.value = rel.typed ?? '';
+    on(typed, 'change', () => { rel.typed = typed.value; renderRelations(); });
     const show = el('button', { type: 'button', id: 'worldRelationShow', text: rel.loading ? 'Loading relations…' : 'Show relations' });
-    show.disabled = rel.loading || !select.value;
-    on(show, 'click', () => runRelations(select.value));
+    show.disabled = rel.loading || !(select.value || typed.value.trim());
+    on(show, 'click', () => runRelations((select.value || typed.value).trim()));
     const status = el('div', { id: 'worldRelationStatus', role: 'status', 'aria-live': 'polite', text: rel.status });
     const error = el('div', { class: 'err', id: 'worldRelationError', role: 'alert', text: rel.error });
     const results = el('div', { id: 'worldRelationResults' });
     results.append(el('p', { class: 'note', text: 'These are local associations kept on this computer. They are not proof that two records are the same thing on a provider.' }));
     if (rel.map) {
-      const groups = relationGroups(rel.id, rel.map);
-      const shown = groups.associates.length + groups.comments_on.length + groups.references.length;
-      for (const kind of ['associates', 'comments_on', 'references']) {
-        results.append(el('h3', { text: RELATION_LABELS[kind] }));
-        if (!groups[kind].length) results.append(el('p', { class: 'note', text: 'None.' }));
-        for (const row of groups[kind]) {
-          const chip = provenanceChip(row.node);
-          const availability = availabilityLabel(row.node);
-          const button = el('button', { type: 'button', class: 'rowbtn', 'aria-label': `Open ${row.id}` }, [
-            el('span', { class: 'conv-title', text: row.node.title || row.id }),
-            el('span', { class: 'note', text: row.id }),
-            el('span', { class: `pill ${chip[1]}`, text: chip[0] }),
-          ]);
-          on(button, 'click', () => openRelation(row.id, row.node.kind));
-          results.append(el('div', { class: 'member' }, [
-            button,
-            availability ? el('p', { text: availability }) : null,
-          ]));
-        }
+      const { groups, shown } = gatherRelations();
+      for (const group of groups) {
+        results.append(el('h3', { text: group.label }));
+        for (const row of group.rows) results.append(relationRowElements(group, row));
       }
-      if (!shown) results.append(el('p', { class: 'empty', text: 'No local associations for this record.' }));
+      if (!shown) results.append(el('p', { class: 'empty', text: relationEmptyText(rel.map) }));
+      const bounds = [];
+      if (Number.isInteger(rel.map.inputLimitPerKind)) bounds.push(`records read per kind: up to ${rel.map.inputLimitPerKind}`);
+      if (Number.isInteger(rel.map.edgeScanLimit)) bounds.push(`edges scanned: up to ${rel.map.edgeScanLimit}`);
+      if (Number.isInteger(rel.map.placeholderLimit)) bounds.push(`unresolved placeholders kept: up to ${rel.map.placeholderLimit}`);
+      if (bounds.length) results.append(el('p', { class: 'note', text: `Scan bounds — ${bounds.join(', ')}.` }));
+      if (typeof rel.map.enumerationNote === 'string' && rel.map.enumerationNote) results.append(el('p', { class: 'note', text: rel.map.enumerationNote }));
     }
     listPane.replaceChildren(
       el('h2', { text: 'Relations' }),
       el('p', { class: 'note', text: 'Pick one saved record. Relations lists what this computer already links to it. It is not a home, and it does not draw a map.' }),
       el('label', { class: 'lab', for: 'worldRelationStart', text: 'Starting record' }),
       select,
+      typed,
       el('div', { class: 'row' }, [show]),
       status,
       error,
@@ -1800,17 +1867,31 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
       el('p', { class: 'note', text: 'Opened from a local association. This does not make the records the same.' }),
     ]) : el('p', { class: 'empty', text: 'Open a related record to see it. Relations does not rank one kind above another.' }));
   }
+  function relationEmptyText(map) {
+    if (map?.truncated === true || map?.complete === false) {
+      return 'No local associations were shown for this record, but the scan stopped early, so more may exist.';
+    }
+    if (map?.complete === true) return 'No local associations for this record.';
+    return 'No local associations were shown for this record. Whether more exist was not reported.';
+  }
   async function runRelations(id) {
-    if (!validWorldId(id)) { state.relations.error = 'Choose a saved record first. Nothing was loaded.'; state.relations.status = ''; renderRelations(); return; }
+    const raw = typeof id === 'string' ? id.trim() : '';
+    if (!raw) { state.relations.error = 'Choose a saved record or paste an exact id first. Nothing was loaded.'; state.relations.status = ''; renderRelations(); return; }
+    if (!validWorldId(raw)) {
+      state.relations.error = 'That is not an id this Studio recognizes. Enter the full id exactly as it was saved (c-, p-, n-, o-, or s-). Nothing was loaded.';
+      state.relations.status = '';
+      renderRelations();
+      return;
+    }
     const ticket = ++relationsTicket;
     relationsAbort?.abort();
     const controller = typeof AbortController === 'function' ? new AbortController() : null;
     relationsAbort = controller;
-    state.relations.id = id;
+    state.relations.id = raw;
     state.relations.loading = true;
     state.relations.error = '';
     if (state.view === 'relations') renderRelations();
-    const params = new URLSearchParams({ id, limit: '100' });
+    const params = new URLSearchParams({ id: raw, limit: '100' });
     const result = await call('/map?' + params.toString(), { signal: controller?.signal });
     if (ticket !== relationsTicket || state.view !== 'relations') return;
     state.relations.loading = false;
@@ -1823,16 +1904,18 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
       return;
     }
     state.relations.map = result.data;
-    const groups = relationGroups(id, result.data);
-    const shown = groups.associates.length + groups.comments_on.length + groups.references.length;
+    const { shown } = gatherRelations();
     state.relations.status = relationStatus(result.data, shown);
     state.relations.error = '';
     renderRelations();
   }
-  async function openRelation(id, kind) {
-    if (kind === 'project' && ID_RE.projects.test(id)) return openItem('projects', id);
-    if (kind === 'note' && ID_RE.notes.test(id)) return openItem('notes', id);
-    if ((kind === 'conversation' || id.startsWith('c-')) && ID_RE.conversations.test(id)) return openItem('conversations', id);
+  async function openRelation(row) {
+    const id = row?.id, node = row?.node;
+    if (!validWorldId(id)) return;
+    if (node && (node.availability === 'unresolved' || node.availabilityReason === 'NOT_SCANNED')) return;
+    if (node?.kind === 'project' && ID_RE.projects.test(id)) return openItem('projects', id);
+    if (node?.kind === 'note' && ID_RE.notes.test(id)) return openItem('notes', id);
+    if ((node?.kind === 'conversation' || id.startsWith('c-')) && ID_RE.conversations.test(id)) return openItem('conversations', id);
     if (REF_RE.test(id) && (id.startsWith('o-') || id.startsWith('s-'))) {
       state.relations.recordId = id;
       await readRecord(id);
@@ -1859,7 +1942,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     if (view === 'relations') {
       loadNamespace();
       renderRelations();
-      await Promise.all([fetchList('conversations'), fetchList('projects'), fetchList('notes')]);
+      await Promise.all([fetchList('conversations'), fetchList('projects'), fetchList('notes'), fetchList('objects'), fetchList('selections')]);
       if (state.view === 'relations') renderRelations();
       if (!quiet) announce('Relations.');
       return;
