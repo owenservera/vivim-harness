@@ -4,7 +4,8 @@
 #   every entry adoption: undecided), so all entries are undecided; the file's `window` is carried instead.
 # Evidence grade: derived from static source/test reads only. Not live proof, not a test run by this tracker
 #   unless explicitly attributed. `fixture_tested` = a repo test targets that path; execution not re-run here.
-# State: working tree uncommitted at HEAD 030895e; all world-* files untracked; nothing committed.
+# State: verified against origin/main 803d165; world-*, commands and agentic-files modules are committed.
+#   Working tree clean apart from untracked PROMPT.md and clone-tmp/ (not source).
 # Traceability, not acceptance. Do not read maturity or capability from this file alone.
 schema: vivim.track.crosswalk/1
 clusters:
@@ -42,8 +43,9 @@ clusters:
       - "src/studio/ui/universal-chat.mjs:4 KNOWN block set (text/markdown/code/table/citation/artifact/progress/tool-activity-observed/image/file/reference/error), :180 renderNativeBlock()"
       - "src/studio/ui/chat.mjs:369-456 markdown/fence/table/quote renderer"
       - "src/studio/world-service.mjs:112-116 messages carry blocks/domId/roleAttribute/truncated/redactions from DOM_TURNS"
+      - "src/studio/ui/world-view.mjs:305-313 labelledPart() keeps reasoning/thinking as 'Reasoning (saved)', status/progress as 'Status', tool/tool-activity as 'Tool call: stage as recorded', passing the recorded text through rather than dropping or reconstructing it"
       - "test/unit/universal-chat.test.mjs, chat-rich-ui.test.mjs, studio-components-ui.test.mjs"
-    gap: "Only blocks already recorded in a session render; no artifact/file byte retrieval, no cross-provider part taxonomy, unknown-format rendering proven only against fixtures"
+    gap: "Only blocks already recorded in a session render; no artifact/file byte retrieval, no cross-provider part taxonomy, unknown-format rendering proven only against fixtures. The reasoning/status/tool labels are the recorded string, not a lifecycle: no stage enum, no per-stage fields, and nothing separates a proposal from an approval or an error."
     evidence_grade: fixture_tested
   - id: C-04
     name: Source provenance and observed-vs-inferred truth
@@ -63,26 +65,26 @@ clusters:
     name: Saved artifacts and user-editable notes
     disposition: undecided
     window: internal_now
-    current_status: implemented_uncommitted
+    current_status: implemented
     evidence:
       - "src/studio/world-service.mjs:141-149 writeNote() title/body/commentsOn + expectedVersion CAS, provenance 'user-authored'"
       - "src/studio/world-relations.mjs:88-106 createObject()/createSelection() (message|part|artifact) pinning revision fingerprint"
       - "src/studio/ui/world-view.mjs:325 draftFromSaved(), :359 projectPutBody(), :366 notePutBody()"
       - "test/unit/world-service.test.mjs, world-relations.test.mjs, world-ui.test.mjs"
-    gap: "Overlay = note plus source reference, not a copy of AI content; no artifact byte store, no note-in-editor browser proof, and world-* files are untracked so nothing is committed"
+    gap: "Overlay = note plus source reference, not a copy of AI content; no artifact byte store, no note-in-editor browser proof; committed at 803d165 but fixture-tested only"
     evidence_grade: fixture_tested
   - id: C-06
     name: Workspaces, projects and relationships
     disposition: undecided
     window: internal_now
-    current_status: implemented_uncommitted
+    current_status: implemented
     evidence:
       - "src/studio/world-service.mjs:120-137 projects/ project()/ createProject()/ updateProject() with conversationIds, noteIds, memberIds and expectedVersion"
       - "src/studio/world-relations.mjs:114-160 map() building TemporalGraph nodes/edges associates|comments_on|references, offset rejected"
       - "src/store/versioned.mjs per-name lock + compareAndSave CAS"
-      - "src/studio/ui/world-view.mjs:357 projectCreateBody(), :427 mountWorldView()"
-      - "test/unit/world-relations.test.mjs, world-service.test.mjs"
-    gap: "Flat single-namespace projects only (no nesting, tags, bulk moves); relationships are derived per read request, never a persisted graph; no browser-level project workflow proof"
+      - "src/studio/ui/world-view.mjs:357 projectCreateBody(), :610 mountWorldView(), :1868 renderRelations() relations view (typed picker, map load, edge list)"
+      - "test/unit/world-relations.test.mjs, world-service.test.mjs, world-ui.test.mjs"
+    gap: "Flat single-namespace projects only (no nesting, tags, bulk moves); relationships are derived per read request, never a persisted graph; the relations view renders a map for one exact id at a time and has no browser-level project workflow proof"
     evidence_grade: fixture_tested
   - id: C-07
     name: Local search and deep linking
@@ -94,8 +96,9 @@ clusters:
       - "src/studio/capabilities.mjs:171 search response with sessionsNotScanned/complete/ranking coverage disclosure"
       - "src/studio/world-search.mjs:9 WORLD_SEARCH_KINDS, :12 WORLD_SEARCH_LIMITS, :83 createWorldSearch(), :299 GET /world/search with truncation reasons"
       - "src/studio/world-service.mjs:112 per-message id `${id}:turn:${index}`"
+      - "src/studio/ui/world-view.mjs:12 find is a shell view (SHELL_VIEWS), :1298 renderFind() with query box, kind filter, coverage lines, paging and open-record from a hit"
       - "test/unit/world-search.test.mjs, studio-search-ui.test.mjs, intel.test.mjs"
-    gap: "Search is per-session bounded scan plus record search, not one global index; deep links are internal ids only (no URL/permalink scheme), and corpus-wide coverage is an explicit limitation rather than a capability"
+    gap: "Search is per-session bounded scan plus record search, not one global index; deep links are internal ids only (no URL/permalink scheme), and corpus-wide coverage is an explicit limitation rather than a capability. The find view exists and is fixture-tested, but is unproven in a browser."
     evidence_grade: fixture_tested
   - id: C-08
     name: Source-linked knowledge, memory and relationships
@@ -113,15 +116,17 @@ clusters:
     name: Selective export and actual import
     disposition: undecided
     window: internal_now
-    current_status: implemented_uncommitted
+    current_status: implemented
     evidence:
       - "src/export/export.mjs:13-16 DATASET/TRANSCRIPT/KNOWLEDGE/GRAPH formats, :453 exportBundle()"
-      - "src/studio/world-transfer.mjs:5 WORLD_EXPORT_LIMITS, :100-112 exclusions + omission manifest + sha256 integrity purpose 'integrity only'"
-      - "src/studio/world-transfer.mjs:114 validateBundle(), :139-184 restoreBundle() dryRun/confirm, id remap, imported custody, receipt last, break-on-failure no rollback"
-      - "src/studio/world-transfer.mjs:188-192 POST /world/transfer/export|validate|restore"
-      - "test/unit/world-transfer.test.mjs, test/unit/world-restore.test.mjs"
-      - "restore now implemented in the working tree and parent-verified: parent ran 56 focused tests pass (fixture/synthetic HTTP, incl. restore)"
-    gap: "Export and restore are working-tree complete and parent-verified by fixture tests only; still no UI export/import entry points, no import->export round trip proven through the UI, no clean-app comparison, and selected content is not automatically redacted"
+      - "src/studio/world-transfer.mjs:7 WORLD_EXPORT_LIMITS, :114 exportSelection() with exclusions + omission manifest + sha256 integrity purpose 'integrity only'"
+      - "src/studio/world-transfer.mjs:227 validateBundle(), :273-350 restoreBundle() dryRun/confirm, id remap, imported custody, receipt last, break-on-failure no rollback"
+      - "src/studio/world-transfer.mjs:330-335 POST /world/transfer/export|validate|restore, mounted by world-service.mjs:181 and therefore live via integration-hub.mjs:112 registerWorldRoutes"
+      - "src/studio/world-transfer.mjs:71 EXPORT_MODES = references|transcript|full-saved, :119-133 mode validation and block filtering, :209-215 scope.mode/modeSemantics; legacy includeSources:true still exports verbatim and is labelled legacy"
+      - "src/studio/ui/world-view.mjs:14 EXPORT_MODE_LABEL, :1475-1523 transfer view with an export mode radiogroup, part toggles, download and a warn-if-applied-mode-differs check"
+      - "test/unit/world-transfer.test.mjs, test/unit/world-restore.test.mjs, test/unit/world-export-modes.test.mjs"
+      - "parent-verified: 56 focused tests passed while the increment was uncommitted; this lane re-ran world-export-modes.test.mjs = 2 pass at 803d165"
+    gap: "Export, restore and the three named modes are committed and fixture-tested only; the transfer view now supplies export/import entry points and a mode picker, but no import->export round trip is proven through the UI, there is no clean-app content comparison, selected content is not automatically redacted, and modes are JSON-only"
     evidence_grade: fixture_tested
   - id: C-10
     name: Semantic command system
@@ -129,23 +134,30 @@ clusters:
     window: vision_core_release_open
     current_status: partial
     evidence:
+      - "src/studio/commands.mjs:19 COMMAND_SYMBOLS explicit symbol->command map (8 keys, 6 command ids, 1 deferred provider-send), :174 normalizeCommandInput(), :330 createCommandCatalog(), :354 registerCommandRoutes()"
+      - "src/studio/commands.mjs:358 GET /commands, :362 GET /commands/{id}, :372 POST /commands/{id}/preview — catalog/preview only, validates and explains, performs nothing"
+      - "src/studio/commands.mjs:158-164 catalog invariants: external-effect must stay deferred, local-write must require confirmation"
       - "src/studio/conversation-tools.mjs:28-53 CONVERSATION_TOOLS symbolic tool schemas, :58 validateConversationTool()"
       - "src/studio/harness-api.mjs:33-104 runs + durable pre-effect intent binding, :136 /harness/runs/{run}/reconcile read-only"
       - "src/studio/intent-bindings.mjs:26 createIntentBindingStore() exclusive record, never an effect grant"
       - "src/studio/core-runtime-bridge.mjs:93 deny('JOURNAL_NOT_ADMITTED'), :125 reconcileUncertainStep()"
-      - "test/unit/harness-api.test.mjs, round9-guardrails.test.mjs, send-once.test.mjs"
-    gap: "Only symbolic/tool-level intent with authorization seams; no natural-language intent resolver, no symbol taxonomy or explanation surface, and no execution proof (core, execution deferred)"
+      - "test/unit/commands.test.mjs (6 pass at 803d165), test/unit/harness-api.test.mjs, round9-guardrails.test.mjs, send-once.test.mjs"
+    gap: "The catalog half is now real: an explicit symbol table, a frozen command catalog with per-command input schema/scope/preconditions/effects, and a preview route that explains without performing. Still partial: preview-only by design so nothing executes, the module reads no store and opens no browser, registerCommandRoutes is NOT mounted on the integration hub (so no HTTP surface is live), there is no UI, no natural-language intent resolver, no 17-family symbol taxonomy, and no execution proof (core, execution deferred)"
     evidence_grade: fixture_tested
   - id: C-11
     name: Agentic file and context library
     disposition: undecided
     window: vision_core_release_open
-    current_status: not_started
+    current_status: partial
     evidence:
-      - "none found in src/ or bin/ (grep for AGENTS.md/CLAUDE.md/skill returns nothing)"
-      - "only dev-harness config: .opencode/agents/chatgpt-aion.md, .opencode/agents/local-opencode.md"
-    gap: "Entire capability absent: no discovery of instruction/skill/memory files, no precedence model, no untrusted-repo-policy guard (core, execution deferred)"
-    evidence_grade: none
+      - "src/studio/agentic-files.mjs:52 INERT_STATEMENT ('files are inert data; this library grants no capability; trust is always untrusted-until-confirmed')"
+      - "src/studio/agentic-files.mjs:81 realInside() containment, :320 precedenceFor(), :550 createAgenticFileLibrary(), :656 registerAgenticFileRoutes()"
+      - "src/studio/agentic-files.mjs:660 GET /agentic-files bounded read-only inventory, :661 GET /agentic-files/{id} bounded text read — no write route"
+      - "root-id/alias rejection, symlink+junction refusal, policy skips (node_modules/.git) with disclosed reasons, uniform 404 (commit 803d165)"
+      - "test/unit/agentic-files.test.mjs: 21 pass, 2 skip (chmod-based unreadable-root cases cannot run on this Windows host)"
+      - "still only dev-harness config for the repo itself: .opencode/agents/chatgpt-aion.md, .opencode/agents/local-opencode.md"
+    gap: "A read-only inventory of local agentic instruction files now exists and is honest about inertness, but it is read-only by design: nothing is executed, adopted or applied. Precedence is an ordering in the response payload only, not an applied resolution; there is no untrusted-repo policy enforcement beyond containment and skip rules, no UI, no naming/alias subsystem, and registerAgenticFileRoutes is NOT mounted on the integration hub (so no HTTP surface is live). The 2 skips mean the unreadable-root path is unproven on this host"
+    evidence_grade: fixture_tested
   - id: C-12
     name: Truthful capabilities, consent and Work history
     disposition: undecided
@@ -221,32 +233,32 @@ clusters:
     current_status: not_started
     evidence:
       - "none found (no mobile/intake code in src/, bin/, scripts/)"
-    gap: "No phone intake surface, no share-target/upload endpoint; local object model it would feed is still uncommitted"
+    gap: "No phone intake surface, no share-target/upload endpoint; the local object model it would feed is now committed at 803d165 but has no intake path"
     evidence_grade: none
 journeys:
   - id: J-01
     name: Return to my previous AI work
     disposition: undecided
     window: candidate_v1_core
-    current_status: implemented_uncommitted
+    current_status: implemented
     evidence:
       - "src/studio/world-service.mjs:84-119 conversation()/conversations() project DOM_TURNS from a disk session after restart"
       - "src/studio/world-service.mjs:62-69 imported custody branch, availability metadata-only/unavailable with reasons"
-      - "src/studio/ui/chat.mjs:1887-1892 mountWorldView(); src/studio/ui/world-view.mjs:427 mountWorldView()"
+      - "src/studio/ui/chat.mjs:1884-1891 mountWorldView(); src/studio/ui/world-view.mjs:610 mountWorldView()"
       - "test/unit/world-service.test.mjs, world-ui.test.mjs, p0-persistence.test.mjs"
-    gap: "Acceptance (fixture conversation, restart, reopen with unknowns preserved) is covered only by fixture/HTTP tests; no browser restart proof, and all world code is untracked"
+    gap: "Acceptance (fixture conversation, restart, reopen with unknowns preserved) is covered only by fixture/HTTP tests; no browser restart proof. Committed at 803d165, but no live run"
     evidence_grade: fixture_tested
   - id: J-02
     name: Organize a personal project
     disposition: undecided
     window: candidate_v1_core
-    current_status: implemented_uncommitted
+    current_status: implemented
     evidence:
       - "src/studio/world-service.mjs:122-149 project/note CRUD with CAS and membership validation"
       - "src/studio/world-relations.mjs:88-113 source-reference + selection creation"
-      - "src/studio/ui/world-view.mjs:357-427 create/put bodies and view mount"
+      - "src/studio/ui/world-view.mjs:357-370 create/put bodies and :610 view mount"
       - "test/unit/world-relations.test.mjs, world-service.test.mjs, world-ui.test.mjs"
-    gap: "Create-project, link conversation, link artifact, add note is code-complete but never executed in a browser; note restore path is unproven and nothing is committed"
+    gap: "Create-project, link conversation, link artifact, add note is code-complete and committed at 803d165 but never executed in a browser; note restore path is unproven"
     evidence_grade: fixture_tested
   - id: J-03
     name: Find and trust an answer
@@ -256,22 +268,24 @@ journeys:
     evidence:
       - "src/studio/world-search.mjs:83 createWorldSearch() over message/project/note/source-reference/selection with coverage reasons"
       - "src/studio/capabilities.mjs:171 sessionsScanned/sessionsNotScanned/complete disclosure"
-      - "src/studio/ui/world-view.mjs:62 coverageView(), :156 messageSourceRows()"
+      - "src/studio/ui/world-view.mjs:62 coverageView(), :156 messageSourceRows(), :1298 renderFind() find view with query, kind filter, coverage lines and paging"
       - "test/unit/world-search.test.mjs, studio-search-ui.test.mjs"
-    gap: "Search hits open exact source items with coverage limits, but there is no cross-session index, no observed/derived/user-edited legend in the result list, and deep links are internal ids only"
+    gap: "Search hits open exact source items with coverage limits, and the find view now exists, but there is no cross-session index, no observed/derived/user-edited legend in the result list, and deep links are internal ids only; the view is fixture-tested, not browser-proven"
     evidence_grade: fixture_tested
   - id: J-04
     name: Take my chosen work with me
     disposition: undecided
     window: candidate_v1_core
-    current_status: implemented_uncommitted
+    current_status: implemented
     evidence:
-      - "src/studio/world-transfer.mjs:30-112 exportSelection() with custody, exclusion list, omission manifest, byte caps"
-      - "src/studio/world-transfer.mjs:114-184 validateBundle()/restoreBundle() dryRun default, confirmation required for writes, receipt written last"
-      - "src/studio/world-transfer.mjs:188-192 POST /world/transfer/export|validate|restore (restore now implemented and parent-verified)"
-      - "test/unit/world-transfer.test.mjs, test/unit/world-restore.test.mjs (parent ran 56 focused tests pass)"
+      - "src/studio/world-transfer.mjs:114-225 exportSelection() with custody, exclusion list, omission manifest, byte caps"
+      - "src/studio/world-transfer.mjs:227-350 validateBundle()/restoreBundle() dryRun default, confirmation required for writes, receipt written last"
+      - "src/studio/world-transfer.mjs:330-335 POST /world/transfer/export|validate|restore (restore now implemented and parent-verified)"
+      - "src/studio/world-transfer.mjs:71 EXPORT_MODES references|transcript|full-saved with scope.mode/modeSemantics and legacy includeSources labelling"
+      - "src/studio/ui/world-view.mjs:1475 renderTransfer() with export mode picker (:1498-1523), part toggles, download, import check/dry-run/confirm and a warn-if-mode-differs guard"
+      - "test/unit/world-transfer.test.mjs, test/unit/world-restore.test.mjs (parent ran 56 focused tests pass), test/unit/world-export-modes.test.mjs (2 pass re-run at 803d165)"
       - "src/export/export.mjs:453 exportBundle() for session-level bundling"
-    gap: "Restore is parent-verified by fixture tests, but there are still no UI export/import entry points and no import->export round trip proven end to end through the app; no clean-app content comparison; sensitive-data exclusion on export is not automatic; nothing is committed"
+    gap: "Restore and the three named export modes are committed and fixture-tested, and the transfer view now supplies export/import entry points plus a mode picker, but no import->export round trip is proven end to end through the app; no clean-app content comparison; sensitive-data exclusion is not automatic; modes are JSON-only and no artifacts-only mode exists"
     evidence_grade: fixture_tested
   - id: J-05
     name: Express a safe intention
@@ -284,7 +298,7 @@ journeys:
       - "src/studio/core-runtime-bridge.mjs:93 denial when journal not admitted or binding missing"
       - "src/studio/intent-bindings.mjs:67 INTENT_BINDING_CONFLICT on differing intent"
       - "test/unit/harness-executor-preflight.test.mjs, round9-guardrails.test.mjs"
-    gap: "No natural-language intent resolver or preview of scoped capability/uncertainty; execution is deferred by owner, and the agentic file library (C-11) does not exist at all"
+    gap: "No natural-language intent resolver or preview of scoped capability/uncertainty; execution is deferred by owner. The agentic file library (C-11) now exists but is read-only inert data, and neither it nor the command catalog (C-10) is mounted on the hub"
     evidence_grade: source_only
   - id: J-06
     name: Use connected provider webapps
@@ -305,5 +319,5 @@ journeys:
     current_status: deferred
     evidence:
       - "none found for canvas or sync; backend substrate only: src/intel/graph.mjs:250 graphNeighborhood(), :276 rankGraphNodes()"
-    gap: "No canvas, no peer sync, no sharing surface; the list/table comparison pilot and local import/export integrity prerequisite are both unstarted"
+    gap: "No canvas, no peer sync, no sharing surface; the list/table comparison pilot is unstarted, and only the local import/export integrity prerequisite exists (C-09)"
     evidence_grade: none

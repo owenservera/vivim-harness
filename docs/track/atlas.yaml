@@ -13,21 +13,21 @@ meta:
   task: "Atlas findings overlapping implemented local-world work (conversation/project/note content, provenance, search, export/import, rich rendering, identity/ontology)"
   atlas: "C:/0-BlackBoxProject-0/AION/workspace/aion/sessions/roles/15-product-to-market/discovery/VIVIM-CAPABILITY-ATLAS.yaml (rev 2, 116 findings)"
   receipts_source: "same dir / R2-INSPECTED-SOURCE-RECEIPTS.yaml (35 receipts)"
-  harness_head: "030895e (working tree, uncommitted world increment per docs/INTEGRATION-PROGRESS.md)"
-  working_tree_at_refresh: "Uncommitted: world-*.mjs, ui/world-view.mjs, chat.mjs/chat.html/integration-hub.mjs modified, AGENTS.md modified; new unit tests world-import-content, world-search-imported, world-restore, world-ui-find, world-ui-transfer. Verified by git status, HEAD unchanged."
+  harness_head: "803d165 (origin/main; world + commands + agentic-files increments committed)"
+  working_tree_at_refresh: "Clean at 803d165 except untracked PROMPT.md and clone-tmp/ (not source). The world-*.mjs, ui/world-view.mjs, src/studio/commands.mjs, src/studio/agentic-files.mjs and their unit tests are committed, not working-tree only."
   critical_finding: "No atlas finding carries a disposition field. All 116 are workshop: undecided, implementation: not_evaluated; the crosswalk only lists BUILD/HARVEST/ADAPT as possible future outcomes (workshop.status: deferred_until_v1_shape)."
   disposition_basis_rule: "Analyst-derived, stated per entry: BUILD = harness-owned capability we extend; ADAPT = donor mechanism to re-implement inside existing harness owners (no code copied); HARVEST = donor asset (schema/component) takeable after licence/quality check."
   local_status_semantics:
     adapted_in_harness: "an implemented answer exists in the harness and the local-world work reads, reuses or deliberately mirrors it"
     rejected_by_owner_decision: "a documented owner rejection in docs/INTEGRATION-PROGRESS.md covers this pattern"
-    in_progress: "code for the subject exists in the uncommitted working tree but is incomplete for the finding as stated"
-    not_started: "no implementation found in current source"
+    in_progress: "code for the subject exists in the committed tree at 803d165 but is incomplete for the finding as stated"
+    not_started: "no implementation found in current source at 803d165"
   inspected_limits:
-    - "Static source reads only: no runtime, test execution, browser, provider or owner-dataset proof."
+    - "Static source reads plus three focused unit runs I executed and attribute inline (commands 6 pass, agentic-files 21 pass/2 skips, world-export-modes 2 pass); no browser, provider or owner-dataset proof."
     - "Disposition is inferred, never authoritative."
     - "Donor directories absent under C:/0-BlackBoxProject-0 were not searched elsewhere; unlocated is not absence."
     - "blob_sha comparison was possible only for local git repos: harness 13/18 exact, 5 drifted working-tree copies; vivim-final 5/6 exact, 1 drifted; OpenScroll 0/1 (local package.json differs from receipt)."
-    - "116 findings not enumerated; only the 26 addressed + 10 unaddressed below were judged."
+    - "116 findings not enumerated; only the 32 addressed + 10 unaddressed entries below were judged."
 
 addressed:
   - finding_id: VD-0008
@@ -43,8 +43,8 @@ addressed:
     disposition: ADAPT
     donor_source: {repo: vivim-final, path: src/schema/streaming.ts}
     local_status: in_progress
-    evidence: ["src/studio/ui/world-view.mjs"]
-    decision_note: "Working tree adds a single honest label 'Tool call: stage as recorded' plus the recorded text/status via labelledPart(). This is not the donor's pending/streaming/approval/result/error distinction: no stage enum, no per-stage fields, and nothing separates proposal from approval or error. Partial by design, not yet a lifecycle."
+    evidence: ["src/studio/ui/world-view.mjs:305-313 (labelledPart)"]
+    decision_note: "Committed at 803d165: labelledPart() returns a single honest label 'Tool call: stage as recorded' plus the recorded text/status via labelledPart(). This is not the donor's pending/streaming/approval/result/error distinction: no stage enum, no per-stage fields, and nothing separates proposal from approval or error. Partial by design, not yet a lifecycle."
 
   - finding_id: VD-0012
     title: "Native content projection"
@@ -67,8 +67,16 @@ addressed:
     disposition: ADAPT
     donor_source: {repo: claude-export-hub-vivim, path: README.md}
     local_status: in_progress
-    evidence: ["src/studio/ui/world-view.mjs"]
-    decision_note: "Working tree adds labelledPart(): reasoning/thinking/visible-thinking keys render as 'Reasoning (saved)', status/progress as 'Status', with recorded text or summary passed through, never reconstructed. Saved records already carry the data, so export includes it without a mode; no separate thinking-only export path and no explicit 'provider-visible only' disclaimer text yet."
+    evidence: ["src/studio/ui/world-view.mjs:305-313 (labelledPart)", "src/studio/world-transfer.mjs:71 (EXPORT_MODES)"]
+    decision_note: "Committed at 803d165: labelledPart() labels reasoning/thinking/visible-thinking keys as 'Reasoning (saved)', status/progress as 'Status', with recorded text or summary passed through, never reconstructed. Export now has named modes (references/transcript/full-saved) and full-saved keeps reasoning blocks only when scope.parts.reasoning is set. Still partial: the labels are the recorded text, not lifecycle stages, there is no separate thinking-only export path, and no explicit 'provider-visible only' disclaimer text."
+
+  - finding_id: VD-0021
+    title: "Selectable conversation export modes"
+    disposition: ADAPT
+    donor_source: {repo: claude-export-hub-vivim, path: README.md}
+    local_status: adapted_in_harness
+    evidence: ["src/studio/world-transfer.mjs:71 (EXPORT_MODES)", "src/studio/world-transfer.mjs:119-133,209-215 (mode validation + scope.modeSemantics)", "test/unit/world-export-modes.test.mjs", "src/studio/ui/world-view.mjs:14,1475-1523 (EXPORT_MODE_LABEL, mode radiogroup)"]
+    decision_note: "Committed at 803d165 and independently re-implemented, not copied. Three named modes: references (metadata only), transcript (text/transcript block types), full-saved (every recorded block, minus reasoning/tool activity unless scope.parts allows). A legacy includeSources:true request still exports verbatim and is labelled as legacy. The transfer view has a radiogroup picker, warns when the bundle's applied mode differs from the selected one, and prints modeSemantics. Honest gaps: JSON only (no per-format mode variants), no artifacts-only mode, modes filter what is in the bundle but do not redact content, and the mode round trip is proven by fixture tests only, never through the UI."
 
   - finding_id: VD-0017
     title: "Attempt and conversation operation journal"
@@ -140,7 +148,7 @@ addressed:
     donor_source: {repo: vivim-final, path: src/schema/content.ts}
     local_status: adapted_in_harness
     evidence: ["src/studio/world-transfer.mjs", "test/unit/world-import-content.test.mjs"]
-    decision_note: "Working tree adds contentErrors() with IMPORT_CONTENT_LIMITS (200 messages, 200 blocks per array, 2000 nodes, depth 12, 256 KiB strings, 512 KiB block bytes, 100 error cap): message/role/block shape, forbidden keys, block type regex, non-JSON values and dependency caps are checked, and any hit raises WORLD_IMPORT_CONTENT at validate and restore. Independent of the donor zod boundary; validation is structural, not a typed schema."
+    decision_note: "Committed at 803d165. contentErrors() applies IMPORT_CONTENT_LIMITS (200 messages, 200 blocks per array, 2000 nodes, depth 12, 256 KiB strings, 512 KiB block bytes, 100 error cap): message/role/block shape, forbidden keys, block type regex, non-JSON values and dependency caps are checked, and any hit raises WORLD_IMPORT_CONTENT at validate and restore. Independent of the donor zod boundary; validation is structural, not a typed schema."
 
   - finding_id: VD-0038
     title: "External provider vs local-world ownership split"
@@ -214,6 +222,22 @@ addressed:
     evidence: ["src/studio/ui/index.html", "src/studio/ui/chat.html", "src/studio/ui/chat.mjs"]
     decision_note: "Studio keeps capture/sessions/knowledge/search views; chat shell adds conversations/projects/notes as peer views with no 'home' object. Two shells still coexist."
 
+  - finding_id: VD-0065
+    title: "Recovered command system contract"
+    disposition: ADAPT
+    donor_source: {repo: aion, path: workspace/aion/sessions/roles/15-product-to-market/core-library/COMMAND-SYSTEM.md}
+    local_status: in_progress
+    evidence: ["src/studio/commands.mjs:19 COMMAND_SYMBOLS", "src/studio/commands.mjs:330 createCommandCatalog(), :354 registerCommandRoutes()", "src/studio/commands.mjs:358 GET /commands, :362 GET /commands/{id}, :372 POST /commands/{id}/preview", "test/unit/commands.test.mjs (6 pass)"]
+    decision_note: "Committed at 803d165. An explicit symbol->command map (8 keys for 6 command ids plus one deferred provider-send), a frozen catalog with per-command inputs schema, scope read|local-write|external-effect, preconditions and effects text, and a preview route that validates and explains. Independent of the donor contract document; only the preview half exists. Honest gaps: preview-only by design, nothing is executed, the module reads no store and opens no browser; external-effect commands must stay deferred and local writes must require confirmation (enforced in-catalog); registerCommandRoutes is not mounted on the integration hub, so no HTTP surface is live; no UI, no permission model beyond the scope string."
+
+  - finding_id: VD-0066
+    title: "Agentic file and naming library"
+    disposition: ADAPT
+    donor_source: {repo: aion, path: workspace/aion/sessions/roles/15-product-to-market/core-library/AGENTIC-FILE-LIBRARY.md}
+    local_status: in_progress
+    evidence: ["src/studio/agentic-files.mjs:52 INERT_STATEMENT", "src/studio/agentic-files.mjs:320 precedenceFor(), :550 createAgenticFileLibrary(), :656 registerAgenticFileRoutes()", "src/studio/agentic-files.mjs:660 GET /agentic-files, :661 GET /agentic-files/{id}", "test/unit/agentic-files.test.mjs (21 pass, 2 platform skips)"]
+    decision_note: "Committed at 803d165. Bounded read-only inventory of local agentic instruction files: declared roots treated as untrusted, realpath containment, symlink/junction refusal, policy skips (node_modules/.git) with disclosed reasons, per-file text read by id, and a precedence list. The library states in every record and coverage object that files are inert data and grant no capability. Honest gaps: read-only and inert by design, so nothing is executed or adopted; precedence is a data ordering only, not an applied resolution; no untrusted-repo policy enforcement beyond containment/skips; no UI; not mounted on the integration hub; the 2 skips are chmod-based unreadable-root tests that cannot run on this Windows host, so that path is unproven here."
+
   - finding_id: VD-0079
     title: "Rich local export formats"
     disposition: BUILD
@@ -264,16 +288,6 @@ addressed:
 
 unaddressed_top10:
   - rank: 1
-    finding_id: VD-0021
-    title: "Selectable conversation export modes"
-    disposition: ADAPT
-    donor_source: {repo: claude-export-hub-vivim, path: README.md}
-    local_status: not_started
-    evidence: "none found"
-    evidence_checked: ["src/studio/world-transfer.mjs", "src/studio/ui/world-view.mjs", "src/export/export.mjs"]
-    decision_note: "World export takes whole records with one includeSources boolean; the transfer view tracks only selected ids, expectations and a mode-free bundle summary. Record inclusion is not a mode: no transcript-only/artifacts-only/thinking-included choice exists."
-
-  - rank: 2
     finding_id: VD-0057
     title: "Workspace navigation composition"
     disposition: ADAPT
@@ -281,9 +295,9 @@ unaddressed_top10:
     local_status: not_started
     evidence: "none found"
     evidence_checked: ["src/studio/ui/world-view.mjs", "src/studio/ui/chat.html"]
-    decision_note: "Still no composed workspace. Working tree adds peer shell views find/transfer/relations (SHELL_VIEWS) and each project shows a Links N conversations / N notes summary, but conversation, project and saved objects are never bound together in one working surface; the three list views plus memberIds remain the model."
+    decision_note: "Still no composed workspace. Committed at 803d165: peer shell views find/transfer/relations exist (world-view.mjs:12 SHELL_VIEWS, :1298 renderFind, :1475 renderTransfer, :1868 renderRelations) and each project shows a Links N conversations / N notes summary, but conversation, project and saved objects are never bound together in one working surface; the three list views plus memberIds remain the model."
 
-  - rank: 3
+  - rank: 2
     finding_id: VD-0046
     title: "Atomic knowledge unit taxonomy"
     disposition: HARVEST
@@ -293,7 +307,7 @@ unaddressed_top10:
     evidence_checked: ["src/studio/world-service.mjs", "src/intel/"]
     decision_note: "Notes are title plus free-text body (200k cap) with commentsOn selections; there is no addressable, provenance-qualified fact unit to reuse across projects."
 
-  - rank: 4
+  - rank: 3
     finding_id: VD-0015
     title: "Legacy content shape migration"
     disposition: ADAPT
@@ -303,7 +317,7 @@ unaddressed_top10:
     evidence_checked: ["src/studio/world-transfer.mjs"]
     decision_note: "Unknown part types are tolerated at render time, and contentErrors() now rejects malformed shapes explicitly, but there is still no migration path: an older bundle or block schema is refused, not upgraded. A second-generation export would not import."
 
-  - rank: 5
+  - rank: 4
     finding_id: VD-0013
     title: "Typed heterogeneous ContentPart model"
     disposition: ADAPT
@@ -313,7 +327,7 @@ unaddressed_top10:
     evidence_checked: ["src/studio/ui/world-view.mjs", "src/studio/world-transfer.mjs"]
     decision_note: "Block kinds are matched as lowercase string keys in blockToMarkdown/labelledPart with a generic unknownPart fallback; IMPORT_CONTENT_LIMITS checks size and shape only. There is no typed part union, so text/code/file/tool/source kinds are conventions rather than an addressed content model."
 
-  - rank: 6
+  - rank: 5
     finding_id: VD-0048
     title: "Tree-based document retrieval"
     disposition: ADAPT
@@ -323,7 +337,7 @@ unaddressed_top10:
     evidence_checked: ["src/studio/world-search.mjs", "src/intel/search.mjs"]
     decision_note: "Search is flat lexical scoring with clipped snippets over bounded scans; long saved turns have no section tree, so navigation inside a long answer stays manual."
 
-  - rank: 7
+  - rank: 6
     finding_id: VD-0050
     title: "Episodic semantic procedural memory concepts"
     disposition: ADAPT
@@ -333,7 +347,7 @@ unaddressed_top10:
     evidence_checked: ["src/studio/world-service.mjs", "src/intel/"]
     decision_note: "World keeps conversations, projects, notes and objects as separate stores with no memory layering. The distinction is worth harvesting conceptually, but any implementation would sit inside the existing owners; a memory engine would be a second knowledge owner, which the one-source rule forbids."
 
-  - rank: 8
+  - rank: 7
     finding_id: VD-0033
     title: "Offline PWA persistence approach"
     disposition: ADAPT
@@ -343,7 +357,7 @@ unaddressed_top10:
     evidence_checked: ["src/store/versioned.mjs", "src/studio/world-service.mjs"]
     decision_note: "Durability rests on file-backed versioned JSON with CAS; no comparison of crash, quota or multi-tab behaviour, and none of the donor's store layout was reviewed locally."
 
-  - rank: 9
+  - rank: 8
     finding_id: VD-0024
     title: "Partial streaming state on content parts"
     disposition: ADAPT
@@ -353,7 +367,7 @@ unaddressed_top10:
     evidence_checked: ["src/studio/world-service.mjs", "src/studio/ui/world-view.mjs", "src/studio/world-search.mjs"]
     decision_note: "Honesty exists at turn level only: each message carries truncated/redactions, coverage rolls any truncated turn up to state 'partial' with a warning chip, SOURCE_ACTIVE blocks reading a session still recording, and imported snapshots are labelled. There is no per-part partial marker and no in-flight streaming state, because the world reads saved evidence only."
 
-  - rank: 10
+  - rank: 9
     finding_id: VD-0009
     title: "Accessible streaming chat primitives"
     disposition: ADAPT
@@ -362,6 +376,16 @@ unaddressed_top10:
     evidence: "none found"
     evidence_checked: ["src/studio/ui/world-view.mjs", "test/unit/world-ui.test.mjs"]
     decision_note: "World view sets aria-pressed/aria-label/aria-current, but keyboard traversal, focus return and announcement of updated content are unverified; tests are fixture DOM only."
+
+  - rank: 10
+    finding_id: VD-0067
+    title: "17 semantic symbol families"
+    disposition: ADAPT
+    donor_source: {repo: vivim-omega-os, path: omega-baseline/plugins/vivim-nlcl-pure/src/symbols.ts}
+    local_status: not_started
+    evidence: "none found"
+    evidence_checked: ["src/studio/commands.mjs"]
+    decision_note: "Entered as the unaddressed sibling of VD-0065 once the preview catalog landed. commands.mjs has a flat explicit symbol map (8 keys resolving to 6 command ids plus one deferred provider-send) and normalizes input before exact lookup, with no coercion of unknown text. That is not the donor's 17-family taxonomy: there are no symbol families, no family-level semantics, and no interpretation pipeline; unknown text is simply not a command. Donor directory is absent locally, so its family list was not re-read this pass."
 
 receipts:
   method: "Directory-name existence under C:/0-BlackBoxProject-0, then git hash-object comparison where a local .git exists. Unlocated is not proof of absence."
@@ -393,4 +417,4 @@ receipts:
     absent_locally: ["claude-export-hub-vivim", "vivim-omega-os", "vivim-pageindex", "PageIndex-VIVIM", "assistant-ui-VIVIM", "vivim-cot", "vivim-sdk"]
   totals: "35 receipts: 25 located with paths verified, 10 in six unlocated repos"
 
-ambiguities: "The atlas records no disposition at all: all 116 are workshop: undecided, so BUILD/ADAPT/HARVEST labels here are mine by the stated rule, not owner decisions. in_progress is a status I added this pass: it means working-tree code exists for the subject, not that the finding is met. Receipts cover 35 files; the atlas cites more repos, and six donor directories are absent on this machine, which proves nothing about content. Restore/import and the content boundary exist only uncommitted; no round trip is proven. All judgments are static source reads: no runtime, browser, provider or owner-dataset proof, and five harness receipt blobs drifted."
+ambiguities: "The atlas records no disposition at all: all 116 are workshop: undecided, so BUILD/ADAPT/HARVEST labels here are mine by the stated rule, not owner decisions. in_progress is a status I added this pass: it means committed code exists for the subject, not that the finding is met. Receipts cover 35 files; the atlas cites more repos, and six donor directories are absent on this machine, which proves nothing about content. Restore/import, the content boundary, the export modes, the command catalog and the agentic file library all exist in the committed tree at 803d165, but restore and the export modes have no proven round trip and the command/agentic-file routes are not mounted on the integration hub, so no HTTP surface or UI exists for either. All judgments are static source reads plus the two committed unit runs noted (commands 6 pass; agentic-files 21 pass, 2 platform skips): no runtime, browser, provider or owner-dataset proof, and five harness receipt blobs drifted."
