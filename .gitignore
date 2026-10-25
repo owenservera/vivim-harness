@@ -1,0 +1,14 @@
+node_modules/
+coverage/
+.cache/
+*.log
+.env
+.env.*
+!.env.example
+sessions/
+captures/
+data/
+chrome-profile/
+*.sqlite
+*.sqlite-*
+.DS_Store

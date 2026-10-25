@@ -1,0 +1,207 @@
+{
+  "schemaVersion": 1,
+  "product": "VIVIM Harness",
+  "source": {
+    "repo": "owenservera/aion",
+    "commit": "671c0b5a8f1e22822524fccc7543067ab89d121d",
+    "folder": "workspace/aion/sessions/roles/09-global-research/labs/website-to-local-streaming/capture-studio/",
+    "method": "exact Git blob snapshot; historical commit ancestry not transplanted"
+  },
+  "components": [
+    {
+      "id": "experience",
+      "name": "User experience",
+      "summary": "Studio /chat, API, CLI, MCP",
+      "codePaths": [
+        "src/studio/",
+        "src/mcp/",
+        "bin/"
+      ],
+      "trackedFiles": 68,
+      "trackedBytes": 1027270,
+      "maturity": {
+        "state": "integrated-offline",
+        "measuredAt": "source-extraction",
+        "acceptance": "not independently reverified in new repository"
+      },
+      "nextGate": "Complete standalone chat/browser acceptance is still pending."
+    },
+    {
+      "id": "runtime",
+      "name": "Browser & conversation runtime",
+      "summary": "CDP, Chrome binding, explicit turns",
+      "codePaths": [
+        "src/capture/",
+        "src/cdp/",
+        "src/chrome/"
+      ],
+      "trackedFiles": 28,
+      "trackedBytes": 546378,
+      "maturity": {
+        "state": "live-partial",
+        "measuredAt": "source-extraction",
+        "acceptance": "not independently reverified in new repository"
+      },
+      "nextGate": "Prior Windows evidence does not establish independent standalone acceptance."
+    },
+    {
+      "id": "network",
+      "name": "L1 network observation",
+      "summary": "Raw bytes, frames, SSE and WebSocket",
+      "codePaths": [
+        "src/capture/"
+      ],
+      "trackedFiles": 25,
+      "trackedBytes": 519491,
+      "maturity": {
+        "state": "integrated-offline",
+        "measuredAt": "source-extraction",
+        "acceptance": "not independently reverified in new repository"
+      },
+      "nextGate": "Shares source files with browser runtime and L3."
+    },
+    {
+      "id": "protocol",
+      "name": "L2 decoding",
+      "summary": "Decoders, deltas and event assembly",
+      "codePaths": [
+        "src/decode/"
+      ],
+      "trackedFiles": 5,
+      "trackedBytes": 126861,
+      "maturity": {
+        "state": "integrated-offline",
+        "measuredAt": "source-extraction",
+        "acceptance": "not independently reverified in new repository"
+      },
+      "nextGate": "Synthetic decoding fidelity covered; live all-provider parity pending."
+    },
+    {
+      "id": "native-page",
+      "name": "L3 page observation",
+      "summary": "DOM, native messages and artifacts",
+      "codePaths": [
+        "src/capture/"
+      ],
+      "trackedFiles": 25,
+      "trackedBytes": 519491,
+      "maturity": {
+        "state": "live-partial",
+        "measuredAt": "source-extraction",
+        "acceptance": "not independently reverified in new repository"
+      },
+      "nextGate": "Shares source files with browser runtime and L1."
+    },
+    {
+      "id": "evidence",
+      "name": "Evidence and persistence",
+      "summary": "Raw logs, hashes, session versioning",
+      "codePaths": [
+        "src/store/",
+        "src/security/"
+      ],
+      "trackedFiles": 7,
+      "trackedBytes": 84867,
+      "maturity": {
+        "state": "integrated-offline",
+        "measuredAt": "source-extraction",
+        "acceptance": "not independently reverified in new repository"
+      },
+      "nextGate": "Local data is not migrated with source files."
+    },
+    {
+      "id": "reconstruction",
+      "name": "Replay and reconstruction",
+      "summary": "Live/offline reducers and mirrors",
+      "codePaths": [
+        "src/replay/",
+        "src/mirror/"
+      ],
+      "trackedFiles": 14,
+      "trackedBytes": 210706,
+      "maturity": {
+        "state": "integrated-offline",
+        "measuredAt": "source-extraction",
+        "acceptance": "not independently reverified in new repository"
+      },
+      "nextGate": "Live native output fidelity remains an acceptance gate."
+    },
+    {
+      "id": "intelligence",
+      "name": "Intelligence and knowledge",
+      "summary": "Discovery, roles, relationships, graph",
+      "codePaths": [
+        "src/intel/",
+        "src/shapes/",
+        "src/families/"
+      ],
+      "trackedFiles": 30,
+      "trackedBytes": 458964,
+      "maturity": {
+        "state": "integration-pending-live",
+        "measuredAt": "source-extraction",
+        "acceptance": "not independently reverified in new repository"
+      },
+      "nextGate": "Five-session code has been imported; real end-to-end adaptation still needs proof."
+    },
+    {
+      "id": "adapters",
+      "name": "Adapter evolution",
+      "summary": "Profiles, read adapters, drift and rollback",
+      "codePaths": [
+        "src/profiles/",
+        "src/studio/"
+      ],
+      "trackedFiles": 57,
+      "trackedBytes": 826904,
+      "maturity": {
+        "state": "integration-pending-live",
+        "measuredAt": "source-extraction",
+        "acceptance": "not independently reverified in new repository"
+      },
+      "nextGate": "Studio services are shared with the UI; not separately additive."
+    },
+    {
+      "id": "outputs",
+      "name": "Outputs and interoperability",
+      "summary": "Export, CLI, plugin and local tools",
+      "codePaths": [
+        "src/export/",
+        "src/plugins/",
+        "src/core/",
+        "src/config.mjs",
+        "bin/"
+      ],
+      "trackedFiles": 32,
+      "trackedBytes": 333660,
+      "maturity": {
+        "state": "integrated-offline",
+        "measuredAt": "source-extraction",
+        "acceptance": "not independently reverified in new repository"
+      },
+      "nextGate": "Exports and CLI implemented; validate live conversation bundles."
+    }
+  ],
+  "adjacent": [
+    {
+      "id": "chrome-relay",
+      "source": "workspace/aion/ops/chrome-relay/",
+      "classification": "separate system; dependency audit required; not copied"
+    },
+    {
+      "id": "agent14",
+      "source": "workspace/aion/sessions/roles/14-webapp-native-harness/",
+      "classification": "research and supplier handoffs; not runtime by default"
+    },
+    {
+      "id": "external-donors",
+      "source": "workspace/aion/ops/chrome-relay/harvest/external/landing/donors/",
+      "classification": "external reference archive; excluded"
+    }
+  ],
+  "warnings": [
+    "Functional component source paths overlap; never sum all component file counts.",
+    "All maturity states are provisional until standalone CI and actual Windows/browser acceptance.",
+    "AION original application and local evidence are intentionally untouched."
+  ]
+}
