@@ -1,101 +1,131 @@
 # Local-world integration progress
 
 Live ledger. Update on milestone only; not a monitor. Evidence tracking, not product decisions.
-Maintainer session: `ses_e8b0588e2ffeIAOxa01JPc9IqJ`. Last update 2026-10-25 after export was
-parent-verified (39-pass run) and the UI review lane completed. No other integration progress ledger exists in this repo; the blueprint
-(`docs/product/V1-INTEGRATED-APP-BLUEPRINT.md`) and the separately uncommitted resource map are not reused.
+
+Maintainer session: `ses_e8b0588e2ffeIAOxa01JPc9IqJ` (this docs lane), `docs-only` scope. Last update
+2026-10-26: world work is now **committed** at `803d165`; the world UI has Find, Transfer and Relations views;
+C-10 and C-11 exist as unwired libraries. Counts below are split by who ran them. No live, provider, browser,
+owner-dataset or full-suite proof exists.
 
 ## State
 
-- HEAD: `030895e79480f23e8929e4a5de5e80d74aa8c490` (2026-10-25 17:43:43 +0100). All world work remains
-  **uncommitted**; every "verified" line is working-tree evidence, not a committed SHA.
-- Working tree (tracker-inspected earlier; superseded in detail by parent's full-diff inspection):
-  - modified: `src/studio/integration-hub.mjs`, `src/studio/ui/chat.html`, `src/studio/ui/chat.mjs`
-  - new: `src/studio/world-service.mjs`, `world-relations.mjs`, `world-search.mjs`,
-    `src/studio/world-transfer.mjs`, `src/studio/ui/world-view.mjs`, and
-    `test/unit/{world-service,world-relations,world-search,world-transfer,world-ui}.test.mjs`
-  - deliberately separate, not part of this increment: `PROMPT.md`, `clone-tmp/`,
-    `docs/MODEL-RESOURCE-MAP.md`, `docs/model-resources.json`
-- Untouched by this ledger session: `PROMPT.md`, `clone-tmp/`, model resource map, all source/tests/config.
+- HEAD: `803d165a9a8b7814f45128060c0f66b5b851659c` (2026-10-26 00:01:31 +0100),
+  `fix(agentic-files): root-id/alias rejection, realpath containment, uniform 404, no cosmetic capability claims`.
+- Working tree: clean except two deliberately separate untracked paths, `PROMPT.md` and `clone-tmp/`.
+  Verified by `git status --porcelain` in this lane. Everything else in this ledger is a committed SHA.
+- Committed increments:
+  - `4c2cd04` backend local world service, relations, search, export/restore with imported-snapshot custody
+  - `2d74a09` selectable export modes (`references` | `transcript` | `full-saved`) with explicit reasoning/tool parts
+  - `2c62a6d` C-10 semantic command catalog, preview-only, non-executing
+  - `f728480`, `458efde` Relations view; labelled reasoning/status/tool blocks; provenance, direction, availability,
+    truncation honesty
+  - `eb38013` export mode picker with reasoning/tool toggles and server-applied preview
+  - `803d165` C-11 read-only agentic-file library, hardened twice, **not mounted**
+- Product module map unchanged: `src/studio` (UI/API), `src/capture`, `src/decode`, `src/store`, `src/replay`,
+  `src/intel`, `src/profiles`, `src/export`, `src/mcp`, `bin`.
 
 ## Evidence ledger (attribute the run, not the claim)
 
 | Evidence | Run by | Status |
 |---|---|---|
-| `node --test test/unit/{world-service,world-relations,world-search,world-ui,studio-local-access,studio-integration-ui}.test.mjs` | parent, after UI test fix | **44 pass / 0 fail / 0 skip**, fresh working-tree proof |
-| Same combined run, first attempt | parent | 43 pass / 1 fail: `world-ui` pinned the old `#viewNote` copy ("None of them is the home"); parent updated that single assertion to `/Local edits do not change provider content/` and kept the separate no-`data-view=home` and all behaviour checks |
-| `git diff --check` | parent | pass, LF/CRLF warnings only |
-| `bun run scripts/architecture-inventory.mjs --check` | parent | 0 uncovered, 0 missing ownership; still valid, no structural change since |
-| `node --test test/unit/{world-transfer,world-service,world-relations,world-search,world-ui}.test.mjs` | **parent, independent** | **39 pass / 0 fail**; includes a real `startStudio` `POST /world/transfer/export` test (JSON body, 400, 413, source+overlay unmodified). Narrower than the 44-run — it omits `studio-local-access`/`studio-integration-ui`, so the counts are not a regression |
-| Export code review (read-only) | free reviewer `ses_e8af019bbffeqj7i6lz1OWNILg` | dispatched, **result pending** |
-| HEAD/status, file presence, world-service/world-relations source read | tracker (this session, earlier) | read-only; static only |
-| Full suite, live owner dataset, provider/browser proof, Windows runtime cutover | nobody | **not run** — do not claim |
+| `node --test` over the 13 `test/unit/world-*.test.mjs` suites + `agentic-files.test.mjs` | **this docs lane, 2026-10-26, HEAD `803d165`, clean tree** | **101 pass / 2 skipped / 0 fail, 103 tests** (8757 ms) |
+| `node --test test/unit/agentic-files.test.mjs` alone | this docs lane | **21 pass / 2 skipped / 0 fail, 23 tests** — the 2 skips are platform-gated (symlink/realpath cases), not failures |
+| `node scripts/architecture-inventory.mjs --check` | this docs lane | **0 uncovered, 0 missing ownership** |
+| 88 pass across 14 world/UI suites | parent (owner rerun) | reported, not reproduced here; my 103-test run uses a different suite set (it excludes `studio-local-access`/`studio-integration-ui` and adds `world-export-modes`, `world-import-content`, `world-search-imported`, `world-ui-relations`, `world-ui-transfer`, `world-ui-export-modes`). Neither count supersedes the other |
+| 63 pass across UI + agentic suites | parent (owner rerun) | reported; the `world-ui-*` suites plus `agentic-files` are fixture DOM and read-only library tests |
+| 56 / 58 focused tests after restore and restore-defect fixes | parent (earlier runs) | superseded in count, same tier |
+| VD-0034 import content boundary: 48 pass | backend lane, self-reported | **not** independently rerun for that count; the boundary itself is exercised inside `world-import-content.test.mjs` in my run |
+| Export/restore code reviews, relations/agentic-file reviews | free reviewers, read-only | accepted with corrections; `803d165` is the post-review hardening commit. Review output is analysis, not proof |
+| Full repo suite, live owner dataset, provider call, browser render, Windows runtime cutover, acceptance run | nobody | **not run — do not claim** |
 
-HTTP note: real `startStudio` ephemeral-localhost route tests **did execute** inside the world-service,
-world-search and export suites (fixture data root, synthetic bodies). That is local HTTP proof, not live
-owner data, provider, browser or acceptance proof. The `world-ui` tests (now 6) use a fixture/synthetic DOM,
-not a browser.
+HTTP note: real `startStudio` ephemeral-localhost route tests execute inside the world-service, world-search,
+world-transfer, world-restore and export-mode suites (fixture data root, synthetic bodies). That is local HTTP
+proof. The `world-ui*` suites (5 files) drive a synthetic DOM, not a browser — no layout, CSS, keyboard-at-OS or
+screen-reader behaviour is proven.
 
 ## Workstreams
 
 | Work | Owner (session) | Paths | Status | Verification |
 |---|---|---|---|---|
-| Backend service/relations | `ses_e8b25fcc0ffenzM6egdIoYX4AS` | `src/studio/world-service.mjs`, `world-relations.mjs` | completed | in 44-pass run; source shows `SOURCE_MISSING`/`SOURCE_ACTIVE`/`EVIDENCE_MISSING`/`PARTIAL_EVIDENCE` split, paging before projection, request-local projection/fingerprint cache, `map` rejects `offset`, `domId`/`roleAttribute` retained |
-| Search | `ses_e8b04c6d6ffeviQ5wC58oXGW7R` | `src/studio/world-search.mjs`, `test/unit/world-search.test.mjs` | completed | 13 dedicated tests in the 44; registered via `world-service.mjs` → `registerWorldSearchRoutes` |
-| Selective export | `ses_e8b25fcc0ffenzM6egdIoYX4AS` | `src/studio/world-transfer.mjs`, `test/unit/world-transfer.test.mjs` | **done, parent-verified in working tree**; route registered via `registerWorldTransferRoutes` called from `world-service.mjs` | parent's independent 39-pass run includes the HTTP export test; contract as accepted (schema `vivim.world-export/1`; custody `user-overlay`/`referenced-only`/`saved-observation`; omission manifest; caps 100 selected / 256 closure / 8 MiB; 400/413; sha256 = integrity only) |
-| Restore (slice 2) | `ses_e8b25fcc0ffenzM6egdIoYX4AS`, continued same session on `cliproxy-grok/grok-4.7#medium` | `world-service.mjs`, `world-relations.mjs`, `world-transfer.mjs` + tests | **active** | owner tests pending; imported custody, derived ids, no session writes, receipt last, no rollback |
-| Restore contract analysis | free DeepSeek `ses_e8af019bbffeqj7i6lz1OWNILg` | read-only analysis | completed | parent reviewed and accepted **with corrections — verify claims in code, do not treat the analysis as proof** |
-| UI world view + wiring | `ses_e8b0bda99ffeE6bBzA7vvt9bI7` | `src/studio/ui/world-view.mjs`, `chat.html`, `chat.mjs`, `test/unit/world-ui.test.mjs` | **review lane complete** | 5 defects fixed in `world-view.mjs` (stale save no longer overwrites later edits; per-item read errors; `memberIds` shown in linked projects; `WORLD_SOURCE_ACTIVE` message; unavailable not rendered as empty); `world-ui` now 6 tests, inside the 39; fixture DOM only, **no browser** |
-| User-facing copy fix | parent | `chat.html` `#viewNote` | done | text now "Browse saved conversations, projects, and notes. Local edits do not change provider content. Your open view is remembered for this tab." No visual/layout change |
-| Research (search, OpenRouter) | `ses_e8b0ac85effegfzixbdGOJWhBc`, `ses_e8b25ce90ffejuQl6Zo4QDH4GS` | research only | completed; OpenRouter proposals **rejected** (derived graph as sole semantic authority, user data seeded as captured observations, URL/session-hash merging, renderer-registry copying) | no code; none of these patterns seen in the reviewed modules |
-| Free HF transfer analysis | earlier helper | analysis only | research done, **source reconciliation still required**, no implementation | none |
-| This ledger | `ses_e8b0588e2ffeIAOxa01JPc9IqJ` | `docs/INTEGRATION-PROGRESS.md` | updated | read-only inspection + parent-reported milestones |
+| Backend service/relations | `ses_e8b25fcc0ffenzM6egdIoYX4AS` | `src/studio/world-service.mjs`, `world-relations.mjs` | **committed `4c2cd04`** | `SOURCE_MISSING`/`SOURCE_ACTIVE`/`EVIDENCE_MISSING`/`PARTIAL_EVIDENCE` split, paging before projection, request-local projection cache, `map` rejects `offset`, `domId`/`roleAttribute` retained; covered in my run |
+| Search | `ses_e8b04c6d6ffeviQ5wC58oXGW7R` | `src/studio/world-search.mjs` + `world-search.test.mjs`, `world-search-imported.test.mjs` | **committed**; imported ids (`c-i…`) and `imported-reference` source recognised | two suites in my run; registered from `world-service.mjs` → `registerWorldSearchRoutes`, `GET /world/search` |
+| Selective export | `ses_e8b25fcc0ffenzM6egdIoYX4AS` | `src/studio/world-transfer.mjs` + `world-transfer.test.mjs`, `world-export-modes.test.mjs` | **committed**; contract accepted | schema `vivim.world-export/1`; modes `references`/`transcript`/`full-saved` with `includeSources` as the legacy alias; custody `user-overlay`/`referenced-only`/`imported-snapshot`; omission manifest with per-mode reasons; caps 100 selected / 3000 deps per record / 2 MiB record / 8 MiB total; 400/413; sha256 = integrity only |
+| Restore (slice 2) | same backend lane | `world-service.mjs`, `world-transfer.mjs` + `world-restore.test.mjs` | **committed** | `POST /world/transfer/validate` and `/restore`; dry run default, explicit confirm, derived ids, imported custody with `sessionId: null`, receipt written last, no rollback, repeat import skipped, mid-run fault converged |
+| VD-0034 import content boundary | backend lane | `world-transfer.mjs` + `world-import-content.test.mjs` | **committed** | `contentErrors()` with `IMPORT_CONTENT_LIMITS` (200 messages, 200 blocks/array, 2000 nodes, depth 12, 256 KiB strings, 512 KiB block bytes, 100-error cap, cycle detection); any hit raises `WORLD_IMPORT_CONTENT` at validate **and** restore |
+| UI world view + wiring | `ses_e8b0bda99ffeE6bBzA7vvt9bI7` | `src/studio/ui/world-view.mjs`, `chat.html`, `chat.mjs` | **committed** | six shell views `capture/conversations/projects/notes/find/transfer` plus `relations`; label→kind resolution; stale-save protection; per-item read errors; unavailable never rendered as empty |
+| Find view | UI lane | `world-view.mjs` + `world-ui-find.test.mjs` | **committed** | query, kind filter, paging (`nextOffset`), coverage lines, "a match count is not everything that exists"; message hits open the conversation and focus the message node by index |
+| Transfer view | UI lane | `world-view.mjs` + `world-ui-transfer.test.mjs` | **committed** | export picker + downloadable preview; import strictly check → dry run → confirm → restore; 8 MB refusals at pick, check and paste; client-side cap mirrored (`IMPORT_BYTE_CAP`); partial and skipped writes never reported as success |
+| Imported chips + custody filter | UI lane | `world-view.mjs` | **committed** | `custodyChip`, `custodyCounts`, `importedFromLines`; conversations filter observed/imported/all; imported rows labelled "not a recording Studio observed" |
+| Relations view | UI lane | `world-view.mjs` + `world-ui-relations.test.mjs` | **committed** | consumes `/world/map`; direction kept per group, unknown kinds never folded into references, truncated/not-reported scans never claim completeness, stale map dropped on focus change, unresolved refs labelled not-scanned and not openable |
+| Labelled saved blocks | UI lane | `world-view.mjs` | **committed `458efde`** | reasoning/thinking and tool-activity kinds get explicit labels instead of degrading to opaque parts; unknown payloads still not leaked |
+| C-10 semantic command catalog | separate lane | `src/studio/commands.mjs` + `commands.test.mjs` | **committed `2c62a6d`, preview-only, NOT mounted** | `createCommandCatalog()`/`registerCommandRoutes()` expose `POST /commands/{id}/preview`; every preview says it did not perform the command and `executable` cannot grant an effect. `integration-hub.mjs` imports only `registerWorldRoutes`, so no command route is reachable in the running hub |
+| C-11 agentic file library | separate lane, reviewed twice | `src/studio/agentic-files.mjs` + `agentic-files.test.mjs` | **committed `803d165`, read-only, NOT mounted** | bounded inventory of caller-supplied roots plus a bounded per-file text read (`GET /agentic-files`, `GET /agentic-files/{id}`); root-id/alias rejection, realpath containment (case-insensitive on win32), uniform 404, no absolute paths returned; `registerAgenticFileRoutes()` exists but is **not** imported by `integration-hub.mjs` |
+| This ledger | `ses_e8b0588e2ffeIAOxa01JPc9IqJ` | this file, `docs/track/worklog.yaml`, `docs/track/queue.md` | updated | code and test reads plus one first-hand focused run; parent counts attributed |
 
 ## Queue (finite, owner-authorized)
 
+Mirrors `docs/track/queue.md`.
+
 | State | Work | Owner (session) | Write scope | Depends on | Validation |
 |---|---|---|---|---|---|
-| active | Transfer slice 2: validate/restore with imported custody (derived ids, **no session writes**, receipt last, no rollback) | `ses_e8b25fcc0ffenzM6egdIoYX4AS` on `cliproxy-grok/grok-4.7#medium` | `world-service.mjs`, `world-relations.mjs`, `world-transfer.mjs` + their tests | export done and routed | owner focused tests, then parent rerun |
-| active | Read-only review of export code | free reviewer `ses_e8af019bbffeqj7i6lz1OWNILg` | review only | export implementation | reviewer report, then coordinator triage |
-| blocked | Search adaptation for imported snapshots | `ses_e8b04c6d6ffeviQ5wC58oXGW7R`, not dispatched | `world-search.mjs` + its tests | restore registered | combined focused run |
-| blocked | UI imported-custody label + export/restore entry points | UI owner, not dispatched | `src/studio/ui/*` | restore registered | UI tests, fixture DOM |
-| blocked | Combined focused checks, then reviewed commit/push | coordinator | none (verification only) | all rows above | full reported counts + `git diff --check` |
+| RUNNING | J1–J4 acceptance scenario test (worklog W12) | acceptance lane, unfinished | `test/` acceptance scenario only | committed world UI/API at `803d165` | one command, one environment, one SHA passing J1→J4 |
+| READY | Decide hub wiring for C-11 agentic files and C-10 command catalog | coordinator + owner decision | `src/studio/integration-hub.mjs` + tests | explicit owner authorization; both modules are deliberately unmounted today | mounted route tests, no execution granted by mounting |
+| READY | Formal testing pass | owner-scheduled, next week | verification only | RUNNING item | full suite + acceptance report at its real tier |
+| BACKLOG | VD-0057 composed workspace (conversation + project + objects in one surface) | not dispatched | `src/studio/ui/*` | owner value decision | UI tests, fixture DOM |
+| BACKLOG | Security program | owner-scheduled, in two weeks | review only | — | — |
+| BACKLOG | `docs/track/atlas.yaml` + `crosswalk.yaml` refresh for C-10 / C-11 / VD-0021 / VD-0034 | tracker lane | those two files | this ledger | rows match `2c62a6d`, `2d74a09`, `803d165` (they currently still say "none found") |
+| DONE | Backend world service/relations/search/export/restore + export modes + VD-0034 boundary | backend lane | `src/studio/world-*.mjs` + tests | — | `4c2cd04`, `2d74a09`; 88 parent-reported, 101/2 in my run |
+| DONE | World UI: Find, Transfer, Relations, imported chips, custody filter | UI lane | `src/studio/ui/*` + `world-ui*` tests | backend routes | `f728480`, `458efde`, `eb38013`; fixture DOM only |
+| DONE | C-10 catalog and C-11 library as unmounted modules | separate lanes | `commands.mjs`, `agentic-files.mjs` + tests | — | `2c62a6d`, `803d165`; both reviewed, neither reachable in the hub |
 
-No item is dispatched by this ledger; dispatch happens in the coordinator session. Export is done and
-parent-verified over local HTTP; restore/import acceptance, integrated live acceptance and provider/browser
-proof remain unmet.
+No item is dispatched by this ledger; dispatch happens in the coordinator session.
 
 ## Model policy
 
-No Sol high, per owner. The backend lane was cancelled on Sol and continued in the same session
-(`ses_e8b25fcc0ffenzM6egdIoYX4AS`) on `cliproxy-grok/grok-4.7#medium` for slice 2 only.
+No Sol high, per owner. Free-tier lanes only in this increment; the backend lane continued on
+`cliproxy-grok/grok-4.7#medium` for restore only. This docs lane made no model or quota claim.
 
 ## Broader review still owed
 
-Current review covered wiring, full diff and initial module sections only; UI/back-end behaviour is not
-exhaustively reviewed.
+Reviews covered wiring, the full diff, and specific modules (export/restore, relations view, agentic files twice).
+No end-to-end behavioural review of the composed world UI exists, and no reviewer has run the app.
 
 ## Deferred
 
 - Browser/provider work and runtime cutover: deferred until local stability.
-- Full suite and live acceptance: not attempted; formal acceptance next week, security program in two weeks.
-- HF transfer implementation: behind source reconciliation.
+- Full repo suite and live acceptance: not attempted; formal acceptance next week, security program in two weeks.
+- Hub wiring of C-10/C-11: undecided, waiting on an owner value decision.
+- HF transfer implementation: still behind source reconciliation.
 - Model resource map: separate uncommitted artifact, not part of this increment.
 
 ## Caveats for the next writer
 
-- **Nothing is committed.** Carry "uncommitted working tree" on any verified claim until the increment lands.
-- **Wiring wording:** the hub imports only `registerWorldRoutes`; world search reaches `/api/v1/world/search`
-  through `world-service.mjs`, not a separate hub registration. Same surface, indirect wiring.
-- **Fixture vs browser:** the 44- and 39-pass runs and the UI tests are fixture/synthetic DOM evidence, not
-  browser proof.
+- **Committed, not accepted.** The world increment is committed at `803d165`. Committed ≠ verified beyond
+  fixture/local-HTTP/DOM tests. Do not upgrade a claim because a SHA exists.
+- **Wiring wording:** `integration-hub.mjs` imports exactly one world entry, `registerWorldRoutes`; search, export
+  and restore reach their routes through `world-service.mjs`. C-10 and C-11 have registration functions that
+  nothing imports.
+- **Fixture vs browser:** every UI claim here is synthetic-DOM. No CSS, layout, focus-ring, keyboard-at-OS,
+  zoom or screen-reader behaviour has been observed.
+- **Two count families:** my 103-test run and the parent's 88/63 runs are different suite sets. Quote the one you
+  ran, with its suite list.
+- **Stale track files:** `atlas.yaml` and `crosswalk.yaml` still describe C-10/C-11 as absent and VD-0021 as
+  "not_started". Those rows were outside this lane's write scope.
 
 ## Unmet goals (explicit)
 
-Restore/import acceptance (imported custody, derived ids, no session writes, receipt last, no rollback),
-import→export round trip, integrated live acceptance, full-suite confirmation, and any
-owner-dataset/provider/browser proof. No deadlines are asserted for these.
+- One integrated J1→J4 acceptance scenario (W12), including restart, partial write, missing source, conflicting
+  import, secret exclusion and negative cases.
+- Import→export round trip proven through the UI rather than the API.
+- Clean-profile install, process restart, and a real exported owner bundle being restored.
+- Secret/cookie/profile exclusion proven by a scan of an actual bundle rather than by construction.
+- Any browser, provider, owner-dataset or Windows-runtime proof.
+- Hub decision and wiring for C-11 agentic files and C-10 command catalog.
+- Composed workspace (VD-0057).
 
 ## Counting rules
 
-Catalog-free model access is not unlimited quota; no model-capacity claim is made here.
+- Attribute every count to its runner and its suite list. A run I did not perform is "reported", not "verified".
+- Skips are not passes. Two platform-gated skips exist in `agentic-files.test.mjs` and are recorded as skips.
+- Fixture / local-HTTP / synthetic-DOM evidence never implies browser, provider, owner-data or acceptance proof.
+- Catalog-free model access is not unlimited quota; no model-capacity claim is made here.
