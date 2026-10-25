@@ -327,6 +327,19 @@ export function turnPlan(message) {
   return { markdown, note, unknowns, truncated: message?.truncated === true, redactionNote: redactionNote(message?.redactions) };
 }
 
+/** One entry per top-level saved block, so a rendered part can carry its own data-part-path marker.
+ * The marker value is the same part path the selection API records ([blockIndex]); the path is
+ * stringified for the attribute. Blocks that produce no renderable text produce no frame. */
+export function planFrames(message) {
+  const blocks = Array.isArray(message?.blocks) ? message.blocks : [];
+  return blocks.map((block, index) => {
+    const lines = [];
+    const unknowns = [];
+    blockToMarkdown(block, lines, unknowns, 0);
+    return { path: [index], markdown: lines.join('\n').trim() };
+  });
+}
+
 export function searchStatusText({ shown = 0, total = null, coverage = null } = {}) {
   const count = Number.isInteger(total) ? `${shown} of ${total} matches in this scan` : `${shown} matches in this scan`;
   const incomplete = !coverage || coverage.complete === false || coverage.truncated === true;
@@ -943,7 +956,15 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     messages.forEach((message, index) => {
       const plan = turnPlan(message);
       const body = el('div', { class: 'rich' });
-      if (plan.markdown) {
+      const frames = planFrames(message).filter((frame) => frame.markdown);
+      if (frames.length) {
+        for (const frame of frames) {
+          const frameBody = el('div', { class: 'rich', 'data-part-path': String(frame.path[0]), tabindex: '-1' });
+          if (typeof rich?.renderStatic === 'function') rich.renderStatic(frameBody, frame.markdown);
+          else frameBody.textContent = frame.markdown;
+          body.append(frameBody);
+        }
+      } else if (plan.markdown) {
         if (typeof rich?.renderStatic === 'function') rich.renderStatic(body, plan.markdown);
         else body.textContent = plan.markdown;
       }
@@ -1418,6 +1439,33 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     state.find.error = '';
     renderFind();
   }
+  /** Same part path rule the selection API enforces: non-negative safe integers or safe object
+   * keys, never prototype names, at most 16 steps. Used only to decide whether a hit's partPath is
+   * worth looking for in the rendered message. */
+  function validPartPath(partPath) {
+    return Array.isArray(partPath) && partPath.length >= 1 && partPath.length <= 16
+      && partPath.every((key) => Number.isSafeInteger(key) && key >= 0
+        || typeof key === 'string' && /^[a-zA-Z][a-zA-Z0-9_-]{0,63}$/.test(key)
+          && !['constructor', 'prototype', '__proto__'].includes(key));
+  }
+  /** Finds a rendered part frame by its data-part-path marker inside one message row. Works with a
+   * real querySelector and falls back to a children walk where that is not available. */
+  function partFrameOf(row, key) {
+    if (!row) return null;
+    if (typeof row.querySelector === 'function') {
+      try { return row.querySelector(`[data-part-path="${key}"]`) ?? null; } catch { /* fall through to the walk */ }
+    }
+    let found = null;
+    const visit = (node) => {
+      if (found || !node || typeof node !== 'object') return;
+      const attr = typeof node.getAttribute === 'function' ? node.getAttribute('data-part-path') : node.attrs?.['data-part-path'];
+      if (attr === key) { found = node; return; }
+      const children = node.children;
+      if (Array.isArray(children)) for (const child of children) visit(child);
+    };
+    visit(row);
+    return found;
+  }
   async function openHit(hit) {
     if (!hit || typeof hit.id !== 'string') return;
     if (hit.kind === 'message') {
@@ -1428,10 +1476,27 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
         return;
       }
       const index = Number.isInteger(hit.source?.index) ? hit.source.index : null;
+      const partPath = hit.source?.partPath;
+      // An empty path is a message-level selection; anything else asks for a specific part.
+      const askedPart = partPath !== undefined && partPath !== null && !(Array.isArray(partPath) && partPath.length === 0);
+      const partKey = validPartPath(partPath) ? partPath.map((key) => String(key)).join('.') : null;
       await openItem('conversations', id);
-      const node = index == null ? null : state.messageNodes?.get(index);
-      node?.focus?.();
-      node?.scrollIntoView?.({ block: 'nearest' });
+      const foundBefore = partKey && index != null ? partFrameOf(state.messageNodes?.get(index) ?? null, partKey) : null;
+      if (askedPart && !foundBefore) {
+        setFail('conversations', id, 'Opened the message; the matching part could not be located.');
+        renderDetailPane();
+      }
+      const row = index == null ? null : state.messageNodes?.get(index) ?? null;
+      const frame = partKey && row ? partFrameOf(row, partKey) : null;
+      if (frame) {
+        frame.setAttribute('aria-current', 'true');
+        frame.append(el('span', { class: 'pill t-info', text: 'Matched part' }));
+        frame.focus?.();
+        frame.scrollIntoView?.({ block: 'nearest' });
+      } else {
+        row?.focus?.();
+        row?.scrollIntoView?.({ block: 'nearest' });
+      }
       return;
     }
     if (hit.kind === 'project' && ID_RE.projects.test(hit.id)) return openItem('projects', hit.id);

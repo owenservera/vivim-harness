@@ -180,3 +180,150 @@ test('a bad query shows the problem, load more follows nextOffset, and a hit ope
   assert.match(root.textContent, /not deleted/i);
   assert.doesNotMatch(root.textContent, /was deleted/i);
 });
+
+// --- Part focus (find hits carry source.partPath) ---
+
+const detailFixture = () => ({
+  id: cid, title: 'Saved', status: 'complete', identity: { nativeThreadId: null, accountId: null, state: 'unknown' },
+  source: { sessionId: 's', kind: 'saved-session', providerUrl: null },
+  messages: [
+    { role: 'user', text: 'first', blocks: [{ type: 'paragraph', text: 'intro paragraph' }] },
+    {
+      role: 'assistant', text: 'second',
+      blocks: [
+        { type: 'paragraph', text: 'opening thought' },
+        { type: 'paragraph', text: 'the exact words' },
+        { type: 'code', language: 'js', text: 'x = 1;' },
+      ],
+    },
+  ],
+  coverage: { state: 'saved-observation', fullNativeThread: 'unknown', richContent: 'as-recorded' },
+});
+
+function mountWithDetail(searchItems) {
+  const calls = [];
+  const fetchImpl = async (url, init = {}) => {
+    const path = String(url);
+    calls.push(path);
+    if (path.includes('/search?')) {
+      return answer(200, {
+        items: searchItems, total: searchItems.length, offset: 0, limit: 50, nextOffset: null,
+        coverage: { complete: true, truncated: false, reasons: [], failures: [], absent: { conversations: 0 }, qualification: 'scan only' },
+      });
+    }
+    if (path.includes('/objects?') || path.includes('/selections?') || path.includes('/notes?')) return answer(200, { items: [], total: 0, offset: 0, limit: 50, nextOffset: null });
+    if (path.includes('/projects?')) return answer(200, { items: [], total: 0, offset: 0, limit: 50, nextOffset: null });
+    if (path.includes('/conversations/' + cid)) return answer(200, detailFixture());
+    if (path.includes('/namespace')) return answer(200, { id: 'w-find', kind: 'namespace' });
+    return answer(404, { error: 'missing', code: 'WORLD_NOT_FOUND' });
+  };
+  const { root, buttons } = mount(fetchImpl);
+  return { root, buttons, calls };
+}
+
+async function searchAndClick(root, buttons, label) {
+  await buttons.find.click();
+  byId(root, 'worldFindQuery').value = 'q';
+  await byId(root, 'worldFindQuery').dispatch('input');
+  await byId(root, 'worldFindSubmit').click();
+  await flush();
+  await all(root, (node) => node.tag === 'button' && node.textContent.includes(label))[0].click();
+  await flush();
+}
+
+const messageHit = (index, extraSource = {}) => ({
+  id: `${cid}:turn:${index}`, kind: 'message', title: `assistant message ${index + 1}`,
+  snippet: 'second', conversation: { id: cid, title: 'Saved' },
+  source: { index, key: 'DOM_TURNS', ...extraSource },
+});
+
+const framesOf = (root) => all(root, (node) => node.attrs && Object.prototype.hasOwnProperty.call(node.attrs, 'data-part-path'));
+
+test('a message hit with a partPath focuses and marks the exact rendered part', async () => {
+  const { root, buttons } = mountWithDetail([messageHit(1, { partPath: [1] })]);
+  await searchAndClick(root, buttons, `${cid}:turn:1`);
+  const frame = framesOf(root).find((node) => node.getAttribute('data-part-path') === '1' && node.textContent.includes('the exact words'));
+  assert.ok(frame, 'the rendered block for partPath 1 exists with a stable part marker');
+  assert.equal(frame.focused, true, 'the exact part receives focus');
+  assert.equal(frame.getAttribute('tabindex'), '-1', 'the part frame is reachable by programmatic focus');
+  assert.equal(frame.getAttribute('aria-current'), 'true');
+  assert.match(frame.textContent, /Matched part/);
+  const other = framesOf(root).filter((node) => node.getAttribute('data-part-path') === '0');
+  assert.ok(other.length, 'friendly sibling frame is marked too');
+  assert.notEqual(other[0].focused, true);
+  assert.equal(other[0].getAttribute('aria-current'), null);
+  assert.equal(framesOf(root).some((node) => node.getAttribute('data-part-path') === '2'), true, 'the code block keeps its own frame');
+  assert.doesNotMatch(root.textContent, /could not be located/);
+});
+
+test('a partPath that does not resolve keeps the message open and says so, without fake markers', async () => {
+  for (const partPath of [[9], [0, 1], ['bad key'], 'zero']) {
+    const { root, buttons, calls } = mountWithDetail([messageHit(1, { partPath })]);
+    await buttons.find.click();
+    byId(root, 'worldFindQuery').value = 'miss';
+    await byId(root, 'worldFindQuery').dispatch('input');
+    await byId(root, 'worldFindSubmit').click();
+    await flush();
+    await all(root, (node) => node.tag === 'button' && node.textContent.includes(`${cid}:turn:1`))[0].click();
+    await flush();
+    assert.match(byId(root, 'worldError').textContent, /Opened the message; the matching part could not be located/, `honest status for ${JSON.stringify(partPath)}`);
+    assert.equal(byId(root, 'worldMsg1').focused, true, 'the message row is still the focused fallback');
+    assert.equal(framesOf(root).some((node) => node.getAttribute('aria-current') === 'true'), false, 'no part is falsely marked as matched');
+    assert.equal(framesOf(root).some((node) => node.textContent.includes('Matched part')), false);
+    assert.ok(calls.some((path) => path.includes('/conversations/' + cid)), 'the conversation was opened for the message hit');
+  }
+});
+
+test('an imported-snapshot message hit opens through the local imported conversation id', async () => {
+  const importedId = 'c-i' + 'b'.repeat(38);
+  const calls = [];
+  const fetchImpl = async (url) => {
+    const path = String(url);
+    calls.push(path);
+    if (path.includes('/search?')) {
+      return answer(200, {
+        items: [{ id: `${importedId}:turn:0`, kind: 'message', title: 'user message 1', snippet: 'snapshot line', conversation: { id: importedId, title: 'Imported snapshot' }, source: { index: 0, key: 'DOM_TURNS' } }],
+        total: 1, offset: 0, limit: 50, nextOffset: null,
+        coverage: { complete: true, truncated: false, reasons: [], failures: [], absent: { conversations: 0 }, qualification: 'scan only' },
+      });
+    }
+    if (path.includes('/objects?') || path.includes('/selections?') || path.includes('/notes?')) return answer(200, { items: [], total: 0, offset: 0, limit: 50, nextOffset: null });
+    if (path.includes('/projects?')) return answer(200, { items: [], total: 0, offset: 0, limit: 50, nextOffset: null });
+    if (path.includes('/conversations/' + importedId)) return answer(200, {
+      id: importedId, title: 'Imported snapshot', status: 'complete', identity: { nativeThreadId: null, accountId: null, state: 'unknown' },
+      source: { sessionId: null, kind: 'imported-reference', providerUrl: null },
+      messages: [{ role: 'user', text: 'snapshot line', blocks: [] }],
+      coverage: { state: 'imported-snapshot', fullNativeThread: 'unknown', richContent: 'as-recorded' },
+    });
+    if (path.includes('/namespace')) return answer(200, { id: 'w-find', kind: 'namespace' });
+    return answer(404, { error: 'missing', code: 'WORLD_NOT_FOUND' });
+  };
+  const { root, buttons } = mount(fetchImpl);
+  await buttons.find.click();
+  byId(root, 'worldFindQuery').value = 'snapshot';
+  await byId(root, 'worldFindQuery').dispatch('input');
+  await byId(root, 'worldFindSubmit').click();
+  await flush();
+  await all(root, (node) => node.tag === 'button' && node.textContent.includes(`${importedId}:turn:0`))[0].click();
+  await flush();
+  assert.ok(calls.some((path) => path.includes('/conversations/' + importedId)), 'opening uses the local imported id');
+  assert.equal(byId(root, 'worldMsg0').focused, true, 'the imported message opens and focuses');
+  assert.match(root.textContent, /imported snapshot/i);
+  assert.doesNotMatch(root.textContent, /could not be located/);
+});
+
+test('no partPath keeps message-only opening while parts keep their own stable markers', async () => {
+  const { root, buttons } = mountWithDetail([messageHit(1)]);
+  await buttons.find.click();
+  byId(root, 'worldFindQuery').value = 'plain';
+  await byId(root, 'worldFindQuery').dispatch('input');
+  await byId(root, 'worldFindSubmit').click();
+  await flush();
+  await all(root, (node) => node.tag === 'button' && node.textContent.includes(`${cid}:turn:1`))[0].click();
+  await flush();
+  assert.equal(byId(root, 'worldMsg1').focused, true, 'message-level focus is unchanged');
+  assert.ok(framesOf(root).length >= 3, 'the same blocks are still rendered as frames');
+  assert.equal(framesOf(root).some((node) => node.getAttribute('aria-current') === 'true'), false);
+  assert.doesNotMatch(root.textContent, /could not be located/);
+  assert.doesNotMatch(root.textContent, /Matched part/);
+});
