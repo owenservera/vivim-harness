@@ -1,6 +1,8 @@
 # Z.ai — VIVIM V1 first integration pass
 2026-10-25 · EXECUTION BRIEF · canonical repo: owenservera/vivim-harness
 Companion product contract: docs/product/V1-INTEGRATED-APP-BLUEPRINT.md
+Repository visibility/public donor map: docs/product/V1-ZAI-REPOSITORY-ACCESS-2026-10-25.md
+All first-pass donor source reads must use public repositories; do not request publication of private donors.
 Governing Capture Studio implementation contract: ARCHITECTURE.md, AGENTS.md
 
 ## Mission
@@ -22,8 +24,8 @@ A single /chat page shows (a) provider selection and actual signed-in/unsupporte
 ## Donor assessment — NO blanket copying
 | Decision | Exact donor path | Why / required outcome |
 |---|---|---|
-| REFERENCE UX | vivim-final/frontend/src/app/page.tsx | Existing canvas/entry patterns; do not import Next, provider hooks, app router or backend. Current Harness architecture explicitly directs copying chat-column *shapes*, not mounting VIVIM Final ChatSurface |
-| REFERENCE UI content types | vivim-platform/pwa/src/types/conversation.ts | Map text/code/math/table/tool/citation/image/unknown parts into source-qualified Harness display. No lossy flattening; preserve unknown native blocks |
+| REFERENCE UX | PUBLIC vivim-final/frontend/src/app/page.tsx and frontend/src/features/guided-landing.tsx | Existing canvas/entry/onboarding concepts only; do not import Next, provider hooks, app router or backend. Current Harness architecture explicitly directs copying chat-column *shapes*, not mounting VIVIM Final ChatSurface |
+| REFERENCE UI content types | PUBLIC vivim-final/src/schema/streaming.ts and src/schema/content.ts | Map text/code/math/table/tool/citation/image/unknown parts into source-qualified Harness display; adapt shape only, no Zod/runtime import. Private vivim-platform is NOT required. No lossy flattening; preserve unknown native blocks |
 | KEEP local API | vivim-harness/src/studio/conversation-api.mjs | Read capabilities and source-qualified lifecycle, no duplicate /api/conversations |
 | KEEP sole browser actor | vivim-harness/src/capture/conversation-browser-adapter.mjs | No second CDP owner |
 | DO NOT IMPORT | vivim-final/src/engines/chrome-governor.ts | Would duplicate browser actor, fleet/session lifetimes |
