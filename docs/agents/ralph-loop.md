@@ -19,6 +19,11 @@ One task per iteration. State lives in files, not in anyone's memory. A fresh se
    Dispatch: dispatch `git-manager` with explicit paths. Standing owner push authorization (2026-10-25): git-manager commits and pushes green increments to origin on the current branch with plain `git push`; never force. It stops and reports on rejection, secrets in the diff, or any red gate.
 9. **Loop** to step 1.
 
+## Model lanes (owner 2026-10-25: GPT models allowed; not Sol high)
+- BUDGET-CONSCIOUS (owner): free first. Implementation / UI / backend start on `opencode/glm-5.3-flash-free#high`. Only when a free lane fails twice on the same defect, or the work is UI-judgment heavy, move that one lane to `opencode/gpt-6-luna#medium` ($0.1/$0.5 per M); `#high` only for a defect luna-medium failed. Grok only while its balance lasts. No paid lane for trackers, reviews, git or docs. Prefer fewer, well-scoped lanes over many speculative ones; no duplicate reviews of unchanged code.
+- Reviews, trackers, read-only recon: `opencode/deepseek-v4.1-flash-free#high` (`#low` for search).
+- Escalation after two failed rounds: `opencode/gpt-6-luna#xhigh` or oracle. Sol only if the owner asks. Re-check the catalog before relying on any id.
+
 ## Stop conditions (the loop pauses and asks the owner)
 - Same lane fails verification twice on the same defect: escalate to a different model or oracle, do not loop a third time.
 - A change would need a live provider, a browser, Playwright/Puppeteer, or runtime cutover.
