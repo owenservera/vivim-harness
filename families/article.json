@@ -1,0 +1,33 @@
+{
+  "name": "article",
+  "version": 2,
+  "description": "Mostly static structured pages: articles, docs and product pages with headings, text and media.",
+  "members": [],
+  "detect": [
+    { "signal": "headings_outline", "minHeadings": 2, "weight": 0.3, "label": "a heading outline" },
+    { "signal": "media", "weight": 0.25, "label": "images, video or downloads" },
+    { "signal": "static_long_text", "weight": 0.35, "label": "long text without streaming" },
+    { "signal": "text_length", "minChars": 2000, "weight": 0.15, "label": "a long body of text" },
+    { "signal": "streaming_transport", "not": true, "weight": 0.15, "label": "no streaming transport", "whyNot": "no SSE/NDJSON/WebSocket stream was observed" },
+    { "signal": "many_small_updates", "minEvents": 40, "maxAvgBytes": 400, "not": true, "weight": 0.05, "label": "not an update stream", "whyNot": "no high-frequency small-update traffic" }
+  ],
+  "entities": {
+    "page": {
+      "fields": {
+        "title": { "type": "string", "names": ["title", "headline", "name"] },
+        "url": { "type": "url", "names": ["url", "canonical", "permalink"] },
+        "author": { "type": "string", "names": ["author", "byline", "author.name"] },
+        "published_at": { "type": "time", "names": ["published_at", "datePublished", "created_at", "date"] },
+        "blocks": { "type": "blocks" }
+      }
+    },
+    "media_item": {
+      "embeddedIn": "page",
+      "fields": {
+        "kind": { "type": "enum", "values": ["image", "video", "audio", "file"] },
+        "url": { "type": "url", "names": ["url", "src", "href", "download_url"] },
+        "caption": { "type": "text", "names": ["caption", "alt", "title", "description"] }
+      }
+    }
+  }
+}

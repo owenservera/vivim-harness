@@ -1,0 +1,58 @@
+{
+  "name": "ai-chat",
+  "version": 2,
+  "description": "Conversational AI web apps (for example chatgpt.com, claude.ai). One shared model for conversations, turns and rich message content, whatever the provider's wire protocol.",
+  "members": ["chatgpt", "claude"],
+  "detect": [
+    { "signal": "role_pair", "pairs": [["user", "assistant"], ["human", "assistant"], ["human", "ai"], ["user", "model"]], "weight": 0.35, "label": "user and assistant roles observed" },
+    { "signal": "streaming_text", "minRevisions": 5, "minChars": 20, "weight": 0.3, "label": "text grows incrementally while streaming" },
+    { "signal": "field_name", "names": ["conversation_id", "conversationId", "thread_id", "threadId", "chat_id", "chatId", "conversation_uuid"], "weight": 0.15, "label": "conversation identifier field" },
+    { "signal": "input_then_stream", "weight": 0.2, "label": "typing then Enter/Send starts a streaming response" },
+    { "signal": "dom_role_turns", "weight": 0.25, "label": "page shows alternating user/assistant turns" },
+    { "signal": "delta_dialect", "any": ["typed-events", "path-ops", "json-patch", "ot-ops"], "weight": 0.2, "label": "answer assembled from incremental operations" },
+    { "signal": "event_type", "names": ["delta", "message_start", "message_stop", "content_block", "completion", "response.output", "text_delta"], "weight": 0.2, "label": "start/delta/stop event vocabulary" },
+    { "signal": "nested_blocks", "minItems": 2, "weight": 0.15, "label": "typed content blocks inside a message" },
+    { "signal": "tool_calls", "weight": 0.1, "label": "tool or function call payloads" },
+    { "signal": "citations", "weight": 0.05, "label": "citations with links" },
+    { "signal": "enum_field", "field": "role", "values": ["user", "assistant", "system", "tool", "human", "model"], "minValues": 2, "weight": 0.15, "label": "role field with a conversational vocabulary" },
+    { "signal": "transport", "any": ["HTTP_SSE", "HTTP_NDJSON", "HTTP_CHUNKED_JSON", "HTTP_STREAMED", "WEBSOCKET"], "weight": 0.1, "label": "a streaming response transport" },
+    { "signal": "static_long_text", "not": true, "weight": 0.05, "label": "not a static document page", "whyNot": "content arrives over the wire rather than in the initial page" }
+  ],
+  "entities": {
+    "conversation": {
+      "key": "id",
+      "fields": {
+        "id": { "type": "id", "names": ["conversation_id", "conversationId", "thread_id", "chat_id", "conversation.id", "conversation_uuid"] },
+        "title": { "type": "string", "names": ["title", "name", "summary"] }
+      }
+    },
+    "message": {
+      "key": "id",
+      "parent": { "entity": "conversation", "field": "conversation_id" },
+      "revisions": "final_and_history",
+      "fields": {
+        "id": { "type": "id", "required": true, "names": ["message.id", "id", "message_id", "messageId", "uuid", "item_id"] },
+        "conversation_id": { "type": "id", "names": ["conversation_id", "conversationId", "thread_id", "chat_id", "conversation_uuid"] },
+        "role": { "type": "enum", "required": true, "values": ["user", "assistant", "system", "tool"], "names": ["role", "author.role", "sender", "from", "speaker", "message.role", "message.author.role"], "valueHints": ["user", "assistant", "human", "ai", "model", "bot", "system", "tool"], "normalize": { "human": "user", "ai": "assistant", "model": "assistant", "bot": "assistant" } },
+        "text": { "type": "text", "required": true, "names": ["text", "parts", "content", "completion", "value", "body", "message"], "prefer": "longest", "join": "" },
+        "status": { "type": "string", "names": ["status", "stop_reason", "finish_reason", "state", "end_turn"] },
+        "model": { "type": "string", "names": ["model", "model_slug", "metadata.model_slug", "model_id"] },
+        "created_at": { "type": "time", "names": ["create_time", "created_at", "createdAt", "timestamp", "created"] }
+      }
+    },
+    "content_block": {
+      "embeddedIn": "message",
+      "fields": {
+        "type": { "type": "enum", "values": ["paragraph", "heading", "list", "table", "code", "quote", "image", "file", "link", "citation", "equation", "rule", "tool", "unknown"] },
+        "text": { "type": "text" }
+      }
+    },
+    "attachment": {
+      "fields": {
+        "name": { "type": "string", "names": ["name", "filename", "file_name", "title"] },
+        "url": { "type": "url", "names": ["url", "href", "download_url", "src"] },
+        "mime": { "type": "string", "names": ["mime", "mime_type", "mimeType", "content_type"] }
+      }
+    }
+  }
+}

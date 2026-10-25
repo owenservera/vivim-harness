@@ -1,0 +1,676 @@
+{
+  "generatedAt": "2026-10-21T14:29:14.329Z",
+  "node": "v22.22.0",
+  "fixtures": {
+    "chat-path-ops": {
+      "split": "dev",
+      "discovered": [
+        {
+          "name": "message",
+          "gtMatch": "message",
+          "key": "id",
+          "fields": 5,
+          "confidence": 0.784
+        },
+        {
+          "name": "conversation",
+          "gtMatch": "conversation",
+          "key": "title",
+          "fields": 3,
+          "confidence": 0.7
+        }
+      ],
+      "metrics": {
+        "typeDiscovery": {
+          "precision": 1,
+          "recall": 0.667
+        },
+        "keyAccuracy": 0.5,
+        "fieldTypeAccuracy": 1,
+        "fieldsMissing": 0,
+        "roleAccuracy": 0.667,
+        "heuristicBaselineRoleAccuracy": 0.833,
+        "taggedUnionAccuracy": null,
+        "relationships": {
+          "precision": 0,
+          "recall": 0
+        },
+        "roleCalibrationECE": 0.1895,
+        "misses": {
+          "keys": [
+            "conversation: expected id, got title"
+          ],
+          "roles": [
+            "message.status: category vs metadata",
+            "conversation.id: id vs reference"
+          ],
+          "relationships": [
+            "turn.conversation_id->conversation"
+          ]
+        }
+      },
+      "correlation": {
+        "topAccuracy": 1,
+        "likelyPrecision": 1,
+        "likelyShare": 1
+      }
+    },
+    "dashboard-ticks": {
+      "split": "dev",
+      "discovered": [
+        {
+          "name": "tick",
+          "gtMatch": "tick",
+          "key": "ts",
+          "fields": 5,
+          "confidence": 0.835
+        }
+      ],
+      "metrics": {
+        "typeDiscovery": {
+          "precision": 1,
+          "recall": 1
+        },
+        "keyAccuracy": 0,
+        "fieldTypeAccuracy": 1,
+        "fieldsMissing": 0,
+        "roleAccuracy": 0.8,
+        "heuristicBaselineRoleAccuracy": 0.6,
+        "taggedUnionAccuracy": null,
+        "relationships": {
+          "precision": 0,
+          "recall": 0
+        },
+        "roleCalibrationECE": 0.2768,
+        "misses": {
+          "keys": [
+            "tick: expected symbol, got ts"
+          ],
+          "roles": [
+            "tick.symbol: id vs category"
+          ],
+          "relationships": []
+        }
+      },
+      "identity": {
+        "tick": {
+          "expectedEntities": 5,
+          "resolved": 60,
+          "method": "key"
+        }
+      }
+    },
+    "feed-pages": {
+      "split": "dev",
+      "discovered": [
+        {
+          "name": "post",
+          "gtMatch": "post",
+          "key": "id",
+          "fields": 6,
+          "confidence": 0.916
+        }
+      ],
+      "metrics": {
+        "typeDiscovery": {
+          "precision": 1,
+          "recall": 1
+        },
+        "keyAccuracy": 1,
+        "fieldTypeAccuracy": 1,
+        "fieldsMissing": 0,
+        "roleAccuracy": 1,
+        "heuristicBaselineRoleAccuracy": 1,
+        "taggedUnionAccuracy": null,
+        "relationships": {
+          "precision": 0,
+          "recall": 0
+        },
+        "roleCalibrationECE": 0.1558,
+        "misses": {
+          "keys": [],
+          "roles": [],
+          "relationships": []
+        }
+      },
+      "identity": {
+        "post": {
+          "expectedEntities": 21,
+          "resolved": 21,
+          "method": "key"
+        }
+      }
+    },
+    "workspace-mixed": {
+      "split": "heldout",
+      "discovered": [
+        {
+          "name": "assist",
+          "gtMatch": null,
+          "key": null,
+          "fields": 2,
+          "confidence": 0.527
+        },
+        {
+          "name": "message",
+          "gtMatch": "message",
+          "key": "id",
+          "fields": 5,
+          "confidence": 0.818
+        },
+        {
+          "name": "0",
+          "gtMatch": null,
+          "key": "text",
+          "fields": 2,
+          "confidence": 0.682
+        },
+        {
+          "name": "row",
+          "gtMatch": "row",
+          "key": "revenue",
+          "fields": 5,
+          "confidence": 0.767
+        },
+        {
+          "name": "section",
+          "gtMatch": "section",
+          "key": "sec_id",
+          "fields": 3,
+          "confidence": 0.721
+        },
+        {
+          "name": "block",
+          "gtMatch": "block",
+          "key": null,
+          "fields": 6,
+          "confidence": 0.411
+        },
+        {
+          "name": "statu",
+          "gtMatch": "status",
+          "key": "at",
+          "fields": 5,
+          "confidence": 0.805
+        }
+      ],
+      "metrics": {
+        "typeDiscovery": {
+          "precision": 1,
+          "recall": 1
+        },
+        "keyAccuracy": 0.6,
+        "fieldTypeAccuracy": 1,
+        "fieldsMissing": 0,
+        "roleAccuracy": 0.739,
+        "heuristicBaselineRoleAccuracy": 0.696,
+        "taggedUnionAccuracy": 1,
+        "relationships": {
+          "precision": 0,
+          "recall": 0
+        },
+        "roleCalibrationECE": 0.2066,
+        "misses": {
+          "keys": [
+            "row: expected row_key, got revenue",
+            "status: expected service, got at"
+          ],
+          "roles": [
+            "row.row_key: id vs metadata",
+            "row.region: title vs metadata",
+            "block.alt: title vs id",
+            "block.lang: category vs metadata",
+            "block.code: text vs reference",
+            "status.service: id vs metadata"
+          ],
+          "relationships": []
+        }
+      },
+      "correlation": {
+        "topAccuracy": 1,
+        "likelyPrecision": 1,
+        "likelyShare": 1
+      }
+    },
+    "nested-hetero": {
+      "split": "heldout",
+      "discovered": [
+        {
+          "name": "page",
+          "gtMatch": "node",
+          "key": "nid",
+          "fields": 8,
+          "confidence": 0.632
+        },
+        {
+          "name": "node",
+          "gtMatch": null,
+          "key": "nid",
+          "fields": 3,
+          "confidence": 0.764
+        },
+        {
+          "name": "comment",
+          "gtMatch": "comment",
+          "key": "cid",
+          "fields": 5,
+          "confidence": 0.806
+        }
+      ],
+      "metrics": {
+        "typeDiscovery": {
+          "precision": 0.667,
+          "recall": 1
+        },
+        "keyAccuracy": 1,
+        "fieldTypeAccuracy": 1,
+        "fieldsMissing": 0,
+        "roleAccuracy": 0.7,
+        "heuristicBaselineRoleAccuracy": 0.8,
+        "taggedUnionAccuracy": 1,
+        "relationships": {
+          "precision": 1,
+          "recall": 1
+        },
+        "roleCalibrationECE": 0.1841,
+        "misses": {
+          "keys": [],
+          "roles": [
+            "comment.node_ref: reference vs id",
+            "comment.author: category vs metadata",
+            "comment.created: timestamp vs id"
+          ],
+          "relationships": []
+        }
+      }
+    },
+    "multi-page-workflow": {
+      "split": "heldout",
+      "discovered": [
+        {
+          "name": "application",
+          "gtMatch": null,
+          "key": null,
+          "fields": 2,
+          "confidence": 0.473
+        },
+        {
+          "name": "application",
+          "gtMatch": "application",
+          "key": "current_step",
+          "fields": 4,
+          "confidence": 0.765
+        },
+        {
+          "name": "step",
+          "gtMatch": "step",
+          "key": null,
+          "fields": 4,
+          "confidence": 0.705
+        }
+      ],
+      "metrics": {
+        "typeDiscovery": {
+          "precision": 1,
+          "recall": 1
+        },
+        "keyAccuracy": 0,
+        "fieldTypeAccuracy": 1,
+        "fieldsMissing": 0,
+        "roleAccuracy": 0.5,
+        "heuristicBaselineRoleAccuracy": 0.25,
+        "taggedUnionAccuracy": null,
+        "relationships": {
+          "precision": 0,
+          "recall": 0
+        },
+        "roleCalibrationECE": 0.366,
+        "misses": {
+          "keys": [
+            "application: expected app_no, got current_step",
+            "step: expected step_id, got null"
+          ],
+          "roles": [
+            "application.app_no: id vs reference",
+            "application.current_step: reference vs id",
+            "step.step_id: id vs reference",
+            "step.label: title vs metadata"
+          ],
+          "relationships": [
+            "application.current_step->step"
+          ]
+        }
+      }
+    },
+    "unknown-format": {
+      "split": "heldout",
+      "discovered": [
+        {
+          "name": "updated",
+          "gtMatch": "order",
+          "key": "total",
+          "fields": 4,
+          "confidence": 0.797
+        },
+        {
+          "name": "updated",
+          "gtMatch": "item",
+          "key": "sku",
+          "fields": 3,
+          "confidence": 0.884
+        }
+      ],
+      "metrics": {
+        "typeDiscovery": {
+          "precision": 1,
+          "recall": 1
+        },
+        "keyAccuracy": 0,
+        "fieldTypeAccuracy": 1,
+        "fieldsMissing": 0,
+        "roleAccuracy": 0.833,
+        "heuristicBaselineRoleAccuracy": 0.5,
+        "taggedUnionAccuracy": null,
+        "relationships": {
+          "precision": 0,
+          "recall": 0
+        },
+        "roleCalibrationECE": 0.2868,
+        "misses": {
+          "keys": [
+            "order: expected order_ref, got total",
+            "item: expected null, got sku"
+          ],
+          "roles": [
+            "order.order_ref: id vs reference"
+          ],
+          "relationships": []
+        }
+      },
+      "identity": {
+        "order": {
+          "expectedEntities": 6,
+          "resolved": 23,
+          "method": "key"
+        }
+      }
+    },
+    "keyless-rerender": {
+      "split": "heldout",
+      "discovered": [
+        {
+          "name": "turn",
+          "gtMatch": "turn",
+          "key": "text",
+          "fields": 2,
+          "confidence": 0.852
+        }
+      ],
+      "metrics": {
+        "typeDiscovery": {
+          "precision": 1,
+          "recall": 1
+        },
+        "keyAccuracy": 0,
+        "fieldTypeAccuracy": 1,
+        "fieldsMissing": 0,
+        "roleAccuracy": 1,
+        "heuristicBaselineRoleAccuracy": 1,
+        "taggedUnionAccuracy": null,
+        "relationships": {
+          "precision": 0,
+          "recall": 0
+        },
+        "roleCalibrationECE": 0.0105,
+        "misses": {
+          "keys": [
+            "turn: expected null, got text"
+          ],
+          "roles": [],
+          "relationships": []
+        }
+      },
+      "identityLinkage": {
+        "precision": 0,
+        "recall": 0,
+        "f1": 0,
+        "entities": 24,
+        "expected": 8,
+        "method": "key",
+        "basis": {
+          "field": "text",
+          "keyScore": 0.501
+        }
+      }
+    },
+    "dynamic-schema": {
+      "split": "heldout",
+      "driftDetected": true,
+      "repairAccuracy": 1,
+      "repairs": [
+        {
+          "from": "title",
+          "to": "headline",
+          "confidence": 0.85,
+          "basis": {
+            "nameSimilarity": 0.85,
+            "valueSimilarity": 0.85
+          }
+        },
+        {
+          "from": "views",
+          "to": "view_count",
+          "confidence": 0.748,
+          "basis": {
+            "nameSimilarity": 0,
+            "valueSimilarity": 0.85
+          }
+        }
+      ]
+    },
+    "two-sites-same-entities": {
+      "split": "heldout",
+      "siteA": {
+        "typeDiscovery": {
+          "precision": 1,
+          "recall": 1
+        },
+        "keyAccuracy": 1,
+        "fieldTypeAccuracy": 1,
+        "fieldsMissing": 0,
+        "roleAccuracy": 0.889,
+        "heuristicBaselineRoleAccuracy": 1,
+        "taggedUnionAccuracy": null,
+        "relationships": {
+          "precision": 1,
+          "recall": 1
+        },
+        "roleCalibrationECE": 0.2258,
+        "misses": {
+          "keys": [],
+          "roles": [
+            "user.email: title vs id"
+          ],
+          "relationships": []
+        }
+      },
+      "siteB": {
+        "typeDiscovery": {
+          "precision": 1,
+          "recall": 1
+        },
+        "keyAccuracy": 0.5,
+        "fieldTypeAccuracy": 1,
+        "fieldsMissing": 0,
+        "roleAccuracy": 0.667,
+        "heuristicBaselineRoleAccuracy": 0.833,
+        "taggedUnionAccuracy": null,
+        "relationships": {
+          "precision": 0,
+          "recall": 0
+        },
+        "roleCalibrationECE": 0.2148,
+        "misses": {
+          "keys": [
+            "owner: expected uuid, got null"
+          ],
+          "roles": [
+            "owner.uuid: id vs reference",
+            "owner.displayName: title vs category"
+          ],
+          "relationships": []
+        }
+      },
+      "crossSiteAlignmentAccuracy": 1,
+      "alignment": [
+        "title↔name (0.85)",
+        "done↔completed (0.85)",
+        "due_date↔dueAt (0.684)",
+        "id↔uuid (0.594)"
+      ]
+    }
+  },
+  "aggregate": {
+    "dev": {
+      "typeDiscovery": {
+        "precision": 1,
+        "recall": 0.8
+      },
+      "keyAccuracy": 0.5,
+      "fieldTypeAccuracy": 1,
+      "fieldsMissing": 0,
+      "roleAccuracy": 0.824,
+      "heuristicBaselineRoleAccuracy": 0.824,
+      "taggedUnionAccuracy": null,
+      "relationships": {
+        "precision": 0,
+        "recall": 0
+      },
+      "roleCalibrationECE": 0.1286,
+      "misses": {
+        "keys": [
+          "conversation: expected id, got title",
+          "tick: expected symbol, got ts"
+        ],
+        "roles": [
+          "message.status: category vs metadata",
+          "conversation.id: id vs reference",
+          "tick.symbol: id vs category"
+        ],
+        "relationships": [
+          "turn.conversation_id->conversation"
+        ]
+      }
+    },
+    "heldout": {
+      "typeDiscovery": {
+        "precision": 0.941,
+        "recall": 1
+      },
+      "keyAccuracy": 0.5,
+      "fieldTypeAccuracy": 1,
+      "fieldsMissing": 0,
+      "roleAccuracy": 0.734,
+      "heuristicBaselineRoleAccuracy": 0.703,
+      "taggedUnionAccuracy": 1,
+      "relationships": {
+        "precision": 0.667,
+        "recall": 0.667
+      },
+      "roleCalibrationECE": 0.1142,
+      "misses": {
+        "keys": [
+          "row: expected row_key, got revenue",
+          "status: expected service, got at",
+          "application: expected app_no, got current_step",
+          "step: expected step_id, got null",
+          "order: expected order_ref, got total",
+          "item: expected null, got sku",
+          "turn: expected null, got text",
+          "owner: expected uuid, got null"
+        ],
+        "roles": [
+          "row.row_key: id vs metadata",
+          "row.region: title vs metadata",
+          "block.alt: title vs id",
+          "block.lang: category vs metadata",
+          "block.code: text vs reference",
+          "status.service: id vs metadata",
+          "comment.node_ref: reference vs id",
+          "comment.author: category vs metadata",
+          "comment.created: timestamp vs id",
+          "application.app_no: id vs reference",
+          "application.current_step: reference vs id",
+          "step.step_id: id vs reference",
+          "step.label: title vs metadata",
+          "order.order_ref: id vs reference",
+          "user.email: title vs id",
+          "owner.uuid: id vs reference",
+          "owner.displayName: title vs category"
+        ],
+        "relationships": [
+          "application.current_step->step"
+        ]
+      }
+    }
+  },
+  "performance": [
+    {
+      "fixture": "chat-path-ops",
+      "samples": 14,
+      "ms": 12.5,
+      "msPer1kSamples": 889.9,
+      "heapDeltaMB": 0.98
+    },
+    {
+      "fixture": "dashboard-ticks",
+      "samples": 60,
+      "ms": 3.1,
+      "msPer1kSamples": 50.9,
+      "heapDeltaMB": -0.72
+    },
+    {
+      "fixture": "feed-pages",
+      "samples": 4,
+      "ms": 4.8,
+      "msPer1kSamples": 1196,
+      "heapDeltaMB": 0.73
+    },
+    {
+      "fixture": "workspace-mixed",
+      "samples": 32,
+      "ms": 9,
+      "msPer1kSamples": 281.8,
+      "heapDeltaMB": -0.75
+    },
+    {
+      "fixture": "nested-hetero",
+      "samples": 1,
+      "ms": 3.9,
+      "msPer1kSamples": 3906.1,
+      "heapDeltaMB": 0.44
+    },
+    {
+      "fixture": "multi-page-workflow",
+      "samples": 3,
+      "ms": 2.1,
+      "msPer1kSamples": 707.3,
+      "heapDeltaMB": -0.98
+    },
+    {
+      "fixture": "unknown-format",
+      "samples": 23,
+      "ms": 1.7,
+      "msPer1kSamples": 73,
+      "heapDeltaMB": 0.89
+    },
+    {
+      "fixture": "keyless-rerender",
+      "samples": 24,
+      "ms": 0.5,
+      "msPer1kSamples": 22.1,
+      "heapDeltaMB": 0.23
+    }
+  ],
+  "note": "Baseline before ASSESSMENT-AND-WORKLOG adjustments; learning eval not yet implemented"
+}

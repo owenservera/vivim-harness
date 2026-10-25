@@ -1,0 +1,224 @@
+{
+  "schema": "aion.shape-atlas/1",
+  "version": 1,
+  "generatedAt": "2026-10-24T12:28:31.706Z",
+  "evidenceVocabulary": "SOURCE | SYNTHETIC | REAL | PRODUCT | UNKNOWN (roles/14-webapp-native-harness/CAPABILITY-LEDGER.md)",
+  "sources": {
+    "sandboxSessions": "/home/z/aion-capture-home-r4/sessions",
+    "recordedOwnerAtlas": "docs/AI-CHAT-SHAPES.md (generated 2026-10-22 from local capture families; SOURCE)",
+    "specialistContracts": "workspace/aion/sessions/roles/14-webapp-native-harness/CONTRACTS.md v0.1"
+  },
+  "sandbox": {
+    "sessions": [
+      {
+        "session": "20261024-120409-duck-ai-3dcf56",
+        "site": "duck-ai",
+        "origin": "https://duck.ai",
+        "recordedAt": "20261024120409",
+        "transports": [
+          "HTTP"
+        ],
+        "endpoints": {
+          "total": 2,
+          "chat": 0,
+          "chatList": []
+        },
+        "streamMaps": [],
+        "streamComponentCount": 0,
+        "unmappedEventCount": 0,
+        "domTurns": 0,
+        "joinStatus": "no_dom_turns",
+        "derived": "complete",
+        "acceptance": "capture_incomplete",
+        "assembledReplyChars": 0
+      },
+      {
+        "session": "20261024-120815-huggingface-co-1c9900",
+        "site": "huggingface.co",
+        "origin": "https://huggingface.co",
+        "recordedAt": "20261024120815",
+        "transports": [
+          "HTTP"
+        ],
+        "endpoints": {
+          "total": 12,
+          "chat": 12,
+          "chatList": [
+            "GET huggingface.co/chat/_app/immutable/chunks/Dp1pzeXC.js",
+            "GET huggingface.co/chat/_app/immutable/chunks/BPsZT792.js",
+            "GET huggingface.co/chat/_app/immutable/chunks/BCluqQI2.js",
+            "GET huggingface.co/chat/_app/immutable/chunks/DA69NeDo.js",
+            "GET huggingface.co/chat/_app/immutable/chunks/Bzak7iHL.js",
+            "GET huggingface.co/chat/_app/immutable/chunks/Dg8DjzKz.js",
+            "GET huggingface.co/chat/_app/immutable/chunks/DutNTh9A.js",
+            "GET huggingface.co/chat/_app/immutable/chunks/CZA9Bbsk.js"
+          ]
+        },
+        "streamMaps": [],
+        "streamComponentCount": 0,
+        "unmappedEventCount": 0,
+        "domTurns": 0,
+        "joinStatus": "no_dom_turns",
+        "derived": "complete",
+        "acceptance": "capture_incomplete",
+        "assembledReplyChars": 0
+      }
+    ],
+    "providers": {
+      "duck-ai": {
+        "sessions": 1,
+        "transports": [
+          "HTTP"
+        ],
+        "chatEndpoints": [],
+        "streamMaps": [],
+        "domTurns": 0,
+        "acceptance": {
+          "capture_incomplete": 1
+        },
+        "evidence": "REAL (sandbox live-browser failure-path captures; no model reply was ever obtained)"
+      },
+      "huggingface.co": {
+        "sessions": 1,
+        "transports": [
+          "HTTP"
+        ],
+        "chatEndpoints": [
+          "GET huggingface.co/chat/_app/immutable/chunks/Dp1pzeXC.js",
+          "GET huggingface.co/chat/_app/immutable/chunks/BPsZT792.js",
+          "GET huggingface.co/chat/_app/immutable/chunks/BCluqQI2.js",
+          "GET huggingface.co/chat/_app/immutable/chunks/DA69NeDo.js",
+          "GET huggingface.co/chat/_app/immutable/chunks/Bzak7iHL.js",
+          "GET huggingface.co/chat/_app/immutable/chunks/Dg8DjzKz.js",
+          "GET huggingface.co/chat/_app/immutable/chunks/DutNTh9A.js",
+          "GET huggingface.co/chat/_app/immutable/chunks/CZA9Bbsk.js"
+        ],
+        "streamMaps": [],
+        "domTurns": 0,
+        "acceptance": {
+          "capture_incomplete": 1
+        },
+        "evidence": "REAL (sandbox live-browser failure-path captures; no model reply was ever obtained)"
+      }
+    },
+    "liveReceipts": [
+      {
+        "provider": "duck-ai",
+        "surface": "chat",
+        "receipt": "REAL",
+        "observed": "guest dispatch landed (user turn rendered, ?chatID=<uuid> assigned); provider refused generation (\"temporarily unavailable\", anonymous code 02f8) for a datacenter IP; consent Continue gate once; composer disabled after refusal",
+        "transport": "unverified (no reply stream was ever produced)",
+        "identity": "unverified (query-parameter chatID; browser-local recent-chat listing; no durable claim)"
+      },
+      {
+        "provider": "zai",
+        "surface": "chat",
+        "receipt": "REAL",
+        "observed": "composer found via measured selector, typed and sent through the real composer; site answered \"Network error\"; page wedges Runtime.evaluate for any CDP client",
+        "transport": "unverified",
+        "identity": "unverified"
+      },
+      {
+        "provider": "huggingface.co",
+        "surface": "chat",
+        "receipt": "REAL",
+        "observed": "composer found, text typed via CDP input pipeline; site send control never enabled (framework state not updated even with real key events); no dispatch",
+        "transport": "unverified",
+        "identity": "unverified"
+      },
+      {
+        "provider": "claude",
+        "surface": "landing",
+        "receipt": "REAL",
+        "observed": "claude.ai reachable (HTTP 302 redirect to the login flow) from the sandbox; no guest chat surface observed; no bypass attempted",
+        "transport": "not applicable (login wall)",
+        "identity": "unverified — no durable thread grammar integrated"
+      },
+      {
+        "provider": "chatgpt",
+        "surface": "landing",
+        "receipt": "REAL",
+        "observed": "chatgpt.com returns HTTP 403 (Cloudflare) from the sandbox datacenter IP; no page observation possible",
+        "transport": "not applicable (blocked)",
+        "identity": "SOURCE-supported parser only (no fresh page observation)"
+      }
+    ]
+  },
+  "synthetic": {
+    "dialectFixtures": [
+      {
+        "fixture": "chatgpt-pathops.json",
+        "synthetic": true,
+        "dialect": "chatgpt-pathops",
+        "payloadCount": 8
+      },
+      {
+        "fixture": "claude-typedevents.json",
+        "synthetic": true,
+        "dialect": "claude-typedevents",
+        "payloadCount": 13
+      },
+      {
+        "fixture": "openai-responses.json",
+        "synthetic": true,
+        "dialect": "openai-responses",
+        "payloadCount": 8
+      }
+    ],
+    "evidence": "SYNTHETIC (test/fixtures/ai-chat-dialects; offline suite)"
+  },
+  "recordedOwnerFamilies": {
+    "note": "Counts from docs/AI-CHAT-SHAPES.md, generated from owner-machine capture families. SOURCE-recorded, not fresh sandbox observation.",
+    "chatgpt": {
+      "sessions": 26,
+      "streams": 47,
+      "chatEndpoints": 9,
+      "transports": [
+        "HTTP",
+        "HTTP_SSE",
+        "HTTP_STREAMED",
+        "UNKNOWN",
+        "WEBSOCKET"
+      ],
+      "interestingStream": "POST /backend-api/f/conversation (path-ops)"
+    },
+    "claude": {
+      "sessions": 11,
+      "streams": 31,
+      "chatEndpoints": 3,
+      "transports": [
+        "EVENT_SOURCE",
+        "HTTP",
+        "HTTP_STREAMED"
+      ],
+      "interestingStream": "/claudeai-rpc/anthropic.bard.api.v1alpha.ConversationService/StreamTimeline (Connect/protobuf framing)"
+    }
+  },
+  "identity": {
+    "chatgpt": {
+      "grammar": "/c/<uuid>",
+      "parser": "src/capture/conversation-thread.mjs (THREAD_SITES=[chatgpt])",
+      "evidence": "SOURCE + SYNTHETIC",
+      "durable": "the one source-supported durable thread identity"
+    },
+    "claude": {
+      "grammar": "not integrated",
+      "parser": null,
+      "evidence": "UNKNOWN",
+      "durable": "org-scoped chat_conversations_v2 metadata observed historically; no accepted durable binding"
+    },
+    "duck-ai": {
+      "grammar": "?chatID=<uuid> query parameter",
+      "parser": null,
+      "evidence": "REAL (assigned on first dispatch; browser-local listing)",
+      "durable": "NOT claimed durable — never elevated to identity"
+    }
+  },
+  "gaps": [
+    "No verified Claude reply reconstruction from Connect/protobuf traffic (field hypothesis 1.1.5.9 unconfirmed).",
+    "Historical ChatGPT DOM old-extractor join 0/60; synthetic extractor fixes are not real-site join proof.",
+    "No authenticated ChatGPT/Claude observation from this sandbox (login walls / 403); fresh observations are owner-runtime work.",
+    "Artifacts, Work/Cowork tasks, citations and visible thinking summaries: PRODUCT-documented only; no AION-native parse accepted.",
+    "Guest providers (duck.ai et al.) blocked at the provider from datacenter IPs; dispatch receipts exist, reply transports remain unverified."
+  ]
+}

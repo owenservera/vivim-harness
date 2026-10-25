@@ -1,0 +1,314 @@
+{
+  "fixtures": {
+    "v2-crm-contacts": {
+      "ms": 19.6,
+      "samples": 4,
+      "discovered": [
+        "account[account_number]",
+        "contact[contactId]"
+      ],
+      "metrics": {
+        "typeDiscovery": {
+          "precision": 1,
+          "recall": 1
+        },
+        "keyAccuracy": 1,
+        "fieldTypeAccuracy": 1,
+        "fieldsMissing": 0,
+        "roleAccuracy": 0.4,
+        "heuristicBaselineRoleAccuracy": 0.7,
+        "taggedUnionAccuracy": null,
+        "relationships": {
+          "precision": 1,
+          "recall": 1
+        },
+        "roleCalibrationECE": 0.3376,
+        "misses": {
+          "keys": [],
+          "roles": [
+            "account.company: title vs id",
+            "account.industry: category vs metadata",
+            "account.arr_usd: measure vs id",
+            "contact.contactId: id vs reference",
+            "contact.account: reference vs metadata",
+            "contact.title: category vs metadata"
+          ],
+          "relationships": []
+        }
+      },
+      "identity": {
+        "contact": {
+          "expected": 14,
+          "resolved": 14
+        }
+      }
+    },
+    "v2-ticketing-sse": {
+      "ms": 14.1,
+      "samples": 25,
+      "discovered": [
+        "ticket_2[subject]",
+        "ticket[ticketNo]",
+        "comment[commentId]"
+      ],
+      "metrics": {
+        "typeDiscovery": {
+          "precision": 0.667,
+          "recall": 1
+        },
+        "keyAccuracy": 0.5,
+        "fieldTypeAccuracy": 1,
+        "fieldsMissing": 0,
+        "roleAccuracy": 0.556,
+        "heuristicBaselineRoleAccuracy": 0.667,
+        "taggedUnionAccuracy": null,
+        "relationships": {
+          "precision": 0,
+          "recall": 0
+        },
+        "roleCalibrationECE": 0.2417,
+        "misses": {
+          "keys": [
+            "ticket: expected ticketNo, got subject"
+          ],
+          "roles": [
+            "ticket.subject: title vs id",
+            "ticket.assignee: category vs metadata",
+            "comment.ticketNo: reference vs timestamp",
+            "comment.author: category vs metadata"
+          ],
+          "relationships": [
+            "comment.ticketNo->ticket"
+          ]
+        }
+      },
+      "identity": {
+        "ticket": {
+          "expected": 6,
+          "resolved": 6
+        }
+      }
+    },
+    "v2-iot-telemetry": {
+      "ms": 7.1,
+      "samples": 80,
+      "discovered": [
+        "live[d]"
+      ],
+      "metrics": {
+        "typeDiscovery": {
+          "precision": 1,
+          "recall": 1
+        },
+        "keyAccuracy": 1,
+        "fieldTypeAccuracy": 1,
+        "fieldsMissing": 0,
+        "roleAccuracy": 0.5,
+        "heuristicBaselineRoleAccuracy": 0.75,
+        "taggedUnionAccuracy": null,
+        "relationships": {
+          "precision": 0,
+          "recall": 0
+        },
+        "roleCalibrationECE": 0.3847,
+        "misses": {
+          "keys": [],
+          "roles": [
+            "reading.d: id vs category",
+            "reading.t: timestamp vs count"
+          ],
+          "relationships": []
+        }
+      },
+      "identity": {
+        "reading": {
+          "expected": 4,
+          "resolved": 4
+        }
+      }
+    },
+    "v2-chat-near-duplicates": {
+      "ms": 1.2,
+      "samples": 21,
+      "discovered": [
+        "turn[-]"
+      ],
+      "metrics": {
+        "typeDiscovery": {
+          "precision": 1,
+          "recall": 1
+        },
+        "keyAccuracy": 1,
+        "fieldTypeAccuracy": 1,
+        "fieldsMissing": 0,
+        "roleAccuracy": 0.5,
+        "heuristicBaselineRoleAccuracy": 1,
+        "taggedUnionAccuracy": null,
+        "relationships": {
+          "precision": 0,
+          "recall": 0
+        },
+        "roleCalibrationECE": 0.2325,
+        "misses": {
+          "keys": [],
+          "roles": [
+            "turn.text: text vs url"
+          ],
+          "relationships": []
+        }
+      },
+      "identityLinkage": {
+        "precision": 0.7,
+        "recall": 1,
+        "f1": 0.824,
+        "entities": 6,
+        "expected": 7
+      }
+    },
+    "v2-catalog-two-sites": {
+      "crossSiteAlignmentAccuracy": 0.5,
+      "alignment": [
+        "title↔name (0.85)"
+      ],
+      "keysA": "sku",
+      "keysB": "code"
+    },
+    "v2-rare-variant": {
+      "ms": 27.8,
+      "samples": 1,
+      "discovered": [
+        "item[id]"
+      ],
+      "metrics": {
+        "typeDiscovery": {
+          "precision": 1,
+          "recall": 1
+        },
+        "keyAccuracy": 1,
+        "fieldTypeAccuracy": 1,
+        "fieldsMissing": 0,
+        "roleAccuracy": 0.75,
+        "heuristicBaselineRoleAccuracy": 1,
+        "taggedUnionAccuracy": 0,
+        "relationships": {
+          "precision": 0,
+          "recall": 0
+        },
+        "roleCalibrationECE": 0.1312,
+        "misses": {
+          "keys": [],
+          "roles": [
+            "item.label: title vs id"
+          ],
+          "relationships": []
+        }
+      },
+      "rareFieldsSeen": "0/3"
+    },
+    "v2-order-shuffled": {
+      "ms": 4.6,
+      "samples": 4,
+      "discovered": [
+        "contact[contactId]",
+        "account[account_number]"
+      ],
+      "metrics": {
+        "typeDiscovery": {
+          "precision": 1,
+          "recall": 1
+        },
+        "keyAccuracy": 1,
+        "fieldTypeAccuracy": 1,
+        "fieldsMissing": 0,
+        "roleAccuracy": 0.4,
+        "heuristicBaselineRoleAccuracy": 0.7,
+        "taggedUnionAccuracy": null,
+        "relationships": {
+          "precision": 1,
+          "recall": 1
+        },
+        "roleCalibrationECE": 0.3376,
+        "misses": {
+          "keys": [],
+          "roles": [
+            "account.company: title vs id",
+            "account.industry: category vs metadata",
+            "account.arr_usd: measure vs id",
+            "contact.contactId: id vs reference",
+            "contact.account: reference vs metadata",
+            "contact.title: category vs metadata"
+          ],
+          "relationships": []
+        }
+      },
+      "identity": {
+        "contact": {
+          "expected": 14,
+          "resolved": 14
+        }
+      },
+      "orderIndependent": true
+    },
+    "v2-drift": {
+      "driftDetected": true,
+      "repairAccuracy": 1,
+      "typeChangeDetected": true,
+      "removedDetected": "2/2",
+      "repairs": [
+        {
+          "from": "name",
+          "to": "title",
+          "confidence": 0.85,
+          "basis": {
+            "nameSimilarity": 0.85,
+            "valueSimilarity": 0.85
+          }
+        }
+      ]
+    }
+  },
+  "aggregate": {
+    "typeDiscovery": {
+      "precision": 0.9,
+      "recall": 1
+    },
+    "keyAccuracy": 0.889,
+    "fieldTypeAccuracy": 1,
+    "fieldsMissing": 0,
+    "roleAccuracy": 0.583,
+    "heuristicBaselineRoleAccuracy": 0.75,
+    "taggedUnionAccuracy": 0,
+    "relationships": {
+      "precision": 0.25,
+      "recall": 0.5
+    },
+    "roleCalibrationECE": 0.1736,
+    "misses": {
+      "keys": [
+        "ticket: expected ticketNo, got subject"
+      ],
+      "roles": [
+        "account.company: title vs id",
+        "account.industry: category vs metadata",
+        "account.arr_usd: measure vs id",
+        "contact.contactId: id vs reference",
+        "contact.account: reference vs metadata",
+        "contact.title: category vs metadata",
+        "ticket.subject: title vs id",
+        "ticket.assignee: category vs metadata",
+        "comment.ticketNo: reference vs timestamp",
+        "comment.author: category vs metadata",
+        "reading.d: id vs category",
+        "reading.t: timestamp vs count",
+        "turn.text: text vs url",
+        "product.availability: category vs metadata",
+        "item.label: title vs id"
+      ],
+      "relationships": [
+        "comment.ticketNo->ticket"
+      ]
+    }
+  },
+  "generatedAt": "2026-10-21T14:45:53.914Z",
+  "note": "BLIND first measurement of held-out v2 at commit ac8cb75+fixtures; no algorithm changes informed by these fixtures yet."
+}
