@@ -207,7 +207,7 @@ function unknownPart(type) {
 
 function blockToMarkdown(block, lines, unknowns, depth) {
   if (!block || typeof block !== 'object' || depth > 8) { unknowns.push(unknownPart('unknown')); return; }
-  const type = typeof block.type === 'string' && block.type ? block.type : 'unknown';
+  const type = (typeof block.type === 'string' && block.type) || (typeof block.kind === 'string' && block.kind) || 'unknown';
   const text = typeof block.text === 'string' ? block.text : null;
   if (type === 'paragraph') {
     if (text == null) unknowns.push(unknownPart(type)); else lines.push(text, '');
@@ -1751,7 +1751,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     select.append(el('option', { value: '', text: choices.length ? 'Choose a saved record' : 'No saved records loaded' }));
     for (const choice of choices) select.append(el('option', { value: choice.id, text: `${choice.title} · ${choice.id}` }));
     select.value = choices.some((choice) => choice.id === rel.id) ? rel.id : '';
-    on(select, 'change', () => { rel.id = select.value; });
+    on(select, 'change', () => { rel.id = select.value; renderRelations(); });
     const show = el('button', { type: 'button', id: 'worldRelationShow', text: rel.loading ? 'Loading relations…' : 'Show relations' });
     show.disabled = rel.loading || !select.value;
     on(show, 'click', () => runRelations(select.value));
