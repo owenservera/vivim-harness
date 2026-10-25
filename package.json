@@ -38,6 +38,7 @@
     "test:migrated": "node --test \"test/qa/*.test.mjs\"",
     "outcome:packet": "node src/export/outcome-packet.mjs",
     "outcome:saved": "node src/export/saved-session-outcome.mjs",
-    "bench:agent14": "node scripts/bench-agent14-systems.mjs"
+    "bench:agent14": "node scripts/bench-agent14-systems.mjs",
+    "metrics:layers": "node scripts/qa-count-metrics.mjs"
   }
 }

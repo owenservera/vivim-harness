@@ -1,0 +1,81 @@
+{
+  "schema": "aion.adapter-improvement-proposal/1",
+  "scope": {
+    "siteId": "previously-unknown",
+    "origin": "https://fixture.invalid",
+    "accountRef": "fixture-account-a",
+    "surface": "chat"
+  },
+  "status": "test-only-preview",
+  "trigger": "new-evidence",
+  "baseVersion": null,
+  "candidate": {
+    "schema": "aion.adaptive-webapp-adapter/1",
+    "kind": "data-only-adapter-candidate",
+    "features": {
+      "assistant-turn": {
+        "selected": {
+          "feature": "assistant-turn",
+          "type": "selector",
+          "candidate": "[data-actor=\"assistant\"]",
+          "status": "provisional",
+          "confidence": 0.8
+        }
+      }
+    }
+  },
+  "baseline": {
+    "TP": 0,
+    "FP": 2,
+    "FN": 2,
+    "TN": 0,
+    "unknown": 0,
+    "coverage": 1
+  },
+  "learned": {
+    "TP": 2,
+    "FP": 0,
+    "FN": 0,
+    "TN": 0,
+    "unknown": 0,
+    "coverage": 1
+  },
+  "metrics": {
+    "baselineReadSuccess": 0,
+    "newReadSuccess": 2,
+    "gain": 2,
+    "falseMatchDelta": -2,
+    "coverage": 1,
+    "brier": 0.04
+  },
+  "independent": {
+    "independent": true,
+    "trainingCount": 3,
+    "heldoutCount": 2
+  },
+  "eligibleFeatures": [
+    "assistant-turn"
+  ],
+  "drift": [],
+  "trainingCount": 3,
+  "heldoutCount": 2,
+  "evidenceClass": "SYNTHETIC_TEST",
+  "proposalDigest": "synthetic-fixture-only-not-cryptographic",
+  "authority": {
+    "readOnly": true,
+    "sendPermission": false,
+    "browserEffectGrant": false,
+    "autoExecute": false
+  },
+  "evidence": {
+    "trainingRefs": {
+      "events": 3,
+      "captures": 3
+    },
+    "heldoutRefs": {
+      "events": 2,
+      "captures": 2
+    },
+    "accountRef": "fixture-account-a"
+  }
+}
