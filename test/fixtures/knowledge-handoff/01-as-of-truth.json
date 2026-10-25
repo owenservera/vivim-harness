@@ -1,0 +1,97 @@
+{
+  "schema": "aion.l4l5.local-handoff-fixture/1",
+  "id": "KH-01",
+  "round": "L4",
+  "owner": "Knowledge & Learning",
+  "purpose": "Observed event-time graph truth; late arrival does not overwrite later historical revisions",
+  "entity": {
+    "eid": "thing:42",
+    "type": "thing",
+    "typeName": "Thing",
+    "key": "42",
+    "revisions": [
+      {
+        "t": 100,
+        "seq": 1,
+        "attrs": {
+          "id": "42",
+          "title": "Alpha",
+          "state": "draft"
+        }
+      },
+      {
+        "t": 250,
+        "seq": 3,
+        "attrs": {
+          "title": "Final"
+        },
+        "removed": [
+          "state"
+        ]
+      },
+      {
+        "t": 170,
+        "seq": 2,
+        "attrs": {
+          "title": "Intermediate"
+        }
+      }
+    ]
+  },
+  "relation": {
+    "kind": "references",
+    "from": "thing:42",
+    "to": "thing:other",
+    "t": 160,
+    "confidence": 0.65,
+    "status": "hypothesis",
+    "evidence": {
+      "session": "synthetic-KH-01",
+      "seq": 2
+    },
+    "rejectAt": 260
+  },
+  "queries": [
+    {
+      "asOf": 150,
+      "attrs": {
+        "id": "42",
+        "title": "Alpha",
+        "state": "draft"
+      },
+      "edges": 0
+    },
+    {
+      "asOf": 200,
+      "attrs": {
+        "id": "42",
+        "title": "Intermediate",
+        "state": "draft"
+      },
+      "edges": 1
+    },
+    {
+      "asOf": 275,
+      "attrs": {
+        "id": "42",
+        "title": "Final"
+      },
+      "edges": 0
+    }
+  ],
+  "observation": {
+    "session": "synthetic-KH-01",
+    "seq": 1,
+    "sid": "stream-1",
+    "t": 100,
+    "coverage": "complete",
+    "gaps": 0
+  },
+  "futureCutoff": 75,
+  "truthConstraints": [
+    "event time not ingestion order",
+    "removed fields disappear only after explicit removal",
+    "edge evidence after cutoff must not leak",
+    "recomputed latest belief is not proof of historical belief"
+  ]
+}

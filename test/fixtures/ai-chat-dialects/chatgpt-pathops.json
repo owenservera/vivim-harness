@@ -1,0 +1,29 @@
+{
+  "_synthetic": true,
+  "_dialect": "chatgpt-pathops",
+  "_note": "Made-up text only. Hand-written to mimic a ChatGPT-style path-op delta encoding. Not captured from any site.",
+  "payloads": [
+    {
+      "message": {
+        "id": "syn-msg-chatgpt-001",
+        "author": { "role": "assistant" },
+        "content": { "content_type": "text", "parts": [""] },
+        "status": "in_progress"
+      },
+      "conversation_id": "syn-conv-chatgpt-001"
+    },
+    { "p": "/message/content/parts/0", "o": "append", "v": "Hello from " },
+    { "p": "/message/content/parts/0", "o": "append", "v": "a made-up " },
+    { "v": "synthetic " },
+    {
+      "o": "patch",
+      "v": [
+        { "p": "/message/status", "o": "replace", "v": "in_progress" },
+        { "p": "/message/content/parts/0", "o": "append", "v": "stream. " }
+      ]
+    },
+    { "v": "Second sentence." },
+    { "p": "/message/status", "o": "replace", "v": "finished_successfully" },
+    "[DONE]"
+  ]
+}

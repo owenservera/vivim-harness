@@ -1,0 +1,104 @@
+{
+  "schema": "aion.l4l5.local-handoff-fixture/1",
+  "id": "KH-02",
+  "round": "L4",
+  "owner": "Knowledge & Learning",
+  "purpose": "Safe typed-key exact-origin continuity; account identity remains unproven",
+  "site": "example.com",
+  "origin": "https://app.example.com",
+  "type": {
+    "id": "thing",
+    "name": "Thing",
+    "key": {
+      "field": "id"
+    },
+    "fields": [
+      {
+        "name": "id",
+        "type": "string"
+      },
+      {
+        "name": "label",
+        "type": "string"
+      }
+    ]
+  },
+  "sessions": [
+    {
+      "id": "kh02-a",
+      "host": "app.example.com",
+      "entity": {
+        "eid": "thing:str:42",
+        "key": "42",
+        "keyType": "string",
+        "method": "key",
+        "label": "Old",
+        "t": 100
+      }
+    },
+    {
+      "id": "kh02-b",
+      "host": "app.example.com",
+      "entity": {
+        "eid": "thing:str:new42",
+        "key": "42",
+        "keyType": "string",
+        "method": "key",
+        "label": "New",
+        "t": 200
+      }
+    },
+    {
+      "id": "kh02-c",
+      "host": "app.example.com",
+      "entity": {
+        "eid": "thing:num:42",
+        "key": 42,
+        "keyType": "number",
+        "method": "key",
+        "label": "Numeric",
+        "t": 200
+      }
+    },
+    {
+      "id": "kh02-d",
+      "host": "other.example.com",
+      "entity": {
+        "eid": "thing:str:42",
+        "key": "42",
+        "keyType": "string",
+        "method": "key",
+        "label": "Other origin",
+        "t": 200
+      }
+    },
+    {
+      "id": "kh02-e",
+      "host": "app.example.com",
+      "entity": {
+        "eid": "thing:keyless",
+        "key": null,
+        "method": "provisional",
+        "label": "Keyless",
+        "t": 100
+      }
+    }
+  ],
+  "expected": {
+    "sameTypedStringSessions": [
+      "kh02-a",
+      "kh02-b"
+    ],
+    "separateNumeric": true,
+    "separateDifferentOrigin": true,
+    "keylessNeverJoins": true,
+    "joinedEntities": 1,
+    "accountEquivalence": "unproven"
+  },
+  "truthConstraints": [
+    "do not equate numeric 42 with string 42",
+    "two accounts on one origin are NOT proved identical by origin-only continuity",
+    "do not borrow unrelated subdomains",
+    "keyless and legacy untyped stay isolated"
+  ]
+}

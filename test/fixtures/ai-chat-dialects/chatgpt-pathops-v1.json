@@ -1,0 +1,17 @@
+{
+  "_synthetic": true,
+  "note": "Synthetic ChatGPT frames with the real structure: message-open frames carry the message object nested in v.message with null error fields; a v1 delta-encoding frame; a path-op patch; a user-authored open frame. Made-up text and ids only.",
+  "frames": [
+    { "event": "delta_encoding", "raw": "v1" },
+    { "event": "message", "json": { "c": 0, "o": "add", "p": "", "v": { "conversation_id": "syn-conv-v1-001", "error": null, "error_code": null, "message": { "id": "syn-msg-v1-001", "author": { "role": "assistant" }, "content": { "content_type": "text", "parts": [""] }, "status": "in_progress" } } } },
+    { "event": "message", "json": { "p": "/message/content/parts/0", "o": "append", "v": "Synthetic " } },
+    { "event": "message", "json": { "v": "made-up " } },
+    { "event": "message", "json": { "o": "patch", "v": [
+      { "p": "/message/metadata/model_dil_v2/constants", "o": "replace", "v": "syn-const" },
+      { "p": "/message/status", "o": "replace", "v": "in_progress" }
+    ] } },
+    { "event": "message", "json": { "p": "/message/content/parts/0", "o": "append", "v": "text." } },
+    { "event": "message", "json": { "c": 1, "o": "add", "p": "", "v": { "conversation_id": "syn-conv-v1-001", "error": null, "error_code": null, "message": { "id": "syn-msg-v1-user", "author": { "role": "user" }, "content": { "content_type": "text", "parts": ["Synthetic user prompt?"] }, "status": "finished_successfully" } } } },
+    { "event": "message", "json": { "type": "message_stream_complete", "conversation_id": "syn-conv-v1-001" } }
+  ]
+}

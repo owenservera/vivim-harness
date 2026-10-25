@@ -1,0 +1,35 @@
+{
+  "_synthetic": true,
+  "_dialect": "openai-responses",
+  "_note": "Made-up text only. Hand-written to mimic a Responses-style typed-event stream. Not captured from any site.",
+  "payloads": [
+    {
+      "type": "response.created",
+      "response": { "id": "syn-resp-openai-001", "object": "response", "status": "in_progress", "output": [] }
+    },
+    {
+      "type": "response.output_item.added",
+      "output_index": 0,
+      "item": { "id": "syn-item-openai-001", "type": "message", "role": "assistant", "content": [] }
+    },
+    { "type": "response.output_text.delta", "output_index": 0, "content_index": 0, "delta": "Synthetic " },
+    { "type": "response.output_text.delta", "output_index": 0, "content_index": 0, "delta": "Responses reply " },
+    { "type": "response.output_text.delta", "output_index": 0, "content_index": 0, "delta": "with a made-up " },
+    { "type": "response.output_text.delta", "output_index": 0, "content_index": 0, "delta": "ending." },
+    {
+      "type": "response.output_text.done",
+      "output_index": 0,
+      "content_index": 0,
+      "text": "Synthetic Responses reply with a made-up ending."
+    },
+    {
+      "type": "response.completed",
+      "response": {
+        "id": "syn-resp-openai-001",
+        "object": "response",
+        "status": "completed",
+        "usage": { "input_tokens": 9, "output_tokens": 11, "total_tokens": 20 }
+      }
+    }
+  ]
+}
