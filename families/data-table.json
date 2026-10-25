@@ -1,0 +1,33 @@
+{
+  "name": "data-table",
+  "version": 2,
+  "description": "Dashboards and grids: tables of rows whose numeric cells change over time.",
+  "members": [],
+  "requiresAny": ["dom_table_or_grid", "collection", "collection_with"],
+  "detect": [
+    { "signal": "dom_table_or_grid", "weight": 0.35, "label": "page shows a table or grid" },
+    { "signal": "numeric_updates", "weight": 0.35, "label": "numeric fields change across updates" },
+    { "signal": "collection", "minItems": 3, "weight": 0.2, "label": "repeated records with consistent fields" },
+    { "signal": "collection_with", "fields": ["id|key|symbol|code", "value|price|amount|count|total|score"], "weight": 0.15, "label": "records with an identity and a measured value" },
+    { "signal": "timeseries", "minFields": 2, "weight": 0.2, "label": "changing numbers carried with a timestamp" },
+    { "signal": "many_small_updates", "minEvents": 40, "maxAvgBytes": 400, "weight": 0.1, "label": "a stream of small record updates" },
+    { "signal": "delta_dialect", "any": ["path-ops", "json-patch", "json-merge-patch", "array-splice", "dotted-set"], "weight": 0.1, "label": "rows updated by patch operations" },
+    { "signal": "transport", "any": ["WEBSOCKET", "HTTP_SSE", "HTTP_NDJSON", "HTTP_CHUNKED_JSON"], "weight": 0.05, "label": "a push transport feeding the grid" }
+  ],
+  "entities": {
+    "row": {
+      "key": "key",
+      "openFields": true,
+      "revisions": "time_series",
+      "fields": {
+        "key": { "type": "id", "names": ["id", "key", "symbol", "name", "code", "slug"] },
+        "label": { "type": "string", "names": ["name", "label", "title", "symbol"] },
+        "value": { "type": "number", "names": ["value", "price", "amount", "count", "total", "score"] },
+        "change": { "type": "number", "names": ["change", "delta", "diff", "change_percent", "pct_change"] },
+        "unit": { "type": "string", "names": ["unit", "currency", "measure"] },
+        "status": { "type": "string", "names": ["status", "state", "trend", "direction"] },
+        "updated_at": { "type": "time", "names": ["updated_at", "timestamp", "ts", "time", "at"] }
+      }
+    }
+  }
+}

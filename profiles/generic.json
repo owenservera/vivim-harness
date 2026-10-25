@@ -1,0 +1,6 @@
+{
+  "name": "generic",
+  "version": 1,
+  "description": "Site-agnostic defaults: same-site scope, stream all API-like responses, observe DOM. Used when no site profile matches.",
+  "match": { "hosts": ["*"] }
+}

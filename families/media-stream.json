@@ -1,0 +1,60 @@
+{
+  "name": "media-stream",
+  "version": 1,
+  "description": "Audio/video playback surfaces: a manifest or playlist describes renditions, then timed segments are fetched while playback progresses. Captures structure and playback telemetry, not the media bytes themselves.",
+  "members": [],
+  "requiresAny": ["media_fields", "mime_seen", "url_path", "media"],
+  "detect": [
+    { "signal": "media_fields", "weight": 0.35, "label": "duration, bitrate, codec or playback URL fields" },
+    { "signal": "mime_seen", "types": ["mpegurl", "dash+xml", "mp2t", "video/", "audio/", "mp4"], "weight": 0.3, "label": "a media or manifest content type" },
+    { "signal": "url_path", "patterns": ["\\.m3u8($|\\?)", "\\.mpd($|\\?)", "\\.ts($|\\?)", "\\.m4s($|\\?)", "/segment", "/chunk-", "/init\\.mp4", "/playlist"], "weight": 0.3, "label": "manifest or segment request paths" },
+    { "signal": "media", "weight": 0.15, "label": "media elements on the page" },
+    { "signal": "many_small_updates", "minEvents": 20, "maxAvgBytes": 2000, "weight": 0.1, "label": "repeated small fetches during playback" },
+    { "signal": "field_name", "names": ["playback_position", "current_time", "buffered", "bandwidth", "quality", "rendition", "track_id", "playlist"], "weight": 0.2, "label": "playback state fields" }
+  ],
+  "entities": {
+    "media_item": {
+      "key": "id",
+      "fields": {
+        "id": { "type": "id", "names": ["id", "media_id", "video_id", "track_id", "asset_id", "uuid"] },
+        "title": { "type": "string", "names": ["title", "name", "label"] },
+        "kind": { "type": "enum", "values": ["video", "audio", "live", "unknown"], "names": ["type", "kind", "media_type", "content_type"], "valueHints": ["video", "audio", "live"] },
+        "duration_s": { "type": "number", "names": ["duration", "duration_s", "duration_seconds", "length"] },
+        "manifest_url": { "type": "url", "names": ["manifest", "manifest_url", "playlist", "playlist_url", "src", "url", "playback_url"] },
+        "poster_url": { "type": "url", "names": ["poster", "poster_url", "thumbnail", "thumbnail_url", "artwork"] }
+      }
+    },
+    "rendition": {
+      "embeddedIn": "media_item",
+      "fields": {
+        "label": { "type": "string", "names": ["label", "name", "quality", "resolution"] },
+        "bitrate": { "type": "number", "names": ["bitrate", "bandwidth", "average_bitrate"] },
+        "codec": { "type": "string", "names": ["codec", "codecs", "mime", "mime_type"] },
+        "width": { "type": "number", "names": ["width", "w"] },
+        "height": { "type": "number", "names": ["height", "h"] }
+      }
+    },
+    "segment": {
+      "key": "url",
+      "parent": { "entity": "media_item", "field": "media_id" },
+      "revisions": "all",
+      "fields": {
+        "url": { "type": "url", "required": true, "names": ["url", "uri", "src", "path"] },
+        "media_id": { "type": "id", "names": ["media_id", "video_id", "asset_id"] },
+        "index": { "type": "number", "names": ["index", "sequence", "seq", "number"] },
+        "start_s": { "type": "number", "names": ["start", "start_time", "offset", "pts"] },
+        "duration_s": { "type": "number", "names": ["duration", "duration_s", "extinf"] },
+        "bytes": { "type": "number", "names": ["size", "bytes", "length", "byterange"] }
+      }
+    },
+    "playback_event": {
+      "revisions": "all",
+      "fields": {
+        "kind": { "type": "string", "names": ["event", "type", "action", "name"] },
+        "position_s": { "type": "number", "names": ["position", "current_time", "playback_position", "time", "offset"] },
+        "quality": { "type": "string", "names": ["quality", "rendition", "level", "bitrate"] },
+        "at": { "type": "time", "names": ["timestamp", "ts", "time", "at"] }
+      }
+    }
+  }
+}

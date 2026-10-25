@@ -1,0 +1,47 @@
+{
+  "name": "claude",
+  "version": 1,
+  "description": "Starting profile for claude.ai, linked to the ai-chat family. Scope and capture policy only; shapes and family field mappings are discovered live and confirmed by the user. UNVERIFIED against the live site.",
+  "match": {
+    "hosts": [
+      "claude.ai",
+      "*.claude.ai"
+    ]
+  },
+  "scope": {
+    "origins": [
+      "claude.ai",
+      "*.claude.ai"
+    ],
+    "thirdParty": "ignore"
+  },
+  "family": "ai-chat",
+  "capture": {
+    "bodyResourceTypes": [
+      "Fetch",
+      "XHR",
+      "EventSource",
+      "Document",
+      "Other"
+    ],
+    "exclude": [
+      "\\.(png|jpe?g|gif|webp|svg|woff2?|ttf|css)(\\?|$)"
+    ],
+    "websockets": true,
+    "wsSentFrames": false,
+    "requestBodies": false
+  },
+  "dom": {
+    "enabled": true,
+    "roots": [
+      "main",
+      "body"
+    ]
+  },
+  "decode": {
+    "delta": "auto"
+  },
+  "notes": [
+    "No endpoint names are assumed; the studio proposes the family field mapping from observed data."
+  ]
+}

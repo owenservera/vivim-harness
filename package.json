@@ -1,0 +1,39 @@
+{
+  "name": "aion-capture-studio",
+  "version": "0.1.0",
+  "description": "Local, read-only website capture studio: records browser-received raw streams (L1), decoded protocol envelopes (L2) and rendered DOM (L3) from a user-selected Chrome tab via the Chrome DevTools Protocol, infers data shapes and saves reusable site profiles.",
+  "type": "module",
+  "private": true,
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "studio": "bin/studio.mjs",
+    "capture-studio": "bin/studio.mjs"
+  },
+  "scripts": {
+    "test": "node --test \"test/unit/**/*.test.mjs\"",
+    "test:e2e": "node --test \"test/e2e/**/*.test.mjs\"",
+    "studio": "node bin/studio.mjs",
+    "start": "node bin/studio.mjs start",
+    "doctor": "node bin/studio.mjs doctor",
+    "capture": "node bin/studio.mjs capture",
+    "record": "node bin/studio.mjs record",
+    "derive": "node bin/studio.mjs derive",
+    "mirror": "node bin/studio.mjs mirror",
+    "search": "node bin/studio.mjs search",
+    "detect": "node bin/studio.mjs detect",
+    "scan": "node bin/studio.mjs scan",
+    "dedupe": "node bin/studio.mjs dedupe",
+    "sessions": "node bin/studio.mjs sessions",
+    "knowledge": "node bin/studio.mjs knowledge",
+    "learn": "node bin/studio.mjs learn status",
+    "selftest": "node bin/studio.mjs selftest",
+    "always-on": "node scripts/always-on.mjs",
+    "always-on:status": "node scripts/always-on.mjs --status",
+    "always-on:stop": "node scripts/always-on.mjs --stop",
+    "chrome:cdp": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/chrome-cdp.ps1",
+    "help": "node bin/studio.mjs help"
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "name": "form-flow",
+  "version": 2,
+  "description": "Forms and multi-step flows. Records structure (steps, field names and types, outcomes), never typed values.",
+  "members": [],
+  "detect": [
+    { "signal": "form_steps", "weight": 0.4, "label": "several Next/Continue/Submit steps" },
+    { "signal": "submit_then_request", "weight": 0.35, "label": "submitting sends data to the site" },
+    { "signal": "dom_inputs", "minInputs": 3, "weight": 0.2, "label": "several input fields" },
+    { "signal": "method_used", "methods": ["POST", "PUT", "PATCH"], "weight": 0.15, "label": "data-changing requests" },
+    { "signal": "enum_field", "field": "status", "values": ["ok", "error", "invalid", "success", "failed", "pending"], "weight": 0.15, "label": "validation/outcome status values" },
+    { "signal": "field_name", "names": ["errors", "validation", "field_errors", "step", "next_step", "form_id"], "weight": 0.15, "label": "validation or step fields in responses" }
+  ],
+  "entities": {
+    "step": {
+      "fields": {
+        "label": { "type": "string", "names": ["label", "title", "name", "step_name"] },
+        "action": { "type": "string", "names": ["action", "event", "kind"] },
+        "endpoint": { "type": "string", "names": ["endpoint", "url", "path"] },
+        "index": { "type": "number", "names": ["step", "index", "position", "page"] },
+        "outcome": { "type": "string", "names": ["status", "result", "step", "next", "message"] }
+      }
+    },
+    "field": {
+      "embeddedIn": "step",
+      "fields": {
+        "name": { "type": "string", "names": ["name", "field", "id", "key"] },
+        "kind": { "type": "string", "names": ["type", "input_type", "kind"] },
+        "required": { "type": "boolean", "names": ["required", "is_required"] },
+        "error": { "type": "text", "names": ["error", "message", "validation_message"] }
+      }
+    }
+  }
+}

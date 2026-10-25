@@ -1,0 +1,49 @@
+{
+  "name": "chatgpt",
+  "version": 1,
+  "description": "Starting profile for chatgpt.com. Scope and capture policy only; data shapes are discovered live and confirmed by the user. UNVERIFIED against the live site until a Windows receipt exists.",
+  "match": {
+    "hosts": [
+      "chatgpt.com",
+      "*.chatgpt.com"
+    ]
+  },
+  "scope": {
+    "origins": [
+      "chatgpt.com",
+      "*.chatgpt.com"
+    ],
+    "thirdParty": "ignore"
+  },
+  "capture": {
+    "bodyResourceTypes": [
+      "Fetch",
+      "XHR",
+      "EventSource",
+      "Document",
+      "Other"
+    ],
+    "exclude": [
+      "\\.(png|jpe?g|gif|webp|svg|woff2?|ttf|css)(\\?|$)"
+    ],
+    "websockets": true,
+    "wsSentFrames": false,
+    "requestBodies": false
+  },
+  "dom": {
+    "enabled": true,
+    "roots": [
+      "main",
+      "body"
+    ]
+  },
+  "decode": {
+    "delta": "auto"
+  },
+  "notes": [
+    "No endpoint names are assumed. Beacon/telemetry-like streams are detected from observed behaviour and offered as exclusion suggestions in the studio.",
+    "Auth/session endpoints are always metadata-only (built-in credential policy), independent of this profile.",
+    "OpenAI documents WebSocket use on chatgpt.com for some conversation updates/notifications; which transport carries a given reply must be observed, not assumed."
+  ],
+  "family": "ai-chat"
+}

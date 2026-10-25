@@ -1,0 +1,52 @@
+{
+  "name": "search-results",
+  "version": 1,
+  "description": "Query-driven result lists: a search term goes out, a ranked set of results with facets and a total count comes back. Covers site search, catalogues, autocomplete and typeahead.",
+  "members": [],
+  "requires": ["search_query"],
+  "detect": [
+    { "signal": "search_query", "minResults": 3, "weight": 0.4, "label": "a query term with result records" },
+    { "signal": "collection_with", "fields": ["title|name|label|headline", "url|href|link|id"], "weight": 0.2, "label": "result records with a title and a target" },
+    { "signal": "field_name", "names": ["total", "total_count", "num_results", "hits", "took", "facets", "aggregations", "highlight", "score", "relevance"], "weight": 0.25, "label": "result-set metadata (totals, facets, scores)" },
+    { "signal": "pagination", "weight": 0.15, "label": "results fetched page by page" },
+    { "signal": "cursor_pagination", "weight": 0.1, "label": "cursor paging through results" },
+    { "signal": "input_then_stream", "weight": 0.1, "label": "typing triggered a request" },
+    { "signal": "method_used", "methods": ["GET", "POST"], "weight": 0.05, "label": "query requests observed" }
+  ],
+  "entities": {
+    "query": {
+      "key": "term",
+      "fields": {
+        "term": { "type": "string", "required": true, "names": ["q", "query", "search", "term", "keyword", "text", "input"] },
+        "total": { "type": "number", "names": ["total", "total_count", "num_results", "count", "numFound", "hits_total"] },
+        "took_ms": { "type": "number", "names": ["took", "took_ms", "duration", "elapsed", "latency"] },
+        "page": { "type": "number", "names": ["page", "offset", "from", "start"] },
+        "at": { "type": "time", "names": ["timestamp", "ts", "time", "at"] }
+      }
+    },
+    "result": {
+      "key": "id",
+      "parent": { "entity": "query", "field": "term" },
+      "openFields": true,
+      "fields": {
+        "id": { "type": "id", "names": ["id", "_id", "uuid", "sku", "slug", "key", "objectID"] },
+        "rank": { "type": "number", "names": ["rank", "position", "index", "order"] },
+        "score": { "type": "number", "names": ["score", "_score", "relevance", "confidence"] },
+        "title": { "type": "string", "required": true, "names": ["title", "name", "label", "headline", "display_name"], "prefer": "longest" },
+        "url": { "type": "url", "names": ["url", "href", "link", "permalink", "path"] },
+        "snippet": { "type": "text", "names": ["snippet", "highlight", "description", "summary", "excerpt", "abstract"], "prefer": "longest" },
+        "kind": { "type": "string", "names": ["type", "kind", "category", "entity_type", "_type"] },
+        "price": { "type": "number", "names": ["price", "amount", "cost", "value"] },
+        "image_url": { "type": "url", "names": ["image", "image_url", "thumbnail", "thumbnail_url"] }
+      }
+    },
+    "facet": {
+      "embeddedIn": "query",
+      "fields": {
+        "name": { "type": "string", "names": ["name", "field", "key", "label", "facet"] },
+        "value": { "type": "string", "names": ["value", "term", "key", "label"] },
+        "count": { "type": "number", "names": ["count", "doc_count", "total", "n"] }
+      }
+    }
+  }
+}
