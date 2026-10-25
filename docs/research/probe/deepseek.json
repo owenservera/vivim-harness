@@ -1,0 +1,319 @@
+{
+  "site": "deepseek",
+  "probedAt": "2026-10-21T23:24:50.388Z",
+  "url": "https://chat.deepseek.com/",
+  "title": "DeepSeek - Into the Unknown",
+  "loggedOut": false,
+  "composerCandidates": [
+    {
+      "selector": "textarea[name=\"search\"]",
+      "matched": "textarea",
+      "tag": "textarea",
+      "contentEditable": null,
+      "isContentEditable": false,
+      "inForm": false,
+      "formAction": null,
+      "disabled": false,
+      "readOnly": false,
+      "searchLike": true,
+      "rect": {
+        "x": 156,
+        "y": 257,
+        "w": 646,
+        "h": 60
+      },
+      "label": "placeholder=Message DeepSeek | name=search"
+    }
+  ],
+  "genericWinner": {
+    "found": true,
+    "selector": "textarea[name=\"search\"]",
+    "matched": "textarea",
+    "tag": "textarea",
+    "area": 38756,
+    "rect": {
+      "x": 156,
+      "y": 257,
+      "w": 646,
+      "h": 60
+    },
+    "label": "placeholder=Message DeepSeek | name=search",
+    "searchLike": true,
+    "candidateCount": 1
+  },
+  "sendControls": [],
+  "assistantContainers": [],
+  "streamingMarkers": [
+    {
+      "selector": "button[aria-label*=\"stop\" i]",
+      "present": false,
+      "count": 0,
+      "visibleCount": 0,
+      "sample": null
+    },
+    {
+      "selector": "[role=\"button\"][aria-label*=\"stop\" i]",
+      "present": false,
+      "count": 0,
+      "visibleCount": 0,
+      "sample": null
+    },
+    {
+      "selector": "[data-testid=\"stop-button\"]",
+      "present": false,
+      "count": 0,
+      "visibleCount": 0,
+      "sample": null
+    },
+    {
+      "selector": "[data-testid*=\"stop\" i]",
+      "present": false,
+      "count": 0,
+      "visibleCount": 0,
+      "sample": null
+    },
+    {
+      "selector": "[aria-busy=\"true\"]",
+      "present": false,
+      "count": 0,
+      "visibleCount": 0,
+      "sample": null
+    }
+  ],
+  "pageClasses": [
+    {
+      "class": "ds-button__background",
+      "count": 112
+    },
+    {
+      "class": "ds-button__icon ds-button__icon--last-child",
+      "count": 110
+    },
+    {
+      "class": "ds-icon",
+      "count": 109
+    },
+    {
+      "class": "ds-focus-ring",
+      "count": 104
+    },
+    {
+      "class": "_546d736",
+      "count": 100
+    },
+    {
+      "class": "c08e6e93",
+      "count": 100
+    },
+    {
+      "class": "_254829d",
+      "count": 100
+    },
+    {
+      "class": "ds-button ds-button--iconLabelTertiary ds-button--icon ds-button--capsule ds-button--xs ds-button--icon-relative-l _2090548",
+      "count": 100
+    }
+  ],
+  "streamCandidates": [
+    {
+      "path": "chat.deepseek.com/api/v0/client/settings",
+      "method": "GET",
+      "resourceType": "XHR",
+      "status": 200,
+      "contentType": "application/json",
+      "streamingHint": false,
+      "count": 5
+    },
+    {
+      "path": "chat.deepseek.com/api/v0/chat/create_pow_challenge",
+      "method": "POST",
+      "resourceType": "XHR",
+      "status": 200,
+      "contentType": "application/json",
+      "streamingHint": false,
+      "count": 2
+    },
+    {
+      "path": "chat.deepseek.com/",
+      "method": "GET",
+      "resourceType": "Document",
+      "status": 200,
+      "contentType": "text/html; charset=utf-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "fe-static.deepseek.com/chat/static/default-vendors.3473f64207.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "fe-static.deepseek.com/chat/static/main.a34f79a498.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "fe-static.deepseek.com/chat/manifest.json",
+      "method": "GET",
+      "resourceType": "Manifest",
+      "status": 200,
+      "contentType": "application/json",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "fe-static.deepseek.com/chat/static/katex.ce28a6cb67.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chat.deepseek.com/api/v0/users/current",
+      "method": "GET",
+      "resourceType": "XHR",
+      "status": 200,
+      "contentType": "application/json",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "fe-static.deepseek.com/chat/static/:id.87453ce690.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chat.deepseek.com/api/v0/chat_session/fetch_page",
+      "method": "GET",
+      "resourceType": "XHR",
+      "status": 200,
+      "contentType": "application/json",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chat.deepseek.com/api/v0/users/auth_token/check_device",
+      "method": "POST",
+      "resourceType": "XHR",
+      "status": 200,
+      "contentType": "application/json",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chat.deepseek.com/api/v0/chat_session/create",
+      "method": "POST",
+      "resourceType": "XHR",
+      "status": 200,
+      "contentType": "application/json",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chat.deepseek.com/api/v0/client/settings/report",
+      "method": "POST",
+      "resourceType": "XHR",
+      "status": 200,
+      "contentType": "application/json",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "fe-static.deepseek.com/chat/favicon.svg",
+      "method": "GET",
+      "resourceType": "Other",
+      "status": 200,
+      "contentType": "image/svg+xml",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "fe-static.deepseek.com/chat/icon-192.png",
+      "method": "GET",
+      "resourceType": "Other",
+      "status": 200,
+      "contentType": "image/png",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "fe-static.deepseek.com/chat/static/web-tts.9ddcbab81d.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "fe-static.deepseek.com/chat/static/opus-decoder-wasm.ca0584d323.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "fe-static.deepseek.com/chat/static/opus-decoder.mvp.2dc7300ee4.wasm",
+      "method": "GET",
+      "resourceType": "Fetch",
+      "status": 200,
+      "contentType": "application/octet-stream",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chat.deepseek.com/api/v0/telemetry",
+      "method": "POST",
+      "resourceType": "Fetch",
+      "status": 200,
+      "contentType": "application/json",
+      "streamingHint": false,
+      "count": 1
+    }
+  ],
+  "websockets": [],
+  "errors": [],
+  "tab": {
+    "id": "4DC7E9B290D5B12B542E35154BAE96BE",
+    "openedByProbe": true,
+    "port": 9222
+  },
+  "loginEvidence": [
+    "only search-like inputs visible (1)"
+  ],
+  "network": {
+    "windowSeconds": 8,
+    "totalRequests": 41,
+    "resourceTypes": {
+      "Document": 1,
+      "Script": 7,
+      "Stylesheet": 2,
+      "Manifest": 1,
+      "Font": 3,
+      "XHR": 17,
+      "Other": 7,
+      "Image": 1,
+      "Fetch": 2
+    },
+    "failures": 9,
+    "websocketFrameEvents": 0,
+    "sidecarTab": false
+  },
+  "readyState": "complete"
+}

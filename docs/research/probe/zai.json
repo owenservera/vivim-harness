@@ -1,0 +1,498 @@
+{
+  "site": "zai",
+  "probedAt": "2026-10-21T23:25:06.601Z",
+  "url": "https://chat.z.ai/",
+  "title": "Z.ai - Advanced AI Chatbot & Agent powered by GLM-5.3-Flash",
+  "loggedOut": false,
+  "composerCandidates": [
+    {
+      "selector": "#chat-input",
+      "matched": "textarea",
+      "tag": "textarea",
+      "contentEditable": null,
+      "isContentEditable": false,
+      "inForm": true,
+      "formAction": null,
+      "disabled": false,
+      "readOnly": false,
+      "searchLike": false,
+      "rect": {
+        "x": 360,
+        "y": 349,
+        "w": 742,
+        "h": 40
+      },
+      "label": "placeholder=Send a Message | id=chat-input"
+    }
+  ],
+  "genericWinner": {
+    "found": true,
+    "selector": "#chat-input",
+    "matched": "textarea",
+    "tag": "textarea",
+    "area": 29649,
+    "rect": {
+      "x": 360,
+      "y": 349,
+      "w": 742,
+      "h": 40
+    },
+    "label": "placeholder=Send a Message | id=chat-input",
+    "searchLike": false,
+    "candidateCount": 1
+  },
+  "sendControls": [
+    {
+      "selector": "#send-message-button",
+      "tag": "button",
+      "label": "send-message-button",
+      "disabled": true,
+      "type": "submit",
+      "isSubmit": true,
+      "inForm": true,
+      "rect": {
+        "x": 1073,
+        "y": 404,
+        "w": 28,
+        "h": 28
+      }
+    }
+  ],
+  "assistantContainers": [],
+  "streamingMarkers": [
+    {
+      "selector": "button[aria-label*=\"stop\" i]",
+      "present": false,
+      "count": 0,
+      "visibleCount": 0,
+      "sample": null
+    },
+    {
+      "selector": "[role=\"button\"][aria-label*=\"stop\" i]",
+      "present": false,
+      "count": 0,
+      "visibleCount": 0,
+      "sample": null
+    },
+    {
+      "selector": "[data-testid=\"stop-button\"]",
+      "present": false,
+      "count": 0,
+      "visibleCount": 0,
+      "sample": null
+    },
+    {
+      "selector": "[data-testid*=\"stop\" i]",
+      "present": false,
+      "count": 0,
+      "visibleCount": 0,
+      "sample": null
+    },
+    {
+      "selector": "[aria-busy=\"true\"]",
+      "present": false,
+      "count": 0,
+      "visibleCount": 0,
+      "sample": null
+    }
+  ],
+  "pageClasses": [
+    {
+      "class": "fixed inset-0 z-10000 flex justify-center pointer-events-none overflow-y-auto overscroll-contain scrollbar-hidden",
+      "count": 262
+    },
+    {
+      "class": "flex",
+      "count": 123
+    },
+    {
+      "class": "w-full mb-1 relative group",
+      "count": 60
+    },
+    {
+      "class": "w-full flex justify-between gap-2 whitespace-nowrap text-stone-950 dark:text-white text-ellipsis dark:data-[selected=true]:bg-bg-hover group-hover:bg-bg-hover px-3.5 py-2 rounded-md text-sm data-[sele",
+      "count": 60
+    },
+    {
+      "class": "flex self-center flex-1 min-w-0 w-full",
+      "count": 60
+    },
+    {
+      "class": "text-left self-center min-w-0 w-full truncate leading-5",
+      "count": 60
+    },
+    {
+      "class": "chatItemMenu\n\t\t\t\t\t\tinvisible group-hover:visible\n\t\t\t\t\t\t\t\t right-2 h-full top-0 rounded-sm flex items-center bg-linear-to-l from-80% to-transparent",
+      "count": 60
+    },
+    {
+      "class": "flex self-center z-10",
+      "count": 60
+    }
+  ],
+  "streamCandidates": [
+    {
+      "path": "region1.analytics.google.com/g/collect",
+      "method": "POST",
+      "resourceType": "Fetch",
+      "status": 204,
+      "contentType": "text/plain",
+      "streamingHint": false,
+      "count": 6
+    },
+    {
+      "path": "region1.analytics.google.com/measurement/1p-conversion",
+      "method": "GET",
+      "resourceType": "Fetch",
+      "status": 200,
+      "contentType": "text/html",
+      "streamingHint": false,
+      "count": 4
+    },
+    {
+      "path": "chat.z.ai/api/v1/scene-cfg",
+      "method": "GET",
+      "resourceType": "Fetch",
+      "status": 200,
+      "contentType": "application/json",
+      "streamingHint": false,
+      "count": 2
+    },
+    {
+      "path": "chat.z.ai/",
+      "method": "GET",
+      "resourceType": "Document",
+      "status": 200,
+      "contentType": "text/html",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.112/assets/index-fKnh-1oV.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "z-cdn.chatglm.cn/z-ai/frontend/static/manifest.json",
+      "method": "GET",
+      "resourceType": "Manifest",
+      "status": 200,
+      "contentType": "application/json",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chat.z.ai/api/v1/auths",
+      "method": "GET",
+      "resourceType": "Fetch",
+      "status": 200,
+      "contentType": "application/json",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chat.z.ai/api/config",
+      "method": "GET",
+      "resourceType": "Fetch",
+      "status": 200,
+      "contentType": "application/json",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chat.z.ai/api/models",
+      "method": "GET",
+      "resourceType": "Fetch",
+      "status": 200,
+      "contentType": "application/json",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chat.z.ai/api/v1/users/user/settings",
+      "method": "GET",
+      "resourceType": "Fetch",
+      "status": 200,
+      "contentType": "application/json",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.112/assets/LoginLogo-GSyKA4Uv.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chat.z.ai/api/v1/user-access/accessible",
+      "method": "GET",
+      "resourceType": "Fetch",
+      "status": 200,
+      "contentType": "application/json",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chat.z.ai/api/agent/v1/bot/channel",
+      "method": "GET",
+      "resourceType": "Fetch",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chat.z.ai/api/v1/chats",
+      "method": "GET",
+      "resourceType": "Fetch",
+      "status": 200,
+      "contentType": "application/json",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chat.z.ai/api/v1/dashboard/feature-quota/summary",
+      "method": "GET",
+      "resourceType": "Fetch",
+      "status": 200,
+      "contentType": "application/json",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "connect.facebook.net/signals/config/:id",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/x-javascript; charset=utf-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.112/assets/chunk-POPQ4Y6H-D62qPtWm.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.112/assets/linearClosed-5eUTi0XX.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.112/assets/_baseUniq-CfSlUQ-a.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.112/assets/tippy.esm-CtJ-T4yr.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.112/assets/_page-CzWRZpYq.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.112/assets/pdf-BrxDJxgu.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.112/assets/_page-BcDrvbhD.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.112/assets/_page-CRJr72vI.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.112/assets/_page-CXiYlAhT.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.112/assets/_page-CvMqoKr0.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.112/assets/PdfViewer-BnGhzS3U.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.112/assets/XlsxViewer-CUpMtdEJ.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.112/assets/xlsx-DPk0xC4-.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.112/assets/band-BLCR4iIA.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.112/assets/linear-COUSLO3J.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.112/assets/index-DutYYVHt.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.112/assets/DocxViewer-DLDrxcvU.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.112/assets/jszip.min-BLtmnjoM.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.112/assets/merge-BW30_r3e.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "z-cdn.chatglm.cn/z-ai/frontend/prod-fe-1.1.112/assets/PptxViewer-CmM_fO8O.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "z-cdn.chatglm.cn/z-ai/static/logo.svg",
+      "method": "GET",
+      "resourceType": "Other",
+      "status": 200,
+      "contentType": "image/svg+xml",
+      "streamingHint": false,
+      "count": 1
+    }
+  ],
+  "websockets": [],
+  "errors": [],
+  "tab": {
+    "id": "D5BDEEA8FAAD5A807DD6B3D046397DDF",
+    "openedByProbe": true,
+    "port": 9222
+  },
+  "loginEvidence": [
+    "chat composer present (1)"
+  ],
+  "network": {
+    "windowSeconds": 8,
+    "totalRequests": 135,
+    "resourceTypes": {
+      "Document": 3,
+      "Script": 38,
+      "Stylesheet": 3,
+      "Manifest": 1,
+      "Fetch": 54,
+      "Image": 27,
+      "XHR": 5,
+      "Font": 2,
+      "Ping": 1,
+      "Other": 1
+    },
+    "failures": 32,
+    "websocketFrameEvents": 0,
+    "sidecarTab": false
+  },
+  "readyState": "complete"
+}

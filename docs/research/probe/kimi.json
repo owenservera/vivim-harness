@@ -1,0 +1,156 @@
+{
+  "site": "kimi",
+  "probedAt": "2026-10-21T23:26:32.858Z",
+  "url": "https://www.kimi.com/",
+  "title": "Kimi AI with K3 | Built for Agentic Coding & Knowledge Work",
+  "loggedOut": false,
+  "composerCandidates": [
+    {
+      "selector": "div:nth-of-type(1) > div > div:nth-of-type(1) > div > div:nth-of-type(2) > div:nth-of-type(2)",
+      "matched": "[contenteditable]",
+      "tag": "div",
+      "contentEditable": "true",
+      "isContentEditable": true,
+      "inForm": false,
+      "formAction": null,
+      "disabled": false,
+      "readOnly": false,
+      "searchLike": false,
+      "rect": {
+        "x": 458,
+        "y": 408,
+        "w": 733,
+        "h": 48
+      },
+      "label": ""
+    }
+  ],
+  "genericWinner": {
+    "found": true,
+    "selector": "div:nth-of-type(1) > div > div:nth-of-type(1) > div > div:nth-of-type(2) > div:nth-of-type(2)",
+    "matched": "[contenteditable=\"true\"]",
+    "tag": "div",
+    "area": 35171,
+    "rect": {
+      "x": 458,
+      "y": 408,
+      "w": 733,
+      "h": 48
+    },
+    "label": "",
+    "searchLike": false,
+    "candidateCount": 2
+  },
+  "sendControls": [],
+  "assistantContainers": [],
+  "streamingMarkers": [
+    {
+      "selector": "button[aria-label*=\"stop\" i]",
+      "present": false,
+      "count": 0,
+      "visibleCount": 0,
+      "sample": null
+    },
+    {
+      "selector": "[role=\"button\"][aria-label*=\"stop\" i]",
+      "present": false,
+      "count": 0,
+      "visibleCount": 0,
+      "sample": null
+    },
+    {
+      "selector": "[data-testid=\"stop-button\"]",
+      "present": false,
+      "count": 0,
+      "visibleCount": 0,
+      "sample": null
+    },
+    {
+      "selector": "[data-testid*=\"stop\" i]",
+      "present": false,
+      "count": 0,
+      "visibleCount": 0,
+      "sample": null
+    },
+    {
+      "selector": "[aria-busy=\"true\"]",
+      "present": false,
+      "count": 0,
+      "visibleCount": 0,
+      "sample": null
+    }
+  ],
+  "pageClasses": [
+    {
+      "class": "next-sidebar__drag-slot",
+      "count": 6
+    },
+    {
+      "class": "next-sidebar-nav-item",
+      "count": 6
+    },
+    {
+      "class": "next-sidebar-nav-item__content",
+      "count": 6
+    },
+    {
+      "class": "next-sidebar-nav-item__icon-wrapper",
+      "count": 6
+    },
+    {
+      "class": "next-sidebar-nav-item__label-group",
+      "count": 6
+    },
+    {
+      "class": "next-sidebar-nav-item__label",
+      "count": 6
+    },
+    {
+      "class": "publisher-shortcut__link",
+      "count": 6
+    },
+    {
+      "class": "linear-icon-button",
+      "count": 6
+    }
+  ],
+  "streamCandidates": [
+    {
+      "path": "www.kimi.com/apiv2/kimi.gateway.chat.v1.KimiPlusService/ListKimiPlus",
+      "method": "POST",
+      "resourceType": "Fetch",
+      "status": 200,
+      "contentType": "application/json",
+      "streamingHint": false,
+      "count": 1
+    }
+  ],
+  "websockets": [],
+  "errors": [],
+  "tab": {
+    "id": "93C7B955642FEBD5744F4E27ADC001EF",
+    "openedByProbe": true,
+    "port": 9222
+  },
+  "loginEvidence": [
+    "chat composer present (1)"
+  ],
+  "network": {
+    "windowSeconds": 8,
+    "totalRequests": 280,
+    "resourceTypes": {
+      "Document": 1,
+      "Script": 180,
+      "Stylesheet": 62,
+      "Manifest": 1,
+      "Image": 3,
+      "Other": 6,
+      "XHR": 18,
+      "Fetch": 9
+    },
+    "failures": 1,
+    "websocketFrameEvents": 0,
+    "sidecarTab": false
+  },
+  "readyState": "complete"
+}

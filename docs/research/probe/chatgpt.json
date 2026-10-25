@@ -1,0 +1,1021 @@
+{
+  "site": "chatgpt",
+  "probedAt": "2026-10-21T23:24:02.005Z",
+  "url": "https://chatgpt.com/c/6ad93a1d-8eb0-83ed-b23e-ae1d6a345d34",
+  "title": "Reply With Twelve Words",
+  "loggedOut": false,
+  "composerCandidates": [
+    {
+      "selector": "div > div > div:nth-of-type(2) > div:nth-of-type(2) > div > div > div > div",
+      "matched": "[contenteditable]",
+      "tag": "div",
+      "contentEditable": "true",
+      "isContentEditable": true,
+      "inForm": true,
+      "formAction": null,
+      "disabled": false,
+      "readOnly": false,
+      "searchLike": false,
+      "rect": {
+        "x": 435,
+        "y": 635,
+        "w": 360,
+        "h": 36
+      },
+      "label": "aria-label=Pregunta a ChatGPT | text=f"
+    }
+  ],
+  "genericWinner": {
+    "found": true,
+    "selector": "div > div > div:nth-of-type(2) > div:nth-of-type(2) > div > div > div > div",
+    "matched": "[contenteditable=\"true\"]",
+    "tag": "div",
+    "area": 12967,
+    "rect": {
+      "x": 435,
+      "y": 635,
+      "w": 360,
+      "h": 36
+    },
+    "label": "aria-label=Pregunta a ChatGPT | text=f",
+    "searchLike": false,
+    "candidateCount": 2
+  },
+  "sendControls": [
+    {
+      "selector": "div:nth-of-type(2) > div:nth-of-type(2) > button",
+      "tag": "button",
+      "label": "Enviar",
+      "disabled": false,
+      "type": "submit",
+      "isSubmit": true,
+      "inForm": true,
+      "rect": {
+        "x": 979,
+        "y": 635,
+        "w": 36,
+        "h": 36
+      }
+    }
+  ],
+  "assistantContainers": [
+    {
+      "selector": "div:nth-of-type(1) > div:nth-of-type(2) > div > div > div > div > div > div",
+      "matched": "[class*=\"prose\"]",
+      "tag": "div",
+      "rect": {
+        "x": 383,
+        "y": 222,
+        "w": 640,
+        "h": 26
+      },
+      "textLength": 72,
+      "text80": "alpha bravo charlie delta echo foxtrot golf hotel india juliet kilo lima"
+    },
+    {
+      "selector": "div:nth-of-type(1) > div:nth-of-type(2) > div > div > div > div > div > div",
+      "matched": "[class*=\"prose\"]",
+      "tag": "div",
+      "rect": {
+        "x": 383,
+        "y": 442,
+        "w": 640,
+        "h": 26
+      },
+      "textLength": 72,
+      "text80": "alpha bravo charlie delta echo foxtrot golf hotel india juliet kilo lima"
+    }
+  ],
+  "streamingMarkers": [
+    {
+      "selector": "button[aria-label*=\"stop\" i]",
+      "present": false,
+      "count": 0,
+      "visibleCount": 0,
+      "sample": null
+    },
+    {
+      "selector": "[role=\"button\"][aria-label*=\"stop\" i]",
+      "present": false,
+      "count": 0,
+      "visibleCount": 0,
+      "sample": null
+    },
+    {
+      "selector": "[data-testid=\"stop-button\"]",
+      "present": false,
+      "count": 0,
+      "visibleCount": 0,
+      "sample": null
+    },
+    {
+      "selector": "[data-testid*=\"stop\" i]",
+      "present": false,
+      "count": 0,
+      "visibleCount": 0,
+      "sample": null
+    },
+    {
+      "selector": "[aria-busy=\"true\"]",
+      "present": false,
+      "count": 0,
+      "visibleCount": 0,
+      "sample": null
+    }
+  ],
+  "pageClasses": [
+    {
+      "class": "contents",
+      "count": 86
+    },
+    {
+      "class": "Icon-X4VkKC",
+      "count": 66
+    },
+    {
+      "class": "ButtonInner-vTwU3j",
+      "count": 55
+    },
+    {
+      "class": "Button-QTscM8 outline-hidden cursor-interaction",
+      "count": 25
+    },
+    {
+      "class": "Button-QTscM8",
+      "count": 22
+    },
+    {
+      "class": "flex h-full w-full items-center text-sm leading-4 [@media(hover:none)]:relative [@media(hover:none)]:min-w-0 [@media(hover:none)]:flex-1",
+      "count": 20
+    },
+    {
+      "class": "flex min-w-0 flex-1 items-center gap-2",
+      "count": 20
+    },
+    {
+      "class": "flex min-w-0 before:pointer-events-auto before:absolute before:inset-0 before:-z-10 before:rounded-[inherit] focus-visible:before:outline focus-visible:before:outline-2 focus-visible:before:outline-of",
+      "count": 20
+    }
+  ],
+  "streamCandidates": [
+    {
+      "path": "chatgpt.com/ces/v1/rgstr",
+      "method": "POST",
+      "resourceType": "Fetch",
+      "status": 202,
+      "contentType": "application/json",
+      "streamingHint": false,
+      "count": 3
+    },
+    {
+      "path": "chatgpt.com/backend-api/system_hints",
+      "method": "GET",
+      "resourceType": "Fetch",
+      "status": 200,
+      "contentType": "application/json",
+      "streamingHint": false,
+      "count": 3
+    },
+    {
+      "path": "chatgpt.com/backend-api/tpp/models",
+      "method": "GET",
+      "resourceType": "Fetch",
+      "status": 200,
+      "contentType": "application/json",
+      "streamingHint": false,
+      "count": 2
+    },
+    {
+      "path": "chatgpt.com/cdn-cgi/challenge-platform/h/b/scripts/jsd/d2d3316b729e/api.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 2
+    },
+    {
+      "path": "chatgpt.com/cdn-cgi/challenge-platform/h/b/scripts/jsd/d2d3316b729e/main.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 2
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/manifest-3ac018e3.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/:id.12f745ce06.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/:id.953f7270a3.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/:id.95bd044c2e.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/:id.e35f3a3ac8.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/:id.a1117ca8b4.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/:id.e5af272ce9.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/:id.932e2385aa.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/:id.c1e603d513.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/:id.dba480ee25.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/:id.5b4829a22c.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/:id.b26797f417.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/:id.70752a1a29.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/:id.8e9d033b12.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/:id.46de617f9a.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/:id.3e98e3173a.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/:id.7054f67afa.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/:id.91ac18858e.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/:id.6b21d7096b.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/:id.7066113282.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/:id.fde9fb6661.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/:id.c0190149ce.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/:id.7179268415.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/:id.5913341163.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/:id.5316569b5a.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/:id.c75971a163.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/:id.6eac0a8f39.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/:id.9165c0ee90.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/:id.91653308b4.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/:id.7a3939b036.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/:id.e7921e137b.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/:id.b076096054.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/:id.fef09ec437.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/:id.fcd63a61ce.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/:id.f6bd8f2647.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/icons-3569b2ee7dac1f03.svg",
+      "method": "GET",
+      "resourceType": "Other",
+      "status": 200,
+      "contentType": "image/svg+xml",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/async/:id.fe01008cda.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/backend-api/wham/accounts/check",
+      "method": "GET",
+      "resourceType": "Fetch",
+      "status": 200,
+      "contentType": "application/json",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/backend-api/accounts/check/v4-2023-04-27",
+      "method": "GET",
+      "resourceType": "Fetch",
+      "status": 200,
+      "contentType": "application/json",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/async/:id.b4a03a6306.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/backend-api/models",
+      "method": "GET",
+      "resourceType": "Fetch",
+      "status": 200,
+      "contentType": "application/json",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/async/:id.c4736e7a8b.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/backend-api/sentinel/chat-requirements/prepare",
+      "method": "POST",
+      "resourceType": "Fetch",
+      "status": 200,
+      "contentType": "application/json",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/backend-api/me",
+      "method": "GET",
+      "resourceType": "Fetch",
+      "status": 200,
+      "contentType": "application/json",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/backend-api/settings/is_adult",
+      "method": "GET",
+      "resourceType": "Fetch",
+      "status": 200,
+      "contentType": "application/json",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn-cgi/challenge-platform/h/b/jsd/oneshot/d2d3316b729e/0.9263335272669638:1792616438:Rztinv_RbhST0ND8i_5FKmMvK4JTisUveduqsueaXzk/jsdapi-n0m9f0",
+      "method": "POST",
+      "resourceType": "XHR",
+      "status": 200,
+      "contentType": "text/plain; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/backend-api/sentinel/chat-requirements/finalize",
+      "method": "POST",
+      "resourceType": "Fetch",
+      "status": 200,
+      "contentType": "application/json",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/backend-api/settings/user",
+      "method": "GET",
+      "resourceType": "Fetch",
+      "status": 200,
+      "contentType": "application/json",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "ab.chatgpt.com/v1/initialize",
+      "method": "OPTIONS",
+      "resourceType": "Other",
+      "status": 200,
+      "contentType": null,
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/async/:id.be3e049cd7.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/backend-api/tpp/:id",
+      "method": "GET",
+      "resourceType": "Fetch",
+      "status": 200,
+      "contentType": "application/json",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/async/:id.11ab4d2237.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/async/:id.0b169f3612.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/async/:id.abb20433f3.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/backend-api/accounts/optimized/check",
+      "method": "GET",
+      "resourceType": "Fetch",
+      "status": 200,
+      "contentType": "application/json",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/async/:id.895859cab3.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/async/:id.38658e9ad9.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/async/:id.b36773e161.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/async/:id.0b239f02c8.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/backend-api/wham/usage",
+      "method": "GET",
+      "resourceType": "Fetch",
+      "status": 200,
+      "contentType": "application/json",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "ab.chatgpt.com/v1/initialize",
+      "method": "POST",
+      "resourceType": "Fetch",
+      "status": 200,
+      "contentType": "application/json",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/async/:id.41d143fe26.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/async/:id.d2d6ca3eca.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/backend-api/user_granular_consent",
+      "method": "GET",
+      "resourceType": "Fetch",
+      "status": 200,
+      "contentType": "application/json",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/async/:id.75a41efb73.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/async/:id.d330eac6b8.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "ab.chatgpt.com/v1/sdk_exception",
+      "method": "POST",
+      "resourceType": "Fetch",
+      "status": 202,
+      "contentType": "application/json; charset=utf-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/backend-api/celsius/ws/user",
+      "method": "GET",
+      "resourceType": "Fetch",
+      "status": 200,
+      "contentType": "application/json",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/async/:id.0a0ea3ef15.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/async/:id.8da6c99873.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/backend-api/user_system_messages",
+      "method": "GET",
+      "resourceType": "Fetch",
+      "status": 200,
+      "contentType": "application/json",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/backend-api/conversation/init",
+      "method": "POST",
+      "resourceType": "Fetch",
+      "status": null,
+      "contentType": null,
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/async/:id.62f7c8b686.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/async/:id.e84b1a405b.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/async/:id.0e44f63ee5.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/async/:id.5d0b073b3e.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/async/:id.e756dc9589.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/async/:id.c18ade14ad.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/async/:id.ccaf22bf6e.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/async/:id.2c60c496f4.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/async/:id.45b1945bc7.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": null,
+      "contentType": null,
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/async/:id.f9910987eb.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/async/:id.e990d82748.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/async/:id.0cf2b3f1e7.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/async/:id.9b435f4ac2.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/async/:id.25d5d93412.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chatgpt.com/cdn/assets/async/:id.ec0d09f166.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": null,
+      "contentType": null,
+      "streamingHint": false,
+      "count": 1
+    }
+  ],
+  "websockets": [
+    {
+      "host": "codex-cloud-backend.chatgpt.com",
+      "url": "wss://codex-cloud-backend.chatgpt.com/",
+      "createdAt": 1792625038080
+    }
+  ],
+  "errors": [],
+  "tab": {
+    "id": "4639EF1163614AD2EA2B1F21AF667128",
+    "openedByProbe": false,
+    "port": 9222
+  },
+  "loginEvidence": [
+    "chat composer present (1)"
+  ],
+  "network": {
+    "windowSeconds": 8,
+    "totalRequests": 106,
+    "resourceTypes": {
+      "Fetch": 25,
+      "Stylesheet": 7,
+      "Script": 69,
+      "Other": 4,
+      "XHR": 1
+    },
+    "failures": 0,
+    "websocketFrameEvents": 0,
+    "sidecarTab": true
+  },
+  "readyState": "complete"
+}

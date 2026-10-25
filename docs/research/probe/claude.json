@@ -1,0 +1,217 @@
+{
+  "site": "claude",
+  "probedAt": "2026-10-21T23:24:19.051Z",
+  "url": "https://claude.ai/new",
+  "title": "New session - Claude",
+  "loggedOut": false,
+  "composerCandidates": [
+    {
+      "selector": "div[data-testid=\"chat-input\"]",
+      "matched": "[contenteditable]",
+      "tag": "div",
+      "contentEditable": "true",
+      "isContentEditable": true,
+      "inForm": false,
+      "formAction": null,
+      "disabled": false,
+      "readOnly": false,
+      "searchLike": false,
+      "rect": {
+        "x": 439,
+        "y": 364,
+        "w": 616,
+        "h": 42
+      },
+      "label": "aria-label=Write your prompt to Claude | data-testid=chat-input"
+    }
+  ],
+  "genericWinner": {
+    "found": true,
+    "selector": "div[data-testid=\"chat-input\"]",
+    "matched": "[contenteditable=\"true\"]",
+    "tag": "div",
+    "area": 25869,
+    "rect": {
+      "x": 439,
+      "y": 364,
+      "w": 616,
+      "h": 42
+    },
+    "label": "aria-label=Write your prompt to Claude | data-testid=chat-input",
+    "searchLike": false,
+    "candidateCount": 2
+  },
+  "sendControls": [],
+  "assistantContainers": [
+    {
+      "selector": "fieldset > div > div:nth-of-type(4) > div > div:nth-of-type(1)",
+      "matched": "[class*=\"prose\"]",
+      "tag": "div",
+      "rect": {
+        "x": 423,
+        "y": 351,
+        "w": 640,
+        "h": 103
+      },
+      "textLength": 35,
+      "text80": "How can I help you today?   "
+    },
+    {
+      "selector": "div:nth-of-type(4) > div > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div > div:nth-of-type(1) > span",
+      "matched": "[class*=\"prose\"]",
+      "tag": "span",
+      "rect": {
+        "x": 431,
+        "y": 359,
+        "w": 189,
+        "h": 32
+      },
+      "textLength": 25,
+      "text80": "How can I help you today?"
+    },
+    {
+      "selector": "div:nth-of-type(4) > div > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div > div:nth-of-type(1) > div",
+      "matched": "[class*=\"prose\"]",
+      "tag": "div",
+      "rect": {
+        "x": 431,
+        "y": 359,
+        "w": 624,
+        "h": 53
+      },
+      "textLength": 1,
+      "text80": ""
+    },
+    {
+      "selector": "div:nth-of-type(4) > div > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div > div:nth-of-type(2)",
+      "matched": "[class*=\"prose\"]",
+      "tag": "div",
+      "rect": {
+        "x": 431,
+        "y": 359,
+        "w": 624,
+        "h": 53
+      },
+      "textLength": 0,
+      "text80": ""
+    }
+  ],
+  "streamingMarkers": [
+    {
+      "selector": "button[aria-label*=\"stop\" i]",
+      "present": false,
+      "count": 0,
+      "visibleCount": 0,
+      "sample": null
+    },
+    {
+      "selector": "[role=\"button\"][aria-label*=\"stop\" i]",
+      "present": false,
+      "count": 0,
+      "visibleCount": 0,
+      "sample": null
+    },
+    {
+      "selector": "[data-testid=\"stop-button\"]",
+      "present": false,
+      "count": 0,
+      "visibleCount": 0,
+      "sample": null
+    },
+    {
+      "selector": "[data-testid*=\"stop\" i]",
+      "present": false,
+      "count": 0,
+      "visibleCount": 0,
+      "sample": null
+    },
+    {
+      "selector": "[aria-busy=\"true\"]",
+      "present": false,
+      "count": 0,
+      "visibleCount": 0,
+      "sample": null
+    }
+  ],
+  "pageClasses": [
+    {
+      "class": "inline-flex min-w-0 items-center gap-1",
+      "count": 42
+    },
+    {
+      "class": "absolute inset-0 rounded-[inherit] transition-[background-color,box-shadow,color] stacks:transition-[box-shadow,color] duration-fast ease-out group-focus-visible/btn:shadow-[inset_0_0_0_1px_var(--cds-",
+      "count": 41
+    },
+    {
+      "class": "absolute -z-[1] rounded-[inherit] inset-0 cds-btn-squish stacks:transform-none!",
+      "count": 39
+    },
+    {
+      "class": "group hit-row [--cds-hit-gap-y:7px] rounded-[var(--df-radius-pill)] hover:bg-[var(--df-hover)] focus-visible:bg-[var(--df-hover)] has-[:focus-visible]:bg-[var(--df-hover)] data-[selected=focused]:bg-[",
+      "count": 27
+    },
+    {
+      "class": "absolute end-[var(--df-row-ctl-inset,calc((var(--df-row-h)-var(--df-row-ctl))/2))] -translate-y-1/2 flex items-center gap-0.5 top-1/2 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:",
+      "count": 27
+    },
+    {
+      "class": "cds-reset group/btn relative isolate inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap select-none cursor-[var(--cds-cursor-interactive)] aria-disabled:cursor-default data-[di",
+      "count": 26
+    },
+    {
+      "class": "relative df-drag-shiftable",
+      "count": 24
+    },
+    {
+      "class": "w-full shrink-0 border-none text-start text-[length:var(--df-row-font)] text-secondary flex ps-[calc(var(--df-row-px)+var(--df-row-indent,0px))] pe-[var(--df-row-px)] items-center gap-[var(--df-row-ga",
+      "count": 24
+    }
+  ],
+  "streamCandidates": [
+    {
+      "path": "claude.ai/api/organizations/:id/chat_conversations_v2",
+      "method": "GET",
+      "resourceType": "Fetch",
+      "status": 200,
+      "contentType": "application/json",
+      "streamingHint": false,
+      "count": 2
+    },
+    {
+      "path": "claude.ai/claudeai-rpc/anthropic.bard.api.v1alpha.ConversationService/:id",
+      "method": "POST",
+      "resourceType": "Fetch",
+      "status": null,
+      "contentType": null,
+      "streamingHint": false,
+      "count": 1
+    }
+  ],
+  "websockets": [],
+  "errors": [],
+  "tab": {
+    "id": "9F0F29BED2DCE4EB9FB3A07B38D47178",
+    "openedByProbe": false,
+    "port": 9222
+  },
+  "loginEvidence": [
+    "chat composer present (1)"
+  ],
+  "network": {
+    "windowSeconds": 8,
+    "totalRequests": 408,
+    "resourceTypes": {
+      "Font": 3,
+      "Script": 225,
+      "Stylesheet": 4,
+      "Fetch": 173,
+      "Manifest": 1,
+      "EventSource": 1,
+      "Other": 1
+    },
+    "failures": 0,
+    "websocketFrameEvents": 0,
+    "sidecarTab": true
+  },
+  "readyState": "complete"
+}

@@ -1,0 +1,445 @@
+{
+  "site": "qwen",
+  "probedAt": "2026-10-21T23:25:19.596Z",
+  "url": "https://chat.qwen.ai/",
+  "title": "Qwen",
+  "loggedOut": false,
+  "composerCandidates": [
+    {
+      "selector": "textarea",
+      "matched": "textarea",
+      "tag": "textarea",
+      "contentEditable": null,
+      "isContentEditable": false,
+      "inForm": false,
+      "formAction": null,
+      "disabled": false,
+      "readOnly": false,
+      "searchLike": false,
+      "rect": {
+        "x": 390,
+        "y": 417,
+        "w": 657,
+        "h": 32
+      },
+      "label": "placeholder=How can I help you today?"
+    }
+  ],
+  "genericWinner": {
+    "found": true,
+    "selector": "textarea",
+    "matched": "textarea",
+    "tag": "textarea",
+    "area": 21018,
+    "rect": {
+      "x": 390,
+      "y": 417,
+      "w": 657,
+      "h": 32
+    },
+    "label": "placeholder=How can I help you today?",
+    "searchLike": false,
+    "candidateCount": 1
+  },
+  "sendControls": [],
+  "assistantContainers": [],
+  "streamingMarkers": [
+    {
+      "selector": "button[aria-label*=\"stop\" i]",
+      "present": false,
+      "count": 0,
+      "visibleCount": 0,
+      "sample": null
+    },
+    {
+      "selector": "[role=\"button\"][aria-label*=\"stop\" i]",
+      "present": false,
+      "count": 0,
+      "visibleCount": 0,
+      "sample": null
+    },
+    {
+      "selector": "[data-testid=\"stop-button\"]",
+      "present": false,
+      "count": 0,
+      "visibleCount": 0,
+      "sample": null
+    },
+    {
+      "selector": "[data-testid*=\"stop\" i]",
+      "present": false,
+      "count": 0,
+      "visibleCount": 0,
+      "sample": null
+    },
+    {
+      "selector": "[aria-busy=\"true\"]",
+      "present": false,
+      "count": 0,
+      "visibleCount": 0,
+      "sample": null
+    }
+  ],
+  "pageClasses": [
+    {
+      "class": "splash-skeleton-bar animate-pulse-fast",
+      "count": 4
+    },
+    {
+      "class": "qwen-chat-v2-btn-content",
+      "count": 2
+    },
+    {
+      "class": "qwen-chat-v2-dropdown-menu-trigger",
+      "count": 2
+    },
+    {
+      "class": "footer-link footer-link-dark",
+      "count": 2
+    },
+    {
+      "class": "splash-skeleton-group",
+      "count": 2
+    },
+    {
+      "class": "splash-skeleton-bar splash-skeleton-bar-short animate-pulse-fast",
+      "count": 2
+    },
+    {
+      "class": "splash-detail dark",
+      "count": 1
+    },
+    {
+      "class": "app",
+      "count": 1
+    }
+  ],
+  "streamCandidates": [
+    {
+      "path": "assets.alicdn.com/g/qwenweb/qwen-chat-fe/0.3.20/js/:id.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 5
+    },
+    {
+      "path": "chat.qwen.ai/api/v2/users/status",
+      "method": "POST",
+      "resourceType": "Ping",
+      "status": 200,
+      "contentType": "application/json",
+      "streamingHint": false,
+      "count": 2
+    },
+    {
+      "path": "chat.qwen.ai/",
+      "method": "GET",
+      "resourceType": "Document",
+      "status": 200,
+      "contentType": "text/html; charset=utf-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "assets.alicdn.com/g/qwenweb/qwen-chat-fe/0.3.20/manifest.json",
+      "method": "GET",
+      "resourceType": "Manifest",
+      "status": 200,
+      "contentType": "application/json",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chat.qwen.ai/scripts/stat.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "assets.alicdn.com/g/qwenweb/qwen-chat-fe/0.3.20/js/main.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "assets.alicdn.com/g/qwenweb/qwen-chat-fe/0.3.20/js/vite-helpers--XMG7CgV.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "assets.alicdn.com/g/qwenweb/qwen-chat-fe/0.3.20/js/react-vendor-oaxFuuVX.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "assets.alicdn.com/g/qwenweb/qwen-chat-fe/0.3.20/js/dayjs-vendor-BPxuAAr2.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "assets.alicdn.com/g/qwenweb/qwen-chat-fe/0.3.20/js/uuid-vendor-BivXbof-.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "assets.alicdn.com/g/qwenweb/qwen-chat-fe/0.3.20/js/marked-vendor-Cp_WY4M2.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "assets.alicdn.com/g/qwenweb/qwen-chat-fe/0.3.20/js/antd-vendor-DnZSSCQQ.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "assets.alicdn.com/g/qwenweb/qwen-chat-fe/0.3.20/js/i18next-vendor-Bjxw645K.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "assets.alicdn.com/g/qwenweb/qwen-chat-fe/0.3.20/js/lodash-vendor-BG4eyKZF.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "assets.alicdn.com/g/qwenweb/qwen-chat-fe/0.3.20/js/axios-vendor-BBhJcI2c.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "assets.alicdn.com/g/qwenweb/qwen-chat-fe/0.3.20/js/router-vendor-CpIwY6sb.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "assets.alicdn.com/g/qwenweb/qwen-chat-fe/0.3.20/js/dnd-vendor-LLadDavV.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "assets.alicdn.com/g/qwenweb/qwen-chat-fe/0.3.20/js/languages-DIzavs9r.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "assets.alicdn.com/g/qwenweb/qwen-chat-fe/0.3.20/favicon.png",
+      "method": "GET",
+      "resourceType": "Other",
+      "status": 200,
+      "contentType": "image/png",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "assets.alicdn.com/g/qwenweb/qwen-chat-fe/0.3.20/js/translation-CclKqBoq.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "assets.alicdn.com/g/qwenweb/qwen-chat-fe/0.3.20/js/index-CXpC04IO.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "assets.alicdn.com/g/qwenweb/qwen-chat-fe/0.3.20/js/index-Db6zLZGW.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "assets.alicdn.com/g/qwenweb/qwen-chat-fe/0.3.20/js/index-DytjYzll.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "assets.alicdn.com/g/qwenweb/qwen-chat-fe/0.3.20/js/memory-DmfAEcqN.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "assets.alicdn.com/g/qwenweb/qwen-chat-fe/0.3.20/js/index-DrJMEfXz.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "assets.alicdn.com/g/qwenweb/qwen-chat-fe/0.3.20/js/index-DhdNGHqw.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chat.qwen.ai/api/v2/configs/setting-config",
+      "method": "GET",
+      "resourceType": "XHR",
+      "status": 200,
+      "contentType": "application/json",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chat.qwen.ai/api/v2/tts/config",
+      "method": "GET",
+      "resourceType": "XHR",
+      "status": 200,
+      "contentType": "application/json",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "assets.alicdn.com/g/qwenweb/qwen-chat-fe/0.3.20/js/index-CxFPLzGN.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chat.qwen.ai/api/v2/configs",
+      "method": "GET",
+      "resourceType": "XHR",
+      "status": 200,
+      "contentType": "application/json",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "chat.qwen.ai/api/v2/models",
+      "method": "GET",
+      "resourceType": "XHR",
+      "status": 200,
+      "contentType": "application/json",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "assets.alicdn.com/g/qwenweb/qwen-chat-fe/0.3.20/js/index-CeVWpy6g.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "assets.alicdn.com/g/qwenweb/qwen-chat-fe/0.3.20/js/ali-oss-vendor-DLhW4vry.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    }
+  ],
+  "websockets": [],
+  "errors": [],
+  "tab": {
+    "id": "1978A05AEE8E553C1A380D12191E8E78",
+    "openedByProbe": true,
+    "port": 9222
+  },
+  "loginEvidence": [
+    "chat composer present (1)"
+  ],
+  "network": {
+    "windowSeconds": 8,
+    "totalRequests": 87,
+    "resourceTypes": {
+      "Document": 1,
+      "Script": 42,
+      "Manifest": 1,
+      "Stylesheet": 5,
+      "Image": 13,
+      "Fetch": 2,
+      "Ping": 14,
+      "Other": 2,
+      "XHR": 7
+    },
+    "failures": 5,
+    "websocketFrameEvents": 0,
+    "sidecarTab": false
+  },
+  "readyState": "complete"
+}

@@ -1,0 +1,866 @@
+{
+  "site": "minimax",
+  "probedAt": "2026-10-21T23:25:42.006Z",
+  "url": "https://agent.minimax.cn/",
+  "title": "MiniMax Agent: 简单指令, 无限可能",
+  "loggedOut": false,
+  "composerCandidates": [
+    {
+      "selector": "div[data-testid=\"message-textarea\"]",
+      "matched": "[contenteditable]",
+      "tag": "div",
+      "contentEditable": "true",
+      "isContentEditable": true,
+      "inForm": false,
+      "formAction": null,
+      "disabled": false,
+      "readOnly": false,
+      "searchLike": false,
+      "rect": {
+        "x": 289,
+        "y": 216,
+        "w": 640,
+        "h": 54
+      },
+      "label": "aria-label=输入消息... (输入 / 唤起命令) | data-testid=message-textarea"
+    }
+  ],
+  "genericWinner": {
+    "found": true,
+    "selector": "div[data-testid=\"message-textarea\"]",
+    "matched": "[contenteditable=\"true\"]",
+    "tag": "div",
+    "area": 34555,
+    "rect": {
+      "x": 289,
+      "y": 216,
+      "w": 640,
+      "h": 54
+    },
+    "label": "aria-label=输入消息... (输入 / 唤起命令) | data-testid=message-textarea",
+    "searchLike": false,
+    "candidateCount": 1
+  },
+  "sendControls": [
+    {
+      "selector": "div[data-testid=\"send-button\"]",
+      "tag": "div",
+      "label": "发送消息 send-button",
+      "disabled": true,
+      "type": null,
+      "isSubmit": false,
+      "inForm": false,
+      "rect": {
+        "x": 903,
+        "y": 274,
+        "w": 30,
+        "h": 30
+      }
+    }
+  ],
+  "assistantContainers": [],
+  "streamingMarkers": [
+    {
+      "selector": "button[aria-label*=\"stop\" i]",
+      "present": false,
+      "count": 0,
+      "visibleCount": 0,
+      "sample": null
+    },
+    {
+      "selector": "[role=\"button\"][aria-label*=\"stop\" i]",
+      "present": false,
+      "count": 0,
+      "visibleCount": 0,
+      "sample": null
+    },
+    {
+      "selector": "[data-testid=\"stop-button\"]",
+      "present": false,
+      "count": 0,
+      "visibleCount": 0,
+      "sample": null
+    },
+    {
+      "selector": "[data-testid*=\"stop\" i]",
+      "present": false,
+      "count": 0,
+      "visibleCount": 0,
+      "sample": null
+    },
+    {
+      "selector": "[aria-busy=\"true\"]",
+      "present": false,
+      "count": 0,
+      "visibleCount": 0,
+      "sample": null
+    }
+  ],
+  "pageClasses": [
+    {
+      "class": "flex-shrink-0 text-icon_default_primary",
+      "count": 6
+    },
+    {
+      "class": "min-w-0 flex-1 truncate",
+      "count": 6
+    },
+    {
+      "class": "group flex h-[34px] w-full items-center gap-2 rounded-lg px-2 text-left text-sm leading-5 text-text_default_primary transition-colors hover:bg-bg_interaction_tertiary_hover focus:outline-none focus-vi",
+      "count": 3
+    },
+    {
+      "class": "desktop-text-ui-body flex h-[30px] flex-none cursor-pointer items-center justify-center gap-1 overflow-hidden rounded-[10px] border border-border_default mavis-suggestion-button pl-2 pr-2.5 text-sm fo",
+      "count": 3
+    },
+    {
+      "class": "flex flex-none items-center justify-center text-[var(--scene-tab-icon-color)] [&_svg]:block [&_svg]:h-full [&_svg]:w-full",
+      "count": 3
+    },
+    {
+      "class": "whitespace-nowrap text-text_default_primary",
+      "count": 3
+    },
+    {
+      "class": "contents",
+      "count": 2
+    },
+    {
+      "class": "flex w-full flex-col gap-px",
+      "count": 2
+    }
+  ],
+  "streamCandidates": [
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 7
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id-ecb57d272ba9b213.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/app/layout-a56c1ec5836546bb.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id-3ec7a34ee80eb35d.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id-9183a263e87872de.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/app/error-e8c90716a451ed28.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:idea10-e1d5501ac15224cf.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:idd63-7f7e9c20ae03ce76.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id-c7816649f6a0d43c.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id-183486a32f2ae9d7.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id-936995499add0c06.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id-61330b4dfe7d8bdd.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id-476fc873586cfe08.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id-62e19dae5e0c0777.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id-ec6ca9c49fa393df.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id-9e7293af16f1d2d6.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id-50a9b2b4743392e4.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id-cfac6a43ea62c780.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id-4e3df09a7b248aea.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id-5179cc4c05ac8ff2.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/app/(pages)/%5B%5B...mavisPath%5D%5D/page-c0841d51de2c89df.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.a5b1f01726056743.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.5140bcf71d739cab.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.e60c46f25e21dd47.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.6ebd417e80465342.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.39cb1853b6713372.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.2e8d33f4d804b680.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.7618209d2ac4459d.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.4101f2df4566b843.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.b6d1ee87775cd2ed.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.aa73603cdcf4f39e.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/b9734b5e.15b59fc21939248f.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.00fa6543b7433bfb.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/98f82933.78259aa1ebf448bf.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/6b3bb038.f96ac755aa2223cb.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.ceb2fa687e07bab8.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.cd18524b33d917d8.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.054e142e023f33d4.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.c881d5e86bd313b5.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.fd67f8cafa8cd2d1.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.97bb161c2e53eb12.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.522273bf8171cd38.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.64d6f2647447132f.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.b660be4d81a67ec0.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.98c09b233f1e049c.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.663d45256fc4a08f.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.4c92e78daba76338.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.614b9f2f914f958d.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.c03b042c3ece3bad.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.54d0932f47954545.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.901df58d0ee94fec.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.065b41627f7992ab.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.dd65101696519e71.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.9adc23f3077d89ad.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.23f34eca04e15961.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.745774782a5a1617.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.f8018b9ba5901628.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.ab2d7696722f3ffe.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.b0a9a733242d22d1.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.352e1b4bc1e35ae3.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.de68542db9e048a8.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.3b1e550a367a3439.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.6bcaad0da2fb2795.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.1b06a37ca4133ed8.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.7ae507348c9428ab.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.d701c0d8cd418fdc.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.ad1b585cd0fdb603.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.205eb76f0cf4b521.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.2db39b404ddaeb93.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.0809ce177b901b4f.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.5210b4caa676601c.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.011001a370e9e7df.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.d348469d800dac65.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.786fe0b02321a93d.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.1880ccf570cf19f5.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.02d06a34f89c94a3.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.24a8bf0b24a05647.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "cdn.hailuoai.com/mavis-chat/prod-web-sh-0.1.220/_next/static/chunks/:id.186a41e24623adeb.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    }
+  ],
+  "websockets": [],
+  "errors": [],
+  "tab": {
+    "id": "190357A616102D00DA625DF1B8415555",
+    "openedByProbe": true,
+    "port": 9222
+  },
+  "loginEvidence": [
+    "chat composer present (1)"
+  ],
+  "network": {
+    "windowSeconds": 8,
+    "totalRequests": 233,
+    "resourceTypes": {
+      "Document": 1,
+      "Stylesheet": 37,
+      "Script": 86,
+      "Manifest": 1,
+      "Ping": 1,
+      "Image": 47,
+      "Fetch": 45,
+      "XHR": 12,
+      "Other": 3
+    },
+    "failures": 5,
+    "websocketFrameEvents": 0,
+    "sidecarTab": false
+  },
+  "readyState": "complete"
+}

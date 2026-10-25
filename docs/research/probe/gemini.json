@@ -1,0 +1,873 @@
+{
+  "site": "gemini",
+  "probedAt": "2026-10-21T23:24:33.521Z",
+  "url": "https://gemini.google.com/app",
+  "title": "Google Gemini",
+  "loggedOut": false,
+  "composerCandidates": [
+    {
+      "selector": "div[data-placeholder=\"Ask Gemini\"]",
+      "matched": "[contenteditable]",
+      "tag": "div",
+      "contentEditable": "true",
+      "isContentEditable": true,
+      "inForm": false,
+      "formAction": null,
+      "disabled": false,
+      "readOnly": false,
+      "searchLike": false,
+      "rect": {
+        "x": 473,
+        "y": 383,
+        "w": 532,
+        "h": 24
+      },
+      "label": "aria-label=Enter a prompt for Gemini | data-placeholder=Ask Gemini"
+    }
+  ],
+  "genericWinner": {
+    "found": true,
+    "selector": "div[data-placeholder=\"Ask Gemini\"]",
+    "matched": "[contenteditable=\"true\"]",
+    "tag": "div",
+    "area": 12766,
+    "rect": {
+      "x": 473,
+      "y": 383,
+      "w": 532,
+      "h": 24
+    },
+    "label": "aria-label=Enter a prompt for Gemini | data-placeholder=Ask Gemini",
+    "searchLike": false,
+    "candidateCount": 2
+  },
+  "sendControls": [],
+  "assistantContainers": [
+    {
+      "selector": "assistant-messages-primary > div",
+      "matched": "[class*=\"assistant\"]",
+      "tag": "div",
+      "rect": {
+        "x": 323,
+        "y": 279,
+        "w": 840,
+        "h": 84
+      },
+      "textLength": 22,
+      "text80": "Where should we start?"
+    },
+    {
+      "selector": "chat-app",
+      "matched": "[class*=\"markdown\"]",
+      "tag": "chat-app",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "w": 1197,
+        "h": 790
+      },
+      "textLength": 84,
+      "text80": "New chat Activity owen wallace-servera Where should we start? Get app Upgrade"
+    },
+    {
+      "selector": "div:nth-of-type(1) > infinite-scroller",
+      "matched": "[class*=\"markdown\"]",
+      "tag": "infinite-scroller",
+      "rect": {
+        "x": 288,
+        "y": 0,
+        "w": 909,
+        "h": 740
+      },
+      "textLength": 22,
+      "text80": "Where should we start?"
+    }
+  ],
+  "streamingMarkers": [
+    {
+      "selector": "button[aria-label*=\"stop\" i]",
+      "present": false,
+      "count": 0,
+      "visibleCount": 0,
+      "sample": null
+    },
+    {
+      "selector": "[role=\"button\"][aria-label*=\"stop\" i]",
+      "present": false,
+      "count": 0,
+      "visibleCount": 0,
+      "sample": null
+    },
+    {
+      "selector": "[data-testid=\"stop-button\"]",
+      "present": false,
+      "count": 0,
+      "visibleCount": 0,
+      "sample": null
+    },
+    {
+      "selector": "[data-testid*=\"stop\" i]",
+      "present": false,
+      "count": 0,
+      "visibleCount": 0,
+      "sample": null
+    },
+    {
+      "selector": "[aria-busy=\"true\"]",
+      "present": false,
+      "count": 0,
+      "visibleCount": 0,
+      "sample": null
+    }
+  ],
+  "pageClasses": [
+    {
+      "class": "ng-star-inserted",
+      "count": 20
+    },
+    {
+      "class": "mat-focus-indicator",
+      "count": 17
+    },
+    {
+      "class": "mat-icon notranslate lm-icon-m lumi-symbols mat-ligature-font mat-icon-no-color ng-star-inserted",
+      "count": 12
+    },
+    {
+      "class": "mat-mdc-button-touch-target",
+      "count": 11
+    },
+    {
+      "class": "mat-mdc-button-persistent-ripple mdc-icon-button__ripple",
+      "count": 9
+    },
+    {
+      "class": "mdc-icon-button mat-mdc-icon-button mat-mdc-button-base mat-badge mat-unthemed _mat-animation-noopable mat-badge-overlap mat-badge-above mat-badge-after mat-badge-small mat-badge-hidden ng-star-insert",
+      "count": 8
+    },
+    {
+      "class": "mat-mdc-list-item-icon leading-icon-container mdc-list-item__start",
+      "count": 6
+    },
+    {
+      "class": "gem-nav-list-item-icon ng-star-inserted",
+      "count": 6
+    }
+  ],
+  "streamCandidates": [
+    {
+      "path": "gemini.google.com/_/BardChatUi/cspreport/fine-allowlist",
+      "method": "POST",
+      "resourceType": "Other",
+      "status": 204,
+      "contentType": "text/html; charset=utf-8",
+      "streamingHint": false,
+      "count": 49
+    },
+    {
+      "path": "gemini.google.com/_/BardChatUi/data/batchexecute",
+      "method": "POST",
+      "resourceType": "Fetch",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "streamingHint": false,
+      "count": 27
+    },
+    {
+      "path": "gemini.google.com/_/BardChatUi/cspreport",
+      "method": "POST",
+      "resourceType": "Other",
+      "status": 204,
+      "contentType": "text/html; charset=utf-8",
+      "streamingHint": false,
+      "count": 2
+    },
+    {
+      "path": "gemini.google.com/_/BardChatUi/manifest.json",
+      "method": "GET",
+      "resourceType": "Manifest",
+      "status": null,
+      "contentType": null,
+      "streamingHint": false,
+      "count": 2
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/excm=_b/ed=1/dg=0/br=1/wt=2/ujg=1/rs=AKrAJMqrhvJhj7sTusH3vtXh0NPrvIszSQ/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=_b",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=_b/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=LQaXg",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=LQaXg,_b/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=ziINQc",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=LQaXg,_b,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=MGIlxc",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=LQaXg,MGIlxc,_b,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=AdpaDf",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=AdpaDf,LQaXg,MGIlxc,_b,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=BenWQc",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=AdpaDf,BenWQc,LQaXg,MGIlxc,_b,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=Z8wCif",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=AdpaDf,BenWQc,LQaXg,MGIlxc,Z8wCif,_b,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=HwBxOc",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=AdpaDf,BenWQc,HwBxOc,LQaXg,MGIlxc,Z8wCif,_b,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=UE0P2d",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=AdpaDf,BenWQc,HwBxOc,LQaXg,MGIlxc,UE0P2d,Z8wCif,_b,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=pwgmXb",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=AdpaDf,BenWQc,HwBxOc,LQaXg,MGIlxc,UE0P2d,Z8wCif,_b,pwgmXb,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=ZQlXXb",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=AdpaDf,BenWQc,HwBxOc,LQaXg,MGIlxc,UE0P2d,Z8wCif,ZQlXXb,_b,pwgmXb,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=OpU7Tc",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=AdpaDf,BenWQc,HwBxOc,LQaXg,MGIlxc,OpU7Tc,UE0P2d,Z8wCif,ZQlXXb,_b,pwgmXb,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=k30KJd",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=AdpaDf,BenWQc,HwBxOc,LQaXg,MGIlxc,OpU7Tc,UE0P2d,Z8wCif,ZQlXXb,_b,k30KJd,pwgmXb,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=LVUOyb",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=AdpaDf,BenWQc,HwBxOc,LQaXg,LVUOyb,MGIlxc,OpU7Tc,UE0P2d,Z8wCif,ZQlXXb,_b,k30KJd,pwgmXb,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=fSXoCf",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=AdpaDf,BenWQc,HwBxOc,LQaXg,LVUOyb,MGIlxc,OpU7Tc,UE0P2d,Z8wCif,ZQlXXb,_b,fSXoCf,k30KJd,pwgmXb,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=QuxHpf",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=AdpaDf,BenWQc,HwBxOc,LQaXg,LVUOyb,MGIlxc,OpU7Tc,QuxHpf,UE0P2d,Z8wCif,ZQlXXb,_b,fSXoCf,k30KJd,pwgmXb,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=ABELSd",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BenWQc,HwBxOc,LQaXg,LVUOyb,MGIlxc,OpU7Tc,QuxHpf,UE0P2d,Z8wCif,ZQlXXb,_b,fSXoCf,k30KJd,pwgmXb,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=Z1MNA",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BenWQc,HwBxOc,LQaXg,LVUOyb,MGIlxc,OpU7Tc,QuxHpf,UE0P2d,Z1MNA,Z8wCif,ZQlXXb,_b,fSXoCf,k30KJd,pwgmXb,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=zSgmx",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BenWQc,HwBxOc,LQaXg,LVUOyb,MGIlxc,OpU7Tc,QuxHpf,UE0P2d,Z1MNA,Z8wCif,ZQlXXb,_b,fSXoCf,k30KJd,pwgmXb,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=q6pD8e",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BenWQc,HwBxOc,LQaXg,LVUOyb,MGIlxc,OpU7Tc,QuxHpf,UE0P2d,Z1MNA,Z8wCif,ZQlXXb,_b,fSXoCf,k30KJd,pwgmXb,q6pD8e,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=No94jc",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BenWQc,HwBxOc,LQaXg,LVUOyb,MGIlxc,No94jc,OpU7Tc,QuxHpf,UE0P2d,Z1MNA,Z8wCif,ZQlXXb,_b,fSXoCf,k30KJd,pwgmXb,q6pD8e,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=HbEaCf",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BenWQc,HbEaCf,HwBxOc,LQaXg,LVUOyb,MGIlxc,No94jc,OpU7Tc,QuxHpf,UE0P2d,Z1MNA,Z8wCif,ZQlXXb,_b,fSXoCf,k30KJd,pwgmXb,q6pD8e,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=o2mxrc",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BenWQc,HbEaCf,HwBxOc,LQaXg,LVUOyb,MGIlxc,No94jc,OpU7Tc,QuxHpf,UE0P2d,Z1MNA,Z8wCif,ZQlXXb,_b,fSXoCf,k30KJd,o2mxrc,pwgmXb,q6pD8e,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=v9r4Te",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BenWQc,HbEaCf,HwBxOc,LQaXg,LVUOyb,MGIlxc,No94jc,OpU7Tc,QuxHpf,UE0P2d,Z1MNA,Z8wCif,ZQlXXb,_b,fSXoCf,k30KJd,o2mxrc,pwgmXb,q6pD8e,v9r4Te,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=VSiC6e",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BenWQc,HbEaCf,HwBxOc,LQaXg,LVUOyb,MGIlxc,No94jc,OpU7Tc,QuxHpf,UE0P2d,VSiC6e,Z1MNA,Z8wCif,ZQlXXb,_b,fSXoCf,k30KJd,o2mxrc,pwgmXb,q6pD8e,v9r4Te,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=uEXP3c",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BenWQc,HbEaCf,HwBxOc,LQaXg,LVUOyb,MGIlxc,No94jc,OpU7Tc,QuxHpf,UE0P2d,VSiC6e,Z1MNA,Z8wCif,ZQlXXb,_b,fSXoCf,k30KJd,o2mxrc,pwgmXb,q6pD8e,uEXP3c,v9r4Te,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=sdS1Cf",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BenWQc,HbEaCf,HwBxOc,LQaXg,LVUOyb,MGIlxc,No94jc,OpU7Tc,QuxHpf,UE0P2d,VSiC6e,Z1MNA,Z8wCif,ZQlXXb,_b,fSXoCf,k30KJd,o2mxrc,pwgmXb,q6pD8e,sdS1Cf,uEXP3c,v9r4Te,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=ZVSTIe",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BenWQc,HbEaCf,HwBxOc,LQaXg,LVUOyb,MGIlxc,No94jc,OpU7Tc,QuxHpf,UE0P2d,VSiC6e,Z1MNA,Z8wCif,ZQlXXb,ZVSTIe,_b,fSXoCf,k30KJd,o2mxrc,pwgmXb,q6pD8e,sdS1Cf,uEXP3c,v9r4Te,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=GzXWE",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BenWQc,GzXWE,HbEaCf,HwBxOc,LQaXg,LVUOyb,MGIlxc,No94jc,OpU7Tc,QuxHpf,UE0P2d,VSiC6e,Z1MNA,Z8wCif,ZQlXXb,ZVSTIe,_b,fSXoCf,k30KJd,o2mxrc,pwgmXb,q6pD8e,sdS1Cf,uEXP3c,v9r4Te,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=Vdqlzd",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BenWQc,GzXWE,HbEaCf,HwBxOc,LQaXg,LVUOyb,MGIlxc,No94jc,OpU7Tc,QuxHpf,UE0P2d,VSiC6e,Vdqlzd,Z1MNA,Z8wCif,ZQlXXb,ZVSTIe,_b,fSXoCf,k30KJd,o2mxrc,pwgmXb,q6pD8e,sdS1Cf,uEXP3c,v9r4Te,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=nShoMc",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BenWQc,GzXWE,HbEaCf,HwBxOc,LQaXg,LVUOyb,MGIlxc,No94jc,OpU7Tc,QuxHpf,UE0P2d,VSiC6e,Vdqlzd,Z1MNA,Z8wCif,ZQlXXb,ZVSTIe,_b,fSXoCf,k30KJd,nShoMc,o2mxrc,pwgmXb,q6pD8e,sdS1Cf,uEXP3c,v9r4Te,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=PdaDwd",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BenWQc,GzXWE,HbEaCf,HwBxOc,LQaXg,LVUOyb,MGIlxc,No94jc,OpU7Tc,PdaDwd,QuxHpf,UE0P2d,VSiC6e,Vdqlzd,Z1MNA,Z8wCif,ZQlXXb,ZVSTIe,_b,fSXoCf,k30KJd,nShoMc,o2mxrc,pwgmXb,q6pD8e,sdS1Cf,uEXP3c,v9r4Te,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=ItLZxc",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BenWQc,GzXWE,HbEaCf,HwBxOc,ItLZxc,LQaXg,LVUOyb,MGIlxc,No94jc,OpU7Tc,PdaDwd,QuxHpf,UE0P2d,VSiC6e,Vdqlzd,Z1MNA,Z8wCif,ZQlXXb,ZVSTIe,_b,fSXoCf,k30KJd,nShoMc,o2mxrc,pwgmXb,q6pD8e,sdS1Cf,uEXP3c,v9r4Te,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=xy0Mif",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BenWQc,GzXWE,HbEaCf,HwBxOc,ItLZxc,LQaXg,LVUOyb,MGIlxc,No94jc,OpU7Tc,PdaDwd,QuxHpf,UE0P2d,VSiC6e,Vdqlzd,Z1MNA,Z8wCif,ZQlXXb,ZVSTIe,_b,fSXoCf,k30KJd,nShoMc,o2mxrc,pwgmXb,q6pD8e,sdS1Cf,uEXP3c,v9r4Te,xy0Mif,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=hSZKtd",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BenWQc,GzXWE,HbEaCf,HwBxOc,ItLZxc,LQaXg,LVUOyb,MGIlxc,No94jc,OpU7Tc,PdaDwd,QuxHpf,UE0P2d,VSiC6e,Vdqlzd,Z1MNA,Z8wCif,ZQlXXb,ZVSTIe,_b,fSXoCf,hSZKtd,k30KJd,nShoMc,o2mxrc,pwgmXb,q6pD8e,sdS1Cf,uEXP3c,v9r4Te,xy0Mif,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=eK0zfd",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BenWQc,GzXWE,HbEaCf,HwBxOc,ItLZxc,LQaXg,LVUOyb,MGIlxc,No94jc,OpU7Tc,PdaDwd,QuxHpf,UE0P2d,VSiC6e,Vdqlzd,Z1MNA,Z8wCif,ZQlXXb,ZVSTIe,_b,eK0zfd,fSXoCf,hSZKtd,k30KJd,nShoMc,o2mxrc,pwgmXb,q6pD8e,sdS1Cf,uEXP3c,v9r4Te,xy0Mif,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=G5GDje",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BenWQc,G5GDje,GzXWE,HbEaCf,HwBxOc,ItLZxc,LQaXg,LVUOyb,MGIlxc,No94jc,OpU7Tc,PdaDwd,QuxHpf,UE0P2d,VSiC6e,Vdqlzd,Z1MNA,Z8wCif,ZQlXXb,ZVSTIe,_b,eK0zfd,fSXoCf,hSZKtd,k30KJd,nShoMc,o2mxrc,pwgmXb,q6pD8e,sdS1Cf,uEXP3c,v9r4Te,xy0Mif,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=PU1dDc",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BenWQc,G5GDje,GzXWE,HbEaCf,HwBxOc,ItLZxc,LQaXg,LVUOyb,MGIlxc,No94jc,OpU7Tc,PU1dDc,PdaDwd,QuxHpf,UE0P2d,VSiC6e,Vdqlzd,Z1MNA,Z8wCif,ZQlXXb,ZVSTIe,_b,eK0zfd,fSXoCf,hSZKtd,k30KJd,nShoMc,o2mxrc,pwgmXb,q6pD8e,sdS1Cf,uEXP3c,v9r4Te,xy0Mif,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=cteZTb",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BenWQc,G5GDje,GzXWE,HbEaCf,HwBxOc,ItLZxc,LQaXg,LVUOyb,MGIlxc,No94jc,OpU7Tc,PU1dDc,PdaDwd,QuxHpf,UE0P2d,VSiC6e,Vdqlzd,Z1MNA,Z8wCif,ZQlXXb,ZVSTIe,_b,cteZTb,eK0zfd,fSXoCf,hSZKtd,k30KJd,nShoMc,o2mxrc,pwgmXb,q6pD8e,sdS1Cf,uEXP3c,v9r4Te,xy0Mif,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=C3yBDb",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "www.gstatic.com/bg3/boq-bard-web/islands/assets/en/:id.js",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "application/javascript",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BenWQc,C3yBDb,G5GDje,GzXWE,HbEaCf,HwBxOc,ItLZxc,LQaXg,LVUOyb,MGIlxc,No94jc,OpU7Tc,PU1dDc,PdaDwd,QuxHpf,UE0P2d,VSiC6e,Vdqlzd,Z1MNA,Z8wCif,ZQlXXb,ZVSTIe,_b,cteZTb,eK0zfd,fSXoCf,hSZKtd,k30KJd,nShoMc,o2mxrc,pwgmXb,q6pD8e,sdS1Cf,uEXP3c,v9r4Te,xy0Mif,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=qxlpjc",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BenWQc,C3yBDb,G5GDje,GzXWE,HbEaCf,HwBxOc,ItLZxc,LQaXg,LVUOyb,MGIlxc,No94jc,OpU7Tc,PU1dDc,PdaDwd,QuxHpf,UE0P2d,VSiC6e,Vdqlzd,Z1MNA,Z8wCif,ZQlXXb,ZVSTIe,_b,cteZTb,eK0zfd,fSXoCf,hSZKtd,k30KJd,nShoMc,o2mxrc,pwgmXb,q6pD8e,qxlpjc,sdS1Cf,uEXP3c,v9r4Te,xy0Mif,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=bSyRib",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BenWQc,C3yBDb,G5GDje,GzXWE,HbEaCf,HwBxOc,ItLZxc,LQaXg,LVUOyb,MGIlxc,No94jc,OpU7Tc,PU1dDc,PdaDwd,QuxHpf,UE0P2d,VSiC6e,Vdqlzd,Z1MNA,Z8wCif,ZQlXXb,ZVSTIe,_b,bSyRib,cteZTb,eK0zfd,fSXoCf,hSZKtd,k30KJd,nShoMc,o2mxrc,pwgmXb,q6pD8e,qxlpjc,sdS1Cf,uEXP3c,v9r4Te,xy0Mif,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=xmtx9e",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BenWQc,C3yBDb,G5GDje,GzXWE,HbEaCf,HwBxOc,ItLZxc,LQaXg,LVUOyb,MGIlxc,No94jc,OpU7Tc,PU1dDc,PdaDwd,QuxHpf,UE0P2d,VSiC6e,Vdqlzd,Z1MNA,Z8wCif,ZQlXXb,ZVSTIe,_b,bSyRib,cteZTb,eK0zfd,fSXoCf,hSZKtd,k30KJd,nShoMc,o2mxrc,pwgmXb,q6pD8e,qxlpjc,sdS1Cf,uEXP3c,v9r4Te,xmtx9e,xy0Mif,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=CsakMb",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BenWQc,C3yBDb,CsakMb,G5GDje,GzXWE,HbEaCf,HwBxOc,ItLZxc,LQaXg,LVUOyb,MGIlxc,No94jc,OpU7Tc,PU1dDc,PdaDwd,QuxHpf,UE0P2d,VSiC6e,Vdqlzd,Z1MNA,Z8wCif,ZQlXXb,ZVSTIe,_b,bSyRib,cteZTb,eK0zfd,fSXoCf,hSZKtd,k30KJd,nShoMc,o2mxrc,pwgmXb,q6pD8e,qxlpjc,sdS1Cf,uEXP3c,v9r4Te,xmtx9e,xy0Mif,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=ponblb",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BenWQc,C3yBDb,CsakMb,G5GDje,GzXWE,HbEaCf,HwBxOc,ItLZxc,LQaXg,LVUOyb,MGIlxc,No94jc,OpU7Tc,PU1dDc,PdaDwd,QuxHpf,UE0P2d,VSiC6e,Vdqlzd,Z1MNA,Z8wCif,ZQlXXb,ZVSTIe,_b,bSyRib,cteZTb,eK0zfd,fSXoCf,hSZKtd,k30KJd,nShoMc,o2mxrc,ponblb,pwgmXb,q6pD8e,qxlpjc,sdS1Cf,uEXP3c,v9r4Te,xmtx9e,xy0Mif,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=o2nH0b",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BenWQc,C3yBDb,CsakMb,G5GDje,GzXWE,HbEaCf,HwBxOc,ItLZxc,LQaXg,LVUOyb,MGIlxc,No94jc,OpU7Tc,PU1dDc,PdaDwd,QuxHpf,UE0P2d,VSiC6e,Vdqlzd,Z1MNA,Z8wCif,ZQlXXb,ZVSTIe,_b,bSyRib,cteZTb,eK0zfd,fSXoCf,hSZKtd,k30KJd,nShoMc,o2mxrc,o2nH0b,ponblb,pwgmXb,q6pD8e,qxlpjc,sdS1Cf,uEXP3c,v9r4Te,xmtx9e,xy0Mif,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=bNyBZd",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BenWQc,C3yBDb,CsakMb,G5GDje,GzXWE,HbEaCf,HwBxOc,ItLZxc,LQaXg,LVUOyb,MGIlxc,No94jc,OpU7Tc,PU1dDc,PdaDwd,QuxHpf,UE0P2d,VSiC6e,Vdqlzd,Z1MNA,Z8wCif,ZQlXXb,ZVSTIe,_b,bNyBZd,bSyRib,cteZTb,eK0zfd,fSXoCf,hSZKtd,k30KJd,nShoMc,o2mxrc,o2nH0b,ponblb,pwgmXb,q6pD8e,qxlpjc,sdS1Cf,uEXP3c,v9r4Te,xmtx9e,xy0Mif,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=OWHuje",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BenWQc,C3yBDb,CsakMb,G5GDje,GzXWE,HbEaCf,HwBxOc,ItLZxc,LQaXg,LVUOyb,MGIlxc,No94jc,OWHuje,OpU7Tc,PU1dDc,PdaDwd,QuxHpf,UE0P2d,VSiC6e,Vdqlzd,Z1MNA,Z8wCif,ZQlXXb,ZVSTIe,_b,bNyBZd,bSyRib,cteZTb,eK0zfd,fSXoCf,hSZKtd,k30KJd,nShoMc,o2mxrc,o2nH0b,ponblb,pwgmXb,q6pD8e,qxlpjc,sdS1Cf,uEXP3c,v9r4Te,xmtx9e,xy0Mif,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=N9BqIf",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BenWQc,C3yBDb,CsakMb,G5GDje,GzXWE,HbEaCf,HwBxOc,ItLZxc,LQaXg,LVUOyb,MGIlxc,N9BqIf,No94jc,OWHuje,OpU7Tc,PU1dDc,PdaDwd,QuxHpf,UE0P2d,VSiC6e,Vdqlzd,Z1MNA,Z8wCif,ZQlXXb,ZVSTIe,_b,bNyBZd,bSyRib,cteZTb,eK0zfd,fSXoCf,hSZKtd,k30KJd,nShoMc,o2mxrc,o2nH0b,ponblb,pwgmXb,q6pD8e,qxlpjc,sdS1Cf,uEXP3c,v9r4Te,xmtx9e,xy0Mif,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=E3fsbf",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BenWQc,C3yBDb,CsakMb,E3fsbf,G5GDje,GzXWE,HbEaCf,HwBxOc,ItLZxc,LQaXg,LVUOyb,MGIlxc,N9BqIf,No94jc,OWHuje,OpU7Tc,PU1dDc,PdaDwd,QuxHpf,UE0P2d,VSiC6e,Vdqlzd,Z1MNA,Z8wCif,ZQlXXb,ZVSTIe,_b,bNyBZd,bSyRib,cteZTb,eK0zfd,fSXoCf,hSZKtd,k30KJd,nShoMc,o2mxrc,o2nH0b,ponblb,pwgmXb,q6pD8e,qxlpjc,sdS1Cf,uEXP3c,v9r4Te,xmtx9e,xy0Mif,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=ir0vzb",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BenWQc,C3yBDb,CsakMb,E3fsbf,G5GDje,GzXWE,HbEaCf,HwBxOc,ItLZxc,LQaXg,LVUOyb,MGIlxc,N9BqIf,No94jc,OWHuje,OpU7Tc,PU1dDc,PdaDwd,QuxHpf,UE0P2d,VSiC6e,Vdqlzd,Z1MNA,Z8wCif,ZQlXXb,ZVSTIe,_b,bNyBZd,bSyRib,cteZTb,eK0zfd,fSXoCf,hSZKtd,ir0vzb,k30KJd,nShoMc,o2mxrc,o2nH0b,ponblb,pwgmXb,q6pD8e,qxlpjc,sdS1Cf,uEXP3c,v9r4Te,xmtx9e,xy0Mif,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=bnLiYc",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BenWQc,C3yBDb,CsakMb,E3fsbf,G5GDje,GzXWE,HbEaCf,HwBxOc,ItLZxc,LQaXg,LVUOyb,MGIlxc,N9BqIf,No94jc,OWHuje,OpU7Tc,PU1dDc,PdaDwd,QuxHpf,UE0P2d,VSiC6e,Vdqlzd,Z1MNA,Z8wCif,ZQlXXb,ZVSTIe,_b,bNyBZd,bSyRib,bnLiYc,cteZTb,eK0zfd,fSXoCf,hSZKtd,ir0vzb,k30KJd,nShoMc,o2mxrc,o2nH0b,ponblb,pwgmXb,q6pD8e,qxlpjc,sdS1Cf,uEXP3c,v9r4Te,xmtx9e,xy0Mif,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=JKGJfb",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BenWQc,C3yBDb,CsakMb,E3fsbf,G5GDje,GzXWE,HbEaCf,HwBxOc,ItLZxc,JKGJfb,LQaXg,LVUOyb,MGIlxc,N9BqIf,No94jc,OWHuje,OpU7Tc,PU1dDc,PdaDwd,QuxHpf,UE0P2d,VSiC6e,Vdqlzd,Z1MNA,Z8wCif,ZQlXXb,ZVSTIe,_b,bNyBZd,bSyRib,bnLiYc,cteZTb,eK0zfd,fSXoCf,hSZKtd,ir0vzb,k30KJd,nShoMc,o2mxrc,o2nH0b,ponblb,pwgmXb,q6pD8e,qxlpjc,sdS1Cf,uEXP3c,v9r4Te,xmtx9e,xy0Mif,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=FRlTNb",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BenWQc,C3yBDb,CsakMb,E3fsbf,FRlTNb,G5GDje,GzXWE,HbEaCf,HwBxOc,ItLZxc,JKGJfb,LQaXg,LVUOyb,MGIlxc,N9BqIf,No94jc,OWHuje,OpU7Tc,PU1dDc,PdaDwd,QuxHpf,UE0P2d,VSiC6e,Vdqlzd,Z1MNA,Z8wCif,ZQlXXb,ZVSTIe,_b,bNyBZd,bSyRib,bnLiYc,cteZTb,eK0zfd,fSXoCf,hSZKtd,ir0vzb,k30KJd,nShoMc,o2mxrc,o2nH0b,ponblb,pwgmXb,q6pD8e,qxlpjc,sdS1Cf,uEXP3c,v9r4Te,xmtx9e,xy0Mif,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=tCaMKd",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BenWQc,C3yBDb,CsakMb,E3fsbf,FRlTNb,G5GDje,GzXWE,HbEaCf,HwBxOc,ItLZxc,JKGJfb,LQaXg,LVUOyb,MGIlxc,N9BqIf,No94jc,OWHuje,OpU7Tc,PU1dDc,PdaDwd,QuxHpf,UE0P2d,VSiC6e,Vdqlzd,Z1MNA,Z8wCif,ZQlXXb,ZVSTIe,_b,bNyBZd,bSyRib,bnLiYc,cteZTb,eK0zfd,fSXoCf,hSZKtd,ir0vzb,k30KJd,nShoMc,o2mxrc,o2nH0b,ponblb,pwgmXb,q6pD8e,qxlpjc,sdS1Cf,tCaMKd,uEXP3c,v9r4Te,xmtx9e,xy0Mif,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=CK6Z6b",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BenWQc,C3yBDb,CK6Z6b,CsakMb,E3fsbf,FRlTNb,G5GDje,GzXWE,HbEaCf,HwBxOc,ItLZxc,JKGJfb,LQaXg,LVUOyb,MGIlxc,N9BqIf,No94jc,OWHuje,OpU7Tc,PU1dDc,PdaDwd,QuxHpf,UE0P2d,VSiC6e,Vdqlzd,Z1MNA,Z8wCif,ZQlXXb,ZVSTIe,_b,bNyBZd,bSyRib,bnLiYc,cteZTb,eK0zfd,fSXoCf,hSZKtd,ir0vzb,k30KJd,nShoMc,o2mxrc,o2nH0b,ponblb,pwgmXb,q6pD8e,qxlpjc,sdS1Cf,tCaMKd,uEXP3c,v9r4Te,xmtx9e,xy0Mif,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=BIsfnb",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BIsfnb,BenWQc,C3yBDb,CK6Z6b,CsakMb,E3fsbf,FRlTNb,G5GDje,GzXWE,HbEaCf,HwBxOc,ItLZxc,JKGJfb,LQaXg,LVUOyb,MGIlxc,N9BqIf,No94jc,OWHuje,OpU7Tc,PU1dDc,PdaDwd,QuxHpf,UE0P2d,VSiC6e,Vdqlzd,Z1MNA,Z8wCif,ZQlXXb,ZVSTIe,_b,bNyBZd,bSyRib,bnLiYc,cteZTb,eK0zfd,fSXoCf,hSZKtd,ir0vzb,k30KJd,nShoMc,o2mxrc,o2nH0b,ponblb,pwgmXb,q6pD8e,qxlpjc,sdS1Cf,tCaMKd,uEXP3c,v9r4Te,xmtx9e,xy0Mif,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=k9O9ef",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BIsfnb,BenWQc,C3yBDb,CK6Z6b,CsakMb,E3fsbf,FRlTNb,G5GDje,GzXWE,HbEaCf,HwBxOc,ItLZxc,JKGJfb,LQaXg,LVUOyb,MGIlxc,N9BqIf,No94jc,OWHuje,OpU7Tc,PU1dDc,PdaDwd,QuxHpf,UE0P2d,VSiC6e,Vdqlzd,Z1MNA,Z8wCif,ZQlXXb,ZVSTIe,_b,bNyBZd,bSyRib,bnLiYc,cteZTb,eK0zfd,fSXoCf,hSZKtd,ir0vzb,k30KJd,k9O9ef,nShoMc,o2mxrc,o2nH0b,ponblb,pwgmXb,q6pD8e,qxlpjc,sdS1Cf,tCaMKd,uEXP3c,v9r4Te,xmtx9e,xy0Mif,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=h4lope",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BIsfnb,BenWQc,C3yBDb,CK6Z6b,CsakMb,E3fsbf,FRlTNb,G5GDje,GzXWE,HbEaCf,HwBxOc,ItLZxc,JKGJfb,LQaXg,LVUOyb,MGIlxc,N9BqIf,No94jc,OWHuje,OpU7Tc,PU1dDc,PdaDwd,QuxHpf,UE0P2d,VSiC6e,Vdqlzd,Z1MNA,Z8wCif,ZQlXXb,ZVSTIe,_b,bNyBZd,bSyRib,bnLiYc,cteZTb,eK0zfd,fSXoCf,h4lope,hSZKtd,ir0vzb,k30KJd,k9O9ef,nShoMc,o2mxrc,o2nH0b,ponblb,pwgmXb,q6pD8e,qxlpjc,sdS1Cf,tCaMKd,uEXP3c,v9r4Te,xmtx9e,xy0Mif,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=mqe9lc",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BIsfnb,BenWQc,C3yBDb,CK6Z6b,CsakMb,E3fsbf,FRlTNb,G5GDje,GzXWE,HbEaCf,HwBxOc,ItLZxc,JKGJfb,LQaXg,LVUOyb,MGIlxc,N9BqIf,No94jc,OWHuje,OpU7Tc,PU1dDc,PdaDwd,QuxHpf,UE0P2d,VSiC6e,Vdqlzd,Z1MNA,Z8wCif,ZQlXXb,ZVSTIe,_b,bNyBZd,bSyRib,bnLiYc,cteZTb,eK0zfd,fSXoCf,h4lope,hSZKtd,ir0vzb,k30KJd,k9O9ef,mqe9lc,nShoMc,o2mxrc,o2nH0b,ponblb,pwgmXb,q6pD8e,qxlpjc,sdS1Cf,tCaMKd,uEXP3c,v9r4Te,xmtx9e,xy0Mif,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=n2sUFb",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BIsfnb,BenWQc,C3yBDb,CK6Z6b,CsakMb,E3fsbf,FRlTNb,G5GDje,GzXWE,HbEaCf,HwBxOc,ItLZxc,JKGJfb,LQaXg,LVUOyb,MGIlxc,N9BqIf,No94jc,OWHuje,OpU7Tc,PU1dDc,PdaDwd,QuxHpf,UE0P2d,VSiC6e,Vdqlzd,Z1MNA,Z8wCif,ZQlXXb,ZVSTIe,_b,bNyBZd,bSyRib,bnLiYc,cteZTb,eK0zfd,fSXoCf,h4lope,hSZKtd,ir0vzb,k30KJd,k9O9ef,mqe9lc,n2sUFb,nShoMc,o2mxrc,o2nH0b,ponblb,pwgmXb,q6pD8e,qxlpjc,sdS1Cf,tCaMKd,uEXP3c,v9r4Te,xmtx9e,xy0Mif,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=TK6Kl",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BIsfnb,BenWQc,C3yBDb,CK6Z6b,CsakMb,E3fsbf,FRlTNb,G5GDje,GzXWE,HbEaCf,HwBxOc,ItLZxc,JKGJfb,LQaXg,LVUOyb,MGIlxc,N9BqIf,No94jc,OWHuje,OpU7Tc,PU1dDc,PdaDwd,QuxHpf,TK6Kl,UE0P2d,VSiC6e,Vdqlzd,Z1MNA,Z8wCif,ZQlXXb,ZVSTIe,_b,bNyBZd,bSyRib,bnLiYc,cteZTb,eK0zfd,fSXoCf,h4lope,hSZKtd,ir0vzb,k30KJd,k9O9ef,mqe9lc,n2sUFb,nShoMc,o2mxrc,o2nH0b,ponblb,pwgmXb,q6pD8e,qxlpjc,sdS1Cf,tCaMKd,uEXP3c,v9r4Te,xmtx9e,xy0Mif,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=gMf0nf",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BIsfnb,BenWQc,C3yBDb,CK6Z6b,CsakMb,E3fsbf,FRlTNb,G5GDje,GzXWE,HbEaCf,HwBxOc,ItLZxc,JKGJfb,LQaXg,LVUOyb,MGIlxc,N9BqIf,No94jc,OWHuje,OpU7Tc,PU1dDc,PdaDwd,QuxHpf,TK6Kl,UE0P2d,VSiC6e,Vdqlzd,Z1MNA,Z8wCif,ZQlXXb,ZVSTIe,_b,bNyBZd,bSyRib,bnLiYc,cteZTb,eK0zfd,fSXoCf,gMf0nf,h4lope,hSZKtd,ir0vzb,k30KJd,k9O9ef,mqe9lc,n2sUFb,nShoMc,o2mxrc,o2nH0b,ponblb,pwgmXb,q6pD8e,qxlpjc,sdS1Cf,tCaMKd,uEXP3c,v9r4Te,xmtx9e,xy0Mif,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=aIycJb",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BIsfnb,BenWQc,C3yBDb,CK6Z6b,CsakMb,E3fsbf,FRlTNb,G5GDje,GzXWE,HbEaCf,HwBxOc,ItLZxc,JKGJfb,LQaXg,LVUOyb,MGIlxc,N9BqIf,No94jc,OWHuje,OpU7Tc,PU1dDc,PdaDwd,QuxHpf,TK6Kl,UE0P2d,VSiC6e,Vdqlzd,Z1MNA,Z8wCif,ZQlXXb,ZVSTIe,_b,aIycJb,bNyBZd,bSyRib,bnLiYc,cteZTb,eK0zfd,fSXoCf,gMf0nf,h4lope,hSZKtd,ir0vzb,k30KJd,k9O9ef,mqe9lc,n2sUFb,nShoMc,o2mxrc,o2nH0b,ponblb,pwgmXb,q6pD8e,qxlpjc,sdS1Cf,tCaMKd,uEXP3c,v9r4Te,xmtx9e,xy0Mif,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=TRJwtb",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BIsfnb,BenWQc,C3yBDb,CK6Z6b,CsakMb,E3fsbf,FRlTNb,G5GDje,GzXWE,HbEaCf,HwBxOc,ItLZxc,JKGJfb,LQaXg,LVUOyb,MGIlxc,N9BqIf,No94jc,OWHuje,OpU7Tc,PU1dDc,PdaDwd,QuxHpf,TK6Kl,TRJwtb,UE0P2d,VSiC6e,Vdqlzd,Z1MNA,Z8wCif,ZQlXXb,ZVSTIe,_b,aIycJb,bNyBZd,bSyRib,bnLiYc,cteZTb,eK0zfd,fSXoCf,gMf0nf,h4lope,hSZKtd,ir0vzb,k30KJd,k9O9ef,mqe9lc,n2sUFb,nShoMc,o2mxrc,o2nH0b,ponblb,pwgmXb,q6pD8e,qxlpjc,sdS1Cf,tCaMKd,uEXP3c,v9r4Te,xmtx9e,xy0Mif,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=woSxpc",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BIsfnb,BenWQc,C3yBDb,CK6Z6b,CsakMb,E3fsbf,FRlTNb,G5GDje,GzXWE,HbEaCf,HwBxOc,ItLZxc,JKGJfb,LQaXg,LVUOyb,MGIlxc,N9BqIf,No94jc,OWHuje,OpU7Tc,PU1dDc,PdaDwd,QuxHpf,TK6Kl,TRJwtb,UE0P2d,VSiC6e,Vdqlzd,Z1MNA,Z8wCif,ZQlXXb,ZVSTIe,_b,aIycJb,bNyBZd,bSyRib,bnLiYc,cteZTb,eK0zfd,fSXoCf,gMf0nf,h4lope,hSZKtd,ir0vzb,k30KJd,k9O9ef,mqe9lc,n2sUFb,nShoMc,o2mxrc,o2nH0b,ponblb,pwgmXb,q6pD8e,qxlpjc,sdS1Cf,tCaMKd,uEXP3c,v9r4Te,woSxpc,xmtx9e,xy0Mif,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=euv2wd",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BIsfnb,BenWQc,C3yBDb,CK6Z6b,CsakMb,E3fsbf,FRlTNb,G5GDje,GzXWE,HbEaCf,HwBxOc,ItLZxc,JKGJfb,LQaXg,LVUOyb,MGIlxc,N9BqIf,No94jc,OWHuje,OpU7Tc,PU1dDc,PdaDwd,QuxHpf,TK6Kl,TRJwtb,UE0P2d,VSiC6e,Vdqlzd,Z1MNA,Z8wCif,ZQlXXb,ZVSTIe,_b,aIycJb,bNyBZd,bSyRib,bnLiYc,cteZTb,eK0zfd,euv2wd,fSXoCf,gMf0nf,h4lope,hSZKtd,ir0vzb,k30KJd,k9O9ef,mqe9lc,n2sUFb,nShoMc,o2mxrc,o2nH0b,ponblb,pwgmXb,q6pD8e,qxlpjc,sdS1Cf,tCaMKd,uEXP3c,v9r4Te,woSxpc,xmtx9e,xy0Mif,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=ObKeA",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BIsfnb,BenWQc,C3yBDb,CK6Z6b,CsakMb,E3fsbf,FRlTNb,G5GDje,GzXWE,HbEaCf,HwBxOc,ItLZxc,JKGJfb,LQaXg,LVUOyb,MGIlxc,N9BqIf,No94jc,OWHuje,ObKeA,OpU7Tc,PU1dDc,PdaDwd,QuxHpf,TK6Kl,TRJwtb,UE0P2d,VSiC6e,Vdqlzd,Z1MNA,Z8wCif,ZQlXXb,ZVSTIe,_b,aIycJb,bNyBZd,bSyRib,bnLiYc,cteZTb,eK0zfd,euv2wd,fSXoCf,gMf0nf,h4lope,hSZKtd,ir0vzb,k30KJd,k9O9ef,mqe9lc,n2sUFb,nShoMc,o2mxrc,o2nH0b,ponblb,pwgmXb,q6pD8e,qxlpjc,sdS1Cf,tCaMKd,uEXP3c,v9r4Te,woSxpc,xmtx9e,xy0Mif,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=xrScke",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BIsfnb,BenWQc,C3yBDb,CK6Z6b,CsakMb,E3fsbf,FRlTNb,G5GDje,GzXWE,HbEaCf,HwBxOc,ItLZxc,JKGJfb,LQaXg,LVUOyb,MGIlxc,N9BqIf,No94jc,OWHuje,ObKeA,OpU7Tc,PU1dDc,PdaDwd,QuxHpf,TK6Kl,TRJwtb,UE0P2d,VSiC6e,Vdqlzd,Z1MNA,Z8wCif,ZQlXXb,ZVSTIe,_b,aIycJb,bNyBZd,bSyRib,bnLiYc,cteZTb,eK0zfd,euv2wd,fSXoCf,gMf0nf,h4lope,hSZKtd,ir0vzb,k30KJd,k9O9ef,mqe9lc,n2sUFb,nShoMc,o2mxrc,o2nH0b,ponblb,pwgmXb,q6pD8e,qxlpjc,sdS1Cf,tCaMKd,uEXP3c,v9r4Te,woSxpc,xmtx9e,xrScke,xy0Mif,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=Tsm3ee",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    },
+    {
+      "path": "gemini.gstatic.com/_/mss/boq-gemini-web-uiserver/_/js/k=boq-gemini-web-uiserver.BardChatUi.en._WTT3rpl7As.2018.O/ck=boq-gemini-web-uiserver.BardChatUi.GBmCUhxZdDY.L.B1.O/am=-YUAaPgHmHr7oIVfhA4GCjACXRBAAAAAAEAI/d=1/exm=ABELSd,AdpaDf,BIsfnb,BenWQc,C3yBDb,CK6Z6b,CsakMb,E3fsbf,FRlTNb,G5GDje,GzXWE,HbEaCf,HwBxOc,ItLZxc,JKGJfb,LQaXg,LVUOyb,MGIlxc,N9BqIf,No94jc,OWHuje,ObKeA,OpU7Tc,PU1dDc,PdaDwd,QuxHpf,TK6Kl,TRJwtb,Tsm3ee,UE0P2d,VSiC6e,Vdqlzd,Z1MNA,Z8wCif,ZQlXXb,ZVSTIe,_b,aIycJb,bNyBZd,bSyRib,bnLiYc,cteZTb,eK0zfd,euv2wd,fSXoCf,gMf0nf,h4lope,hSZKtd,ir0vzb,k30KJd,k9O9ef,mqe9lc,n2sUFb,nShoMc,o2mxrc,o2nH0b,ponblb,pwgmXb,q6pD8e,qxlpjc,sdS1Cf,tCaMKd,uEXP3c,v9r4Te,woSxpc,xmtx9e,xrScke,xy0Mif,zSgmx,ziINQc/excm=_b/ed=1/br=1/wt=2/ujg=1/rs=AKrAJMpRYZ-A-gGKygWINd4HrVuhVpUfJw/ee=DGWCxb:CgYiQ;EmZ2Bf:zr1jrb;NJ1rfe:yGfSdd;Pjplud:PoEs9b;QGR0gd:Mlhmy;ScI3Yc:e7Hzgb;UYRIEb:HzTAQc;YIZmRd:A1yn5d;cEt90b:ws9Tlc;dIoSBb:SpsfSb;dowIGb:ebZ3mb;eBAeSb:zbML3c;iFQyKf:vfuNJf;oGtAuc:sOXFj;qQEoOc:KUM7Z;qddgKe:xQtZb;wR5FRb:siKnQd;yxTchf:KUM7Z/dti=1/m=VZIYP",
+      "method": "GET",
+      "resourceType": "Script",
+      "status": 200,
+      "contentType": "text/javascript; charset=UTF-8",
+      "streamingHint": false,
+      "count": 1
+    }
+  ],
+  "websockets": [],
+  "errors": [],
+  "tab": {
+    "id": "7814FFD54C04DADD71F94723064E32F0",
+    "openedByProbe": true,
+    "port": 9222
+  },
+  "loginEvidence": [
+    "chat composer present (1)"
+  ],
+  "network": {
+    "windowSeconds": 8,
+    "totalRequests": 249,
+    "resourceTypes": {
+      "Document": 4,
+      "Script": 133,
+      "Other": 54,
+      "Manifest": 2,
+      "Font": 5,
+      "Image": 9,
+      "Stylesheet": 2,
+      "Fetch": 31,
+      "XHR": 6,
+      "Ping": 3
+    },
+    "failures": 6,
+    "websocketFrameEvents": 0,
+    "sidecarTab": false
+  },
+  "readyState": "complete"
+}

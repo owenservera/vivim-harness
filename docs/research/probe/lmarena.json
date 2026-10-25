@@ -1,0 +1,161 @@
+{
+  "site": "lmarena",
+  "probedAt": "2026-10-21T23:25:29.904Z",
+  "url": "https://arena.ai/",
+  "title": "Arena AI: The Official AI Ranking & LLM Leaderboard",
+  "loggedOut": false,
+  "composerCandidates": [
+    {
+      "selector": "textarea[name=\"message\"]",
+      "matched": "textarea",
+      "tag": "textarea",
+      "contentEditable": null,
+      "isContentEditable": false,
+      "inForm": true,
+      "formAction": null,
+      "disabled": false,
+      "readOnly": false,
+      "searchLike": false,
+      "rect": {
+        "x": 300,
+        "y": 335,
+        "w": 654,
+        "h": 80
+      },
+      "label": "placeholder=Ask anything… | name=message"
+    }
+  ],
+  "genericWinner": {
+    "found": true,
+    "selector": "textarea[name=\"message\"]",
+    "matched": "textarea",
+    "tag": "textarea",
+    "area": 52274,
+    "rect": {
+      "x": 300,
+      "y": 335,
+      "w": 654,
+      "h": 80
+    },
+    "label": "placeholder=Ask anything… | name=message",
+    "searchLike": false,
+    "candidateCount": 1
+  },
+  "sendControls": [
+    {
+      "selector": "div:nth-of-type(2) > button",
+      "tag": "button",
+      "label": "Send message",
+      "disabled": true,
+      "type": "submit",
+      "isSubmit": true,
+      "inForm": true,
+      "rect": {
+        "x": 921,
+        "y": 423,
+        "w": 32,
+        "h": 32
+      }
+    }
+  ],
+  "assistantContainers": [],
+  "streamingMarkers": [
+    {
+      "selector": "button[aria-label*=\"stop\" i]",
+      "present": false,
+      "count": 0,
+      "visibleCount": 0,
+      "sample": null
+    },
+    {
+      "selector": "[role=\"button\"][aria-label*=\"stop\" i]",
+      "present": false,
+      "count": 0,
+      "visibleCount": 0,
+      "sample": null
+    },
+    {
+      "selector": "[data-testid=\"stop-button\"]",
+      "present": false,
+      "count": 0,
+      "visibleCount": 0,
+      "sample": null
+    },
+    {
+      "selector": "[data-testid*=\"stop\" i]",
+      "present": false,
+      "count": 0,
+      "visibleCount": 0,
+      "sample": null
+    },
+    {
+      "selector": "[aria-busy=\"true\"]",
+      "present": false,
+      "count": 0,
+      "visibleCount": 0,
+      "sample": null
+    }
+  ],
+  "pageClasses": [
+    {
+      "class": "size-4",
+      "count": 9
+    },
+    {
+      "class": "border-border-medium bg-surface-primary hover:bg-surface-tertiary focus-visible:ring-ring focus-visible:ring-offset-surface-primary motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from",
+      "count": 6
+    },
+    {
+      "class": "bg-surface-raised border-border-faint group-hover:bg-surface-secondary group-hover:border-border-medium rounded-[3px] border p-1.5 transition-colors",
+      "count": 6
+    },
+    {
+      "class": "flex min-w-0 flex-col",
+      "count": 6
+    },
+    {
+      "class": "body-xs text-header-primary !font-book",
+      "count": 6
+    },
+    {
+      "class": "body-xxs text-text-tertiary truncate",
+      "count": 6
+    },
+    {
+      "class": "group/menu-item relative group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center",
+      "count": 3
+    },
+    {
+      "class": "h-5 w-5",
+      "count": 3
+    }
+  ],
+  "streamCandidates": [],
+  "websockets": [],
+  "errors": [],
+  "tab": {
+    "id": "109D53EB48997299CAEB7550A53F2004",
+    "openedByProbe": true,
+    "port": 9222
+  },
+  "loginEvidence": [
+    "chat composer present (1)"
+  ],
+  "network": {
+    "windowSeconds": 8,
+    "totalRequests": 119,
+    "resourceTypes": {
+      "Document": 2,
+      "Font": 7,
+      "Stylesheet": 4,
+      "Script": 67,
+      "Other": 1,
+      "Fetch": 37,
+      "Ping": 1
+    },
+    "failures": 1,
+    "websocketFrameEvents": 0,
+    "sidecarTab": false
+  },
+  "readyState": "complete"
+}
