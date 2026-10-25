@@ -1,19 +1,18 @@
 // C-11 agentic file library. Read-only inventory of instruction files under caller-supplied
-// roots. It never executes, evaluates, imports, or follows instructions found in those files,
-// never follows symlinks, and never reads outside a root. Untrusted roots cannot raise capability.
+// roots. The files are inert data; this library grants no capability; trust is always
+// untrusted-until-confirmed. It never executes, evaluates, imports, or follows instructions
+// found in those files, never follows links outside a verified real path, and never reads
+// outside a root. get(id) resolves through a bounded id registry instead of rescanning the
+// whole tree; its read stays live and recomputes integrity from the bytes actually returned.
 import { createHash } from 'node:crypto';
 import {
-  closeSync, constants, fstatSync, lstatSync, openSync, readdirSync, readSync,
+  closeSync, constants, fstatSync, lstatSync, openSync, readdirSync, realpathSync, readSync,
 } from 'node:fs';
 import path from 'node:path';
 import { integer, problem } from './http.mjs';
 
 export const AGENTIC_FILE_KINDS = Object.freeze(['agents', 'claude', 'opencode-agent', 'skill', 'docs-agent']);
 const PRECEDENCE_KINDS = Object.freeze(['agents', 'claude']);
-const CLAIM_KEYS = new Set([
-  'allow', 'autonomy', 'capabilities', 'capability', 'command', 'commands', 'exec', 'execute',
-  'permissions', 'raisesCapability', 'shell', 'tools',
-]);
 
 export const AGENTIC_FILE_LIMITS = Object.freeze({
   maxFiles: 200,
@@ -48,7 +47,13 @@ export const AGENTIC_PRECEDENCE_RULE = Object.freeze({
   statement: 'A shallower file of the same kind in the same root outranks a deeper one. Equal depth is a tie and has no winner. Ranking is disclosed only: conflicts are listed and not resolved, and no file is selected as policy.',
 });
 
-const QUALIFICATION = 'Scan covers regular files matching AGENTS.md, CLAUDE.md, SKILL.md, .opencode/agents/*.md, and docs/agents/*.md under the explicit roots. .git and node_modules are excluded by policy. Symlinks are not followed. complete means every in-policy match was visited and hashed in full; it does not mean unread, excluded, or remote files do not exist. Precedence is not applied. trust stays untrusted-until-confirmed. A root flagged untrusted, and this library generally, cannot raise capability.';
+// Canonical inertness statement for records and coverage; there is deliberately no
+// raised/ceiling capability field anywhere because there is no capability to raise.
+const INERT_STATEMENT = 'files are inert data; this library grants no capability; trust is always untrusted-until-confirmed';
+
+const QUALIFICATION = `Scan covers regular files matching AGENTS.md, CLAUDE.md, SKILL.md, .opencode/agents/*.md, and docs/agents/*.md under the explicit roots. .git and node_modules are excluded by policy. Symlinks and junctions are not followed; every entry's real path must stay inside the root's own real path. complete means every in-policy match was visited and hashed in full; it does not mean unread, excluded, or remote files do not exist. Precedence is not applied. ${INERT_STATEMENT.charAt(0).toUpperCase() + INERT_STATEMENT.slice(1)}.`;
+
+const NOT_FOUND = () => problem(404, 'Agentic file not found', 'AGENTIC_NOT_FOUND');
 
 function boundsWith(overrides) {
   if (overrides !== undefined && (!overrides || typeof overrides !== 'object' || Array.isArray(overrides))) {
@@ -67,11 +72,37 @@ function boundsWith(overrides) {
   return out;
 }
 
+function samePath(a, b) {
+  return process.platform === 'win32' ? a.toLowerCase() === b.toLowerCase() : a === b;
+}
+
+/** Containment on real (already realpath-resolved) paths: structural prefix, case-insensitive
+ * on win32. Input segments must not contain navigation; callers pass realpath output only. */
+export function realInside(realRoot, realPath) {
+  if (typeof realRoot !== 'string' || typeof realPath !== 'string' || realRoot === '' || realPath === '') return false;
+  const win32 = process.platform === 'win32';
+  const norm = (value) => (win32 ? value.toLowerCase().replaceAll('\\', '/') : value);
+  const root = norm(realRoot);
+  const target = norm(realPath);
+  if (root === target) return true;
+  return target.startsWith(root.endsWith('/') ? root : `${root}/`);
+}
+
+/** Policy directory name ('git' or 'node_modules') or null. Case-insensitive on win32 where
+ * the filesystem is case-insensitive by default. */
+function policyDirName(name) {
+  const key = process.platform === 'win32' ? name.toLowerCase() : name;
+  if (key === '.git') return 'git';
+  if (key === 'node_modules') return 'node_modules';
+  return null;
+}
+
 function normalizeRoots(roots) {
   if (!Array.isArray(roots)) throw new TypeError('roots must be an explicit array of directories');
   if (roots.length > 32) throw new TypeError('roots exceeds 32');
-  const seen = new Set();
-  return roots.map((entry, index) => {
+  const accepted = [], acceptedIds = new Set();
+  const out = [];
+  for (const [index, entry] of roots.entries()) {
     const spec = typeof entry === 'string' ? { path: entry } : entry;
     if (!spec || typeof spec !== 'object' || Array.isArray(spec) || typeof spec.path !== 'string') {
       throw new TypeError(`roots[${index}] must be an absolute path or { path }`);
@@ -83,13 +114,28 @@ function normalizeRoots(roots) {
       throw new TypeError(`roots[${index}].id must be a short token`);
     }
     const resolved = path.resolve(spec.path);
-    const key = process.platform === 'win32' ? resolved.toLowerCase() : resolved;
-    if (seen.has(key)) throw new TypeError(`roots[${index}] duplicates another root`);
-    seen.add(key);
+    // Realpath where the path exists; alias and containment checks compare real paths so a
+    // junction or other link alias cannot smuggle in a duplicate or a nested root. A missing
+    // path has no real path yet, so only lexical equality is checked for it.
+    let real = null;
+    try { real = realpathSync(resolved); } catch { real = null; }
+    const canonical = real ?? resolved;
+    const id = spec.id ?? (`r${createHash('sha256').update(canonical).digest('hex').slice(0, 16)}`);
+    if (acceptedIds.has(id)) throw new TypeError(`roots[${index}] duplicates the root id '${id}'`);
+    for (const prior of accepted) {
+      if (samePath(prior.canonical, canonical)) {
+        throw new TypeError(`roots[${index}] duplicates another root (same resolved path, or the same real path through a link alias)`);
+      }
+      if (real !== null && prior.real !== null && (realInside(prior.canonical, canonical) || realInside(canonical, prior.canonical))) {
+        throw new TypeError(`roots[${index}] is contained in or contains another root`);
+      }
+    }
+    acceptedIds.add(id);
+    accepted.push({ canonical, real });
     const untrusted = spec.untrusted !== false;
-    const id = spec.id ?? (`r${createHash('sha256').update(key).digest('hex').slice(0, 16)}`);
-    return { id, resolved, untrusted };
-  });
+    out.push({ id, resolved, untrusted });
+  }
+  return out;
 }
 
 function fileId(rootId, relPosix) {
@@ -143,7 +189,7 @@ function parseScalar(raw, limits) {
     if (body.includes("'") || body.includes('\0')) return REJECT;
     return body.length > limits.maxFrontmatterValue ? REJECT : body;
   }
-  if (!/^[A-Za-z0-9][A-Za-z0-9 ._/:+-]{0,499}$/.test(raw)) return REJECT;
+  if (!new RegExp(`^[A-Za-z0-9][A-Za-z0-9 ._/:+-]{0,${Math.max(0, limits.maxFrontmatterValue - 1)}}$`).test(raw)) return REJECT;
   return raw;
 }
 
@@ -161,9 +207,9 @@ function parseFrontmatter(text, limits) {
     if (line === '' || line.startsWith('#')) continue;
     if (/^\s/.test(line)) return { frontmatter: null, status: 'rejected', body: text };
     const match = /^([A-Za-z_][A-Za-z0-9_-]{0,63}):[ \t]*(.*)$/.exec(line);
-    if (!match || CLAIM_KEYS.has(match[1]) === false && (match[1] === '__proto__' || match[1] === 'prototype' || match[1] === 'constructor')) {
-      return { frontmatter: null, status: 'rejected', body: text };
-    }
+    if (!match) return { frontmatter: null, status: 'rejected', body: text };
+    // A plain object stores these only via the literal key strings, so exact
+    // case-sensitive names are exactly the ones that must be refused.
     if (match[1] === '__proto__' || match[1] === 'prototype' || match[1] === 'constructor') {
       return { frontmatter: null, status: 'rejected', body: text };
     }
@@ -185,7 +231,8 @@ function titleOf(relPosix, frontmatter, body, max) {
   }
   if (!title && frontmatter && typeof frontmatter.name === 'string') title = frontmatter.name.trim();
   if (!title) title = relPosix.split('/').pop();
-  title = title.replace(/[\u0000-\u001f]/g, ' ').trim();
+  // Strip bidi/zero-width control shapes, then plain control characters.
+  title = title.replace(/[\u200b-\u200f\u202a-\u202e\u2066-\u2069]/g, '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim();
   return title.length > max ? title.slice(0, max) : title;
 }
 
@@ -200,23 +247,34 @@ function classify(relPosix) {
   return null;
 }
 
-function claimsIgnored(frontmatter) {
-  if (!frontmatter) return false;
-  return Object.keys(frontmatter).some((key) => CLAIM_KEYS.has(key));
+// The opened regular file must still present itself with the metadata we inventoried where
+// both sides report comparable dev/ino (Windows does; platforms without it skip the check).
+function sameMeta(before, after) {
+  const comparable = (st) => Number.isSafeInteger(st?.dev) && st.dev > 0 && Number.isSafeInteger(st?.ino) && st.ino > 0;
+  if (!comparable(before) || !comparable(after)) return true;
+  return before.dev === after.dev && before.ino === after.ino;
 }
 
-function readRegular(full, limits) {
+function readRegular(full, realRoot, limits) {
   let fd;
   try {
     const before = lstatSync(full);
     if (before.isSymbolicLink() || !before.isFile()) return { refused: 'symlink' };
+    let real;
+    try { real = realpathSync(full); } catch { return { refused: 'unreadable' }; }
+    if (!realInside(realRoot, real)) return { refused: 'escaped-root' };
     if (!Number.isSafeInteger(before.size) || before.size < 0) return { refused: 'unreadable' };
     if (before.size > limits.maxFileBytes) return { overCap: true, bytes: before.size, mtime: before.mtimeMs };
     const flags = constants.O_RDONLY | (process.platform === 'win32' ? 0 : (constants.O_NOFOLLOW || 0));
     fd = openSync(full, flags);
     const st = fstatSync(fd);
-    if (!st.isFile() || st.isSymbolicLink?.()) return { refused: 'symlink' };
+    if (!st.isFile() || !sameMeta(before, st)) return { refused: 'swapped' };
     if (!Number.isSafeInteger(st.size) || st.size < 0 || st.size > limits.maxFileBytes) return { overCap: true, bytes: st.size, mtime: st.mtimeMs };
+    // After open, the path must still resolve to the same real path inside the root.
+    try {
+      const after = realpathSync(full);
+      if (!samePath(after, real)) return { refused: 'swapped' };
+    } catch { return { refused: 'unreadable' }; }
     const buf = Buffer.alloc(st.size);
     let off = 0;
     while (off < st.size) {
@@ -248,6 +306,15 @@ function clipUtf8(text, maxBytes) {
   let end = maxBytes;
   while (end > 0 && (buf[end] & 0b11000000) === 0b10000000) end -= 1;
   return { content: buf.subarray(0, end).toString('utf8'), contentTruncated: true };
+}
+
+// Strict bounded UTF-8; embedded NULs mean this is not text under review. A leading BOM is
+// already removed by the decoder, so there is nothing left to strip here.
+function utf8Text(buf) {
+  let text = null;
+  try { text = new TextDecoder('utf-8', { fatal: true }).decode(buf); } catch { text = null; }
+  if (text === null || text.includes('\0')) return null;
+  return text;
 }
 
 function precedenceFor(items, truncated) {
@@ -300,7 +367,7 @@ function scan(roots, limits) {
     skipped.push({ path: rel, reason, root: rootId });
   }
 
-  function considerFile(root, full, rel, stSizeKnown) {
+  function considerFile(root, realRoot, full, rel) {
     const kind = classify(rel);
     if (!kind) return;
     if (items.length >= limits.maxFiles) {
@@ -308,7 +375,7 @@ function scan(roots, limits) {
       reasons.add('max-files');
       return;
     }
-    const read = readRegular(full, limits);
+    const read = readRegular(full, realRoot, limits);
     if (read.refused) {
       note(rel, read.refused, root.id);
       return;
@@ -327,13 +394,6 @@ function scan(roots, limits) {
       title: rel.split('/').pop(),
       source: 'local-file',
       trust: 'untrusted-until-confirmed',
-      raisesCapability: false,
-      capability: Object.freeze({
-        raised: false,
-        ceiling: 'none',
-        reason: root.untrusted ? 'untrusted-root' : 'execution-free',
-        claimsIgnored: false,
-      }),
       text: false,
     };
     if (read.overCap) {
@@ -342,40 +402,28 @@ function scan(roots, limits) {
       return;
     }
     const sha256 = createHash('sha256').update(read.buf).digest('hex');
-    let text = null;
-    try { text = new TextDecoder('utf-8', { fatal: true }).decode(read.buf); }
-    catch { text = null; }
-    if (text?.charCodeAt(0) === 0xFEFF) text = text.slice(1);
-    if (text?.includes('\0')) text = null;
+    const text = utf8Text(read.buf);
     if (text === null) {
       items.push({ ...base, sha256, text: false });
       return;
     }
     const parsed = parseFrontmatter(text, limits);
     if (parsed.status === 'rejected') reasons.add('frontmatter-rejected');
-    const ignored = claimsIgnored(parsed.frontmatter);
     items.push({
       ...base,
       sha256,
       frontmatter: parsed.frontmatter,
       title: titleOf(rel, parsed.frontmatter, parsed.body, limits.maxTitle),
       text: true,
-      raisesCapability: false,
-      capability: Object.freeze({
-        raised: false,
-        ceiling: 'none',
-        reason: root.untrusted ? 'untrusted-root' : 'execution-free',
-        claimsIgnored: ignored,
-      }),
     });
-    void stSizeKnown;
   }
 
-  function walk(root, dir, relDir, depth) {
+  function walk(root, realRoot, dir, relDir, depth, report) {
     if (stop) return;
     let dirents;
     try { dirents = readdirSync(dir, { withFileTypes: true }); }
     catch {
+      if (samePath(dir, root.resolved)) report.status = 'unreadable';
       note(relDir || '.', 'unreadable', root.id);
       return;
     }
@@ -398,8 +446,9 @@ function scan(roots, limits) {
         note(relDir || '.', 'outside-root', root.id);
         continue;
       }
-      if (dirent.name === 'node_modules' || dirent.name === '.git') {
-        note(rel, dirent.name === '.git' ? 'git' : 'node_modules', root.id);
+      const policy = policyDirName(dirent.name);
+      if (policy) {
+        note(rel, policy, root.id);
         continue;
       }
       let st;
@@ -412,19 +461,31 @@ function scan(roots, limits) {
         note(rel, 'symlink', root.id);
         continue;
       }
+      // No-follow beyond lstat: the entry's own real path must stay inside the root's real
+      // path, so a junctioned ancestor or aliased layout cannot move the tree outside.
+      let real;
+      try { real = realpathSync(full); }
+      catch {
+        note(rel, 'unreadable', root.id);
+        continue;
+      }
+      if (!realInside(realRoot, real)) {
+        note(rel, 'escaped-root', root.id);
+        continue;
+      }
       if (st.isDirectory()) {
         if (depth >= limits.maxDepth) {
           note(rel, 'depth', root.id);
           continue;
         }
-        walk(root, full, rel, depth + 1);
+        walk(root, realRoot, full, rel, depth + 1, report);
         continue;
       }
       if (!st.isFile()) {
         note(rel, 'special', root.id);
         continue;
       }
-      considerFile(root, full, rel, st.size);
+      considerFile(root, realRoot, full, rel);
     }
   }
 
@@ -452,8 +513,18 @@ function scan(roots, limits) {
       rootReports.push({ id: root.id, untrusted: root.untrusted, status: 'skipped', skipReason: 'not-a-directory' });
       continue;
     }
-    rootReports.push({ id: root.id, untrusted: root.untrusted, status: 'scanned', skipReason: null });
-    walk(root, root.resolved, '', 0);
+    let realRoot;
+    try { realRoot = realpathSync(root.resolved); }
+    catch {
+      note('.', 'unreadable', root.id);
+      rootReports.push({ id: root.id, untrusted: root.untrusted, status: 'unreadable', skipReason: null });
+      continue;
+    }
+    // Status lands here only after the walk: 'scanned' means it really finished.
+    const report = { id: root.id, untrusted: root.untrusted, status: 'scanned', skipReason: null };
+    walk(root, realRoot, root.resolved, '', 0, report);
+    if (report.status === 'scanned' && stop) report.status = 'partial';
+    rootReports.push(report);
   }
 
   const policy = new Set(['git', 'node_modules']);
@@ -476,17 +547,33 @@ function scan(roots, limits) {
   return { items, coverage, precedence };
 }
 
-export function createAgenticFileLibrary({ roots, limits } = {}) {
+export function createAgenticFileLibrary({ roots, limits, idCacheTtlMs } = {}) {
   const rootList = normalizeRoots(roots);
   const bounds = boundsWith(limits);
+  const ttlMs = idCacheTtlMs === undefined ? 1000 : integer(idCacheTtlMs, 1000, 60000, 0);
+  // Bounded id registry: one scan mints id -> {rootId, rel, kind}; list() rebuilds it, get()
+  // reuses it until the TTL expires, then rebuilds at most once per call on a miss.
+  let registry = null;
+  let registryAt = 0;
 
-  function listed() {
-    return scan(rootList, bounds);
+  function ensureRegistry(force = false) {
+    const now = Date.now();
+    if (!force && registry && now - registryAt <= ttlMs) return registry;
+    const found = scan(rootList, bounds);
+    const map = new Map();
+    for (const item of found.items) map.set(item.id, { rootId: item.root, rel: item.path, kind: item.kind });
+    registry = map;
+    registryAt = now;
+    return map;
   }
 
   function list(q = {}) {
     if (q !== undefined && (!q || typeof q !== 'object' || Array.isArray(q))) throw problem(400, 'query must be an object');
-    const found = listed();
+    const found = scan(rootList, bounds);
+    const map = new Map();
+    for (const item of found.items) map.set(item.id, { rootId: item.root, rel: item.path, kind: item.kind });
+    registry = map;
+    registryAt = Date.now();
     let items = found.items.map((item) => {
       const { depth, ...rest } = item;
       void depth;
@@ -514,53 +601,58 @@ export function createAgenticFileLibrary({ roots, limits } = {}) {
 
   function get(id) {
     if (typeof id !== 'string' || !/^[a-f0-9]{64}$/.test(id)) throw problem(400, 'id must be a sha256 hex digest');
-    const found = listed().items.find((item) => item.id === id);
-    if (!found) throw problem(404, 'Agentic file not found', 'AGENTIC_NOT_FOUND');
-    const root = rootList.find((entry) => entry.id === found.root);
-    const full = path.resolve(root.resolved, ...found.path.split('/'));
-    if (inside(root.resolved, full) !== found.path) throw problem(400, 'Agentic file path is outside its root');
-    const read = readRegular(full, bounds);
-    if (!read || read.refused || read.overCap || !read.buf) {
-      return publicRecord(found, { content: null, contentTruncated: false, contentState: read?.overCap ? 'over-cap' : 'unreadable' });
+    let entry = ensureRegistry().get(id);
+    if (!entry) entry = ensureRegistry(true).get(id);
+    if (!entry) throw NOT_FOUND();
+    const root = rootList.find((candidate) => candidate.id === entry.rootId);
+    if (!root) throw NOT_FOUND();
+    const full = path.resolve(root.resolved, ...entry.rel.split('/'));
+    if (inside(root.resolved, full) !== entry.rel) throw NOT_FOUND();
+    let realRoot;
+    try { realRoot = realpathSync(root.resolved); } catch { throw NOT_FOUND(); }
+    const read = readRegular(full, realRoot, bounds);
+    if (!read || read.refused) {
+      // A listed file that vanished, moved through a link, or lost its reason is the same
+      // not-found as an unknown id: the registry never leaks whether a path taxon exists.
+      throw NOT_FOUND();
     }
-    const sha256 = createHash('sha256').update(read.buf).digest('hex');
-    if (sha256 !== found.sha256) {
-      return publicRecord({ ...found, sha256, bytes: read.bytes, mtime: isoTime(read.mtime) }, {
-        content: null, contentTruncated: false, contentState: 'integrity-changed',
-      });
+    const record = {
+      id,
+      kind: entry.kind,
+      path: entry.rel,
+      root: entry.rootId,
+      bytes: read.bytes,
+      sha256: read.overCap ? null : createHash('sha256').update(read.buf).digest('hex'),
+      mtime: isoTime(read.mtime),
+      title: entry.rel.split('/').pop(),
+      source: 'local-file',
+      trust: 'untrusted-until-confirmed',
+      text: false,
+    };
+    if (read.overCap) {
+      return { ...record, frontmatter: null, content: null, contentTruncated: false, contentState: 'over-cap' };
     }
-    let text = null;
-    try { text = new TextDecoder('utf-8', { fatal: true }).decode(read.buf); }
-    catch { text = null; }
-    if (text?.charCodeAt(0) === 0xFEFF) text = text.slice(1);
-    if (text?.includes('\0')) text = null;
-    if (text === null) return publicRecord(found, { content: null, contentTruncated: false, contentState: 'not-text' });
+    const text = utf8Text(read.buf);
+    if (text === null) {
+      return { ...record, frontmatter: null, content: null, contentTruncated: false, contentState: 'not-text' };
+    }
+    const parsed = parseFrontmatter(text, bounds);
+    record.frontmatter = parsed.frontmatter;
+    record.title = titleOf(entry.rel, parsed.frontmatter, parsed.body, bounds.maxTitle);
+    record.text = true;
     const clipped = clipUtf8(text, bounds.maxContentBytes);
-    return publicRecord(found, { ...clipped, contentState: clipped.contentTruncated ? 'truncated' : 'full' });
+    return {
+      ...record,
+      ...clipped,
+      contentState: clipped.contentTruncated ? 'truncated' : 'full',
+    };
   }
 
   return { list, get };
 }
 
-function publicRecord(found, content) {
-  const { depth, ...rest } = found;
-  void depth;
-  return {
-    ...rest,
-    source: 'local-file',
-    trust: 'untrusted-until-confirmed',
-    raisesCapability: false,
-    capability: Object.freeze({
-      raised: false,
-      ceiling: 'none',
-      reason: rest.capability?.reason === 'execution-free' ? 'execution-free' : 'untrusted-root',
-      claimsIgnored: rest.capability?.claimsIgnored === true,
-    }),
-    ...content,
-  };
-}
-
-// Optional routes for the existing Studio hub. The parent registers them; this module does not.
+// Mounting is an explicit caller action: registerAgenticFileRoutes must be invoked by a
+// parent that owns a router; nothing in this module mounts routes by itself.
 export function registerAgenticFileRoutes({ add, library, roots, limits } = {}) {
   if (typeof add !== 'function') throw new TypeError('registerAgenticFileRoutes requires the hub add() function');
   const lib = library ?? (roots ? createAgenticFileLibrary({ roots, limits }) : null);

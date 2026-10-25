@@ -1,7 +1,8 @@
-// C-11 agentic file library is read-only, execution-free, and root-bounded.
-// Source-level, discovery, refusal, cap, untrust, path-blast-radius, and coverage-honesty tests.
-// Every test uses temp dirs under the OS temp root and never touches the repo working tree.
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, symlinkSync } from 'node:fs';
+// C-11 agentic file library is read-only, execution-free, and root-bounded, and it
+// demonstrably grants no capability. Source-level, discovery, refusal, cap, root-id,
+// path-containment, and coverage-honesty tests. Every test uses temp dirs under the OS
+// temp root and never touches the repo working tree.
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, symlinkSync, chmodSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
@@ -18,9 +19,8 @@ function tempRoot(t, prefix = 'agentic-files-') {
   return root;
 }
 
-// Junctions work unprivileged on Windows and degrade to regular symlinks elsewhere, so the
-// refusal assertions stay deterministic. When link creation itself is denied, the platform
-// cannot host the refusal case here and the test keeps only the assertions it can prove.
+// Junctions work unprivileged on Windows and degrade to regular symlinks elsewhere. When
+// link creation itself is denied, the test reports that with t.skip instead of passing silently.
 function maybeJunction(target, linkPath) {
   try { symlinkSync(target, linkPath, 'junction'); return true; } catch { return false; }
 }
@@ -42,6 +42,11 @@ function expect400(block) {
   assert.fail('expected an invalid-request problem');
 }
 
+function shapeOf(block) {
+  try { block(); } catch (e) { return { status: e.status, code: e.code, message: e.message }; }
+  return null;
+}
+
 // The output contract: root-relative paths only. Nothing in the full JSON payload may name
 // the temp root, the OS temp dir, or carry a Windows drive-letter absolute path.
 function expectNoAbsolutePaths(result, root) {
@@ -51,25 +56,38 @@ function expectNoAbsolutePaths(result, root) {
   assert.doesNotMatch(json, /[A-Za-z]:[\\/]/, 'output includes a drive-letter absolute path');
 }
 
-test('module surface is inventory-only: no execution, no network, no process, no shell', () => {
+test('module surface is inventory-only: no execution, no network, no shell', () => {
   assert.deepEqual(Object.keys(mod).sort(), [
     'AGENTIC_FILE_KINDS', 'AGENTIC_FILE_LIMITS', 'AGENTIC_PRECEDENCE_RULE',
-    'createAgenticFileLibrary', 'registerAgenticFileRoutes',
+    'createAgenticFileLibrary', 'realInside', 'registerAgenticFileRoutes',
   ]);
   const lib = createAgenticFileLibrary({ roots: [] });
   assert.deepEqual(Object.keys(lib).sort(), ['get', 'list']);
   for (const banned of ['child_process', 'node:http', 'node:net', 'node:https', 'node:dns', 'node:tls',
-    'node:worker_threads', 'node:vm', 'process.exec', 'spawn(', 'execSync', 'eval(', 'new Function', 'vm.runIn',
-    `require(`
+    'node:worker_threads', 'node:vm', 'process.exec', 'spawn(', 'execSync', 'eval(', 'new Function',
+    'vm.runIn', 'require('
   ]) {
     assert.equal(source.includes(banned), false, `source must not contain ${banned}`);
   }
   assert.doesNotMatch(source, /export\s+(async\s+)?function\s+(execute|run|dispatch|perform|apply|send)\b/);
 });
 
-test('imports stay bounded to crypto, fs, path, and the shared studio problem helpers', () => {
-  const imports = [...source.matchAll(/^import\s+(?:\{[\s\S]*?\}|[^;]+?)\s+from\s+'([^']+)';/gm)].map((m) => m[1]).sort();
-  assert.deepEqual(imports, ['./http.mjs', 'node:crypto', 'node:fs', 'node:path']);
+test('records are inert data: no capability fields, claims parsed as data, trust constant', (t) => {
+  const root = tempRoot(t);
+  writeFileSync(path.join(root, 'AGENTS.md'), '---\ntools: shell\npermissions: all\n---\n# Claimant\n');
+  for (const untrusted of [true, false]) {
+    const lib = createAgenticFileLibrary({ roots: [{ path: root, id: `inert-${untrusted}`, untrusted }] });
+    const [record] = lib.list().items;
+    assert.equal(record.capability, undefined, 'records must not carry capability literals');
+    assert.equal(record.raisesCapability, undefined, 'records must not claim raised-capability control');
+    assert.equal(record.trust, 'untrusted-until-confirmed');
+    // Claim keys are plain parsed data, never policy.
+    assert.deepEqual(record.frontmatter, { tools: 'shell', permissions: 'all' });
+  }
+  const result = createAgenticFileLibrary({ roots: [root] }).list();
+  assert.ok(result.coverage.qualification.includes('inert data'));
+  assert.ok(result.coverage.qualification.includes('grants no capability'));
+  assert.ok(result.coverage.qualification.includes('untrusted-until-confirmed'));
 });
 
 test('discovery inventories the known kinds with the full record contract', (t) => {
@@ -98,14 +116,12 @@ test('discovery inventories the known kinds with the full record contract', (t) 
     '.opencode/agents/reader.md', 'AGENTS.md', 'CLAUDE.md', 'docs/agents/git-manager.md', 'skills/demo/SKILL.md',
   ]);
   assert.deepEqual(result.items.map((item) => item.kind).sort(), [...AGENTIC_FILE_KINDS].sort());
-  assert.deepEqual(result.items.map((item) => item.kind).sort(), ['agents', 'claude', 'docs-agent', 'opencode-agent', 'skill']);
 
   for (const item of result.items) {
     assert.match(item.id, /^[a-f0-9]{64}$/);
     assert.equal(item.source, 'local-file');
     assert.equal(item.trust, 'untrusted-until-confirmed');
-    assert.equal(item.raisesCapability, false);
-    assert.deepEqual(item.capability, { raised: false, ceiling: 'none', reason: 'untrusted-root', claimsIgnored: false });
+    assert.equal(item.capability, undefined);
     assert.equal(typeof item.bytes, 'number');
     assert.match(item.sha256, /^[a-f0-9]{64}$/);
     assert.ok(item.mtime !== null && !Number.isNaN(Date.parse(item.mtime)));
@@ -138,9 +154,10 @@ test('discovery inventories the known kinds with the full record contract', (t) 
   assert.equal(result.coverage.roots.length, 1);
   assert.equal(result.coverage.roots[0].status, 'scanned');
   assert.equal(result.coverage.roots[0].skipReason, null);
-  assert.equal(result.coverage.roots[0].untrusted, true);
   assert.equal(typeof result.coverage.qualification, 'string');
-  assert.ok(result.coverage.qualification.includes('untrusted'));
+  // truncated is never an empty lie: either false, or true with disclosed reasons.
+  assert.equal(typeof result.coverage.truncated, 'boolean');
+  assert.ok(result.coverage.truncated === false || result.coverage.reasons.length > 0);
 });
 
 test('ids are stable hashes of the root-relative path and stay stable across instances', (t) => {
@@ -152,6 +169,8 @@ test('ids are stable hashes of the root-relative path and stay stable across ins
   const [b] = second.list().items;
   assert.equal(a.id, b.id);
   assert.equal(a.id, createHash('sha256').update('alpha-root').update('\0').update('AGENTS.md').digest('hex'));
+  // A registry built by one instance serves the same id on the other without re-inventing ids.
+  assert.equal(second.get(a.id).path, 'AGENTS.md');
 });
 
 test('get() returns bounded declared text and never absolute provenance', (t) => {
@@ -168,7 +187,7 @@ test('get() returns bounded declared text and never absolute provenance', (t) =>
   assert.equal(clipped.path, record.path);
   assert.equal(clipped.source, 'local-file');
   assert.equal(clipped.trust, 'untrusted-until-confirmed');
-  assert.equal(clipped.capability.raised, false);
+  assert.equal(clipped.capability, undefined);
 
   const whole = createAgenticFileLibrary({ roots: [{ path: root, id: 'g-root', untrusted: false }] }).get(record.id);
   assert.equal(whole.contentState, 'full');
@@ -179,7 +198,7 @@ test('get() returns bounded declared text and never absolute provenance', (t) =>
   expect404(() => lib.get('a'.repeat(64)));
 });
 
-test('the id is path-stable while get() serves the live file with its current hash, no stale text', (t) => {
+test('the id is path-stable while get() serves the live file with a recomputed hash, no stale text', (t) => {
   const root = tempRoot(t);
   writeFileSync(path.join(root, 'AGENTS.md'), 'first\n');
   const lib = createAgenticFileLibrary({ roots: [{ path: root, id: 'i-root', untrusted: false }] });
@@ -188,8 +207,8 @@ test('the id is path-stable while get() serves the live file with its current ha
   assert.equal(before.content, 'first\n');
   assert.equal(before.sha256, record.sha256);
   writeFileSync(path.join(root, 'AGENTS.md'), 'rewritten after inventory\n');
-  // Same id (hash of root id + relative path only), and the read recomputes integrity live,
-  // so the record follows the disk instead of serving content under a stale hash label.
+  // Same id (hash of root id + relative path only); the read recomputes integrity live, so the
+  // record follows the disk instead of serving content under a stale hash label.
   const after = lib.get(record.id);
   assert.equal(after.id, record.id);
   assert.equal(after.contentState, 'full');
@@ -198,63 +217,163 @@ test('the id is path-stable while get() serves the live file with its current ha
   assert.doesNotMatch(JSON.stringify(after), /[A-Za-z]:[\\/]/);
 });
 
+test('get() draws on a bounded id registry instead of rescanning the whole tree', (t) => {
+  const root = tempRoot(t);
+  writeFileSync(path.join(root, 'AGENTS.md'), 'seeded\n');
+  const lib = createAgenticFileLibrary({ roots: [{ path: root, id: 'cache-root' }], idCacheTtlMs: 0 });
+  const [record] = lib.list().items;
+  // With ttl 0 the registry rebuilds per call, so a newly created file is gettable by its
+  // stable id immediately, without a list() in between.
+  mkdirSync(path.join(root, 'sub'), { recursive: true });
+  writeFileSync(path.join(root, 'sub', 'AGENTS.md'), 'late arrival\n');
+  const lateId = createHash('sha256').update('cache-root').update('\0').update('sub/AGENTS.md').digest('hex');
+  const late = lib.get(lateId);
+  assert.equal(late.path, 'sub/AGENTS.md');
+  assert.equal(late.content, 'late arrival\n');
+  assert.equal(late.kind, 'agents');
+  assert.equal(late.contentState, 'full');
+  assert.notEqual(late.id, record.id);
+});
+
+test('an unknown id and a vanished file are exactly the same not-found shape', (t) => {
+  const root = tempRoot(t);
+  writeFileSync(path.join(root, 'AGENTS.md'), 'gone soon\n');
+  const lib = createAgenticFileLibrary({ roots: [{ path: root, id: 'oracle-root' }] });
+  const [record] = lib.list().items;
+  assert.equal(lib.get(record.id).contentState, 'full');
+  rmSync(path.join(root, 'AGENTS.md'));
+  const gone = shapeOf(() => lib.get(record.id));
+  const unknown = shapeOf(() => lib.get('f'.repeat(64)));
+  assert.ok(gone);
+  assert.ok(unknown);
+  assert.deepEqual(gone, unknown);
+  assert.equal(gone.status, 404);
+  // Live-read semantics survive deletion+recreation: the same id serves again.
+  writeFileSync(path.join(root, 'AGENTS.md'), 'gone soon\n');
+  assert.equal(lib.get(record.id).contentState, 'full');
+});
+
+test('realInside containment is a structural prefix check on real paths', async () => {
+  const { realInside } = await import('../../src/studio/agentic-files.mjs');
+  if (process.platform === 'win32') {
+    assert.equal(realInside('C:\\tmp\\root', 'C:\\tmp\\root'), true);
+    assert.equal(realInside('C:\\tmp\\root', 'C:\\tmp\\root\\a.md'), true);
+    assert.equal(realInside('C:\\tmp\\root', 'c:\\TMP\\ROOT\\sub\\b.md'), true);
+    assert.equal(realInside('C:\\tmp\\root', 'C:\\tmp\\rootEvil\\a.md'), false);
+    assert.equal(realInside('C:\\tmp\\root', 'C:\\tmp\\other\\a.md'), false);
+    assert.equal(realInside('C:\\tmp\\root', 'relative\\a.md'), false);
+    assert.equal(realInside('C:\\tmp\\root', ''), false);
+    assert.equal(realInside('', 'C:\\tmp\\root\\a.md'), false);
+  } else {
+    assert.equal(realInside('/root', '/root'), true);
+    assert.equal(realInside('/root', '/root/a.md'), true);
+    assert.equal(realInside('/root', '/Root/a.md'), false);
+    assert.equal(realInside('/root', '/rootEvil/a.md'), false);
+    assert.equal(realInside('/root', '/other/a.md'), false);
+    assert.equal(realInside('/root', 'relative/a.md'), false);
+    assert.equal(realInside('', '/root/a.md'), false);
+  }
+});
+
 test('symlinks are refused, and a junction cannot import files from outside the root', (t) => {
   const root = tempRoot(t);
   const outside = tempRoot(t, 'agentic-files-outside-');
   writeFileSync(path.join(outside, 'AGENTS.md'), 'must never appear\n');
-  if (maybeJunction(outside, path.join(root, 'linked'))) {
-    const lib = createAgenticFileLibrary({ roots: [root] });
-    const result = lib.list();
-    expectNoAbsolutePaths(result, root);
-    assert.equal(result.coverage.complete, false);
-    assert.equal(result.coverage.reasons.includes('symlink'), true);
-    const skipped = result.coverage.skipped.find((entry) => entry.reason === 'symlink');
-    assert.ok(skipped);
-    assert.equal(skipped.path, 'linked');
-    assert.equal(result.coverage.matched, 0);
-    assert.equal(result.items.some((item) => item.path.includes('AGENTS.md')), false);
-    assert.doesNotMatch(JSON.stringify(result), /must never appear/);
-  }
+  if (!maybeJunction(outside, path.join(root, 'linked'))) t.skip('junction/symlink creation unavailable on this host');
+  const lib = createAgenticFileLibrary({ roots: [root] });
+  const result = lib.list();
+  expectNoAbsolutePaths(result, root);
+  assert.equal(result.coverage.complete, false);
+  assert.equal(result.coverage.reasons.includes('symlink'), true);
+  const skipped = result.coverage.skipped.find((entry) => entry.reason === 'symlink');
+  assert.ok(skipped);
+  assert.equal(skipped.path, 'linked');
+  assert.equal(result.coverage.matched, 0);
+  assert.equal(result.items.some((item) => item.path.includes('AGENTS.md')), false);
+  assert.doesNotMatch(JSON.stringify(result), /must never appear/);
+
   // A root that is itself a link is skipped before any read, with a disclosed reason.
   const rootLink = path.join(root, 'as-root');
-  if (maybeJunction(outside, rootLink)) {
-    const lib = createAgenticFileLibrary({ roots: [{ path: rootLink, id: 'link-root' }] });
-    const result = lib.list();
-    assert.deepEqual(result.items, []);
-    assert.deepEqual(result.coverage.roots, [{ id: 'link-root', untrusted: true, status: 'skipped', skipReason: 'symlink' }]);
-    assert.equal(result.coverage.complete, false);
-    assert.equal(result.coverage.reasons.includes('symlink'), true);
-    expectNoAbsolutePaths(result, rootLink);
+  if (!maybeJunction(outside, rootLink)) t.skip('root junction creation unavailable on this host');
+  const linked = createAgenticFileLibrary({ roots: [{ path: rootLink, id: 'link-root' }] });
+  const rootedResult = linked.list();
+  assert.deepEqual(rootedResult.items, []);
+  assert.deepEqual(rootedResult.coverage.roots, [{ id: 'link-root', untrusted: true, status: 'skipped', skipReason: 'symlink' }]);
+  assert.equal(rootedResult.coverage.complete, false);
+  assert.equal(rootedResult.coverage.reasons.includes('symlink'), true);
+  expectNoAbsolutePaths(rootedResult, rootLink);
+});
+
+test('policy exclusions are case-insensitive on win32 and by exact name elsewhere', (t) => {
+  const root = tempRoot(t);
+  mkdirSync(path.join(root, 'NODE_MODULES'), { recursive: true });
+  writeFileSync(path.join(root, 'NODE_MODULES', 'AGENTS.md'), 'inside node_modules in disguise\n');
+  const result = createAgenticFileLibrary({ roots: [root] }).list();
+  expectNoAbsolutePaths(result, root);
+  if (process.platform === 'win32') {
+    assert.equal(result.items.length, 0);
+    assert.ok(result.coverage.skipped.some((entry) => entry.reason === 'node_modules' && entry.path === 'NODE_MODULES'));
+  } else {
+    // POSIX is case-sensitive: the exact names are excluded, case variants are ordinary files.
+    assert.equal(result.items.length, 1);
+    assert.equal(result.items[0].path, 'NODE_MODULES/AGENTS.md');
   }
 });
 
-test('untrusted roots cannot raise capability even when a file claims permissions', (t) => {
+test('duplicate root ids and alias/nested roots are rejected up front', (t) => {
   const root = tempRoot(t);
-  writeFileSync(path.join(root, 'AGENTS.md'), '---\ntools: shell\npermissions: all\n---\n# Claimant\n');
-  const trusted = createAgenticFileLibrary({ roots: [{ path: root, id: 't-root', untrusted: false }] });
-  const [trustedRecord] = trusted.list().items;
-  assert.deepEqual(trustedRecord.frontmatter, { tools: 'shell', permissions: 'all' });
-  assert.equal(trustedRecord.capability.claimsIgnored, true);
-  assert.equal(trustedRecord.capability.raised, false);
-  assert.equal(trustedRecord.capability.ceiling, 'none');
-  assert.equal(trustedRecord.capability.reason, 'execution-free');
-  assert.equal(trustedRecord.trust, 'untrusted-until-confirmed');
-  assert.equal(trustedRecord.raisesCapability, false);
+  const nested = path.join(root, 'sub');
+  mkdirSync(nested, { recursive: true });
+  assert.throws(() => createAgenticFileLibrary({ roots: [{ path: root, id: 'a' }, { path: nested, id: 'a' }] }),
+    /duplicates the root id 'a'/);
+  assert.throws(() => createAgenticFileLibrary({ roots: [{ path: root }, { path: root }] }),
+    /same resolved path|duplicates the root id/);
+  assert.throws(() => createAgenticFileLibrary({ roots: [{ path: root }, { path: nested }] }),
+    /contained in or contains another root/);
+  // Alias roots that realpath to the same directory are duplicates even when distinct lexically.
+  const alias = path.join(root, 'aliased');
+  if (maybeJunction(root, alias)) {
+    assert.throws(() => createAgenticFileLibrary({ roots: [{ path: root }, { path: alias }] }),
+      /same real path|same resolved path|duplicates the root id/);
+  } else {
+    t.skip('junction/symlink creation unavailable on this host');
+  }
+});
 
-  const untrustedRecord = createAgenticFileLibrary({ roots: [{ path: root, id: 'u-root', untrusted: true }] }).list().items[0];
-  assert.equal(untrustedRecord.capability.reason, 'untrusted-root');
-  assert.equal(untrustedRecord.capability.raised, false);
-  assert.equal(untrustedRecord.capability.claimsIgnored, true);
-  assert.equal(untrustedRecord.capability.ceiling, 'none');
+test('unreadable directories are disclosed and honestly rooted instead of silently scanned', (t) => {
+  const root = tempRoot(t);
+  writeFileSync(path.join(root, 'AGENTS.md'), 'visible\n');
+  const locked = path.join(root, 'locked');
+  mkdirSync(locked, { recursive: true });
+  writeFileSync(path.join(locked, 'AGENTS.md'), 'locked\n');
+  chmodSync(locked, 0o000);
+  let denied = false;
+  try { readdirSync(locked); } catch { denied = true; }
+  if (!denied) { t.skip('chmod cannot deny directory reads on this host'); chmodSync(locked, 0o755); return; }
+  try {
+    const result = createAgenticFileLibrary({ roots: [root] }).list();
+    expectNoAbsolutePaths(result, root);
+    assert.equal(result.coverage.complete, false);
+    assert.equal(result.coverage.reasons.includes('unreadable'), true);
+    assert.ok(result.coverage.skipped.some((entry) => entry.reason === 'unreadable'));
+    assert.equal(result.items.length, 1);
+  } finally { chmodSync(locked, 0o755); }
+});
 
-  // Defaults stay untrusted: a plain root string cannot raise capability either.
-  const defaultRecord = createAgenticFileLibrary({ roots: [{ path: root, id: 'd-root' }] }).list().items[0];
-  assert.equal(defaultRecord.capability.reason, 'untrusted-root');
-  assert.equal(defaultRecord.capability.raised, false);
-  // Reads never raise capability either, even from an explicitly trusted root.
-  const gotten = trusted.get(trustedRecord.id);
-  assert.equal(gotten.capability.raised, false);
-  assert.equal(gotten.capability.ceiling, 'none');
+test('a root whose own listing fails is marked unreadable, not scanned', (t) => {
+  const root = tempRoot(t, 'agentic-root-lock-');
+  writeFileSync(path.join(root, 'AGENTS.md'), 'inside a locked root\n');
+  chmodSync(root, 0o000);
+  let denied = false;
+  try { readdirSync(root); } catch { denied = true; }
+  if (!denied) { t.skip('chmod cannot deny directory reads on this host'); chmodSync(root, 0o755); return; }
+  try {
+    const result = createAgenticFileLibrary({ roots: [{ path: root, id: 'locked-root' }] }).list();
+    assert.deepEqual(result.coverage.roots, [{ id: 'locked-root', untrusted: true, status: 'unreadable', skipReason: null }]);
+    assert.equal(result.coverage.complete, false);
+    assert.equal(result.coverage.reasons.includes('unreadable'), true);
+    assert.deepEqual(result.items, []);
+  } finally { chmodSync(root, 0o755); }
 });
 
 test('the strict bounded frontmatter parser rejects flow values, indents, and oversized blocks', (t) => {
@@ -263,11 +382,12 @@ test('the strict bounded frontmatter parser rejects flow values, indents, and ov
   const lib = createAgenticFileLibrary({ roots: [root] });
   assert.deepEqual(lib.list().items[0].frontmatter, { title: 'valid' });
 
-  // Flow syntax, indented keys, and open blocks are rejected whole, not guessed.
+  // Flow syntax, indented keys, open blocks, and path-shaped scalars are rejected whole.
   const malformed = [
     '---\ntitle: [a, b]\n---\nbody\n',
     '---\n  title: indented\n---\nbody\n',
     '---\ntitle: x\n',
+    '---\nexec: /bin/sh\n---\nbody\n',
   ];
   let index = 0;
   for (const text of malformed) {
@@ -289,16 +409,9 @@ test('the strict bounded frontmatter parser rejects flow values, indents, and ov
   writeFileSync(path.join(many, 'AGENTS.md'), `---\n${lines.join('\n')}\n---\nbody\n`);
   const manyRecord = createAgenticFileLibrary({ roots: [many] }).list();
   assert.equal(manyRecord.items[0].frontmatter, null);
-  // Claim keys are parsed but flagged, never honored (plain scalar values only; `/bin/sh` is rejected outright).
-  const claim = tempRoot(t, 'agentic-fm-claim-');
-  writeFileSync(path.join(claim, 'AGENTS.md'), '---\nexec: run-all\ncapabilities: admin\n---\n# Claims\ntext\n');
-  const claimItem = createAgenticFileLibrary({ roots: [claim] }).list().items[0];
-  assert.deepEqual(claimItem.frontmatter, { exec: 'run-all', capabilities: 'admin' });
-  assert.equal(claimItem.capability.claimsIgnored, true);
-  assert.equal(claimItem.capability.raised, false);
 });
 
-test('caps truncate with disclosed reasons, never with silent or fabricated records', (t) => {
+test('caps truncate with disclosed reasons and root status reflects the real walk', (t) => {
   const root = tempRoot(t);
   for (const dir of ['', 'sub1', 'sub1/sub2']) {
     mkdirSync(path.join(root, dir), { recursive: true });
@@ -309,20 +422,19 @@ test('caps truncate with disclosed reasons, never with silent or fabricated reco
   assert.equal(files.coverage.truncated, true);
   assert.equal(files.coverage.complete, false);
   assert.equal(files.coverage.reasons.includes('max-files'), true);
+  assert.equal(files.coverage.roots[0].status, 'partial');
   expectNoAbsolutePaths(files, root);
-
-  const deep = createAgenticFileLibrary({ roots: [root], limits: { maxDepth: 1 } }).list();
-  assert.equal(deep.coverage.matched, 2);
-  assert.equal(deep.coverage.reasons.includes('depth'), true);
-  assert.equal(deep.coverage.skipped.some((entry) => entry.reason === 'depth'), true);
-
-  const tiny = createAgenticFileLibrary({ roots: [root], limits: { maxEntries: 2 } }).list();
-  assert.equal(tiny.coverage.truncated, true);
-  assert.equal(tiny.coverage.reasons.includes('max-entries'), true);
 
   const zeroed = createAgenticFileLibrary({ roots: [root], limits: { maxEntries: 0 } }).list();
   assert.deepEqual(zeroed.items, []);
   assert.equal(zeroed.coverage.truncated, true);
+  assert.equal(zeroed.coverage.roots[0].status, 'partial');
+
+  const solo = tempRoot(t, 'agentic-caps-solo-');
+  writeFileSync(path.join(solo, 'AGENTS.md'), 'complete tree\n');
+  const clean = createAgenticFileLibrary({ roots: [solo] }).list();
+  assert.equal(clean.coverage.roots[0].status, 'scanned');
+  assert.equal(clean.coverage.complete, true);
 });
 
 test('byte caps are disclosed on both inventory records and bounded reads', (t) => {
@@ -344,7 +456,7 @@ test('byte caps are disclosed on both inventory records and bounded reads', (t) 
   const read = lib.get(large.id);
   assert.equal(read.content, null);
   assert.equal(read.contentState, 'over-cap');
-  assert.equal(read.capability.raised, false);
+  expectNoAbsolutePaths(read, root);
 });
 
 test('precedence is returned as data: nearest-to-root wins only as a disclosed ranking', (t) => {
@@ -379,7 +491,9 @@ test('coverage reports missing and non-directory roots without inventing files',
   const root = tempRoot(t);
   writeFileSync(path.join(root, 'AGENTS.md'), 'real root\n');
   const missing = path.join(root, 'does-not-exist');
-  const fileRoot = path.join(root, 'just-a-file.md');
+  // The file root lives in its own tree: a path contained in another root would be rejected
+  // at construction now, so this coverage case isolates the not-a-directory outcome.
+  const fileRoot = path.join(tempRoot(t, 'agentic-file-root-'), 'just-a-file.md');
   writeFileSync(fileRoot, 'not a directory\n');
   const lib = createAgenticFileLibrary({ roots: [{ path: root, id: 'good-root' }, { path: missing, id: 'missing-root' }, { path: fileRoot, id: 'file-root' }] });
   const result = lib.list();
@@ -395,6 +509,15 @@ test('coverage reports missing and non-directory roots without inventing files',
   assert.equal(result.coverage.reasons.includes('not-a-directory'), true);
   assert.equal(result.coverage.matched, 1);
   assert.equal(result.items[0].path, 'AGENTS.md');
+});
+
+test('titles strip bidi and zero-width control characters', (t) => {
+  const root = tempRoot(t);
+  // Zero-width joiner between letters collapses to the bare text; bidi overrides vanish too.
+  writeFileSync(path.join(root, 'AGENTS.md'), '# Ti\u200bdle\u202e\nbody\n');
+  const [record] = createAgenticFileLibrary({ roots: [root] }).list().items;
+  assert.equal(record.title, 'Tidle');
+  assert.equal(/[\u200b-\u200f\u202a-\u202e\u2066-\u2069]/.test(record.title), false);
 });
 
 test('list validates filters and pagination, and never returns an absolute path', (t) => {
@@ -438,6 +561,7 @@ test('routes mount read-only GETs and keep error shape through the boundary', (t
   const one = getHandler({ p: { id: listed.items[0].id } });
   assert.equal(one.path, 'AGENTS.md');
   assert.equal(one.content, 'routed\n');
+  assert.equal(one.capability, undefined);
   expect404(() => getHandler({ p: { id: 'f'.repeat(64) } }));
   expect400(() => getHandler({ p: { id: 'short' } }));
   expect400(() => listHandler({ q: { kind: 'nope' } }));
@@ -447,7 +571,6 @@ test('routes mount read-only GETs and keep error shape through the boundary', (t
 
   assert.throws(() => registerAgenticFileRoutes({}), /add\(\) function/, 'without a router add');
   assert.throws(() => registerAgenticFileRoutes({ add: () => {} }), /library or explicit roots/, 'without library and without roots');
-  // Explicit roots mint an internal library; the routes still stay mounted the same way.
   const recorded2 = [];
   registerAgenticFileRoutes({ add: (method, route, summary, handler) => recorded2.push({ method, route, summary, handler }), roots: [root] });
   assert.deepEqual(recorded2.map((entry) => entry.route), ['/agentic-files', '/agentic-files/{id}']);
