@@ -68,19 +68,69 @@ const types = { p: ['project', 'project'], n: ['note', 'note'], o: ['object', 's
   s: ['selection', 'selection'], c: ['conversation', 'conversation'] };
 const errorReason = (error) => ({ WORLD_NOT_FOUND: 'SOURCE_OR_OBJECT_MISSING', WORLD_SOURCE_ACTIVE: 'SOURCE_ACTIVE',
   STORE_NO_SUCH_ITEM: 'OBJECT_MISSING', STORE_RECORD_CORRUPT: 'OVERLAY_UNREADABLE', STORE_CURRENT_CORRUPT: 'OVERLAY_UNREADABLE' })[error?.code];
+export const EXPORT_MODES = Object.freeze(['references', 'transcript', 'full-saved']);
+const REASONING_BLOCK = new Set(['reasoning', 'thinking', 'thought']);
+const TOOL_BLOCK = new Set(['tool', 'tool_use', 'tool-use', 'tool-activity', 'function', 'function_call', 'function-call', 'tool_call', 'tool-call', 'status', 'status_activity', 'status-activity']);
+const TRANSCRIPT_BLOCK = new Set(['text', 'paragraph', 'heading', 'code', 'table', 'list', 'quote', 'blockquote']);
+const exclusionReason = (type) => REASONING_BLOCK.has(type) ? 'reasoning-blocks-excluded'
+  : TOOL_BLOCK.has(type) ? 'tool-activity-blocks-excluded' : 'non-transcript-blocks-excluded';
+// Mode reduction prunes only block objects; plain data (message text, roles, plain objects) is never touched.
+const pruneBlocks = (value, depth, keep, stats) => {
+  if (depth > IMPORT_CONTENT_LIMITS.maxDepth) { stats.affected++; return undefined; }
+  if (Array.isArray(value)) {
+    return value.slice(0, IMPORT_CONTENT_LIMITS.maxBlocks)
+      .map((child) => pruneBlocks(child, depth + 1, keep, stats)).filter((kept) => kept !== undefined);
+  }
+  if (!value || typeof value !== 'object') return value;
+  if (value.type !== undefined) {
+    const type = String(value.type).toLowerCase();
+    if (!keep(type)) {
+      const reason = exclusionReason(type), bin = stats.bins.get(reason) ?? { count: 0 };
+      bin.count++; stats.bins.set(reason, bin); stats.affected++; return undefined;
+    }
+  }
+  const out = {};
+  for (const [key, child] of Object.entries(value)) {
+    out[key] = Array.isArray(child) ? pruneBlocks(child, depth + 1, keep, stats) : child;
+  }
+  return out;
+};
+const reduceMessages = (data, keep, omitted, id) => {
+  const stats = { bins: new Map(), affected: 0 };
+  data.messages = data.messages.map((message) => {
+    if (!message || typeof message !== 'object' || Array.isArray(message) || !Array.isArray(message.blocks)) return message;
+    const before = stats.affected;
+    message.blocks = pruneBlocks(message.blocks, 1, keep, stats);
+    if (stats.affected > before) stats.affected = before + 1; // one affected message per reduction decision
+    return message;
+  });
+  for (const [reason, bin] of stats.bins) omitted.push({ id, reason, aspect: 'content', expected: true, count: bin.count });
+};
 
 // Local JSON export only. Reads through world owners, never opens paths, writes state or contacts providers.
 export function createWorldTransfer({ service }) {
   if (!service || typeof service.namespace !== 'function') throw new TypeError('World service required');
   return {
     exportSelection(request) {
+      const partValid = request === null || request.parts === undefined || (typeof request.parts === 'object' && !Array.isArray(request.parts)
+        && Object.keys(request.parts ?? {}).every((key) => ['reasoning', 'toolActivity'].includes(key))
+        && Object.values(request.parts ?? {}).every((value) => typeof value === 'boolean'));
       if (!request || typeof request !== 'object' || Array.isArray(request)
-        || Object.keys(request).some((key) => !['ids', 'includeSources'].includes(key))
+        || Object.keys(request).some((key) => !['ids', 'includeSources', 'mode', 'parts'].includes(key))
         || !Array.isArray(request.ids) || request.ids.length < 1 || request.ids.length > WORLD_EXPORT_LIMITS.maxSelected
-        || !request.ids.every(validId) || request.includeSources !== undefined && typeof request.includeSources !== 'boolean') {
-        throw fail('WORLD_EXPORT_INVALID_INPUT', 'Expected 1..100 exact world IDs and optional boolean includeSources');
+        || !request.ids.every(validId) || request.includeSources !== undefined && typeof request.includeSources !== 'boolean'
+        || request.mode !== undefined && !EXPORT_MODES.includes(request.mode) || !partValid) {
+        throw fail('WORLD_EXPORT_INVALID_INPUT', 'Expected 1..100 exact world IDs and optional boolean includeSources, export mode and parts flags');
       }
-      const selected = [...new Set(request.ids)].sort(), includeSources = request.includeSources ?? false;
+      // Named mode wins; legacy includeSources keeps the old verbatim full snapshot without content filtering.
+      const mode = request.mode ?? (request.includeSources ? 'full-saved' : 'references');
+      const legacyFull = request.mode === undefined && request.includeSources === true;
+      const parts = { reasoning: request.parts?.reasoning ?? legacyFull, toolActivity: request.parts?.toolActivity ?? legacyFull };
+      const keep = mode === 'transcript' ? (type) => TRANSCRIPT_BLOCK.has(type)
+        : mode === 'full-saved' ? (type) => (!REASONING_BLOCK.has(type) || parts.reasoning) && (!TOOL_BLOCK.has(type) || parts.toolActivity)
+        : null; // legacy full and non-content modes keep every stored block untouched
+      const reduce = keep ? (data, omitted, id) => Array.isArray(data.messages) && reduceMessages(data, keep, omitted, id) : null;
+      const selected = [...new Set(request.ids)].sort(), includeSources = mode !== 'references';
       const queue = [...selected], discovered = new Set(queue), records = [], omitted = [];
       const namespace = { ...jsonCopy(service.namespace()), role: 'origin-namespace' };
       let payloadBytes = bytes(namespace);
@@ -127,6 +177,7 @@ export function createWorldTransfer({ service }) {
         }
         data = jsonCopy(data);
         if (data.id !== id || kind !== 'conversation' && data.kind !== kind) throw fail('WORLD_EXPORT_INVALID_RECORD', 'Service record identity/type mismatch');
+        if (kind === 'conversation' && reduce) reduce(data, omitted, id);
 
         if (kind === 'project' && ['conversationIds', 'noteIds', 'memberIds'].some((key) => data[key] !== undefined && !Array.isArray(data[key]))) {
           throw fail('WORLD_EXPORT_INVALID_RECORD', 'Invalid project dependency list');
@@ -155,10 +206,13 @@ export function createWorldTransfer({ service }) {
       records.sort((a, b) => compare(a.id, b.id));
       omitted.sort((a, b) => compare(stableStringify(a), stableStringify(b)));
       const payload = { schema: 'vivim.world-export/1', namespace,
-        scope: { ids: selected, includeSources, dependencyClosure: 'outgoing-world-references', limits: WORLD_EXPORT_LIMITS,
+        scope: { ids: selected, includeSources, mode, parts: { reasoning: parts.reasoning, toolActivity: parts.toolActivity }, dependencyClosure: 'outgoing-world-references', limits: WORLD_EXPORT_LIMITS,
           exclusions: ['raw-capture-files', 'browser-profiles', 'credentials-stores', 'provider-network', 'unrelated-world-records', 'external-asset-bytes'] },
         records, omitted,
         coverage: { complete: !omitted.some((o) => !o.expected), declaredScope: 'selected local records and outgoing dependency closure only',
+          mode, modeSemantics: legacyFull ? 'legacy includeSources request exported verbatim; named modes filter content per scope.parts'
+            : mode === 'references' ? 'metadata only; source conversations may not be present'
+            : 'stored record content only; see scope.parts and omitted for what the mode did not include',
           providerCompleteness: 'not-established', recordsIncluded: records.length, referencesDiscovered: discovered.size,
           sourceSnapshotsIncluded: records.filter((r) => r.custody === 'saved-observation').length,
           referenceOnlyRevision: includeSources ? 'not-applicable' : 'selection revisions may point to content absent from this bundle',

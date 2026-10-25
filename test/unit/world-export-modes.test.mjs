@@ -41,17 +41,17 @@ test('invalid export mode or parts is rejected before any world read', () => {
 test('references, transcript and full-saved export modes round-trip through validate and restore', (t) => {
   const source = world(t);
   const cases = {
-    references: { request: { mode: 'references' }, text: false, types: [] },
-    transcript: { request: { mode: 'transcript' }, text: true, types: ['paragraph', 'code', 'table'] },
-    'full-saved': { request: { mode: 'full-saved' }, text: true, types: ['paragraph', 'code', 'table', 'future-native'] },
-    'full-saved-parts': { request: { mode: 'full-saved', parts: { reasoning: true, toolActivity: true } }, text: true, types: blocks.map((block) => block.type) },
+    references: { request: { mode: 'references' }, text: false, types: [], custody: 'referenced-only' },
+    transcript: { request: { mode: 'transcript' }, text: true, types: ['paragraph', 'code', 'table'], custody: 'saved-observation' },
+    'full-saved': { request: { mode: 'full-saved' }, text: true, types: ['paragraph', 'code', 'table', 'future-native'], custody: 'saved-observation' },
+    'full-saved-parts': { request: { mode: 'full-saved', parts: { reasoning: true, toolActivity: true } }, text: true, types: blocks.map((block) => block.type), custody: 'saved-observation' },
   };
   for (const [name, spec] of Object.entries(cases)) {
     const bundle = source.transfer.exportSelection({ ids: [source.id], ...spec.request });
     const saved = conversation(bundle);
     assert.equal(bundle.scope.mode, spec.request.mode, name);
     assert.equal(bundle.coverage.complete, true, name);
-    assert.equal(saved.custody, 'saved-observation', name);
+    assert.equal(saved.custody, spec.custody, name);
     if (!spec.text) assert.equal(saved.data.messages, undefined, name);
     else {
       assert.equal(saved.data.messages[0].text, 'answer', name);
