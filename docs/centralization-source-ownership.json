@@ -6,7 +6,7 @@
   ],
   "refs": {
     "aionMainBeforeGovernance": "2f50a56356fb9355fb012bc219e90b4f39ec1834",
-    "harnessBranch": "22d695dad87c03ee33a2e0cab8f2f3c5c58d14d7",
+    "harnessBranch": "65b8b8e8f2ecaa3ea12fc60073e46b8b84332810",
     "aionGovernanceCommit": "820725a709bdbc8e5ee572c52457ac3c709da31b"
   },
   "originalStudio": {
@@ -27,9 +27,8 @@
     "legacy-active-ci-until-cutover": 1,
     "historical-bundle-metadata": 7,
     "already-present-identical": 7,
-    "migrated-source-equivalent-on-review-branch": 9,
+    "migrated-source-equivalent-on-review-branch": 11,
     "divergent-canonical-module-review": 14,
-    "unported-test-review": 2,
     "migrated-to-review-branch": 26
   },
   "assetPaths": [
@@ -102,8 +101,8 @@
     {
       "source": "workspace/aion/ops/capture-studio-knowledge-learning/handoffs/parallel-2026-10-24/supplier.test.mjs",
       "sourceBlob": "824bbbc7296b0189a40ebb68c2f62e5081f905bd",
-      "canonical": null,
-      "classification": "unported-test-review"
+      "canonical": "test/qa/agent14-intelligence-supplier.test.mjs",
+      "classification": "migrated-source-equivalent-on-review-branch"
     },
     {
       "source": "workspace/aion/ops/capture-studio-systems/handoffs/parallel-2026-10-24/RESULTS.json",
@@ -366,8 +365,8 @@
     {
       "source": "workspace/aion/sessions/roles/14-webapp-native-harness/integration-campaigns/parallel-four-lane-2026-10-24/CONSOLIDATED/lanes/intelligence/supplier.test.mjs",
       "sourceBlob": "824bbbc7296b0189a40ebb68c2f62e5081f905bd",
-      "canonical": null,
-      "classification": "unported-test-review"
+      "canonical": "test/qa/agent14-intelligence-supplier.test.mjs",
+      "classification": "migrated-source-equivalent-on-review-branch"
     },
     {
       "source": "workspace/aion/sessions/roles/14-webapp-native-harness/integration-campaigns/parallel-four-lane-2026-10-24/CONSOLIDATED/lanes/systems/RESULTS.json",
@@ -441,7 +440,7 @@
   "verification": {
     "sourceTreeShaCompared": true,
     "relativeModuleImportsStaticallyResolved": true,
-    "nodeTestSuite": "not-run-ci-jobs-failed-without-steps",
+    "nodeTestSuite": "not-run-ci-jobs-failed-without-executed-steps",
     "windowsLocalAcceptance": "not-verified",
     "legacyAionRuntimeRetained": true,
     "pr": "https://github.com/owenservera/vivim-harness/pull/1"
