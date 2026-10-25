@@ -1,0 +1,30 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { reconcileUncertainStep } from '../../src/studio/uncertain-step-reconciler.mjs';
+const sha='a'.repeat(64), digest='b'.repeat(64);
+function fx(){
+  const run={schema:'capture-studio.harness-run/1',id:'run-abcdef-1234',conversationId:'convo42',steps:[{key:'step-1',tool:'submit_conversation_turn',argsDigest:sha,status:'uncertain'}]};
+  const turn={id:'turn-1',key:'send-key',conversationId:'convo42',payloadDigest:digest,phase:'dispatching',preEffect:null,boundary:{sessionId:'capture-1',sequence:3,transcriptCount:1},delivery:{state:'unknown',evidence:null},reply:{state:'unknown',evidence:null}};
+  const journal={version:2,threadKey:'["thread-turn-journal-v1","ns","https://chatgpt.com","chatgpt-c:123"]',turns:[turn]};
+  const intentBinding={source:'trusted-pre-effect',runId:run.id,stepKey:'step-1',stepTool:'submit_conversation_turn',argsDigest:sha,conversationId:'convo42',threadKey:journal.threadKey,journalTurnKey:'send-key',journalPayloadDigest:digest};
+  return {run,stepKey:'step-1',journal,intentBinding};
+}
+const take=x=>reconcileUncertainStep(x);
+const want=(x,v,r)=>{const o=take(x);assert.equal(o.verdict,v);assert.equal(o.reason,r);assert.equal(o.retryAuthorized,false);assert.equal(o.mutates,false);};
+test('no durable binding => unknown',()=>{const x=fx();delete x.intentBinding;want(x,'still_unknown','DURABLE_INTENT_BINDING_MISSING_OR_MISMATCHED');});
+test('exact positive page delivery => executed, no resend',()=>{const x=fx();const t=x.journal.turns[0];t.phase='delivered';t.delivery={state:'observed',evidence:{turnId:t.id,payloadDigest:digest,sessionId:'capture-1',sequence:4,kind:'new-user-turn',source:'page',identity:'native-user-message'}};const o=take(x);assert.equal(o.verdict,'executed');assert.equal(o.evidence[0].identity,'native-user-message');});
+test('network outgoing proof => executed',()=>{const x=fx();const t=x.journal.turns[0];t.phase='delivered';t.delivery={state:'observed',evidence:{turnId:t.id,payloadDigest:digest,sessionId:'capture-1',sequence:4,kind:'outgoing-request',source:'network',identity:'req-99'}};want(x,'executed','JOURNAL_CONFIRMS_DELIVERY');});
+test('verified never-typed and never-dispatched audit => not_executed',()=>{const x=fx();const t=x.journal.turns[0];t.phase='blocked';t.boundary=null;t.preEffect={kind:'pre-effect-blocked',source:'actuator-audit',turnId:t.id,payloadDigest:digest,typing:'not-executed',dispatch:'not-executed',reference:'audit-ref-1'};want(x,'not_executed','TRUSTED_PRE_EFFECT_AUDIT');});
+test('blocked without audit must remain unknown',()=>{const x=fx();x.journal.turns[0].phase='blocked';want(x,'still_unknown','NO_POSITIVE_DISPATCH_OR_PRE_EFFECT_PROOF');});
+test('missing journal turn remains unknown',()=>{const x=fx();x.journal.turns=[];want(x,'still_unknown','JOURNAL_TURN_NOT_UNIQUE_OR_MISSING');});
+test('wrong thread stays unknown even with matching key',()=>{const x=fx();x.journal.threadKey='other';want(x,'still_unknown','JOURNAL_MISSING_OR_WRONG_THREAD');});
+test('wrong conversation stays unknown',()=>{const x=fx();x.journal.turns[0].conversationId='other';want(x,'still_unknown','JOURNAL_INTENT_MISMATCH');});
+test('digest mismatch stays unknown',()=>{const x=fx();x.journal.turns[0].payloadDigest='c'.repeat(64);want(x,'still_unknown','JOURNAL_INTENT_MISMATCH');});
+test('binding argument mismatch stays unknown',()=>{const x=fx();x.intentBinding.argsDigest='c'.repeat(64);want(x,'still_unknown','DURABLE_INTENT_BINDING_MISSING_OR_MISMATCHED');});
+test('stale sequence does not prove delivery',()=>{const x=fx();const t=x.journal.turns[0];t.phase='delivered';t.delivery={state:'observed',evidence:{turnId:t.id,payloadDigest:digest,sessionId:'capture-1',sequence:3,kind:'new-user-turn',source:'page',identity:'stale'}};want(x,'still_unknown','NO_POSITIVE_DISPATCH_OR_PRE_EFFECT_PROOF');});
+test('wrong source/kind combination does not prove delivery',()=>{const x=fx();const t=x.journal.turns[0];t.phase='delivered';t.delivery={state:'observed',evidence:{turnId:t.id,payloadDigest:digest,sessionId:'capture-1',sequence:4,kind:'outgoing-request',source:'page',identity:'spoof'}};want(x,'still_unknown','NO_POSITIVE_DISPATCH_OR_PRE_EFFECT_PROOF');});
+test('ambiguous attempts are not joined',()=>{const x=fx();x.run.steps.push({...x.run.steps[0],attempt:2});want(x,'still_unknown','MULTIPLE_STEP_ATTEMPTS');});
+test('tool scope not allowed stays unknown',()=>{const x=fx();x.run.steps[0].tool='read_conversation';want(x,'still_unknown','TOOL_NOT_SUPPORTED');});
+test('completed step not artificially reconciled',()=>{const x=fx();x.run.steps[0].status='succeeded';want(x,'still_unknown','STEP_NOT_UNRESOLVED');});
+test('no presence or revision heuristic: awaiting response still unknown',()=>{const x=fx();x.journal.turns[0].reply={state:'observed',evidence:{identity:'assistant',revision:1}};want(x,'still_unknown','NO_POSITIVE_DISPATCH_OR_PRE_EFFECT_PROOF');});
+test('no raw prompt or reply in output',()=>{const x=fx();const t=x.journal.turns[0];t.prompt='SECRET PROMPT';t.reply={text:'SECRET REPLY'};const s=JSON.stringify(take(x));assert.doesNotMatch(s,/SECRET/);});
