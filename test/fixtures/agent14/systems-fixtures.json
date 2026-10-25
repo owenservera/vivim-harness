@@ -1,0 +1,231 @@
+{
+  "schema": "aion.systems-s1-fixtures/1",
+  "classification": "SYNTHETIC_TEST_ONLY",
+  "scope": {
+    "siteId": "sample-ai",
+    "origin": "https://sample.invalid",
+    "account": "test-account-A",
+    "surface": "chat"
+  },
+  "train": [
+    {
+      "id": "train-a",
+      "lineage": "raw-a",
+      "scope": {
+        "siteId": "sample-ai",
+        "origin": "https://sample.invalid",
+        "account": "test-account-A",
+        "surface": "chat"
+      },
+      "sourceDigest": "sha256:a",
+      "coverage": "complete",
+      "coreAccepted": true,
+      "sourceQualified": true
+    },
+    {
+      "id": "train-b",
+      "lineage": "raw-b",
+      "scope": {
+        "siteId": "sample-ai",
+        "origin": "https://sample.invalid",
+        "account": "test-account-A",
+        "surface": "chat"
+      },
+      "sourceDigest": "sha256:b",
+      "coverage": "complete",
+      "coreAccepted": true,
+      "sourceQualified": true
+    }
+  ],
+  "heldout": [
+    {
+      "id": "test-a",
+      "lineage": "raw-c",
+      "scope": {
+        "siteId": "sample-ai",
+        "origin": "https://sample.invalid",
+        "account": "test-account-A",
+        "surface": "chat"
+      },
+      "sourceDigest": "sha256:c",
+      "coverage": "complete",
+      "coreAccepted": true,
+      "sourceQualified": true
+    }
+  ],
+  "binding": {
+    "source": "trusted-pre-effect",
+    "runId": "run-1",
+    "stepKey": "step-1",
+    "tool": "submit_conversation_turn",
+    "argsDigest": "hash-a",
+    "conversationId": "conv-1",
+    "threadKey": "sample-ai/account-A/thread-1",
+    "journalTurnKey": "turn-1",
+    "journalPayloadDigest": "payload-1"
+  },
+  "acceptance": {
+    "schema": "capture-studio.acceptance/1",
+    "verdict": "capture_accepted",
+    "binding": {
+      "rawDigest": "raw-1",
+      "domDigest": "dom-1",
+      "seqRange": [
+        1,
+        99
+      ],
+      "recipe": {
+        "id": "G1-G7",
+        "version": 1
+      }
+    },
+    "gates": {
+      "G1": {
+        "value": "passed"
+      },
+      "G2": {
+        "value": "passed"
+      },
+      "G3": {
+        "value": "passed"
+      },
+      "G4": {
+        "value": "passed"
+      },
+      "G5": {
+        "value": "passed"
+      },
+      "G6": {
+        "value": "passed"
+      },
+      "G7": {
+        "value": "passed"
+      }
+    }
+  },
+  "source": {
+    "sessionId": "s-1",
+    "rawDigest": "raw-1",
+    "coverage": "complete",
+    "gaps": 0,
+    "scope": {
+      "siteId": "sample-ai",
+      "origin": "https://sample.invalid",
+      "account": "test-account-A",
+      "surface": "chat"
+    }
+  },
+  "refs": [
+    {
+      "sessionId": "s-1",
+      "rawDigest": "raw-1",
+      "origin": "https://sample.invalid",
+      "account": "test-account-A",
+      "seq": 42
+    }
+  ],
+  "adversarialCases": [
+    {
+      "id": "holdout-exact-overlap",
+      "probe": "holdout",
+      "mutation": "reuseTrainId",
+      "expect": "SESSION_ID_REUSED"
+    },
+    {
+      "id": "holdout-remount-lineage",
+      "probe": "holdout",
+      "mutation": "reuseTrainLineage",
+      "expect": "EVIDENCE_LINEAGE_REUSED"
+    },
+    {
+      "id": "holdout-account-drift",
+      "probe": "holdout",
+      "mutation": "otherAccount",
+      "expect": "SCOPE_MISMATCH"
+    },
+    {
+      "id": "holdout-partial-coverage",
+      "probe": "holdout",
+      "mutation": "partialCoverage",
+      "expect": "UNQUALIFIED_SESSION"
+    },
+    {
+      "id": "holdout-false-accept",
+      "probe": "holdout",
+      "mutation": "unaccepted",
+      "expect": "UNQUALIFIED_SESSION"
+    },
+    {
+      "id": "intent-same-key-other-digest",
+      "probe": "intent",
+      "mutation": "argsDigest",
+      "expect": "INTENT_OR_IDENTITY_CONFLICT"
+    },
+    {
+      "id": "intent-same-key-other-account-thread",
+      "probe": "intent",
+      "mutation": "threadKey",
+      "expect": "INTENT_OR_IDENTITY_CONFLICT"
+    },
+    {
+      "id": "intent-remount-new-journal",
+      "probe": "intent",
+      "mutation": "journalTurnKey",
+      "expect": "INTENT_OR_IDENTITY_CONFLICT"
+    },
+    {
+      "id": "intent-duplicate-dispatch",
+      "probe": "intent",
+      "mutation": "duplicateDispatch",
+      "expect": "INCONSISTENT_EFFECT_TRACE"
+    },
+    {
+      "id": "intent-delivery-before-dispatch",
+      "probe": "intent",
+      "mutation": "unattributedDelivery",
+      "expect": "INCONSISTENT_EFFECT_TRACE"
+    },
+    {
+      "id": "intent-out-of-order",
+      "probe": "intent",
+      "mutation": "outOfOrder",
+      "expect": "INVALID_EVENT_ORDER"
+    },
+    {
+      "id": "provenance-wrong-origin",
+      "probe": "provenance",
+      "mutation": "otherOrigin",
+      "expect": "EVIDENCE_SCOPE_MISMATCH"
+    },
+    {
+      "id": "provenance-account-scope",
+      "probe": "provenance",
+      "mutation": "otherAccount",
+      "expect": "EVIDENCE_SCOPE_MISMATCH"
+    },
+    {
+      "id": "provenance-digest-mismatch",
+      "probe": "provenance",
+      "mutation": "otherDigest",
+      "expect": "SOURCE_DIGEST_MISMATCH"
+    },
+    {
+      "id": "provenance-gap",
+      "probe": "provenance",
+      "mutation": "captureGap",
+      "expect": "INCOMPLETE_OR_UNKNOWN_SOURCE"
+    },
+    {
+      "id": "provenance-unaccepted",
+      "probe": "provenance",
+      "mutation": "notAccepted",
+      "expect": "ACCEPTANCE_NOT_INDEPENDENTLY_VERIFIED"
+    },
+    {
+      "id": "provenance-fake-seq",
+      "probe": "provenance",
+      "mutation": "badSeq",
+      "expect": "INVALID_SOURCE_LOCATOR"
+    }
+  ]
+}
