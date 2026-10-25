@@ -13,18 +13,23 @@
     "sourcePath": "workspace/aion/sessions/roles/09-global-research/labs/website-to-local-streaming/capture-studio/",
     "trackedFiles": 386,
     "identicalInHarnessMain": 385,
-    "nonIdentical": 1
+    "nonIdentical": 1,
+    "initialMigrationExactBlobMatches": 386,
+    "identicalUnmodifiedFilesInCurrentReviewBranch": 385,
+    "expectedModifiedFiles": [
+      "package.json"
+    ],
+    "unexplainedSourceDivergence": 0
   },
   "candidateScope": "AION main: Agent14, capture-studio ops, QA, capture-studio CI; omits independent Chrome Relay and historical research docs",
   "additionalTrackedAssetPaths": 66,
   "assetClassificationCounts": {
     "legacy-active-ci-until-cutover": 1,
     "historical-bundle-metadata": 7,
-    "already-present-identical": 10,
-    "unported-test-review": 6,
-    "unported-fixture-review": 1,
+    "already-present-identical": 7,
+    "migrated-source-equivalent-on-review-branch": 9,
     "divergent-canonical-module-review": 14,
-    "unresolved-implementation-review": 1,
+    "unported-test-review": 2,
     "migrated-to-review-branch": 26
   },
   "assetPaths": [
@@ -49,20 +54,20 @@
     {
       "source": "workspace/aion/ops/capture-studio-core/handoffs/parallel-2026-10-24/core-runtime-bridge.test.mjs",
       "sourceBlob": "5d3b38925c0bdc3cd9228c073a3d3071013cb13d",
-      "canonical": null,
-      "classification": "unported-test-review"
+      "canonical": "test/qa/agent14-core-runtime-bridge.test.mjs",
+      "classification": "migrated-source-equivalent-on-review-branch"
     },
     {
       "source": "workspace/aion/ops/capture-studio-core/handoffs/parallel-2026-10-24/offline-fixture.mjs",
       "sourceBlob": "a0d236e57f6b0ae39ea9054253e0dd7dd50edf4e",
-      "canonical": null,
-      "classification": "unported-fixture-review"
+      "canonical": "test/fixtures/agent14/offline-fixture.mjs",
+      "classification": "migrated-source-equivalent-on-review-branch"
     },
     {
       "source": "workspace/aion/ops/capture-studio-knowledge-learning/handoffs/parallel-2026-10-24/PROPOSAL-EXAMPLE.json",
       "sourceBlob": "bae50c8c1233f1e1041d5e7dd7942a5d4293cf72",
       "canonical": "test/fixtures/agent14/proposal-example.json",
-      "classification": "already-present-identical"
+      "classification": "migrated-source-equivalent-on-review-branch"
     },
     {
       "source": "workspace/aion/ops/capture-studio-knowledge-learning/handoffs/parallel-2026-10-24/capture-to-signals.mjs",
@@ -73,8 +78,8 @@
     {
       "source": "workspace/aion/ops/capture-studio-knowledge-learning/handoffs/parallel-2026-10-24/capture-to-signals.test.mjs",
       "sourceBlob": "5af9805bc4cb7bdf6300ef5658235266c2ec941b",
-      "canonical": null,
-      "classification": "unported-test-review"
+      "canonical": "test/qa/agent14-capture-signals.test.mjs",
+      "classification": "migrated-source-equivalent-on-review-branch"
     },
     {
       "source": "workspace/aion/ops/capture-studio-knowledge-learning/handoffs/parallel-2026-10-24/intake.mjs",
@@ -109,14 +114,14 @@
     {
       "source": "workspace/aion/ops/capture-studio-systems/handoffs/parallel-2026-10-24/bench.mjs",
       "sourceBlob": "e946099bb11f4ab86b7027421390b26c6aad74ed",
-      "canonical": null,
-      "classification": "unresolved-implementation-review"
+      "canonical": "scripts/bench-agent14-systems.mjs",
+      "classification": "migrated-source-equivalent-on-review-branch"
     },
     {
       "source": "workspace/aion/ops/capture-studio-systems/handoffs/parallel-2026-10-24/fixtures.json",
       "sourceBlob": "ceba9c5326ad10b4a22f7ad06ed3addab66d7a51",
       "canonical": "test/fixtures/agent14/systems-fixtures.json",
-      "classification": "already-present-identical"
+      "classification": "migrated-source-equivalent-on-review-branch"
     },
     {
       "source": "workspace/aion/ops/capture-studio-systems/handoffs/parallel-2026-10-24/systems-probes.mjs",
@@ -127,14 +132,14 @@
     {
       "source": "workspace/aion/ops/capture-studio-systems/handoffs/parallel-2026-10-24/systems-probes.test.mjs",
       "sourceBlob": "e4cfa4ce7621be596d615ef62de8af057825b50c",
-      "canonical": null,
-      "classification": "unported-test-review"
+      "canonical": "test/qa/agent14-systems-probes.test.mjs",
+      "classification": "migrated-source-equivalent-on-review-branch"
     },
     {
       "source": "workspace/aion/ops/capture-studio-ui/handoffs/parallel-2026-10-24/fixtures.mjs",
       "sourceBlob": "0b437585ad038d922b19a6d5b98acd6d282d7b60",
       "canonical": "test/fixtures/agent14/universal-chat-fixtures.mjs",
-      "classification": "already-present-identical"
+      "classification": "migrated-source-equivalent-on-review-branch"
     },
     {
       "source": "workspace/aion/ops/capture-studio-ui/handoffs/parallel-2026-10-24/universal-chat.mjs",
@@ -145,8 +150,8 @@
     {
       "source": "workspace/aion/ops/capture-studio-ui/handoffs/parallel-2026-10-24/universal-chat.test.mjs",
       "sourceBlob": "e9feb12d71de34e7da5586fede2051a76e88b1d9",
-      "canonical": null,
-      "classification": "unported-test-review"
+      "canonical": "test/qa/agent14-universal-chat.test.mjs",
+      "classification": "migrated-source-equivalent-on-review-branch"
     },
     {
       "source": "workspace/aion/ops/capture-studio-value-oracle/prototypes/demo-saved-session-runner.mjs",
