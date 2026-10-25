@@ -58,6 +58,9 @@ Z.ai's first integration should read only public sources and work/write exclusiv
 4. Defer all private donors and nonselected public variants. If a missing interface blocks the app, describe exact method/object/acceptance in one paragraph before requesting additional access.
 5. Commit code **only** to vivim-harness. No deployment, forced visibility changes, token/cookie movement or alternate browser effects.
 
+## Specific private-repo exposure check
+An exact GitHub source read confirms that private `vivim-platform/pwa/.env.development` is tracked and contains 19 assignment lines, including two variables with key/token-like names and nonblank values. These values were **not published** in this report. They may be development-only placeholders; their validity and sensitivity were **not** tested. This is another reason not to flip the entire repo public without a separate commit-history, secret and deployment configuration review.
+
 ## Exposure and access risks
 - Existing Harness `.gitignore` excludes `sessions/`, `captures/`, `data/`, `chrome-profile/`, `*.sqlite`, `.env`, etc.; this is a useful safeguard, **not** a verified audit of commit history, workflows, logs or all secrets.
 - GitHub states changing private → public exposes the code to everyone and allows forks; Actions history/logs can become public and push rulesets may be disabled. A publication request requires a history/secrets/licensing review separately, not a blanket setting toggle.
