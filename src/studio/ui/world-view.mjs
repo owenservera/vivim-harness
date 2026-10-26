@@ -207,6 +207,22 @@ function unknownPart(type) {
   return { type: label, note: `Recorded part (${label}). Studio does not know how to format it, so it is not shown as content.` };
 }
 
+/** Only links recorded inside this saved paragraph/heading; never inferred citations. */
+export function savedInlineLinks(block) {
+  if (!['paragraph', 'heading'].includes(block?.type)) return [];
+  const seen = new Set(), links = [];
+  for (const part of Array.isArray(block.inline) ? block.inline : []) {
+    if (part?.t !== 'link' && part?.t !== 'citation') continue;
+    const href = safeHttp(part.href);
+    const label = typeof part.text === 'string' && part.text.trim() ? clip(part.text.trim(), 120) : 'Recorded link';
+    const key = JSON.stringify([part.t, label, href]);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    links.push({ kind: part.t, label, href, basis: 'link observed in saved page, not source verification' });
+  }
+  return links;
+}
+
 function blockToMarkdown(block, lines, unknowns, depth) {
   if (!block || typeof block !== 'object' || depth > 8) { unknowns.push(unknownPart('unknown')); return; }
   const type = (typeof block.type === 'string' && block.type) || (typeof block.kind === 'string' && block.kind) || 'unknown';
@@ -324,7 +340,10 @@ export function turnPlan(message) {
       ? 'Saved text. The recorded parts could not be formatted, so this is the saved text only.'
       : 'Saved text. No separate rich parts were recorded with this turn.';
   } else if (!markdown && !unknowns.length) note = 'No text saved for this turn.';
-  return { markdown, note, unknowns, truncated: message?.truncated === true, redactionNote: redactionNote(message?.redactions) };
+  return { markdown, note, unknowns, truncated: message?.truncated === true,
+    truncatedOriginalLength: Number.isSafeInteger(message?.truncatedOriginalLength) && message.truncatedOriginalLength > 0
+      ? message.truncatedOriginalLength : null,
+    redactionNote: redactionNote(message?.redactions) };
 }
 
 /** One entry per top-level saved block, so a rendered part can carry its own data-part-path marker.
@@ -336,7 +355,7 @@ export function planFrames(message) {
     const lines = [];
     const unknowns = [];
     blockToMarkdown(block, lines, unknowns, 0);
-    return { path: [index], markdown: lines.join('\n').trim() };
+    return { path: [index], markdown: lines.join('\n').trim(), links: savedInlineLinks(block) };
   });
 }
 
@@ -681,6 +700,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     errors: { conversations: '', projects: '', notes: '' },
     creating: false,
     messageNodes: new Map(),
+    selectionSave: { projectId: '', newTitle: '', busy: false, notice: '', pending: null, savedKeys: new Set(), lastLinked: null, noteTitle: '', noteBody: '', noteStatus: '' },
     find: { query: '', kind: '', items: [], total: null, nextOffset: null, coverage: null, error: '', status: '', loading: false, recordId: null },
     custody: 'observed',
     relations: { id: '', typed: '', map: null, error: '', status: '', loading: false, recordId: null },
@@ -937,6 +957,72 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     if (id.startsWith('p-')) return 'Project';
     return 'Record';
   }
+  function sourceJumpProblem(message) {
+    if (state.view === 'find') { state.find.error = message; renderFind(); }
+    else if (state.view === 'workspace') { state.workspace.readingError = message; renderWorkspaceReading(); }
+    else if (state.view === 'projects' || state.view === 'notes') {
+      const editor = state.editors.get(state.selected[state.view]);
+      if (editor) { editor.notice = message; renderDetailPane(); }
+      else announce(message);
+    } else announce(message);
+  }
+  async function followSource(record) {
+    if (!record || !/^[os]-[a-z0-9-]{1,60}$/.test(record.id || '')) return;
+    if (['missing', 'unavailable', 'stale', 'unresolved'].includes(record.availability)) {
+      sourceJumpProblem('The original source is ' + record.availability + '. No other content was substituted.');
+      return;
+    }
+    // A selection's revision can change after the list was loaded. Recheck its
+    // current source-bound availability before following, never trust cached labels.
+    if (record.id.startsWith('s-')) {
+      const fresh = await call('/selections/' + encodeURIComponent(record.id));
+      if (fresh.status !== 200 || fresh.data?.id !== record.id
+          || fresh.data.availability !== 'locally-available') {
+        sourceJumpProblem('The saved selection is stale, missing or unavailable on a fresh read. No source was substituted.');
+        return;
+      }
+      record = fresh.data;
+    }
+    let conversationId = record.conversationId;
+    if (record.id.startsWith('s-')) {
+      const parentId = record.objectId;
+      if (!/^o-[a-z0-9-]{1,60}$/.test(parentId || '')) {
+        sourceJumpProblem('The saved selection has no valid parent source reference.');
+        return;
+      }
+      const object = await call('/objects/' + encodeURIComponent(parentId));
+      if (object.status !== 200 || object.data?.id !== parentId
+          || ['missing', 'unavailable', 'stale'].includes(object.data?.availability)) {
+        sourceJumpProblem('The parent source reference is missing, stale or unavailable. Nothing else was opened.');
+        return;
+      }
+      conversationId = object.data.conversationId;
+    }
+    if (!ID_RE.conversations.test(conversationId || '')) {
+      sourceJumpProblem('This record has no saved local conversation id to follow.');
+      return;
+    }
+    if (record.id.startsWith('s-')) {
+      const idx = record.source?.messageIndex;
+      if (!Number.isSafeInteger(idx) || idx < 0) {
+        sourceJumpProblem('This selection has no usable recorded message index.');
+        return;
+      }
+      return openHit({ kind: 'message', id: conversationId + ':turn:' + idx,
+        conversation: { id: conversationId },
+        source: { index: idx, partPath: record.source?.partPath ?? [] } });
+    }
+    return openItem('conversations', conversationId);
+  }
+  function sourceJumpButton(record) {
+    if (!record || !/^[os]-[a-z0-9-]{1,60}$/.test(record.id || '')) return null;
+    const button = el('button', { type: 'button', class: 'mini', id: 'worldSourceJump-' + record.id,
+      text: 'Open original saved source', 'aria-label': 'Open source for ' + record.id });
+    button.disabled = ['missing', 'unavailable', 'stale', 'unresolved'].includes(record.availability);
+    on(button, 'click', () => followSource(record));
+    return button;
+  }
+
   function memberRow(kind, id) {
     const title = kind === 'members' || kind === 'comments' ? recordLabel(id) : (titleFor(kind, id) || (kind === 'conversations' ? 'Saved conversation' : 'Note'));
     const record = findRecord(id);
@@ -975,9 +1061,372 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
         known ? null : el('div', { class: 'note', text: 'Not in the loaded list. Removing it is still possible when you save.' }),
         facts,
       ]),
-      open, remove,
+      open, sourceJumpButton(record), remove,
     ]);
   }
+  function selectionToolbar(item) {
+    if (state.view !== 'conversations' || state.selected.conversations !== item?.id) return null;
+    const box = el('section', { class: 'panel pad', id: 'worldSelectionToolbar' });
+    box.append(el('h3', { text: 'Keep something from this conversation' }));
+    const picker = el('select', { id: 'worldSelectionProject', 'aria-label': 'Project for saved message or part' });
+    picker.append(el('option', { value: '', text: 'Choose an existing project' }));
+    for (const project of state.lists.projects.items) {
+      if (!ID_RE.projects.test(project?.id || '')) continue;
+      picker.append(el('option', { value: project.id, text: project.title || project.id }));
+    }
+    picker.value = state.selectionSave.projectId;
+    on(picker, 'change', () => {
+      state.selectionSave.projectId = picker.value;
+      state.selectionSave.notice = '';
+      const line = typeof box.querySelector === 'function' ? box.querySelector('#worldSelectionStatus') : null;
+      if (line) line.textContent = '';
+    });
+    const title = el('input', { type: 'text', id: 'worldSelectionNewTitle', maxlength: '300',
+      'aria-label': 'Name for a new project', placeholder: 'New project name' });
+    title.value = state.selectionSave.newTitle;
+    on(title, 'input', () => { state.selectionSave.newTitle = title.value; });
+    const create = el('button', { type: 'button', id: 'worldSelectionNewProject', text: 'Create project here' });
+    create.disabled = state.selectionSave.busy;
+    on(create, 'click', () => createProjectFromConversation());
+    box.append(el('div', { class: 'row' }, [picker]));
+    if (state.lists.projects.nextOffset != null) {
+      const more = el('button', { type: 'button', id: 'worldSelectionMoreProjects',
+        text: 'Load more projects' });
+      more.disabled = state.lists.projects.loading || state.selectionSave.busy;
+      on(more, 'click', async () => {
+        await fetchList('projects', { more: true });
+        if (state.view === 'conversations') renderDetailPane();
+      });
+      box.append(more);
+    }
+    box.append(el('div', { class: 'row' }, [title, create]));
+    if (!state.lists.projects.items.length) box.append(el('p', { class: 'note', text: 'Create a project here; your saved conversation stays open.' }));
+    box.append(el('p', { class: 'note', text: 'Selections point to recorded content; they do not copy an attachment, edit the recording, or verify a provider account.' }));
+    const pending = state.selectionSave.pending;
+    if (pending?.conversationId === item.id) {
+      const detail = pending.selectionId
+        ? 'Selection ' + pending.selectionId + ' was saved, but its project association is unfinished.'
+        : 'Source reference ' + pending.objectId + ' was saved; no selection was confirmed.';
+      box.append(el('p', { class: 'note', text: detail }));
+      if (pending.selectionId) {
+        const finish = el('button', { type: 'button', id: 'worldFinishSelectionLink',
+          text: 'Finish linking saved selection' });
+        finish.disabled = state.selectionSave.busy;
+        on(finish, 'click', () => finishPendingSelection());
+        box.append(finish);
+      }
+      const dismiss = el('button', { type: 'button', id: 'worldDismissSelectionPending',
+        text: 'Leave unfinished records and continue' });
+      dismiss.disabled = state.selectionSave.busy;
+      on(dismiss, 'click', () => {
+        state.selectionSave.pending = null;
+        state.selectionSave.notice = 'Unfinished local references remain saved; no record was deleted. Review them in Projects.';
+        renderDetailPane();
+      });
+      box.append(dismiss);
+    }
+    const linked = state.selectionSave.lastLinked;
+    if (linked?.conversationId === item.id) {
+      box.append(el('h3', { text: 'Write a note on your saved selection' }));
+      box.append(el('p', { class: 'note', text: 'This is a personal note on selection '
+        + linked.selectionId + '. It does not change the source or send anything to a provider.' }));
+      const noteTitle = el('input', { type: 'text', id: 'worldSelectionNoteTitle', maxlength: '300',
+        'aria-label': 'Title for a note on this selection', placeholder: 'Note title' });
+      noteTitle.value = state.selectionSave.noteTitle;
+      on(noteTitle, 'input', () => { state.selectionSave.noteTitle = noteTitle.value; });
+      const noteBody = el('textarea', { id: 'worldSelectionNoteBody', rows: '3',
+        'aria-label': 'Your note on the saved selection', placeholder: 'Your note' });
+      noteBody.value = state.selectionSave.noteBody;
+      on(noteBody, 'input', () => { state.selectionSave.noteBody = noteBody.value; });
+      const addNote = el('button', { type: 'button', id: 'worldSelectionCreateNote',
+        text: 'Save note on selection' });
+      addNote.disabled = state.selectionSave.busy;
+      on(addNote, 'click', () => createNoteForSavedSelection());
+      box.append(noteTitle, noteBody, addNote,
+        el('p', { id: 'worldSelectionNoteStatus', role: 'status', text: state.selectionSave.noteStatus }));
+    }
+    box.append(el('p', { id: 'worldSelectionStatus', role: 'status', text: state.selectionSave.notice }));
+    return box;
+  }
+
+  /** Create via the same canonical API as Projects, without losing the source reader. */
+  async function createProjectFromConversation() {
+    const work = state.selectionSave;
+    if (work.busy) return;
+    const title = validTitle(work.newTitle ?? '');
+    if (!title) {
+      work.notice = 'Not saved. Enter a project name with 1 to 300 characters.';
+      renderDetailPane();
+      return;
+    }
+    work.busy = true;
+    work.notice = 'Creating local project…';
+    renderDetailPane();
+    try {
+      const result = await call('/projects', { method: 'POST', body: projectCreateBody(title) });
+      const outcome = interpretCreate(result, { title, body: '' });
+      if (!outcome.ok || !ID_RE.projects.test(outcome.saved?.id || '')) {
+        work.notice = outcome.message || 'No project save was confirmed. Check Projects before trying again.';
+        return;
+      }
+      const saved = outcome.saved;
+      const list = state.lists.projects;
+      list.items = appendPage([saved], { items: list.items });
+      list.total = Math.max(list.total, list.items.length);
+      list.loaded = true;
+      state.editors.set(saved.id, editorFrom(saved, 'Saved.'));
+      work.projectId = saved.id;
+      work.newTitle = '';
+      work.notice = 'Project ' + (saved.title || title)
+        + ' created. Choose Save message or Save this part below to link recorded content.';
+      announce('Project created. Saved conversation stays open.');
+    } catch (error) {
+      work.notice = 'Project save was not confirmed. Check Projects before retrying.';
+    } finally {
+      work.busy = false;
+      if (state.view === 'conversations') renderDetailPane();
+    }
+  }
+  /** Every confirmed source record is discoverable even if the next write fails. */
+  function cacheSourceRecord(kind, record) {
+    if (!['objects', 'selections'].includes(kind) || !record?.id) return;
+    const list = state.lists[kind];
+    list.items = appendPage([record], { items: list.items });
+    list.total = Math.max(list.total, list.items.length);
+    list.loaded = true;
+    state.records.set(record.id, record);
+  }
+
+  /** Three existing versioned writes; partial failures leave honest local records, never fake an atomic save. */
+  async function saveObservedPart(conversationId, messageIndex, partPath = []) {
+    const work = state.selectionSave;
+    if (work.busy) return;
+    if (work.pending) {
+      work.notice = 'An unfinished write already exists. Finish linking or explicitly leave it unfinished first; Studio will not create duplicate source records.';
+      renderDetailPane();
+      return;
+    }
+    const projectId = work.projectId;
+    const source = state.conversations.get(conversationId);
+    const message = source?.messages?.[messageIndex];
+    const validPart = !partPath.length || (partPath.length === 1 && Number.isSafeInteger(partPath[0])
+      && partPath[0] >= 0 && Array.isArray(message?.blocks) && partPath[0] < message.blocks.length);
+    const key = JSON.stringify([conversationId, messageIndex, partPath, projectId]);
+    if (!ID_RE.projects.test(projectId || '') || !message || !validPart) {
+      work.notice = 'Nothing saved. Choose a project and a recorded message or part first.';
+      renderDetailPane();
+      return;
+    }
+    if (work.savedKeys.has(key)) {
+      work.notice = 'This item was already linked to that project in this session.';
+      renderDetailPane();
+      return;
+    }
+    const localEditor = state.editors.get(projectId);
+    if (localEditor?.saved && !sameDraft(localEditor.draft, draftFromSaved(localEditor.saved))) {
+      work.notice = 'Not saved. This project has unsaved edits. Save or discard that draft in Projects first.';
+      renderDetailPane();
+      return;
+    }
+    work.busy = true;
+    work.notice = 'Saving local source reference, selection and project link…';
+    renderDetailPane();
+    let object = null, selection = null;
+    try {
+      const current = await call('/projects/' + encodeURIComponent(projectId));
+      if (current.status !== 200 || current.data?.id !== projectId || !Number.isInteger(current.data.version)) {
+        work.notice = 'Nothing saved. The selected project could not be read. Choose it again.';
+        return;
+      }
+      const project = current.data;
+      const createdObject = await call('/objects', { method: 'POST', body: { conversationId, expectedVersion: null } });
+      if (createdObject.status !== 200 || !/^o-[a-z0-9-]+$/.test(createdObject.data?.id || '') || !Number.isInteger(createdObject.data?.version)) {
+        work.notice = 'Project unchanged. Studio did not confirm a saved source reference; inspect the saved records before retrying.';
+        return;
+      }
+      object = createdObject.data;
+      cacheSourceRecord('objects', object);
+      work.pending = { projectId, conversationId, messageIndex, partPath: [...partPath],
+        objectId: object.id, selectionId: null, key };
+      const createdSelection = await call('/selections', { method: 'POST', body: {
+        objectId: object.id, selectionType: partPath.length ? 'part' : 'message',
+        messageIndex, partPath, expectedVersion: null,
+      } });
+      if (createdSelection.status !== 200 || !/^s-[a-z0-9-]+$/.test(createdSelection.data?.id || '') || !Number.isInteger(createdSelection.data?.version)) {
+        work.notice = 'Source reference ' + object.id + ' was saved, but selection/project link was NOT confirmed. Inspect local references before retrying.';
+        return;
+      }
+      selection = createdSelection.data;
+      cacheSourceRecord('selections', selection);
+      work.pending.selectionId = selection.id;
+      const changed = await call('/projects/' + encodeURIComponent(projectId), { method: 'PUT', body: {
+        title: project.title,
+        conversationIds: withId(project.conversationIds ?? [], conversationId),
+        noteIds: [...(project.noteIds ?? [])],
+        memberIds: withId(withId(project.memberIds ?? [], object.id), selection.id),
+        expectedVersion: project.version,
+      } });
+      const written = interpretWrite(changed, project);
+      if (!written.ok) {
+        work.notice = 'Selection ' + selection.id + ' was saved, but the project link was NOT confirmed. '
+          + written.message + ' Open Projects to link the selection manually.';
+        return;
+      }
+      work.savedKeys.add(key);
+      work.lastLinked = { conversationId, projectId, objectId: object.id, selectionId: selection.id };
+      work.noteStatus = '';
+      work.pending = null;
+      work.notice = 'Saved this recorded ' + (partPath.length ? 'part' : 'message') + ' in project ' + (project.title || projectId)
+        + '. The original conversation was not modified.';
+      const list = state.lists.projects.items;
+      const at = list.findIndex((p) => p.id === projectId);
+      if (at >= 0) list[at] = { ...list[at], ...written.saved };
+      if (localEditor) state.editors.set(projectId, editorFrom(written.saved, 'Saved.'));
+      announce('Saved part to your project.');
+    } catch (error) {
+      work.notice = 'The write sequence did not complete. '
+        + (selection ? 'Selection ' + selection.id : object ? 'Source reference ' + object.id : 'No source reference')
+        + ' may exist locally; check saved records before retrying. '
+        + (error?.message ? String(error.message).slice(0, 120) : 'Studio reported an unexpected error.');
+    } finally {
+      work.busy = false;
+      if (state.view === 'conversations' && state.selected.conversations === conversationId) renderDetailPane();
+    }
+  }
+
+  /** User-initiated completion uses confirmed records only: no second POST object/selection. */
+  async function finishPendingSelection() {
+    const work = state.selectionSave, pending = work.pending;
+    if (work.busy || !pending?.selectionId) return;
+    work.busy = true;
+    work.notice = 'Checking saved selection and latest project version…';
+    if (state.view === 'conversations') renderDetailPane();
+    try {
+      const [selectionRead, projectRead] = await Promise.all([
+        call('/selections/' + encodeURIComponent(pending.selectionId)),
+        call('/projects/' + encodeURIComponent(pending.projectId)),
+      ]);
+      if (selectionRead.status !== 200 || selectionRead.data?.id !== pending.selectionId
+          || selectionRead.data.availability !== 'locally-available'
+          || projectRead.status !== 200 || projectRead.data?.id !== pending.projectId
+          || !Number.isInteger(projectRead.data.version)) {
+        work.notice = 'Nothing relinked. Saved selection is stale/unavailable or the current project version could not be checked.';
+        return;
+      }
+      const project = projectRead.data;
+      const nextConversations = withId(project.conversationIds ?? [], pending.conversationId);
+      const nextMembers = withId(withId(project.memberIds ?? [], pending.objectId), pending.selectionId);
+      // A prior response may have been lost after a successful PUT. Reread instead
+      // of writing again when the newest project already contains every link.
+      if (nextConversations.length === (project.conversationIds ?? []).length
+          && nextMembers.length === (project.memberIds ?? []).length) {
+        work.savedKeys.add(pending.key);
+        work.lastLinked = { conversationId: pending.conversationId, projectId: pending.projectId,
+          objectId: pending.objectId, selectionId: pending.selectionId };
+        work.noteStatus = '';
+        work.pending = null;
+        work.notice = 'This saved selection was already linked. No duplicate project write was made.';
+        return;
+      }
+      const result = await call('/projects/' + encodeURIComponent(pending.projectId), {
+        method: 'PUT',
+        body: { title: project.title, conversationIds: nextConversations, noteIds: project.noteIds ?? [],
+          memberIds: nextMembers, expectedVersion: project.version },
+      });
+      const written = interpretWrite(result, project);
+      if (!written.ok) {
+        work.notice = 'Project link still not confirmed. ' + written.message
+          + ' The existing saved selection was preserved; no new source reference was created.';
+        return;
+      }
+      const index = state.lists.projects.items.findIndex((p) => p.id === pending.projectId);
+      if (index >= 0) state.lists.projects.items[index] = { ...state.lists.projects.items[index], ...written.saved };
+      if (state.editors.has(pending.projectId)) state.editors.set(pending.projectId, editorFrom(written.saved, 'Saved.'));
+      work.savedKeys.add(pending.key);
+      work.lastLinked = { conversationId: pending.conversationId, projectId: pending.projectId,
+        objectId: pending.objectId, selectionId: pending.selectionId };
+      work.noteStatus = '';
+      work.pending = null;
+      work.notice = 'Existing saved selection linked to project. No new source reference was created.';
+      announce('Existing selection linked to project.');
+    } catch {
+      work.notice = 'Could not verify the existing selection/project link. Local records remain; no new source was created.';
+    } finally {
+      work.busy = false;
+      if (state.view === 'conversations') renderDetailPane();
+    }
+  }
+
+  /** Personal note, using the existing note.commentsOn relation and project CAS. */
+  async function createNoteForSavedSelection() {
+    const work = state.selectionSave, linked = work.lastLinked;
+    if (work.busy || !linked?.selectionId) return;
+    const title = validTitle(work.noteTitle ?? '');
+    const body = work.noteBody ?? '';
+    if (!title || typeof body !== 'string' || body.length > 200000) {
+      work.noteStatus = 'Not saved. Enter a title of 1–300 characters and a note up to 200,000 characters.';
+      renderDetailPane();
+      return;
+    }
+    work.busy = true;
+    work.noteStatus = 'Checking saved source and saving a personal note…';
+    if (state.view === 'conversations') renderDetailPane();
+    let savedNote = null;
+    try {
+      const selection = await call('/selections/' + encodeURIComponent(linked.selectionId));
+      if (selection.status !== 200 || selection.data?.id !== linked.selectionId
+          || selection.data.availability !== 'locally-available') {
+        work.noteStatus = 'No note was created. The original selection is stale or unavailable.';
+        return;
+      }
+      const result = await call('/notes', { method: 'POST',
+        body: { ...noteCreateBody(title, body), commentsOn: [linked.selectionId] } });
+      const outcome = interpretCreate(result, { title, body });
+      if (!outcome.ok || !ID_RE.notes.test(outcome.saved?.id || '')) {
+        work.noteStatus = 'Note save was not confirmed. Check Notes before retrying.';
+        return;
+      }
+      savedNote = outcome.saved;
+      const notes = state.lists.notes;
+      notes.items = appendPage([savedNote], { items: notes.items });
+      notes.total = Math.max(notes.total, notes.items.length);
+      notes.loaded = true;
+      state.editors.set(savedNote.id, editorFrom(savedNote, 'Saved.'));
+      work.noteTitle = '';
+      work.noteBody = '';
+      work.noteStatus = 'Personal note saved. Linking it to the project…';
+      const current = await call('/projects/' + encodeURIComponent(linked.projectId));
+      if (current.status !== 200 || current.data?.id !== linked.projectId
+          || !Number.isInteger(current.data.version)) {
+        work.noteStatus = 'Note ' + savedNote.id + ' saved on the selection, but its project link was NOT confirmed. Open Projects to add it manually.';
+        return;
+      }
+      const project = current.data;
+      const resultLink = await call('/projects/' + encodeURIComponent(linked.projectId), { method: 'PUT',
+        body: { title: project.title, conversationIds: project.conversationIds ?? [],
+          noteIds: withId(project.noteIds ?? [], savedNote.id), memberIds: project.memberIds ?? [],
+          expectedVersion: project.version } });
+      const written = interpretWrite(resultLink, project);
+      if (!written.ok) {
+        work.noteStatus = 'Note ' + savedNote.id + ' saved on the selection, but its project link was NOT confirmed. '
+          + written.message + ' Add the note in Projects if needed.';
+        return;
+      }
+      const index = state.lists.projects.items.findIndex((p) => p.id === linked.projectId);
+      if (index >= 0) state.lists.projects.items[index] = { ...state.lists.projects.items[index], ...written.saved };
+      if (state.editors.has(linked.projectId)) state.editors.set(linked.projectId, editorFrom(written.saved, 'Saved.'));
+      work.noteStatus = 'Personal note saved on the original selection and linked to your project.';
+      announce('Note saved and linked to project.');
+    } catch {
+      work.noteStatus = savedNote
+        ? 'Note ' + savedNote.id + ' saved locally; project link could not be verified. Review Projects.'
+        : 'Note write could not be verified. Review Notes before retrying.';
+    } finally {
+      work.busy = false;
+      if (state.view === 'conversations') renderDetailPane();
+    }
+  }
+
   function renderMessages(item) {
     const list = el('ol', { class: 'reads', id: 'worldMessages' });
     state.messageNodes = new Map();
@@ -992,12 +1441,32 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     messages.forEach((message, index) => {
       const plan = turnPlan(message);
       const body = el('div', { class: 'rich' });
-      const frames = planFrames(message).filter((frame) => frame.markdown);
+      const canSelect = state.view === 'conversations' && state.selected.conversations === item.id;
+      const frames = planFrames(message).filter((frame) => frame.markdown || frame.links.length);
       if (frames.length) {
         for (const frame of frames) {
           const frameBody = el('div', { class: 'rich', 'data-part-path': String(frame.path[0]), tabindex: '-1' });
-          if (typeof rich?.renderStatic === 'function') rich.renderStatic(frameBody, frame.markdown);
-          else frameBody.textContent = frame.markdown;
+          if (frame.markdown) {
+            if (typeof rich?.renderStatic === 'function') rich.renderStatic(frameBody, frame.markdown);
+            else frameBody.textContent = frame.markdown;
+          }
+          if (frame.links.length) {
+            const sources = el('div', { class: 'note', 'aria-label': 'Links observed in saved page' });
+            for (const link of frame.links) {
+              const title = (link.kind === 'citation' ? 'Recorded citation link: ' : 'Recorded link: ') + link.label;
+              sources.append(link.href
+                ? el('a', { href: link.href, target: '_blank', rel: 'noopener noreferrer nofollow', text: title })
+                : el('span', { text: title + ' (address unavailable)' }));
+              sources.append(el('span', { text: ' · ' }));
+            }
+            frameBody.append(sources);
+          }
+          if (canSelect) {
+            const savePart = el('button', { type: 'button', class: 'mini', id: 'worldSavePart-' + index + '-' + frame.path[0], text: 'Save this part to project' });
+            savePart.disabled = state.selectionSave.busy;
+            on(savePart, 'click', () => saveObservedPart(item.id, index, frame.path));
+            frameBody.append(savePart);
+          }
           body.append(frameBody);
         }
       } else if (plan.markdown) {
@@ -1009,13 +1478,21 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
       const row = el('li', { class: 'rd', id: 'worldMsg' + index, tabindex: '0' }, [
         el('div', { class: 'rd-head' }, [
           el('b', { text: roleLabel(message?.role) }),
+          ...(canSelect ? [(() => {
+            const saveMessage = el('button', { type: 'button', class: 'mini', id: 'worldSaveMessage-' + index, text: 'Save message to project' });
+            saveMessage.disabled = state.selectionSave.busy;
+            on(saveMessage, 'click', () => saveObservedPart(item.id, index, []));
+            return saveMessage;
+          })()] : []),
           plan.truncated ? el('span', { class: 'pill t-warn', text: 'Marked truncated' }) : null,
         ]),
         plan.note ? el('p', { class: 'note', text: plan.note }) : null,
         body.children?.length || body.textContent ? body : null,
         unknownList.children?.length ? unknownList : null,
         plan.redactionNote ? el('p', { class: 'note', text: plan.redactionNote }) : null,
-        plan.truncated ? el('p', { class: 'note', text: 'This saved turn is not complete.' }) : null,
+        plan.truncated ? el('p', { class: 'note', text: plan.truncatedOriginalLength == null
+            ? 'This saved turn is not complete.'
+            : 'This saved turn is not complete. Original text length observed before truncation: ' + plan.truncatedOriginalLength + ' characters.' }) : null,
         kv(messageSourceRows(message?.source)),
       ]);
       state.messageNodes.set(index, row);
@@ -1043,7 +1520,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
         ...importedFromLines(item.importedFrom),
         typeof item.createdAt === 'string' && item.createdAt ? { label: 'Recorded at', value: item.createdAt } : null,
       ]),
-      error, renderMessages(item), tail,
+      error, selectionToolbar(item), renderMessages(item), tail,
     ]);
   }
   function renderDetailPane() {
@@ -1128,7 +1605,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
         el('p', { class: 'note', text: 'These links stay on this project. They are not a map, and they do not copy a note or a selection into the saved conversation.' }),
         ...((editor.draft.memberIds ?? []).length ? editor.draft.memberIds.map((member) => memberRow('members', member)) : [el('p', { class: 'note', text: 'No other record is linked.' })]),
         el('div', { class: 'row' }, [linkMemberSelect, addOther]),
-        el('p', { class: 'note', text: 'Adding and removing wait until you save. Save sends the whole list. Only loaded items can be added. This screen does not create objects or selections.' }),
+        el('p', { class: 'note', text: 'Adding and removing wait until you save. Save sends the whole list. New source objects and selections can be created from the Saved conversation reader.' }),
       );
     }
     bodyBits.push(el('div', { class: 'row' }, [saveNode, useSaved]));
@@ -1421,6 +1898,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
         typeof record.qualification === 'string' ? { label: 'Qualification', value: record.qualification } : null,
       ]),
       el('p', { class: 'note', text: 'This is the saved record. Opening it does not change the conversation it points at.' }),
+      sourceJumpButton(record),
     ]) : el('p', { class: 'empty', text: 'Open a match to see that same saved record. Find is not a home for it.' }));
   }
   async function runSearch({ more = false } = {}) {
@@ -1711,6 +2189,19 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     if (t.restore) {
       const summary = restoreSummary(t.restore);
       importOut.append(el('h3', { text: 'Restore' }), el('p', { text: summary.text }), renderOutcome(t.restore));
+      const applied = Array.isArray(t.restore.applied) ? t.restore.applied : [];
+      const map = t.restore.idMap && typeof t.restore.idMap === 'object' ? t.restore.idMap : {};
+      for (const kind of ['conversations', 'projects', 'notes']) {
+        const original = applied.find((id) => typeof id === 'string'
+          && (kind === 'conversations' ? id.startsWith('c-') : kind === 'projects' ? id.startsWith('p-') : id.startsWith('n-'))
+          && ID_RE[kind].test(map[id] || ''));
+        if (!original) continue;
+        const target = map[original];
+        const open = el('button', { type: 'button', id: 'worldImportOpen-' + kind,
+          text: 'Open imported ' + (kind === 'conversations' ? 'conversation' : kind === 'projects' ? 'project' : 'note') });
+        on(open, 'click', () => openItem(kind, target));
+        importOut.append(open);
+      }
     }
     listPane.replaceChildren(
       el('h2', { text: 'Transfer' }),
@@ -1918,7 +2409,16 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
       state.transfer.restore = result.data;
       state.transfer.importStatus = summary.text;
       state.custody = 'all';
-      state.lists.conversations = blankList();
+      // Every affected collection may have changed. Invalidate all pages and any pending
+      // older read, so navigation sees imported projects/notes/references without a reload.
+      for (const kind of ['conversations', 'projects', 'notes', 'objects', 'selections']) {
+        tickets.list[kind] += 1;
+        state.lists[kind] = blankList();
+      }
+      state.records.clear();
+      state.find.items = [];
+      state.find.coverage = null;
+      state.find.nextOffset = null;
       if (summary.success) {
         state.transfer.check = null;
         state.transfer.checkText = '';
@@ -2181,7 +2681,8 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
                 { label: 'Other items linked', value: String(item.memberIds?.length ?? 0) },
               ])]
             : [kv(referenceReaderRows(item)),
-              el('p', { class: 'note', text: 'Saved reference only. This does not include the source content.' })]),
+              el('p', { class: 'note', text: 'Saved reference only. This does not include the source content.' }),
+              sourceJumpButton(item)]),
       ]));
     }
     readerBodyNode.replaceChildren(...children);

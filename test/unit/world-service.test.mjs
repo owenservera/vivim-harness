@@ -60,6 +60,8 @@ test('link validates targets, missing evidence is truthful, and active sessions 
   assert.equal(f.world.conversation(cid).coverage.state, 'missing');
   f.session.kv.set('DOM_TURNS', [{ role: 'user', text: 'partial', truncated: 200 }]);
   assert.equal(f.world.conversation(cid).coverage.state, 'partial');
+  assert.equal(f.world.conversation(cid).messages[0].truncated, true);
+  assert.equal(f.world.conversation(cid).messages[0].truncatedOriginalLength, 200, 'source scanner length survives world read');
   assert.deepEqual(createWorldService({ paths: f.paths, isSessionActive: () => true }).conversations().items, []);
   assert.throws(() => f.world.conversation('../escape'), { code: 'WORLD_INVALID_INPUT' });
   assert.throws(() => f.world.createProject({ title: '', expectedVersion: null }), { code: 'WORLD_INVALID_INPUT' });

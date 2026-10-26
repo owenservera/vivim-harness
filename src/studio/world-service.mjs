@@ -122,7 +122,10 @@ export function createWorldService({ paths, isSessionActive = () => false }) {
         text: typeof turn?.text === 'string' ? turn.text : '', blocks: structuredClone(Array.isArray(turn?.blocks) ? turn.blocks : []),
         source: { sessionId: m.id, key: 'DOM_TURNS', index, observedTurnId: turn?.id ?? null, domId: turn?.domId ?? null },
         domId: turn?.domId ?? null, roleAttribute: turn?.roleAttribute ?? null,
-        truncated: !!turn?.truncated, redactions: turn?.redactions ?? null }));
+        truncated: !!turn?.truncated,
+        // Preserve the source scanner's original-length signal without changing Boolean consumers.
+        truncatedOriginalLength: Number.isSafeInteger(turn?.truncated) && turn.truncated > 0 ? turn.truncated : null,
+        redactions: turn?.redactions ?? null }));
       return { ...metadata(m), messages, coverage: { state: !present ? 'missing' : m.status === 'complete' && !messages.some((t) => t.truncated) ? 'saved-observation' : 'partial',
         fullNativeThread: 'unknown', acceptance: 'not-assessed', richContent: present ? 'as-recorded' : 'missing' } };
     },
