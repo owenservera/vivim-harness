@@ -1101,6 +1101,11 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
       if (at >= 0) list[at] = { ...list[at], ...written.saved };
       if (localEditor) state.editors.set(projectId, editorFrom(written.saved, 'Saved.'));
       announce('Saved part to your project.');
+    } catch (error) {
+      work.notice = 'The write sequence did not complete. '
+        + (selection ? 'Selection ' + selection.id : object ? 'Source reference ' + object.id : 'No source reference')
+        + ' may exist locally; check saved records before retrying. '
+        + (error?.message ? String(error.message).slice(0, 120) : 'Studio reported an unexpected error.');
     } finally {
       work.busy = false;
       if (state.view === 'conversations' && state.selected.conversations === conversationId) renderDetailPane();
