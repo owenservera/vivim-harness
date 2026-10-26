@@ -6,29 +6,45 @@ import { existsSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { isReachable, browserVersion, waitForReachable, discoveryProbe } from '../cdp/discovery.mjs';
 
+// One implementation for native Windows, Linux, and macOS: no which/where shell.
+function searchDirs(env, platform) {
+  const impl = platform === 'win32' ? path.win32 : path.posix;
+  const variable = platform === 'win32' ? (env.Path ?? env.PATH ?? env.path) : env.PATH;
+  return String(variable ?? '').split(impl.delimiter).filter(Boolean);
+}
 export function chromeCandidates(env = process.env, platform = process.platform) {
-  const c = [];
-  if (env.CHROME_PATH) c.push(env.CHROME_PATH);
+  const c = [], impl = platform === 'win32' ? path.win32 : path.posix;
+  const dirs = searchDirs(env, platform);
+  if (env.CHROME_PATH) {
+    c.push(env.CHROME_PATH);
+    if (!impl.isAbsolute(env.CHROME_PATH) && !env.CHROME_PATH.includes('/') && !env.CHROME_PATH.includes('\\'))
+      for (const dir of dirs) c.push(impl.join(dir, env.CHROME_PATH));
+  }
   if (platform === 'win32') {
-    for (const base of [env['PROGRAMFILES'], env['PROGRAMFILES(X86)'], env.LOCALAPPDATA].filter(Boolean)) {
-      c.push(path.win32.join(base, 'Google', 'Chrome', 'Application', 'chrome.exe'));
-      c.push(path.win32.join(base, 'Google', 'Chrome Beta', 'Application', 'chrome.exe'));
-      c.push(path.win32.join(base, 'Google', 'Chrome SxS', 'Application', 'chrome.exe'));
-      c.push(path.win32.join(base, 'Chromium', 'Application', 'chrome.exe'));
-      c.push(path.win32.join(base, 'Microsoft', 'Edge', 'Application', 'msedge.exe'));
+    for (const base of [env.PROGRAMFILES, env['PROGRAMFILES(X86)'], env.LOCALAPPDATA].filter(Boolean)) {
+      c.push(impl.join(base, 'Google', 'Chrome', 'Application', 'chrome.exe'));
+      c.push(impl.join(base, 'Google', 'Chrome Beta', 'Application', 'chrome.exe'));
+      c.push(impl.join(base, 'Google', 'Chrome SxS', 'Application', 'chrome.exe'));
+      c.push(impl.join(base, 'Chromium', 'Application', 'chrome.exe'));
+      c.push(impl.join(base, 'Microsoft', 'Edge', 'Application', 'msedge.exe'));
     }
   } else if (platform === 'darwin') {
     c.push('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome');
     c.push('/Applications/Chromium.app/Contents/MacOS/Chromium');
   } else {
-    c.push('/usr/bin/google-chrome', '/usr/bin/google-chrome-stable', '/usr/bin/chromium', '/usr/bin/chromium-browser');
+    c.push('/usr/bin/google-chrome', '/usr/bin/google-chrome-stable', '/usr/bin/chromium',
+      '/usr/bin/chromium-browser', '/snap/bin/chromium', '/opt/google/chrome/chrome',
+      '/opt/microsoft/msedge/msedge');
   }
-  return c;
+  const names = platform === 'win32'
+    ? ['chrome.exe', 'chromium.exe', 'msedge.exe']
+    : ['google-chrome', 'google-chrome-stable', 'chromium', 'chromium-browser', 'microsoft-edge', 'microsoft-edge-stable'];
+  for (const dir of dirs) for (const name of names) c.push(impl.join(dir, name));
+  return [...new Set(c)];
 }
-
-export function findChrome() {
-  const hit = chromeCandidates().find((p) => p && existsSync(p));
-  if (!hit) throw new Error('Chrome not found. Set CHROME_PATH to chrome.exe.');
+export function findChrome(env = process.env, platform = process.platform) {
+  const hit = chromeCandidates(env, platform).find((p) => p && existsSync(p));
+  if (!hit) throw new Error('Chrome/Chromium/Edge not found. Install one or set CHROME_PATH to its executable.');
   return hit;
 }
 
@@ -55,8 +71,13 @@ export async function launchChrome({ profileDir, port = 9222, url = 'about:blank
     url,
   ];
   const child = spawn(exe, args, { detached: true, stdio: 'ignore', windowsHide: false });
+  // Missing execution permission / interpreter emits an asynchronous 'error'.
+  // Observe it instead of crashing Node with an unhandled EventEmitter error.
+  let spawnError = null;
+  child.once('error', (error) => { spawnError = error; });
   child.unref();
   for (let i = 0; i < 60; i++) {
+    if (spawnError) throw new Error(`Cannot launch capture browser at ${exe}: ${spawnError.message}`, { cause: spawnError });
     if (await isReachable({ port })) {
       const v = await browserVersion({ port });
       return { alreadyRunning: false, port, browser: v.Browser, pid: child.pid, exe, profileDir };
