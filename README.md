@@ -77,11 +77,13 @@ Design rules that are enforced in code:
 - **Node.js >= 22** (the built-in `WebSocket` client is required). No `npm install` step — there are
   no runtime dependencies.
 - **Google Chrome** (or Edge) for the capture browser. Auto-detected; override with `CHROME_PATH`.
-- Windows, macOS or Linux. The tool is Windows-first but platform-neutral in code.
+- **Native Windows + Linux** from one Node.js codebase; macOS remains supported. See [platform parity and verification](docs/PLATFORM-PARITY.md).
 
-## Quick start
+## Quick start (Windows PowerShell or Linux terminal)
 
-```powershell
+These are the same commands on both operating systems. No WSL, Docker or PowerShell prerequisite on Linux.
+
+```text
 cd <capture-studio>
 
 node bin/studio.mjs doctor          # check Node, Chrome, DevTools, data folder, learner, profiles
@@ -91,6 +93,8 @@ node bin/studio.mjs start           # open the capture browser + local Studio UI
 `start` launches a **separate Chrome profile** (its own window, its own sign-ins) with DevTools
 bound to loopback only, then starts the local studio web UI. Sign in to the sites you want to
 capture inside that window — the profile persists between runs.
+
+Run `npm run smoke:platform` and `npm run test:platform` to check portable CLI and operating-system contracts without launching Chrome or sending to providers. GitHub CI enforces these checks on native Ubuntu and Windows.
 
 Then, in another terminal:
 
