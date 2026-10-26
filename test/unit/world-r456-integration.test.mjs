@@ -55,7 +55,12 @@ function mount({ failStage = '' } = {}) {
     calls.push({ path, method: init.method ?? 'GET', body });
     if (path === '/namespace') return answer(200, { id: 'w-local', kind: 'namespace' });
     if (path.startsWith('/conversations?')) return answer(200, page([{ id: cid, title: 'Saved work', custody: 'observed' }]));
-    if (path.startsWith('/projects?')) return answer(200, page([savedProject]));
+    if (path.startsWith('/projects?')) {
+      if (failStage === 'pagedProjects') return path.includes('offset=50')
+        ? answer(200, { items: [savedProject], total: 51, offset: 50, nextOffset: null })
+        : answer(200, { items: [], total: 51, offset: 0, nextOffset: 50 });
+      return answer(200, page([savedProject]));
+    }
     if (path.startsWith('/notes?') || path.startsWith('/objects?') || path.startsWith('/selections?')) return answer(200, page([]));
     if (path === '/conversations/' + cid) return answer(200, {
       id: cid, title: 'Saved work', custody: 'observed',
@@ -325,4 +330,19 @@ test('R6 leapfrog: no note creation on freshly stale source selection', async ()
   await findId(root, 'worldSelectionCreateNote').click();
   assert.match(findId(root, 'worldSelectionNoteStatus').textContent, /No note was created/);
   assert.equal(calls.some((c) => c.path === '/notes' && c.method === 'POST'), false);
+});
+
+test('R5 leapfrog: choose a project outside the first 50 without abandoning the saved part', async () => {
+  const { root, calls, controller } = mount({ failStage: 'pagedProjects' });
+  await openSaved(root, controller);
+  assert.ok(findId(root, 'worldSelectionMoreProjects'), 'pagination control available');
+  assert.equal(collect(findId(root, 'worldSelectionProject'), (x) => x.tag === 'option' && x.value === pid).length, 0);
+  await findId(root, 'worldSelectionMoreProjects').click();
+  const picker = findId(root, 'worldSelectionProject');
+  assert.equal(collect(picker, (x) => x.tag === 'option' && x.value === pid).length, 1);
+  picker.value = pid; await picker.dispatch('change');
+  await findId(root, 'worldSavePart-0-0').click();
+  assert.equal(controller.view(), 'conversations');
+  assert.match(findId(root, 'worldSelectionStatus').textContent, /Saved this recorded part/);
+  assert.equal(calls.some((c) => c.path.startsWith('/projects?') && c.path.includes('offset=50')), true);
 });
