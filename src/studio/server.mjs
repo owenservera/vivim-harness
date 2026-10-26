@@ -147,12 +147,16 @@ const hub = createIntegrationHub({ paths, profileStore, learner, recorder, conve
       const host = (req.headers.host ?? '').toLowerCase();
       if (![`127.0.0.1:${port}`, `localhost:${port}`].includes(host)) return send(res, 421, { error: 'bad host' });
       if (req.headers.origin && ![`http://127.0.0.1:${port}`, `http://localhost:${port}`].includes(req.headers.origin)) return send(res, 403, { error: 'bad origin' });
-      if (accessMode === 'token' && url.pathname === '/' && url.searchParams.get('token') === token) {
+      if (accessMode === 'token' && req.method === 'GET' && url.pathname === '/' && url.searchParams.get('token') === token) {
         res.writeHead(302, { 'set-cookie': `studio_token=${token}; HttpOnly; SameSite=Strict; Path=/`, location: '/' });
         return res.end();
       }
       if (accessMode === 'token' && !authed(req)) return send(res, 401, url.pathname.startsWith('/api') ? { error: 'unauthorized' } : 'Open the studio using the tokenized URL printed in the terminal.');
-      if (url.pathname === '/') { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'content-security-policy': "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; img-src 'self' data:" }); return res.end(readFileSync(UI)); }
+      if (url.pathname === '/') {
+        if (req.method !== 'GET') { res.setHeader('allow', 'GET'); return send(res, 405, { error: 'GET required' }); }
+        res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; img-src 'self' data:" });
+        return res.end(readFileSync(UI));
+      }
       if (url.pathname === '/live/view') { await hub.handle(req, res, new URL('/api/v1/live/view', url), {}); return; }
       if (url.pathname === '/live/view.mjs') {
         if (req.method !== 'GET') { res.setHeader('allow', 'GET'); return send(res, 405, { error: 'GET required' }); }
