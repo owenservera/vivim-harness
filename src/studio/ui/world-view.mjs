@@ -700,6 +700,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     errors: { conversations: '', projects: '', notes: '' },
     creating: false,
     messageNodes: new Map(),
+    selectionSave: { projectId: '', busy: false, notice: '', savedKeys: new Set() },
     find: { query: '', kind: '', items: [], total: null, nextOffset: null, coverage: null, error: '', status: '', loading: false, recordId: null },
     custody: 'observed',
     relations: { id: '', typed: '', map: null, error: '', status: '', loading: false, recordId: null },
@@ -997,6 +998,115 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
       open, remove,
     ]);
   }
+  function selectionToolbar(item) {
+    if (state.view !== 'conversations' || state.selected.conversations !== item?.id) return null;
+    const box = el('section', { class: 'panel pad', id: 'worldSelectionToolbar' });
+    box.append(el('h3', { text: 'Keep something from this conversation' }));
+    const picker = el('select', { id: 'worldSelectionProject', 'aria-label': 'Project for saved message or part' });
+    picker.append(el('option', { value: '', text: 'Choose an existing project' }));
+    for (const project of state.lists.projects.items) {
+      if (!ID_RE.projects.test(project?.id || '')) continue;
+      picker.append(el('option', { value: project.id, text: project.title || project.id }));
+    }
+    picker.value = state.selectionSave.projectId;
+    on(picker, 'change', () => {
+      state.selectionSave.projectId = picker.value;
+      state.selectionSave.notice = '';
+      const line = typeof box.querySelector === 'function' ? box.querySelector('#worldSelectionStatus') : null;
+      if (line) line.textContent = '';
+    });
+    const create = el('button', { type: 'button', id: 'worldSelectionNewProject', text: 'Create project' });
+    on(create, 'click', () => choose('projects'));
+    box.append(el('div', { class: 'row' }, [picker, create]));
+    if (!state.lists.projects.items.length) box.append(el('p', { class: 'note', text: 'Create a project first, then reopen this saved conversation to save a message or part.' }));
+    box.append(el('p', { class: 'note', text: 'Selections point to recorded content; they do not copy an attachment, edit the recording, or verify a provider account.' }));
+    box.append(el('p', { id: 'worldSelectionStatus', role: 'status', text: state.selectionSave.notice }));
+    return box;
+  }
+
+  /** Three existing versioned writes; partial failures leave honest local records, never fake an atomic save. */
+  async function saveObservedPart(conversationId, messageIndex, partPath = []) {
+    const work = state.selectionSave;
+    if (work.busy) return;
+    const projectId = work.projectId;
+    const source = state.conversations.get(conversationId);
+    const message = source?.messages?.[messageIndex];
+    const validPart = !partPath.length || (partPath.length === 1 && Number.isSafeInteger(partPath[0])
+      && partPath[0] >= 0 && Array.isArray(message?.blocks) && partPath[0] < message.blocks.length);
+    const key = JSON.stringify([conversationId, messageIndex, partPath, projectId]);
+    if (!ID_RE.projects.test(projectId || '') || !message || !validPart) {
+      work.notice = 'Nothing saved. Choose a project and a recorded message or part first.';
+      renderDetailPane();
+      return;
+    }
+    if (work.savedKeys.has(key)) {
+      work.notice = 'This item was already linked to that project in this session.';
+      renderDetailPane();
+      return;
+    }
+    const localEditor = state.editors.get(projectId);
+    if (localEditor?.saved && !sameDraft(localEditor.draft, draftFromSaved(localEditor.saved))) {
+      work.notice = 'Not saved. This project has unsaved edits. Save or discard that draft in Projects first.';
+      renderDetailPane();
+      return;
+    }
+    work.busy = true;
+    work.notice = 'Saving local source reference, selection and project link…';
+    renderDetailPane();
+    let object = null, selection = null;
+    try {
+      const current = await call('/projects/' + encodeURIComponent(projectId));
+      if (current.status !== 200 || current.data?.id !== projectId || !Number.isInteger(current.data.version)) {
+        work.notice = 'Nothing saved. The selected project could not be read. Choose it again.';
+        return;
+      }
+      const project = current.data;
+      const createdObject = await call('/objects', { method: 'POST', body: { conversationId, expectedVersion: null } });
+      if (createdObject.status !== 200 || !/^o-[a-z0-9-]+$/.test(createdObject.data?.id || '') || !Number.isInteger(createdObject.data?.version)) {
+        work.notice = 'Project unchanged. Studio did not confirm a saved source reference; inspect the saved records before retrying.';
+        return;
+      }
+      object = createdObject.data;
+      const createdSelection = await call('/selections', { method: 'POST', body: {
+        objectId: object.id, selectionType: partPath.length ? 'part' : 'message',
+        messageIndex, partPath, expectedVersion: null,
+      } });
+      if (createdSelection.status !== 200 || !/^s-[a-z0-9-]+$/.test(createdSelection.data?.id || '') || !Number.isInteger(createdSelection.data?.version)) {
+        work.notice = 'Source reference ' + object.id + ' was saved, but selection/project link was NOT confirmed. Inspect local references before retrying.';
+        return;
+      }
+      selection = createdSelection.data;
+      const changed = await call('/projects/' + encodeURIComponent(projectId), { method: 'PUT', body: {
+        title: project.title,
+        conversationIds: withId(project.conversationIds ?? [], conversationId),
+        noteIds: [...(project.noteIds ?? [])],
+        memberIds: withId(withId(project.memberIds ?? [], object.id), selection.id),
+        expectedVersion: project.version,
+      } });
+      const written = interpretWrite(changed, project);
+      if (!written.ok) {
+        work.notice = 'Selection ' + selection.id + ' was saved, but the project link was NOT confirmed. '
+          + written.message + ' Open Projects to link the selection manually.';
+        return;
+      }
+      work.savedKeys.add(key);
+      work.notice = 'Saved this recorded ' + (partPath.length ? 'part' : 'message') + ' in project ' + (project.title || projectId)
+        + '. The original conversation was not modified.';
+      for (const [kind, record] of [['objects', object], ['selections', selection]]) {
+        state.lists[kind].items = appendPage([record], { items: state.lists[kind].items });
+        state.lists[kind].loaded = true;
+      }
+      const list = state.lists.projects.items;
+      const at = list.findIndex((p) => p.id === projectId);
+      if (at >= 0) list[at] = { ...list[at], ...written.saved };
+      if (localEditor) state.editors.set(projectId, editorFrom(written.saved, 'Saved.'));
+      announce('Saved part to your project.');
+    } finally {
+      work.busy = false;
+      if (state.view === 'conversations' && state.selected.conversations === conversationId) renderDetailPane();
+    }
+  }
+
   function renderMessages(item) {
     const list = el('ol', { class: 'reads', id: 'worldMessages' });
     state.messageNodes = new Map();
@@ -1011,6 +1121,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     messages.forEach((message, index) => {
       const plan = turnPlan(message);
       const body = el('div', { class: 'rich' });
+      const canSelect = state.view === 'conversations' && state.selected.conversations === item.id;
       const frames = planFrames(message).filter((frame) => frame.markdown || frame.links.length);
       if (frames.length) {
         for (const frame of frames) {
@@ -1030,6 +1141,12 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
             }
             frameBody.append(sources);
           }
+          if (canSelect) {
+            const savePart = el('button', { type: 'button', class: 'mini', id: 'worldSavePart-' + index + '-' + frame.path[0], text: 'Save this part to project' });
+            savePart.disabled = state.selectionSave.busy;
+            on(savePart, 'click', () => saveObservedPart(item.id, index, frame.path));
+            frameBody.append(savePart);
+          }
           body.append(frameBody);
         }
       } else if (plan.markdown) {
@@ -1041,6 +1158,12 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
       const row = el('li', { class: 'rd', id: 'worldMsg' + index, tabindex: '0' }, [
         el('div', { class: 'rd-head' }, [
           el('b', { text: roleLabel(message?.role) }),
+          ...(canSelect ? [(() => {
+            const saveMessage = el('button', { type: 'button', class: 'mini', id: 'worldSaveMessage-' + index, text: 'Save message to project' });
+            saveMessage.disabled = state.selectionSave.busy;
+            on(saveMessage, 'click', () => saveObservedPart(item.id, index, []));
+            return saveMessage;
+          })()] : []),
           plan.truncated ? el('span', { class: 'pill t-warn', text: 'Marked truncated' }) : null,
         ]),
         plan.note ? el('p', { class: 'note', text: plan.note }) : null,
@@ -1077,7 +1200,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
         ...importedFromLines(item.importedFrom),
         typeof item.createdAt === 'string' && item.createdAt ? { label: 'Recorded at', value: item.createdAt } : null,
       ]),
-      error, renderMessages(item), tail,
+      error, selectionToolbar(item), renderMessages(item), tail,
     ]);
   }
   function renderDetailPane() {
@@ -1162,7 +1285,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
         el('p', { class: 'note', text: 'These links stay on this project. They are not a map, and they do not copy a note or a selection into the saved conversation.' }),
         ...((editor.draft.memberIds ?? []).length ? editor.draft.memberIds.map((member) => memberRow('members', member)) : [el('p', { class: 'note', text: 'No other record is linked.' })]),
         el('div', { class: 'row' }, [linkMemberSelect, addOther]),
-        el('p', { class: 'note', text: 'Adding and removing wait until you save. Save sends the whole list. Only loaded items can be added. This screen does not create objects or selections.' }),
+        el('p', { class: 'note', text: 'Adding and removing wait until you save. Save sends the whole list. New source objects and selections can be created from the Saved conversation reader.' }),
       );
     }
     bodyBits.push(el('div', { class: 'row' }, [saveNode, useSaved]));
