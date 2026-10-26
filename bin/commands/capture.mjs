@@ -14,7 +14,13 @@ import { capability } from '../lib/capabilities.mjs';
 
 function openUrl(url) {
   const cmd = process.platform === 'win32' ? ['cmd', ['/c', 'start', '""', url]] : process.platform === 'darwin' ? ['open', [url]] : ['xdg-open', [url]];
-  try { spawn(cmd[0], cmd[1], { detached: true, stdio: 'ignore', windowsHide: true }).unref(); } catch { /* the URL is printed anyway */ }
+  try {
+    // The URL remains printable even when xdg-open/open/cmd is not installed.
+    // Missing helper binaries emit an asynchronous error, not a synchronous throw.
+    const child = spawn(cmd[0], cmd[1], { detached: true, stdio: 'ignore', windowsHide: true });
+    child.on('error', () => {});
+    child.unref();
+  } catch { /* the URL is printed anyway */ }
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
