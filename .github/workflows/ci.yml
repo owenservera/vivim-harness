@@ -22,5 +22,7 @@ jobs:
           node-version: ${{ matrix.node }}
       - name: Validate architecture ownership
         run: node scripts/architecture-inventory.mjs --check
+      - name: Native offline platform smoke
+        run: node scripts/platform-smoke.mjs
       - name: Capture Studio unit suite
         run: npm test
