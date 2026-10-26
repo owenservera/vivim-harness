@@ -74,7 +74,7 @@ test('controls are labelled, placeholder is the plain composer text, and hit are
   assert.match(html, /maxlength="250000"/);
   assert.match(html, /<label for="site"[^>]*>Site<\/label>/);
   assert.match(html, /role="radiogroup" aria-labelledby="tabsLabel"/);
-  assert.match(html, /button, select, input\[type=text\], textarea, summary, a\.hit \{ min-height: 44px; \}/);
+  assert.match(html, /button, select, input\[type=text\], input\[type=search\], input\[type=file\], textarea, summary, a\.hit \{ min-height: 44px; \}/);
   assert.match(html, /\.pick \{[^}]*min-height: 44px/);
   assert.match(html, /:focus-visible/);
   for (const label of ['Open a new tab', 'Use a tab I already have open', 'Connect and start recording', 'Finish capture', 'Also close the tab Studio opened', 'Check again (read-only)', 'Send again', 'Copy my message', 'Resolve draft in Chrome', 'Calibrate sites'])

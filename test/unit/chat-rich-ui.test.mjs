@@ -203,7 +203,7 @@ test('markup: reply tools, sources, artifacts, retry and history controls exist;
   for (const id of ['btnCopyReply', 'btnRawToggle', 'replyArtifacts', 'replySources', 'sourcesHead', 'sourcesNote', 'sourcesList', 'btnRetry', 'btnListRefresh', 'btnListMore'])
     assert.ok(html.includes('id="' + id + '"'), id);
   assert.equal((html.match(/aria-live="polite"/g) ?? []).length, 1, 'still one polite live region');
-  assert.match(html, /button, select, input\[type=text\], textarea, summary, a\.hit \{ min-height: 44px; \}/);
+  assert.match(html, /button, select, input\[type=text\], input\[type=search\], input\[type=file\], textarea, summary, a\.hit \{ min-height: 44px; \}/);
   assert.match(html, /button\.mini \{ padding: 2px 10px; font-size: 12\.5px; \}/, 'compact buttons keep the 44px minimum height');
   assert.doesNotMatch(source, /aria-pressed/);
   assert.match(html, /follow up in the same chat, one turn at a time/);

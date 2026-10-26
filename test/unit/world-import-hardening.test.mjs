@@ -33,7 +33,7 @@
 //   relations nodes, export and import (sanitize-and-note at validate, sanitized write at restore).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync, readdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import os from 'node:os';
 import path from 'node:path';
@@ -358,4 +358,140 @@ test('REGRESSION (hardened 2026-10, see test/unit/world-provider-url.test.mjs): 
   const convFull = fullVacuum.records.find((r) => r.kind === 'conversation' && r.id === cid);
   assert.equal(convFull.data.source.providerUrl, 'https://chat.example.invalid/session');
   assert.equal(bundleContains(fullVacuum, COOKIE), true, 'no message-text redaction was added');
+});
+
+// ---------------- gap: import-side path traversal through a record id ----------------
+
+// Enforcing code, verified against src at HEAD (this file asserts as-is; nothing was patched):
+// the bundle-shape/safety gate at src/studio/world-transfer.mjs:238-241 (WORLD_IMPORT_INVALID_BUNDLE),
+// plus the record-id grammar validId (world-transfer.mjs:14-16) which idMap construction honours
+// (world-transfer.mjs:255 — a traversal id NEVER receives a local id) and which every record id is
+// re-checked against at world-transfer.mjs:262 (WORLD_IMPORT_RECORD_INTEGRITY), with the
+// id/kind-prefix disagreement at world-transfer.mjs:250-251 (WORLD_IMPORT_RECORD_CONFLICT).
+// restoreBundle's report.valid gate (world-transfer.mjs:299) then throws before the plan exists,
+// so nothing can land in failed[] because no plan step ever runs. The last line of defence is
+// validateStoreName (src/store/versioned.mjs:49-54 — NAME_RE admits no '/' or '\\' and the name
+// cannot start with '.'), applied by #dirFor (versioned.mjs:97-101, before ANY store path is
+// resolved, plus the STORE_PATH_ESCAPE realpath check) and for the import-receipt name at
+// world-transfer.mjs:277/346. The EXPORT-side counterpart of this assertion is
+// test/unit/world-transfer.test.mjs:92; nothing previously seeded a traversal id through IMPORT.
+test('import-side path traversal through a record id is REJECTED with WORLD_IMPORT_* codes and writes NOTHING to the target store — "../sessions", "..\\sessions" and "a/../../b" never gain a local id, and even a direct store access under those names is refused by validateStoreName', (t) => {
+  const f = fixture(t, 'traversal'), target = withTarget(f), { nid } = f.recs();
+  const transfer = createWorldTransfer({ service: target });
+  const worldDir = path.join(f.targetPaths.root, 'world');
+  const baseline = readdirSync(worldDir).sort();
+
+  // Control: the untouched fixture bundle validates — only the traversal id is rejected.
+  assert.equal(transfer.validateBundle({ bundle: f.bundle }).valid, true);
+
+  for (const evil of ['../sessions', '..\\sessions', 'a/../../b']) {
+    // Hand-build a bundle whose NOTE record id is traversal-shaped, then re-sign integrity.
+    const bundle = structuredClone(f.bundle);
+    const record = bundle.records.find((r) => r.id === nid);
+    record.id = evil;
+    record.data.id = evil;
+    resign(bundle);
+
+    const report = transfer.validateBundle({ bundle });
+    assert.equal(report.valid, false, `${JSON.stringify(evil)} must not validate`);
+    const codes = report.errors.map((error) => error.code);
+    assert.equal(codes.includes('WORLD_IMPORT_RECORD_INTEGRITY'), true,
+      `id-shape gate must fire for ${JSON.stringify(evil)}: ${JSON.stringify(report.errors)}`);
+    assert.equal(codes.includes('WORLD_IMPORT_RECORD_CONFLICT'), true,
+      `id/kind disagreement must fire for ${JSON.stringify(evil)}`);
+    assert.equal(Object.hasOwn(report.idMap, evil), false, 'a traversal id must never receive a local id');
+
+    let thrown = null;
+    try { transfer.restoreBundle({ bundle, digest: report.digest, dryRun: false, confirm: true }); }
+    catch (error) { thrown = error; }
+    assert.ok(thrown, `restore of a ${JSON.stringify(evil)}-id bundle must throw`);
+    // Observed shape: the report.valid gate at world-transfer.mjs:299 surfaces the rejection as
+    // WORLD_IMPORT_DIGEST_MISMATCH ('Restore digest was not verified', status 400) carrying the
+    // traversal-specific errors on error.report; it is NOT the DIGEST check itself failing.
+    assert.equal(thrown.code, 'WORLD_IMPORT_DIGEST_MISMATCH', `observed ${thrown.code}: ${thrown.message}`);
+    assert.equal(thrown.status, 400);
+    assert.equal(thrown.report?.valid, false);
+    assert.equal(thrown.report.errors.some((error) => error.code === 'WORLD_IMPORT_RECORD_INTEGRITY'), true);
+    // No receipt was written for this digest either (the throw precedes the receipt write).
+    assert.equal(target.loadImportRecord(`i-${report.digest.slice(0, 40)}`), null);
+  }
+
+  // No store write occurred: the target world store still holds exactly its constructor state
+  // (namespace record + .locks seeded by withTarget) and the service still reads empty.
+  assert.deepEqual(readdirSync(worldDir).sort(), baseline);
+  assert.deepEqual(target.notes().items, []);
+  assert.equal(target.projects().total, 0);
+  assert.equal(target.conversations({ custody: 'all' }).total, 0);
+
+  // validateStoreName gate (src/store/versioned.mjs:49-54) for direct out-of-band access too:
+  // #dirFor refuses the traversal name BEFORE any lock, directory or file is created.
+  for (const evil of ['../sessions', '..\\sessions', 'a/../../b']) {
+    assert.throws(() => target.importRecord(evil, { id: evil, kind: 'note' }), (e) => e.code === 'STORE_NAME_INVALID');
+    assert.throws(() => target.loadImportRecord(evil), (e) => e.code === 'STORE_NAME_INVALID');
+  }
+  assert.deepEqual(readdirSync(worldDir).sort(), baseline);
+});
+
+// ---------------- gap: native edit-history payload riding saved turn blocks (no enforcement) ----------------
+
+// CHARACTERISATION, not a fix: the runbook forbids adding redaction here (arbitrary redaction is a
+// separate owner decision). Observed at HEAD there is NO edit-history-specific filter, exclusion or
+// scan anywhere on export or import — only (a) references-mode metadata-only construction
+// (world-transfer.mjs:152-167: no messages key at all), (b) block-TYPE pruning by pruneBlocks /
+// exclusionReason in transcript mode (world-transfer.mjs:76-109, declared in bundle.omitted), and
+// (c) full-saved keeping every block that is not reasoning/tool unless scope.parts asks otherwise
+// (world-transfer.mjs:130-133). The nested-in-opaque variant rides inside a KEPT block's non-array
+// property, which pruneBlocks copies verbatim (world-transfer.mjs:94-97 recurses arrays only).
+const EDIT_MARKER = 'draft answer v1 (fixture edit marker)';
+
+function editHistoryFixture(t) {
+  const direct = { type: 'edit-history', edits: [
+    { at: 1, op: 'replace', from: EDIT_MARKER, to: 'draft answer v2' },
+    { at: 2, op: 'truncate', turnIndex: 3 },
+  ], native: { threadId: 'fixture-thread-7', revision: 7 } };
+  const nested = { type: 'future-native-history', opaque: { editHistory: structuredClone(direct) } };
+  const kept = { type: 'text', text: 'visible transcript line' };
+  const f = fixture(t, 'edit-history', { turns: [
+    { id: 'hist-0', role: 'user', text: 'question before the edit',
+      blocks: [structuredClone(direct), structuredClone(nested), structuredClone(kept)] },
+    { id: 'hist-1', role: 'assistant', text: 'answer after the edit', blocks: [] },
+  ] });
+  return { f, direct, nested, kept };
+}
+
+test('native edit-history payload riding saved turn blocks: NO enforcement exists — references drops it with ALL message content (metadata-only omission), transcript excludes it by block TYPE only (bundle.omitted non-transcript-blocks-excluded), full-saved carries it VERBATIM, not filtered', (t) => {
+  const { f, direct, nested, kept } = editHistoryFixture(t);
+  const { cid, pid } = f.recs();
+
+  // references: no message content exists in the bundle at all — an omission, not a redaction.
+  const references = f.sourceTransfer.exportSelection({ ids: [pid], mode: 'references' });
+  const refConv = references.records.find((r) => r.kind === 'conversation' && r.id === cid);
+  assert.equal('messages' in refConv.data, false);
+  assert.ok(references.omitted.some((o) => o.id === cid && o.reason === 'SOURCES_NOT_REQUESTED' && o.expected === true));
+  assert.equal(bundleContains(references, 'edit-history'), false);
+  assert.equal(bundleContains(references, EDIT_MARKER), false);
+
+  // transcript: excluded by block TYPE only; the mechanism is declared in bundle.omitted.
+  const transcript = f.sourceTransfer.exportSelection({ ids: [pid], mode: 'transcript' });
+  const tConv = transcript.records.find((r) => r.kind === 'conversation' && r.id === cid);
+  assert.deepEqual(tConv.data.messages[0].blocks, [kept]);
+  assert.deepEqual(tConv.data.messages[1].blocks, []);
+  const pruned = transcript.omitted.filter((o) => o.reason === 'non-transcript-blocks-excluded');
+  assert.equal(pruned.length, 1);
+  assert.equal(pruned[0].id, cid);
+  assert.equal(pruned[0].count, 2); // edit-history + future-native-history
+  assert.equal(bundleContains(transcript, 'edit-history'), false);
+  assert.equal(bundleContains(transcript, EDIT_MARKER), false);
+  // Mode reduction prunes block objects only — plain message text rides untouched (no content scan).
+  assert.equal(tConv.data.messages[0].text, 'question before the edit');
+  assert.equal(tConv.data.messages[1].text, 'answer after the edit');
+
+  // full-saved: carried VERBATIM — the exact bytes of both history-shaped blocks, no history filter.
+  const full = f.sourceTransfer.exportSelection({ ids: [pid], mode: 'full-saved' });
+  const fConv = full.records.find((r) => r.kind === 'conversation' && r.id === cid);
+  assert.equal(fConv.custody, 'saved-observation');
+  assert.deepEqual(fConv.data.messages[0].blocks, [direct, nested, kept]);
+  assert.equal(bundleContains(full, 'edit-history'), true);
+  assert.equal(bundleContains(full, EDIT_MARKER), true);
+  assert.equal(full.omitted.some((o) => o.reason === 'non-transcript-blocks-excluded'), false);
 });
