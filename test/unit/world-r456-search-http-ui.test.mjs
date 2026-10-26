@@ -32,7 +32,7 @@ const byId = (root, id) => all(root, (x) => x.id === id)[0] ?? null;
 
 async function fixture(t) {
   const rootDir = mkdtempSync(path.join(os.tmpdir(), 'world-r456-http-ui-'));
-  t.after(() => rmSync(rootDir, { recursive: true, force: true }));
+  // A single ordered cleanup keeps the ephemeral test root available until the Studio listener closes.
   const paths = dataPaths(rootDir);
   ensureDataDirs(paths);
   const session = Session.create(paths.sessions, { site: 'fixture' });
@@ -45,7 +45,7 @@ async function fixture(t) {
   ]);
   const runtime = { isSessionActive: () => false, close: async () => {}, list: async () => [] };
   const studio = await startStudio({ paths, profileStore: new ProfileStore(paths.profiles), port: 0, conversationRuntime: runtime });
-  t.after(async () => { await studio.close(); });
+  t.after(async () => { try { await studio.close(); } finally { rmSync(rootDir, { recursive: true, force: true }); } });
   const base = 'http://127.0.0.1:' + studio.port;
   const fetchImpl = (url, opts = {}) => fetch(base + url, opts);
   const doc = { createElement: (tag) => new Node(tag), createTextNode: (text) => new Txt(text) };
