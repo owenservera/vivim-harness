@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Node-only, disposable, local-loopback smoke: no Chrome, provider send or private user profile.
+// Native Windows/Linux integration smoke. Private roots are disposable; zero Chrome/provider effects.
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
@@ -26,17 +26,17 @@ function command(args) {
 function serve() {
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [cli, 'serve', '--no-open', '--studio-port', '0', '--data-dir', home], {
-      cwd: root, env, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true,
+      cwd: root, env, stdio: ['ignore', 'pipe', 'pipe', 'ipc'], windowsHide: true,
     });
     let stdout = '', stderr = '', settled = false;
-    const fail = (error) => { if (!settled) child.kill(); settle(reject, error); };
     const settle = (fn, value) => {
       if (settled) return;
       settled = true;
       clearTimeout(timeout);
       fn(value);
     };
-    const timeout = setTimeout(() => fail(new Error(`Studio timeout: ${stdout.slice(-200)} ${stderr.slice(-400)}`)), 25000);
+    const fail = (error) => { if (!settled) child.kill(); settle(reject, error); };
+    const timeout = setTimeout(() => fail(new Error(`Studio startup timeout: ${stdout.slice(-200)} ${stderr.slice(-400)}`)), 25000);
     child.stdout.on('data', (chunk) => {
       stdout += chunk.toString();
       const url = stdout.match(/http:\/\/127\.0\.0\.1:\d+\//)?.[0];
@@ -44,27 +44,45 @@ function serve() {
     });
     child.stderr.on('data', (chunk) => { stderr += chunk.toString(); });
     child.once('error', fail);
-    child.once('exit', (code, signal) => fail(new Error(`Studio exited: ${code}/${signal}; ${stderr.slice(-400)}`)));
+    child.once('exit', (code, signal) => fail(new Error(`Studio exited early: ${code}/${signal}; ${stderr.slice(-400)}`)));
   });
 }
 
-let child = null;
+async function stopGracefully(child) {
+  if (!child || child.exitCode !== null) return child?.exitCode ?? null;
+  const exit = new Promise((resolve) => {
+    const timeout = setTimeout(() => resolve({ timedOut: true }), 10000);
+    child.once('exit', (code, signal) => { clearTimeout(timeout); resolve({ code, signal }); });
+  });
+  // bin/studio.mjs routes IPC 'stop' through the existing SIGINT close handler.
+  // Unlike process.kill('SIGINT'), this works gracefully on Windows too.
+  if (child.connected) child.send({ type: 'stop' });
+  const outcome = await exit;
+  if (outcome.timedOut) {
+    child.kill();
+    throw new Error('Studio did not exit after IPC stop within 10 seconds');
+  }
+  assert.equal(outcome.code, 0, `Graceful Studio exit: ${JSON.stringify(outcome)}`);
+  return outcome.code;
+}
+
+let child = null, failure = null;
 try {
-  assert.match(command(['--version']), /0\.1\.0\s+[0-9a-f]{16}/);
+  assert.match(command(['--version']), /^\S+\s+[0-9a-f]{16}\s*$/);
   mark('CLI source version');
   const commands = JSON.parse(command(['commands', '--json']));
   assert.ok(Array.isArray(commands) && commands.some((x) => x.command === 'serve'));
-  mark('CLI command registry');
-  const dataPaths = JSON.parse(command(['paths', '--data-dir', home, '--json']));
-  assert.equal(dataPaths.root, home);
-  assert.ok(dataPaths.sessions.startsWith(home));
+  mark('native CLI command registry');
+  const dirs = JSON.parse(command(['paths', '--data-dir', home, '--json']));
+  assert.equal(dirs.root, home);
+  assert.ok(dirs.sessions.startsWith(home));
   mark('disposable private storage');
   const running = await serve();
   child = running.child;
   const read = async (route, type) => {
     const response = await fetch(new URL(route, running.url), { signal: AbortSignal.timeout(10000) });
     assert.equal(response.status, 200, route);
-    assert.match(response.headers.get('content-type') ?? '', type);
+    assert.match(response.headers.get('content-type') ?? '', type, route);
     return response;
   };
   await read('chat', /html/);
@@ -72,21 +90,25 @@ try {
   await read('ui/chat.mjs', /javascript/);
   await read('ui/universal-chat.mjs', /javascript/);
   await read('ui/world-view.mjs', /javascript/);
-  mark('every dynamically imported UI module');
+  mark('all dynamically imported WORLD modules');
   const health = await (await read('api/v1/health', /json/)).json();
   assert.equal(health.apiVersion, 1);
   mark('loopback HTTP API');
-  process.stdout.write(JSON.stringify({ ...report, ok: true }, null, 2) + '\n');
 } catch (error) {
-  process.stderr.write(JSON.stringify({ ...report, ok: false, error: String(error?.stack ?? error) }, null, 2) + '\n');
-  process.exitCode = 1;
+  failure = error;
 } finally {
-  if (child && child.exitCode === null) {
-    child.kill();
-    await Promise.race([
-      new Promise((resolve) => child.once('exit', resolve)),
-      new Promise((resolve) => setTimeout(resolve, 2000)),
-    ]);
-  }
-  rmSync(home, { recursive: true, force: true, maxRetries: 6, retryDelay: 200 });
+  try {
+    if (child) {
+      await stopGracefully(child);
+      mark('graceful cross-OS IPC shutdown');
+    }
+  } catch (error) { failure ??= error; }
+  try { rmSync(home, { recursive: true, force: true, maxRetries: 6, retryDelay: 200 }); }
+  catch (error) { failure ??= error; }
+}
+if (failure) {
+  process.stderr.write(JSON.stringify({ ...report, ok: false, error: String(failure?.stack ?? failure) }, null, 2) + '\n');
+  process.exitCode = 1;
+} else {
+  process.stdout.write(JSON.stringify({ ...report, ok: true }, null, 2) + '\n');
 }
