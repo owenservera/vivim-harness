@@ -217,6 +217,11 @@ ul.convs button { align-items: baseline; }
 .modes button[aria-pressed="true"] { border-color: var(--l1); font-weight: 650; box-shadow: inset 0 -2px 0 var(--l1); }
 .modes-note { margin: 4px 22px 0; }
 .world-grid { display: grid; grid-template-columns: minmax(16rem, 22rem) minmax(0, 1fr); gap: 16px; align-items: start; }
+.world #worldList, .world #worldDetail { min-width: 0; overflow-wrap: anywhere; }
+.world #worldWorkspaceStart, .world #worldWorkspaceId, .world #worldWorkspaceShow, .world #worldWorkspaceRefocus { min-height: 44px; }
+.world #worldWorkspaceResults .rowbtn { min-height: 44px; }
+#viewWorkspace { min-height: 44px; }
+.world .workspace-note { white-space: pre-wrap; }
 .local-mark { border-left: 4px solid var(--l3); }
 .unknown-part { border: 1px dashed var(--line); border-radius: 8px; padding: 8px 10px; margin: 8px 0 0; }
 .world .rowbtn { width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
@@ -247,6 +252,7 @@ ul.convs button { align-items: baseline; }
   <button type="button" id="viewFind" data-view="find" aria-pressed="false" aria-controls="worldShell">Find</button>
   <button type="button" id="viewTransfer" data-view="transfer" aria-pressed="false" aria-controls="worldShell">Transfer</button>
   <button type="button" id="viewRelations" data-view="relations" aria-pressed="false" aria-controls="worldShell">Relations</button>
+  <button type="button" id="viewWorkspace" data-view="workspace" aria-pressed="false" aria-controls="worldShell">Workspace</button>
 </nav>
 <p class="note modes-note" id="viewNote">Browse saved conversations, projects, and notes, find text in what is saved here, see local relations, or transfer a JSON bundle. Local edits do not change provider content. Your open view is remembered for this tab.</p>
 

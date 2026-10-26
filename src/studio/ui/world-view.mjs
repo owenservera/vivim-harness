@@ -9,7 +9,7 @@ export const PAGE_LIMIT = 50;
 export const VIEWS = Object.freeze(['conversations', 'projects', 'notes']);
 export const FIND_KINDS = Object.freeze(['message', 'project', 'note', 'source-reference', 'selection']);
 const FIND_LABELS = { message: 'Messages', project: 'Projects', note: 'Notes', 'source-reference': 'Local objects', selection: 'Selections' };
-const SHELL_VIEWS = new Set(['capture', 'find', 'transfer', 'relations', ...VIEWS]);
+const SHELL_VIEWS = new Set(['capture', 'find', 'transfer', 'relations', 'workspace', ...VIEWS]);
 const STANDARD_RELATION_BASIS = 'local association; not native equality';
 const EXPORT_MODE_LABEL = { references: 'References only — no message text', transcript: 'Transcript — saved message text and simple formatting', 'full-saved': 'Full saved — every recorded block' };
 const EXPORT_OMIT_LABEL = { 'reasoning-blocks-excluded': 'Saved reasoning blocks left out', 'tool-activity-blocks-excluded': 'Tool and status activity blocks left out', 'non-transcript-blocks-excluded': 'Blocks Studio does not recognize left out' };
@@ -652,6 +652,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     find: { query: '', kind: '', items: [], total: null, nextOffset: null, coverage: null, error: '', status: '', loading: false, recordId: null },
     custody: 'observed',
     relations: { id: '', typed: '', map: null, error: '', status: '', loading: false, recordId: null },
+    workspace: { id: '', typed: '', map: null, error: '', status: '', loading: false, item: null, readingId: '', readingNode: null, readingError: '', readingLoading: false },
     transfer: {
       exportMode: 'references', exportParts: { reasoning: false, toolActivity: false }, selected: {}, bundle: null, blobUrl: '', exportError: '', exportStatus: '',
       importText: '', importError: '', importStatus: '', check: null, checkText: '', dryRun: null, confirm: false, restore: null, loading: '',
@@ -663,6 +664,8 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
   let importAbort = null;
   let relationsTicket = 0;
   let relationsAbort = null;
+  let workspaceReadTicket = 0;
+  let workspaceReadAbort = null;
 
   let searchTicket = 0;
   let searchAbort = null;
@@ -992,6 +995,24 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     for (const row of rows) if (row) dl.append(el('dt', { text: row.label }), el('dd', { text: row.value }));
     return dl;
   }
+  function conversationReading(item, error = null, tail = null) {
+    const coverage = coverageView(item.coverage);
+    return el('article', { class: 'panel pad local-mark' }, [
+      el('h2', { text: item.title || 'Saved conversation' }),
+      el('p', { class: 'note', text: custodyChip(item) || item.coverage?.state === 'imported-snapshot'
+        ? 'This is an imported snapshot, not a recording Studio observed. It does not prove a provider still has these messages.'
+        : 'Saved on this computer. A remote thread or account is shown only when this record actually has one.' }),
+      chips(coverage.chips.some((chip) => chip[0] === custodyChip(item)?.[0]) ? coverage.chips : [...(custodyChip(item) ? [custodyChip(item)] : []), ...coverage.chips]),
+      el('p', { text: coverage.sentence }),
+      kv([
+        { label: 'Session status', value: item.status || 'unknown' },
+        ...identityRows(item.identity), ...sourceRows(item.source), ...coverage.extra,
+        ...importedFromLines(item.importedFrom),
+        typeof item.createdAt === 'string' && item.createdAt ? { label: 'Recorded at', value: item.createdAt } : null,
+      ]),
+      error, renderMessages(item), tail,
+    ]);
+  }
   function renderDetailPane() {
     ensureFrame();
     linkConvSelect = null; linkNoteSelect = null; linkMemberSelect = null; linkCommentSelect = null; dirtyNode = null; saveNode = null;
@@ -1010,27 +1031,8 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
         detailPane.replaceChildren(el('h2', { text: 'Saved conversation' }), error.textContent ? error : el('p', { class: 'empty', text: 'Loading this saved conversation…' }));
         return;
       }
-      const coverage = coverageView(item.coverage);
       detailPane.replaceChildren(
-        el('article', { class: 'panel pad local-mark' }, [
-          el('h2', { text: item.title || 'Saved conversation' }),
-          el('p', { class: 'note', text: custodyChip(item) || item.coverage?.state === 'imported-snapshot'
-            ? 'This is an imported snapshot, not a recording Studio observed. It does not prove a provider still has these messages.'
-            : 'Saved on this computer. A remote thread or account is shown only when this record actually has one.' }),
-          chips(coverage.chips.some((chip) => chip[0] === custodyChip(item)?.[0]) ? coverage.chips : [...(custodyChip(item) ? [custodyChip(item)] : []), ...coverage.chips]),
-          el('p', { text: coverage.sentence }),
-          kv([
-            { label: 'Session status', value: item.status || 'unknown' },
-            ...identityRows(item.identity),
-            ...sourceRows(item.source),
-            ...coverage.extra,
-            ...importedFromLines(item.importedFrom),
-            typeof item.createdAt === 'string' && item.createdAt ? { label: 'Recorded at', value: item.createdAt } : null,
-          ]),
-          error.textContent ? error : null,
-          renderMessages(item),
-          linkedProjects(id, 'conversation'),
-        ]),
+        conversationReading(item, error.textContent ? error : null, linkedProjects(id, 'conversation')),
       );
       return;
     }
@@ -1902,7 +1904,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     }
     return rows;
   }
-  function relationRowElements(group, row) {
+  function relationRowElements(group, row, open = openRelation) {
     const node = row.node;
     if (node?.availability === 'unresolved' || node?.availabilityReason === 'NOT_SCANNED') {
       return el('div', { class: 'member' }, [
@@ -1919,21 +1921,24 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
       el('span', { class: 'note', text: row.id }),
       el('span', { class: `pill ${chip[1]}`, text: chip[0] }),
     ]);
-    on(button, 'click', () => openRelation(row));
+    on(button, 'click', () => open(row));
     return el('div', { class: 'member' }, [
       button,
       availability ? el('p', { text: availability }) : null,
       basisLine ? el('p', { class: 'note', text: `Recorded basis: ${basisLine}` }) : null,
     ]);
   }
-  function gatherRelations() {
-    const groups = relationGroups(state.relations.id, state.relations.map);
+  function gatherRelations(rel = state.relations) {
+    const groups = relationGroups(rel.id, rel.map);
     return { groups, shown: relationShown(groups) };
   }
-  function renderRelations() {
+  function renderRelations(view = 'relations') {
     ensureFrame();
-    const rel = state.relations;
-    const select = el('select', { id: 'worldRelationStart', 'aria-label': 'Record to show relations for' });
+    const workspace = view === 'workspace';
+    const rel = state[view];
+    const prefix = workspace ? 'worldWorkspace' : 'worldRelation';
+    const render = () => renderRelations(view);
+    const select = el('select', { id: prefix + 'Start', 'aria-label': 'Record to show relations for' });
     const choices = relationChoices();
     select.append(el('option', { value: '', text: choices.length ? 'Choose a saved record' : 'No saved records loaded' }));
     for (const choice of choices) select.append(el('option', { value: choice.id, text: choice.title && choice.title !== choice.id ? `${choice.title} · ${choice.id}` : choice.id }));
@@ -1950,24 +1955,33 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
         rel.loading = false;
       }
       rel.id = next;
-      renderRelations();
+      if (workspace) clearWorkspaceReading();
+      render();
     });
-    const typed = el('input', { id: 'worldRelationId', type: 'text', 'aria-label': 'Paste an exact record id',
+    const typed = el('input', { id: prefix + 'Id', type: 'text', 'aria-label': 'Paste an exact record id',
       placeholder: 'Or paste an exact record id (c-, p-, n-, o-, s-)' });
     typed.value = rel.typed ?? '';
-    on(typed, 'change', () => { rel.typed = typed.value; renderRelations(); });
-    const show = el('button', { type: 'button', id: 'worldRelationShow', text: rel.loading ? 'Loading relations…' : 'Show relations' });
+    on(typed, 'change', () => {
+      rel.typed = typed.value;
+      if (workspace) {
+        relationsTicket += 1; relationsAbort?.abort();
+        rel.id = ''; rel.map = null; rel.status = ''; rel.error = ''; rel.loading = false;
+        clearWorkspaceReading();
+      }
+      render();
+    });
+    const show = el('button', { type: 'button', id: prefix + 'Show', text: rel.loading ? 'Loading relations…' : workspace ? 'Explore related items' : 'Show relations' });
     show.disabled = rel.loading || !(select.value || typed.value.trim());
-    on(show, 'click', () => runRelations((select.value || typed.value).trim()));
-    const status = el('div', { id: 'worldRelationStatus', role: 'status', 'aria-live': 'polite', text: rel.status });
-    const error = el('div', { class: 'err', id: 'worldRelationError', role: 'alert', text: rel.error });
-    const results = el('div', { id: 'worldRelationResults' });
+    on(show, 'click', () => runRelations((select.value || typed.value).trim(), view));
+    const status = el('div', { id: prefix + 'Status', role: 'status', 'aria-live': 'polite', text: rel.status });
+    const error = el('div', { class: 'err', id: prefix + 'Error', role: 'alert', text: rel.error });
+    const results = el('div', { id: prefix + 'Results' });
     results.append(el('p', { class: 'note', text: 'These are local associations kept on this computer. They are not proof that two records are the same thing on a provider.' }));
     if (rel.map) {
-      const { groups, shown } = gatherRelations();
+      const { groups, shown } = gatherRelations(rel);
       for (const group of groups) {
         results.append(el('h3', { text: group.label }));
-        for (const row of group.rows) results.append(relationRowElements(group, row));
+        for (const row of group.rows) results.append(relationRowElements(group, row, workspace ? openWorkspaceItem : openRelation));
       }
       if (!shown) results.append(el('p', { class: 'empty', text: relationEmptyText(rel.map) }));
       const bounds = [];
@@ -1978,16 +1992,18 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
       if (typeof rel.map.enumerationNote === 'string' && rel.map.enumerationNote) results.append(el('p', { class: 'note', text: rel.map.enumerationNote }));
     }
     listPane.replaceChildren(
-      el('h2', { text: 'Relations' }),
-      el('p', { class: 'note', text: 'Pick one saved record. Relations lists what this computer already links to it. It is not a home, and it does not draw a map.' }),
-      el('label', { class: 'lab', for: 'worldRelationStart', text: 'Starting record' }),
+      el('h2', { text: workspace ? 'Workspace' : 'Relations' }),
+      el('p', { class: 'note', text: workspace ? 'Start with any saved item. Read its local associations here, then start from another item. No item is a home or a parent.' : 'Pick one saved record. Relations lists what this computer already links to it. It is not a home, and it does not draw a map.' }),
+      el('label', { class: 'lab', for: prefix + 'Start', text: 'Starting record' }),
       select,
       typed,
       el('div', { class: 'row' }, [show]),
       status,
       error,
+      ...(workspace ? [el('h3', { text: 'Starting from' }), el('p', { class: 'mono', id: 'worldWorkspaceFocus', text: rel.id || 'No starting item selected' })] : []),
       results,
     );
+    if (workspace) { renderWorkspaceReading(); return; }
     const record = rel.recordId ? findRecord(rel.recordId) : null;
     detailPane.replaceChildren(record ? el('article', { class: 'panel pad local-mark' }, [
       el('h2', { text: record.title || recordLabel(record.id) }),
@@ -2003,40 +2019,99 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     if (map?.complete === true) return 'No local associations for this record.';
     return 'No local associations were shown for this record. Whether more exist was not reported.';
   }
-  async function runRelations(id) {
+  async function runRelations(id, view = 'relations') {
+    const rel = state[view];
+    const render = () => renderRelations(view);
     const raw = typeof id === 'string' ? id.trim() : '';
-    if (!raw) { state.relations.error = 'Choose a saved record or paste an exact id first. Nothing was loaded.'; state.relations.status = ''; renderRelations(); return; }
+    if (!raw) { rel.error = 'Choose a saved record or paste an exact id first. Nothing was loaded.'; rel.status = ''; render(); return; }
     if (!validWorldId(raw)) {
-      state.relations.error = 'That is not an id this Studio recognizes. Enter the full id exactly as it was saved (c-, p-, n-, o-, or s-). Nothing was loaded.';
-      state.relations.status = '';
-      renderRelations();
+      rel.error = 'That is not an id this Studio recognizes. Enter the full id exactly as it was saved (c-, p-, n-, o-, or s-). Nothing was loaded.';
+      rel.status = '';
+      render();
       return;
     }
     const ticket = ++relationsTicket;
     relationsAbort?.abort();
     const controller = typeof AbortController === 'function' ? new AbortController() : null;
     relationsAbort = controller;
-    state.relations.id = raw;
-    state.relations.loading = true;
-    state.relations.error = '';
-    if (state.view === 'relations') renderRelations();
+    if (view === 'workspace') { clearWorkspaceReading(); rel.map = null; rel.status = 'Loading local associations…'; }
+    rel.id = raw;
+    rel.loading = true;
+    rel.error = '';
+    if (state.view === view) render();
     const params = new URLSearchParams({ id: raw, limit: '100' });
     const result = await call('/map?' + params.toString(), { signal: controller?.signal });
-    if (ticket !== relationsTicket || state.view !== 'relations') return;
-    state.relations.loading = false;
+    if (ticket !== relationsTicket || state.view !== view) return;
+    rel.loading = false;
     if (result.aborted) return;
     if (result.status !== 200 || !result.data || !Array.isArray(result.data.nodes) || !Array.isArray(result.data.edges)) {
-      state.relations.map = null;
-      state.relations.status = '';
-      state.relations.error = result.status === 0 ? 'Studio didn’t answer. Nothing new was shown.' : problemText(result.data);
-      renderRelations();
+      rel.map = null;
+      rel.status = '';
+      rel.error = result.status === 0 ? 'Studio didn’t answer. Nothing new was shown.' : problemText(result.data);
+      render();
       return;
     }
-    state.relations.map = result.data;
-    const { shown } = gatherRelations();
-    state.relations.status = relationStatus(result.data, shown);
-    state.relations.error = '';
-    renderRelations();
+    rel.map = result.data;
+    const { shown } = gatherRelations(rel);
+    rel.status = relationStatus(result.data, shown);
+    rel.error = '';
+    render();
+  }
+  function clearWorkspaceReading() {
+    workspaceReadTicket += 1;
+    workspaceReadAbort?.abort();
+    Object.assign(state.workspace, { item: null, readingId: '', readingNode: null, readingError: '', readingLoading: false });
+  }
+  function renderWorkspaceReading() {
+    const ws = state.workspace;
+    const status = el('p', { id: 'worldWorkspaceReadStatus', role: 'status', 'aria-live': 'polite', text: ws.readingLoading ? 'Loading saved item…' : ws.readingError || (ws.item ? 'Saved item opened.' : 'Choose a related item to read here.') });
+    const children = [el('h2', { text: 'Reading pane' }), status];
+    if (ws.readingId) children.push(el('p', { class: 'mono', text: ws.readingId }));
+    if (ws.readingNode) {
+      children.push(chips([provenanceChip(ws.readingNode)]));
+      if (availabilityLabel(ws.readingNode)) children.push(el('p', { text: availabilityLabel(ws.readingNode) }));
+    }
+    const item = ws.item;
+    if (item) {
+      const refocus = el('button', { type: 'button', id: 'worldWorkspaceRefocus', text: 'Start from this item' });
+      on(refocus, 'click', () => { ws.typed = ''; return runRelations(item.id, 'workspace'); });
+      children.push(refocus);
+      if (ID_RE.conversations.test(item.id)) children.push(conversationReading(item));
+      else children.push(el('article', { class: 'panel pad local-mark' }, [
+        el('h2', { text: item.title || recordLabel(item.id) }),
+        chips([provenanceChip(item)]),
+        availabilityLabel(item) ? el('p', { text: availabilityLabel(item) }) : null,
+        ...importedFromLines(item.importedFrom).map((row) => el('p', { class: 'note', text: `${row.label}: ${row.value}` })),
+        ID_RE.notes.test(item.id) ? el('div', { class: 'workspace-note', text: typeof item.body === 'string' ? item.body : 'No saved note body was reported.' }) :
+          ID_RE.projects.test(item.id) ? kv([
+            { label: 'Saved conversations linked', value: String(item.conversationIds?.length ?? 0) },
+            { label: 'Notes linked', value: String(item.noteIds?.length ?? 0) },
+            { label: 'Other items linked', value: String(item.memberIds?.length ?? 0) },
+          ]) : el('p', { class: 'note', text: 'Saved reference only. This does not include the source content.' }),
+      ]));
+    }
+    detailPane.replaceChildren(...children);
+  }
+  async function openWorkspaceItem(row) {
+    const id = row?.id, node = row?.node;
+    if (!validWorldId(id) || node?.availability === 'unresolved' || node?.availabilityReason === 'NOT_SCANNED') return;
+    clearWorkspaceReading();
+    const ticket = workspaceReadTicket;
+    const controller = typeof AbortController === 'function' ? new AbortController() : null;
+    workspaceReadAbort = controller;
+    const ws = state.workspace;
+    Object.assign(ws, { readingId: id, readingNode: node, readingLoading: true });
+    renderWorkspaceReading();
+    const kind = ID_RE.conversations.test(id) ? 'conversations' : ID_RE.projects.test(id) ? 'projects' : ID_RE.notes.test(id) ? 'notes' : id.startsWith('o-') ? 'objects' : 'selections';
+    const result = await call(`/${kind}/${encodeURIComponent(id)}`, { signal: controller?.signal });
+    if (ticket !== workspaceReadTicket || state.view !== 'workspace') return;
+    ws.readingLoading = false;
+    if (result.aborted) return;
+    if (result.status === 200 && result.data?.id === id) ws.item = result.data;
+    else ws.readingError = result.status === 404 ? 'This saved item is missing or stale. That is not proof it was deleted on a provider.'
+      : result.status === 409 ? 'This saved item is currently unavailable. It was not marked deleted.'
+        : result.status === 0 ? 'Studio didn’t answer. No saved content was opened.' : `This item could not be read. ${problemText(result.data)}`;
+    renderWorkspaceReading();
   }
   async function openRelation(row) {
     const id = row?.id, node = row?.node;
@@ -2053,12 +2128,18 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
   }
   async function choose(view, { quiet = false } = {}) {
     if (!SHELL_VIEWS.has(view)) return;
+    if (state.view !== view) {
+      relationsAbort?.abort(); relationsTicket += 1;
+      state.relations.loading = false;
+      state.workspace.loading = false;
+      clearWorkspaceReading();
+    }
     state.view = view;
     remember();
     applyVisibility();
     if (view !== 'find') { searchAbort?.abort(); searchTicket += 1; state.find.loading = false; }
     if (view !== 'transfer') { exportAbort?.abort(); importAbort?.abort(); exportTicket += 1; importTicket += 1; state.transfer.loading = ''; }
-    if (view !== 'relations') { relationsAbort?.abort(); relationsTicket += 1; state.relations.loading = false; }
+    if (view !== 'relations' && view !== 'workspace') { relationsAbort?.abort(); relationsTicket += 1; state.relations.loading = false; }
     if (view === 'capture') { if (!quiet) announce('Capture.'); return; }
     if (view === 'transfer') {
       loadNamespace();
@@ -2068,12 +2149,12 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
       if (!quiet) announce('Transfer.');
       return;
     }
-    if (view === 'relations') {
+    if (view === 'relations' || view === 'workspace') {
       loadNamespace();
-      renderRelations();
+      renderRelations(view);
       await Promise.all([fetchList('conversations'), fetchList('projects'), fetchList('notes'), fetchList('objects'), fetchList('selections')]);
-      if (state.view === 'relations') renderRelations();
-      if (!quiet) announce('Relations.');
+      if (state.view === view) renderRelations(view);
+      if (!quiet) announce(view === 'workspace' ? 'Workspace.' : 'Relations.');
       return;
     }
     if (view === 'find') {
