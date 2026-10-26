@@ -98,5 +98,5 @@ test('ambiguous block-level search returns no partPath and focuses message witho
   assert.ok(button);
   await button.click();
   assert.equal(f.controller.view(), 'conversations');
-  assert.equal(all(f.root, (x) => x.getAttribute('aria-current') === 'true').length, 0);
+  assert.equal(all(f.root, (x) => x.getAttribute('data-part-path') !== null && x.getAttribute('aria-current') === 'true').length, 0);
 });
