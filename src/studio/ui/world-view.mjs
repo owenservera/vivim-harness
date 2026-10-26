@@ -1929,6 +1929,19 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     if (t.restore) {
       const summary = restoreSummary(t.restore);
       importOut.append(el('h3', { text: 'Restore' }), el('p', { text: summary.text }), renderOutcome(t.restore));
+      const applied = Array.isArray(t.restore.applied) ? t.restore.applied : [];
+      const map = t.restore.idMap && typeof t.restore.idMap === 'object' ? t.restore.idMap : {};
+      for (const kind of ['conversations', 'projects', 'notes']) {
+        const original = applied.find((id) => typeof id === 'string'
+          && (kind === 'conversations' ? id.startsWith('c-') : kind === 'projects' ? id.startsWith('p-') : id.startsWith('n-'))
+          && ID_RE[kind].test(map[id] || ''));
+        if (!original) continue;
+        const target = map[original];
+        const open = el('button', { type: 'button', id: 'worldImportOpen-' + kind,
+          text: 'Open imported ' + (kind === 'conversations' ? 'conversation' : kind === 'projects' ? 'project' : 'note') });
+        on(open, 'click', () => openItem(kind, target));
+        importOut.append(open);
+      }
     }
     listPane.replaceChildren(
       el('h2', { text: 'Transfer' }),
@@ -2136,7 +2149,16 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
       state.transfer.restore = result.data;
       state.transfer.importStatus = summary.text;
       state.custody = 'all';
-      state.lists.conversations = blankList();
+      // Every affected collection may have changed. Invalidate all pages and any pending
+      // older read, so navigation sees imported projects/notes/references without a reload.
+      for (const kind of ['conversations', 'projects', 'notes', 'objects', 'selections']) {
+        tickets.list[kind] += 1;
+        state.lists[kind] = blankList();
+      }
+      state.records.clear();
+      state.find.items = [];
+      state.find.coverage = null;
+      state.find.nextOffset = null;
       if (summary.success) {
         state.transfer.check = null;
         state.transfer.checkText = '';
