@@ -68,7 +68,20 @@ async function runStudio(ctx, { launch }) {
   const st = await startStudio({ paths: ctx.paths, profileStore: ctx.profiles(), familyStore: ctx.families(), cdpPort: ctx.port, port: Number(flags['studio-port'] ?? ctx.settings.studioPort) });
   out.emit({ url: st.url, port: st.port }, (o) => o.result(`Capture Studio is running at\n  ${st.url}\nKeep this window open. Press Ctrl+C to stop (an active recording is saved first).`));
   if (!flags['no-open']) openUrl(st.url);
-  process.on('SIGINT', async () => { await st.close(); process.exit(0); });
+  // SIGTERM is the normal Linux service/container stop signal; IPC stop is used
+  // by Windows supervisors. Both must close the same sole Studio runtime once.
+  let shutdown = null;
+  const closeStudio = () => {
+    shutdown ??= (async () => {
+      try { await st.close(); process.exit(0); }
+      catch (error) {
+        console.error('Studio shutdown failed:', error);
+        process.exit(1);
+      }
+    })();
+  };
+  process.once('SIGINT', closeStudio);
+  process.once('SIGTERM', closeStudio);
 }
 
 define({ name: 'start', section: 'Get started', summary: 'Open the capture browser and the studio UI (first-run friendly)', flags: studioFlags, async run(ctx) { await runStudio(ctx, { launch: true }); } });
