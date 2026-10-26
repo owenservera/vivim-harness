@@ -957,6 +957,61 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     if (id.startsWith('p-')) return 'Project';
     return 'Record';
   }
+  function sourceJumpProblem(message) {
+    if (state.view === 'find') { state.find.error = message; renderFind(); }
+    else if (state.view === 'workspace') { state.workspace.readingError = message; renderWorkspaceReading(); }
+    else if (state.view === 'projects' || state.view === 'notes') {
+      const editor = state.editors.get(state.selected[state.view]);
+      if (editor) { editor.notice = message; renderDetailPane(); }
+      else announce(message);
+    } else announce(message);
+  }
+  async function followSource(record) {
+    if (!record || !/^[os]-[a-z0-9-]{1,60}$/.test(record.id || '')) return;
+    if (['missing', 'unavailable', 'stale', 'unresolved'].includes(record.availability)) {
+      sourceJumpProblem('The original source is ' + record.availability + '. No other content was substituted.');
+      return;
+    }
+    let conversationId = record.conversationId;
+    if (record.id.startsWith('s-')) {
+      const parentId = record.objectId;
+      if (!/^o-[a-z0-9-]{1,60}$/.test(parentId || '')) {
+        sourceJumpProblem('The saved selection has no valid parent source reference.');
+        return;
+      }
+      const object = await call('/objects/' + encodeURIComponent(parentId));
+      if (object.status !== 200 || object.data?.id !== parentId
+          || ['missing', 'unavailable', 'stale'].includes(object.data?.availability)) {
+        sourceJumpProblem('The parent source reference is missing, stale or unavailable. Nothing else was opened.');
+        return;
+      }
+      conversationId = object.data.conversationId;
+    }
+    if (!ID_RE.conversations.test(conversationId || '')) {
+      sourceJumpProblem('This record has no saved local conversation id to follow.');
+      return;
+    }
+    if (record.id.startsWith('s-')) {
+      const idx = record.source?.messageIndex;
+      if (!Number.isSafeInteger(idx) || idx < 0) {
+        sourceJumpProblem('This selection has no usable recorded message index.');
+        return;
+      }
+      return openHit({ kind: 'message', id: conversationId + ':turn:' + idx,
+        conversation: { id: conversationId },
+        source: { index: idx, partPath: record.source?.partPath ?? [] } });
+    }
+    return openItem('conversations', conversationId);
+  }
+  function sourceJumpButton(record) {
+    if (!record || !/^[os]-[a-z0-9-]{1,60}$/.test(record.id || '')) return null;
+    const button = el('button', { type: 'button', class: 'mini', id: 'worldSourceJump-' + record.id,
+      text: 'Open original saved source', 'aria-label': 'Open source for ' + record.id });
+    button.disabled = ['missing', 'unavailable', 'stale', 'unresolved'].includes(record.availability);
+    on(button, 'click', () => followSource(record));
+    return button;
+  }
+
   function memberRow(kind, id) {
     const title = kind === 'members' || kind === 'comments' ? recordLabel(id) : (titleFor(kind, id) || (kind === 'conversations' ? 'Saved conversation' : 'Note'));
     const record = findRecord(id);
@@ -995,7 +1050,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
         known ? null : el('div', { class: 'note', text: 'Not in the loaded list. Removing it is still possible when you save.' }),
         facts,
       ]),
-      open, remove,
+      open, sourceJumpButton(record), remove,
     ]);
   }
   function selectionToolbar(item) {
@@ -1583,6 +1638,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
         typeof record.qualification === 'string' ? { label: 'Qualification', value: record.qualification } : null,
       ]),
       el('p', { class: 'note', text: 'This is the saved record. Opening it does not change the conversation it points at.' }),
+      sourceJumpButton(record),
     ]) : el('p', { class: 'empty', text: 'Open a match to see that same saved record. Find is not a home for it.' }));
   }
   async function runSearch({ more = false } = {}) {
@@ -2343,7 +2399,8 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
                 { label: 'Other items linked', value: String(item.memberIds?.length ?? 0) },
               ])]
             : [kv(referenceReaderRows(item)),
-              el('p', { class: 'note', text: 'Saved reference only. This does not include the source content.' })]),
+              el('p', { class: 'note', text: 'Saved reference only. This does not include the source content.' }),
+              sourceJumpButton(item)]),
       ]));
     }
     readerBodyNode.replaceChildren(...children);
