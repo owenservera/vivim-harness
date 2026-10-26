@@ -1092,6 +1092,29 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     box.append(el('div', { class: 'row' }, [title, create]));
     if (!state.lists.projects.items.length) box.append(el('p', { class: 'note', text: 'Create a project here; your saved conversation stays open.' }));
     box.append(el('p', { class: 'note', text: 'Selections point to recorded content; they do not copy an attachment, edit the recording, or verify a provider account.' }));
+    const pending = state.selectionSave.pending;
+    if (pending?.conversationId === item.id) {
+      const detail = pending.selectionId
+        ? 'Selection ' + pending.selectionId + ' was saved, but its project association is unfinished.'
+        : 'Source reference ' + pending.objectId + ' was saved; no selection was confirmed.';
+      box.append(el('p', { class: 'note', text: detail }));
+      if (pending.selectionId) {
+        const finish = el('button', { type: 'button', id: 'worldFinishSelectionLink',
+          text: 'Finish linking saved selection' });
+        finish.disabled = state.selectionSave.busy;
+        on(finish, 'click', () => finishPendingSelection());
+        box.append(finish);
+      }
+      const dismiss = el('button', { type: 'button', id: 'worldDismissSelectionPending',
+        text: 'Leave unfinished records and continue' });
+      dismiss.disabled = state.selectionSave.busy;
+      on(dismiss, 'click', () => {
+        state.selectionSave.pending = null;
+        state.selectionSave.notice = 'Unfinished local references remain saved; no record was deleted. Review them in Projects.';
+        renderDetailPane();
+      });
+      box.append(dismiss);
+    }
     box.append(el('p', { id: 'worldSelectionStatus', role: 'status', text: state.selectionSave.notice }));
     return box;
   }
@@ -1148,6 +1171,11 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
   async function saveObservedPart(conversationId, messageIndex, partPath = []) {
     const work = state.selectionSave;
     if (work.busy) return;
+    if (work.pending) {
+      work.notice = 'An unfinished write already exists. Finish linking or explicitly leave it unfinished first; Studio will not create duplicate source records.';
+      renderDetailPane();
+      return;
+    }
     const projectId = work.projectId;
     const source = state.conversations.get(conversationId);
     const message = source?.messages?.[messageIndex];
@@ -1187,6 +1215,9 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
         return;
       }
       object = createdObject.data;
+      cacheSourceRecord('objects', object);
+      work.pending = { projectId, conversationId, messageIndex, partPath: [...partPath],
+        objectId: object.id, selectionId: null, key };
       const createdSelection = await call('/selections', { method: 'POST', body: {
         objectId: object.id, selectionType: partPath.length ? 'part' : 'message',
         messageIndex, partPath, expectedVersion: null,
@@ -1196,6 +1227,8 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
         return;
       }
       selection = createdSelection.data;
+      cacheSourceRecord('selections', selection);
+      work.pending.selectionId = selection.id;
       const changed = await call('/projects/' + encodeURIComponent(projectId), { method: 'PUT', body: {
         title: project.title,
         conversationIds: withId(project.conversationIds ?? [], conversationId),
@@ -1210,12 +1243,9 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
         return;
       }
       work.savedKeys.add(key);
+      work.pending = null;
       work.notice = 'Saved this recorded ' + (partPath.length ? 'part' : 'message') + ' in project ' + (project.title || projectId)
         + '. The original conversation was not modified.';
-      for (const [kind, record] of [['objects', object], ['selections', selection]]) {
-        state.lists[kind].items = appendPage([record], { items: state.lists[kind].items });
-        state.lists[kind].loaded = true;
-      }
       const list = state.lists.projects.items;
       const at = list.findIndex((p) => p.id === projectId);
       if (at >= 0) list[at] = { ...list[at], ...written.saved };
@@ -1229,6 +1259,63 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     } finally {
       work.busy = false;
       if (state.view === 'conversations' && state.selected.conversations === conversationId) renderDetailPane();
+    }
+  }
+
+  /** User-initiated completion uses confirmed records only: no second POST object/selection. */
+  async function finishPendingSelection() {
+    const work = state.selectionSave, pending = work.pending;
+    if (work.busy || !pending?.selectionId) return;
+    work.busy = true;
+    work.notice = 'Checking saved selection and latest project version…';
+    if (state.view === 'conversations') renderDetailPane();
+    try {
+      const [selectionRead, projectRead] = await Promise.all([
+        call('/selections/' + encodeURIComponent(pending.selectionId)),
+        call('/projects/' + encodeURIComponent(pending.projectId)),
+      ]);
+      if (selectionRead.status !== 200 || selectionRead.data?.id !== pending.selectionId
+          || selectionRead.data.availability !== 'locally-available'
+          || projectRead.status !== 200 || projectRead.data?.id !== pending.projectId
+          || !Number.isInteger(projectRead.data.version)) {
+        work.notice = 'Nothing relinked. Saved selection is stale/unavailable or the current project version could not be checked.';
+        return;
+      }
+      const project = projectRead.data;
+      const nextConversations = withId(project.conversationIds ?? [], pending.conversationId);
+      const nextMembers = withId(withId(project.memberIds ?? [], pending.objectId), pending.selectionId);
+      // A prior response may have been lost after a successful PUT. Reread instead
+      // of writing again when the newest project already contains every link.
+      if (nextConversations.length === (project.conversationIds ?? []).length
+          && nextMembers.length === (project.memberIds ?? []).length) {
+        work.savedKeys.add(pending.key);
+        work.pending = null;
+        work.notice = 'This saved selection was already linked. No duplicate project write was made.';
+        return;
+      }
+      const result = await call('/projects/' + encodeURIComponent(pending.projectId), {
+        method: 'PUT',
+        body: { title: project.title, conversationIds: nextConversations, noteIds: project.noteIds ?? [],
+          memberIds: nextMembers, expectedVersion: project.version },
+      });
+      const written = interpretWrite(result, project);
+      if (!written.ok) {
+        work.notice = 'Project link still not confirmed. ' + written.message
+          + ' The existing saved selection was preserved; no new source reference was created.';
+        return;
+      }
+      const index = state.lists.projects.items.findIndex((p) => p.id === pending.projectId);
+      if (index >= 0) state.lists.projects.items[index] = { ...state.lists.projects.items[index], ...written.saved };
+      if (state.editors.has(pending.projectId)) state.editors.set(pending.projectId, editorFrom(written.saved, 'Saved.'));
+      work.savedKeys.add(pending.key);
+      work.pending = null;
+      work.notice = 'Existing saved selection linked to project. No new source reference was created.';
+      announce('Existing selection linked to project.');
+    } catch {
+      work.notice = 'Could not verify the existing selection/project link. Local records remain; no new source was created.';
+    } finally {
+      work.busy = false;
+      if (state.view === 'conversations') renderDetailPane();
     }
   }
 
