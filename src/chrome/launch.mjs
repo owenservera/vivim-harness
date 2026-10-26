@@ -63,6 +63,7 @@ export async function launchChrome({ profileDir, port = 9222, url = 'about:blank
     const v = await browserVersion({ port });
     return { alreadyRunning: true, port, browser: v.Browser, pid: null };
   }
+  if (!profileDir || typeof profileDir !== 'string') throw new Error('A dedicated Chrome profileDir is required.');
   mkdirSync(profileDir, { recursive: true });
   const exe = findChrome();
   // Local-integrator escape hatch (owner machines and synthetic-https test fixtures): extra,
@@ -81,14 +82,20 @@ export async function launchChrome({ profileDir, port = 9222, url = 'about:blank
     url,
   ];
   const child = spawn(exe, args, { detached: true, stdio: 'ignore', windowsHide: false });
+  // On either OS, a candidate can disappear or lose executable permission
+  // between discovery and spawn. Without an error listener Node exits abruptly.
+  let spawnError = null;
+  child.once('error', (error) => { spawnError = error; });
   child.unref();
   for (let i = 0; i < 60; i++) {
+    if (spawnError) throw new Error(`Could not launch browser ${exe}: ${spawnError.message}`);
     if (await isReachable({ port })) {
       const v = await browserVersion({ port });
       return { alreadyRunning: false, port, browser: v.Browser, pid: child.pid, exe, profileDir };
     }
     await new Promise((r) => setTimeout(r, 250));
   }
+  if (spawnError) throw new Error(`Could not launch browser ${exe}: ${spawnError.message}`);
   throw new Error(`Chrome started (pid ${child.pid}) but DevTools did not answer on 127.0.0.1:${port}. Close other Chrome windows using that profile and retry.`);
 }
 
