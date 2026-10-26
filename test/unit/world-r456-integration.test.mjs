@@ -65,7 +65,7 @@ function mount({ failStage = '' } = {}) {
       total: 1, offset: 0, limit: 50, nextOffset: null, coverage: { complete: true, truncated: false, reasons: [], failures: [] },
     });
     if (path === '/selections/' + sid) return answer(200, {
-      id: sid, kind: 'selection', objectId: oid, selectionType: 'part', availability: 'locally-available',
+      id: sid, kind: 'selection', objectId: oid, selectionType: 'part', availability: failStage === 'stale' ? 'stale' : 'locally-available',
       source: { messageIndex: 0, partPath: [0], revision: 'known-snapshot-fingerprint' },
     });
     if (path === '/objects/' + oid) return answer(200, {
@@ -177,7 +177,7 @@ test('R5: a Find selection record follows its object back to the exact saved par
   assert.equal(calls.some((c) => c.path === '/conversations/' + cid), true);
 });
 test('R5/R6: a stale source selection cannot open another conversation or pretend it resolved', async () => {
-  const { root, calls, controller } = mount();
+  const { root, calls, controller } = mount({ failStage: 'stale' });
   await controller.choose('find');
   const query = findId(root, 'worldFindQuery'); query.value = 'recorded'; await query.dispatch('input');
   await findId(root, 'worldFindSubmit').click();
@@ -185,6 +185,10 @@ test('R5/R6: a stale source selection cannot open another conversation or preten
   await btn.click();
   // Direct source-return control is conservatively disabled on explicit stale status;
   // unknown content cannot become an arbitrarily selected provider conversation.
-  assert.ok(findId(root, 'worldSourceJump-' + sid));
+  const jump = findId(root, 'worldSourceJump-' + sid);
+  assert.ok(jump);
+  assert.equal(jump.disabled, true, 'stale pointer cannot navigate');
+  await jump.click();
+  assert.equal(calls.filter((c) => c.path === '/objects/' + oid).length, 0);
   assert.equal(calls.filter((c) => c.path === '/conversations/' + cid).length, 0);
 });
