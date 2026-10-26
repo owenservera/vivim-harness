@@ -29,21 +29,22 @@ function serve() {
       cwd: root, env, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true,
     });
     let stdout = '', stderr = '', settled = false;
+    const fail = (error) => { if (!settled) child.kill(); settle(reject, error); };
     const settle = (fn, value) => {
       if (settled) return;
       settled = true;
       clearTimeout(timeout);
       fn(value);
     };
-    const timeout = setTimeout(() => settle(reject, new Error(`Studio timeout: ${stdout.slice(-200)} ${stderr.slice(-400)}`)), 25000);
+    const timeout = setTimeout(() => fail(new Error(`Studio timeout: ${stdout.slice(-200)} ${stderr.slice(-400)}`)), 25000);
     child.stdout.on('data', (chunk) => {
       stdout += chunk.toString();
       const url = stdout.match(/http:\/\/127\.0\.0\.1:\d+\//)?.[0];
       if (url) settle(resolve, { child, url });
     });
     child.stderr.on('data', (chunk) => { stderr += chunk.toString(); });
-    child.once('error', (error) => settle(reject, error));
-    child.once('exit', (code, signal) => settle(reject, new Error(`Studio exited: ${code}/${signal}; ${stderr.slice(-400)}`)));
+    child.once('error', fail);
+    child.once('exit', (code, signal) => fail(new Error(`Studio exited: ${code}/${signal}; ${stderr.slice(-400)}`)));
   });
 }
 
@@ -58,10 +59,10 @@ try {
   assert.equal(dataPaths.root, home);
   assert.ok(dataPaths.sessions.startsWith(home));
   mark('disposable private storage');
-  const process = await serve();
-  child = process.child;
+  const running = await serve();
+  child = running.child;
   const read = async (route, type) => {
-    const response = await fetch(new URL(route, process.url), { signal: AbortSignal.timeout(10000) });
+    const response = await fetch(new URL(route, running.url), { signal: AbortSignal.timeout(10000) });
     assert.equal(response.status, 200, route);
     assert.match(response.headers.get('content-type') ?? '', type);
     return response;
@@ -75,7 +76,7 @@ try {
   const health = await (await read('api/v1/health', /json/)).json();
   assert.equal(health.apiVersion, 1);
   mark('loopback HTTP API');
-  globalThis.process.stdout.write(JSON.stringify({ ...report, ok: true }, null, 2) + '\n');
+  process.stdout.write(JSON.stringify({ ...report, ok: true }, null, 2) + '\n');
 } catch (error) {
   process.stderr.write(JSON.stringify({ ...report, ok: false, error: String(error?.stack ?? error) }, null, 2) + '\n');
   process.exitCode = 1;
