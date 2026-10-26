@@ -13,8 +13,16 @@ import { CliError, usageError, envError, fmtBytes } from '../lib/ui.mjs';
 import { capability } from '../lib/capabilities.mjs';
 
 function openUrl(url) {
-  const cmd = process.platform === 'win32' ? ['cmd', ['/c', 'start', '""', url]] : process.platform === 'darwin' ? ['open', [url]] : ['xdg-open', [url]];
-  try { spawn(cmd[0], cmd[1], { detached: true, stdio: 'ignore', windowsHide: true }).unref(); } catch { /* the URL is printed anyway */ }
+  // Never invoke a shell: URLs may contain shell metacharacters. A missing desktop
+  // opener (e.g. headless Linux without xdg-open) emits an asynchronous spawn
+  // error, so handling only a synchronous throw would crash Studio after startup.
+  const cmd = process.platform === 'win32' ? ['explorer.exe', [url]]
+    : process.platform === 'darwin' ? ['open', [url]] : ['xdg-open', [url]];
+  try {
+    const child = spawn(cmd[0], cmd[1], { detached: true, stdio: 'ignore', windowsHide: true });
+    child.once('error', () => { /* the Studio URL is already printed */ });
+    child.unref();
+  } catch { /* the Studio URL is already printed */ }
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -62,7 +70,16 @@ async function runStudio(ctx, { launch }) {
   const st = await startStudio({ paths: ctx.paths, profileStore: ctx.profiles(), familyStore: ctx.families(), cdpPort: ctx.port, port: Number(flags['studio-port'] ?? ctx.settings.studioPort) });
   out.emit({ url: st.url, port: st.port }, (o) => o.result(`Capture Studio is running at\n  ${st.url}\nKeep this window open. Press Ctrl+C to stop (an active recording is saved first).`));
   if (!flags['no-open']) openUrl(st.url);
-  process.on('SIGINT', async () => { await st.close(); process.exit(0); });
+  let closing = false;
+  const shutdown = async () => {
+    if (closing) return;
+    closing = true;
+    try { await st.close(); }
+    catch (error) { out.warn(`Studio shutdown failed: ${error.message}`); process.exitCode = 1; }
+    finally { process.exit(); }
+  };
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
 }
 
 define({ name: 'start', section: 'Get started', summary: 'Open the capture browser and the studio UI (first-run friendly)', flags: studioFlags, async run(ctx) { await runStudio(ctx, { launch: true }); } });
