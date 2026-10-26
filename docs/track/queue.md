@@ -1,4 +1,28 @@
-# Work queue (Ralph loop state)
+# Work queue — one canonical active sprint
+
+**2026-10-26 · Remote Harness source merged to main via PR #3 at `842a8c472a58118ea84a77ae4a9704ece9ee4111`.** The GitHub `main` may have later docs commits; local owner must verify actual remote/local HEAD. This file is the **single ordered queue**, not the old source-tracker estimates below. Execution issue: [#4](https://github.com/owenservera/vivim-harness/issues/4). One detailed [local OpenCode runbook](../sprints/R456-LOCAL-SPRINT-2026-10-26.md). **No local session was remotely launched.** Real Windows & browser status: **NOT RUN / G5 NOT ACCEPTED**.
+
+## ACTIVE SPRINT — R4/R5/R6 WORLD local integration and release evidence
+
+| Order | State | Local owner / scope | Concrete next action | Dependency | Evidence / close condition |
+|---|---|---|---|---|---|
+| **L0** · W00 | **READY** | Windows local-master / **read-only** Git/process snapshot | Check `git status`, worktrees, active PROVIDER mission, clean baseline, merged main, model available; protect existing local changes | None; GitHub merge already verified | Local git SHA/branch, active session and source/effect ownership; safe isolated worktree or explicit stop |
+| **L1** · Q04/Q07, W05/W07/W11/W12 | **BLOCKED: L0** | Same local OpenCode test owner / `src/studio/ui/world-view.mjs`, `src/studio/world-service.mjs`, `test/unit/world-*.test.mjs` **only on failures** | Run focused world/UI R456 suites, `npm test` full suite, architecture inventory; fix real regressions, don't rebuild existing app | L0 ownership cleared | Exact Node pass/fail/skip, diff SHA, `npm test`/inventory outputs, committed fixes when needed |
+| **L2** · Q08, W06/W12 | **BLOCKED: L1** | Local Studio process owner / **disposable data roots only** | Real second independent OS Studio process restart, preserved source file hashes, CAS collision/crash recovery | L1 relevant checks green | T3p process IDs, source hashes, local record integrity and version/failure receipts |
+| **L3** · Q01/Q02/Q04/Q07/Q10, W03–W12 | **BLOCKED: L1,L2** | Same owner / one **existing** `/chat` UI / manual real browser; **no CDP send or second actor** | Human J1 RETURN → J2 ORGANIZE → J3 FIND → J4 TAKE incl. native part/source link, project/note, exact search focus, JSON file clean-root import, partial truth and keyboard/narrow screen | L1+L2 and browser/effect-owner clear | T3u observed UI/download/import and local custody/ID receipts; don't infer from fake DOM |
+| **L4** · R6 A01–A18/G0–G6 | **BLOCKED: L1–L3** | Same owner / tests + one `docs/sprints/R456-LOCAL-SPRINT-RECEIPT.md` only | Adversarial secret boundaries, corrupted bundle/digest/CAS/stale effects; final proof/rollback; update issue #4 and progress ledger | L1+L2+L3 | Safe SHA/count/evidence grade by gate; G5 accepted **only with T3p and T3u** |
+
+**Dispatch/authorization:** L0 is ready for a *local* OpenCode session when the human-controlled PC picks it up. ChatGPT GitHub work cannot silently execute, install or reschedule Windows agents. If another owner is working on `PROMPT.md`'s **three-provider native-turn** mission, L0/L1 may use an isolated worktree, but L2/L3 must not preempt its Chrome/effect owner. No Playwright/Puppeteer or Slack.
+
+**Remote CI blocker (not a test failure claim):** hosted GitHub Actions on Ubuntu+Windows Node 22/24 repeatedly reported `startup_failure`/zero steps with unavailable logs. Until runner/billing/configuration is diagnosed by the actual GitHub administrator, rely on transparent local Node receipt. Never say CI passed or that `npm test` failed for a proven code assertion.
+
+**HOLD (not in current G5 acceptance):** R4-I3 missing source binary bytes/native artifact versions; generalized automatic DLP/redaction of message text; optional C10/C11 mounting; and separate T4 provider-native mission. Don't re-open without an actual owner decision or reproduced defect.
+
+---
+
+## ARCHIVE — early 2026-10-26 historical intake snapshot (not the active queue)
+
+*The entries below predate R4–R6 merged `main`, newer Workspace and partPath implementations. Status words below are historical observations only, never current assignments or present-day test pass receipts.*
 
 Top READY item with no unmet dependency is the next iteration. Evidence tiers: fixture / local-HTTP / synthetic-DOM /
 source-only. Nothing here is live, browser, provider or owner-data proof.
@@ -9,12 +33,12 @@ except untracked `PROMPT.md` and `clone-tmp/` (`git status --porcelain` in this 
 Lane note: this refresh is docs-only — `docs/track/queue.md` and `docs/track/crosswalk.yaml`. `docs/track/worklog.yaml`
 was refreshed at `20574af` (basis `007e357`) and is outside this lane's scope.
 
-## RUNNING
+### RUNNING
 - search-side `partPath`. A free lane is emitting `partPath` on message hits (needs block-level match info) so the Find
   part focus committed in `007e357` stops being dormant. Nothing reported landed yet.
 - `FORMAL-TEST-PREP` doc. Preparation for the owner-scheduled formal pass (READY 5); being written now.
 
-## READY — owner decision (blocked on owner, not on code)
+### READY — owner decision (blocked on owner, not on code)
 1. Mount C-10 and/or C-11 on the hub. Both are committed, tested and deliberately unmounted; wiring is a value
    decision, not a bug. Suggested narrow option: C-11 read-only with the repo root as its only root; C-10 preview-only
    with no execution grant. Either way mounting must not grant an effect.
@@ -23,7 +47,7 @@ was refreshed at `20574af` (basis `007e357`) and is outside this lane's scope.
 3. Whether `PROMPT.md` and `clone-tmp/` may be pushed at all. Both are untracked and have been kept out of every
    commit in this increment; no owner instruction exists either way.
 
-## READY — dispatchable
+### READY — dispatchable
 4. Commit this docs refresh via `git-manager`, explicit paths, no push unless authorized (needs: parent decision on
    push, see READY 3).
 5. Formal testing pass per owner schedule (next week): full repo suite plus W12 acceptance, reported at its real tier.
@@ -33,7 +57,7 @@ was refreshed at `20574af` (basis `007e357`) and is outside this lane's scope.
    world/UI suites; 63 across UI+agentic; the earlier 101/2/0 run at `803d165` is superseded in count, same tier. This
    lane re-ran `commands` (**12 pass / 0 fail**) and `agentic-files` (**21 pass / 2 skip / 0 fail**) at `20574af`.
 
-## BACKLOG (from atlas/worklog gaps)
+### BACKLOG (from atlas/worklog gaps)
 - W12 formal acceptance. The J1–J4 journeys now exist (`1569abc`, 7 tests, fixture-level HTTP) but do not close W12:
   the "second instance" is a second `startStudio()` in the same process, there is no conflicting-import case, no
   secret-exclusion scan, and no import→export round trip through the UI.
@@ -56,7 +80,7 @@ was refreshed at `20574af` (basis `007e357`) and is outside this lane's scope.
 - Browser/keyboard/screen-reader pass over the seven shell views: five UI suites are synthetic-DOM only.
 - Live provider/browser work and Windows runtime cutover: deferred until local stability.
 
-## DONE (since last update at `803d165`)
+### DONE (since last update at `803d165`)
 - `2fb9476` C-10 defect fixes landed: preview never claims executability (`canProceed`/`wouldRequireConfirmation`), world
   id grammar, symbol resolution as data not code, multi-line text, own-property argument gate, deep-frozen catalog. The
   earlier 10-defect list was analysis; this is code plus tests. `test/unit/commands.test.mjs` is now **12 tests** (this
@@ -83,7 +107,7 @@ was refreshed at `20574af` (basis `007e357`) and is outside this lane's scope.
   `803d165` — backend service/relations/search/export/restore, export modes, Relations + Find + Transfer views,
   C-10 catalog, C-11 library.
 
-## DONE (earlier)
+### DONE (earlier)
 - VD-0034 `WORLD_IMPORT_CONTENT` boundary: `contentErrors()` + `IMPORT_CONTENT_LIMITS`, enforced at validate and
   restore, `test/unit/world-import-content.test.mjs`.
 - Transfer view: check → dry run → confirm → restore, 8 MB refusals at pick/check/paste, partial and skipped writes
