@@ -187,3 +187,82 @@ and the C-10 findings have no committed remediation record yet.
 - A test file's own header can scope it more narrowly than its name suggests; quote the scope, not just the count.
 - Fixture / local-HTTP / synthetic-DOM evidence never implies browser, provider, owner-data or acceptance proof.
 - Catalog-free model access is not unlimited quota; no model-capacity claim is made here.
+
+---
+
+## Sprint 1 — verified local Windows state (2026-10-26, appended entry)
+
+*This entry records the sprint-1 local Windows results. It is appended, not merged into, the sections above; prior
+entries are preserved verbatim as written. Where the "Current canonical status" section at the top of this file
+conflicts, this entry supersedes it on exactly three points: (1) the GitHub Actions `startup_failure` theory — the
+verified cause is an account billing lock, zero steps ever executed; (2) the line "L0 READY; L1–L4 blocked" — L0, L1
+and L2 are now PASS, L3 is NOT RUN and L4 is PARTIAL; (3) the scorecard row "G5 … T3p + T3u pending" — T3p has since
+passed, T3u has not been run. G5 remains NOT ACCEPTED either way.*
+
+**Commits and write scope.** Local HEAD `bb6f1e2` on `main`, **ahead 2 of origin/main, NOT pushed**. The two commits
+are `8b8a20e` ("test(world): add T3p two-process durability proof and close two adversarial import gaps", 6 files,
++924/-3) and `bb6f1e2` ("docs(sprint): record verified commit, local L4 case IDs and the edit-history decision").
+**No `src/` file was modified in the sprint** — every change is a test assertion or a documentation file.
+
+**Gate results (local Windows execution, 2026-10-26):**
+
+| Gate | Tier | Result |
+|---|---|---|
+| L0 | local git/process snapshot | **PASS** — clean worktree, single worktree, no Studio/CDP process, no listeners on 19000–19300/9222/9223/19224/4310, no default private data root, `PROMPT.md` mission recorded as a separate owner lane and not preempted |
+| L1 | T1/T2 (Node, fixture/local-HTTP) | **PASS** — architecture inventory PASS (0 uncovered, 0 missing ownership); focused 11-file world/UI suite 85/85; full `npm test` on the committed tree: **1881 tests, 1878 pass, 0 fail, 2 skipped, 1 todo, exit 0** |
+| L2 | **T3p** (two real OS processes) | **PASS** — new `test/unit/world-t3p-durability.test.mjs` + `test/unit/fixtures/t3p-worker.mjs`; see detail below |
+| L3 | **T3u** (real browser) | **NOT RUN** — a disposable UI-only instance was prepared and its HTTP surface verified, but that is T1/T2 evidence ONLY and is not recorded as T3u |
+| L4 | T1/T2 adversarial tests, local case IDs | **PARTIAL** — coverage complete by risk class under local IDs `L4-01 … L4-13`; two gaps closed; one open owner decision |
+| G5 | needs T3p **and** T3u | **NOT ACCEPTED** — T3p passes; T3u has not been run |
+
+**L1 details.** Two pre-existing stale assertions were fixed in `test/unit/chat-ui.test.mjs` and
+`test/unit/chat-rich-ui.test.mjs`: they pinned an outdated 44px hit-area CSS selector, while
+`src/studio/ui/chat.html:47` legitimately widened it to include `input[type=search]` and `input[type=file]`. Both had
+**already failed at the pre-merge commit `32b7021`**, so they were pre-existing failures, **not** an R4–R6
+regression. This is why the full suite shows assertion edits with no `src/` change.
+
+**L2 (T3p) details.** Genuinely independent OS processes were observed (PIDs parent 12832, A 372, B 6792, holder 7364
+— all distinct). Covered: process exit/restart over one disposable root; `DOM_TURNS` raw-byte hash and canonical
+`domDigest` identical before/after; cross-process CAS 409 with expected/actual operands; a torn commit leaving an
+unreachable orphan version; a killed lock holder returning HTTP 423 both while alive and after death; token-checked
+`releaseStaleLock` recovery; exactly-once resubmit after recovery. **Honest scope note:** lock recovery is a library
+call (`inspectLock`/`releaseStaleLock`, `src/store/versioned.mjs:365-391`), **NOT** an operator UI feature — the world
+routes expose no lock endpoint.
+
+**L3 (T3u) NOT RUN — what exists and what it is not.** The intended journey is the real-browser J1 RETURN → J2
+ORGANIZE → J3 FIND → J4 TAKE with a real downloaded artifact. A disposable UI-only instance was prepared and its HTTP
+surface verified (`/chat` 200; `/api/v1/world/conversations` returns 1 record; `/api/v1/world/search?q=l3uneedle`
+returns 2 hits). That is **T1/T2 evidence ONLY and must not be recorded as T3u**. No CDP controller was attached, and
+`scripts/chrome-cdp.ps1` is deliberately not used because it junctions the owner's real Chrome profile and is the
+capture launcher.
+
+**L4 PARTIAL — local case IDs and two closed gaps.** Adversarial coverage is complete by risk class under **LOCAL
+case IDs `L4-01 … L4-13`**, because the canonical `A01–A18` list is not in this repo nor in the local AION checkout.
+Two gaps were closed and independently verified:
+- (a) Import-side path traversal (`../sessions`, `..\sessions`, `a/../../b`) is **REJECTED** —
+  `WORLD_IMPORT_RECORD_INTEGRITY` + `WORLD_IMPORT_RECORD_CONFLICT`, never gains a local id, `restoreBundle` throws
+  `WORLD_IMPORT_DIGEST_MISMATCH` 400 at the `report.valid` gate, the store directory listing is byte-identical after
+  every attempt, and out-of-band access is refused by `STORE_NAME_VALID`/`validateStoreName`.
+- (b) Native edit-history: **NO filter exists** — it is absent from `references` by omission, excluded from
+  `transcript` by block type only, and **carried VERBATIM in `full-saved`**, including a prior-draft marker. This
+  second item is an **OPEN OWNER DECISION, not a pass.**
+
+**Hosted CI — corrected root cause (replaces the earlier theory).** Every GitHub Actions job failed with **"The job
+was not started because your account is locked due to a billing issue."** Zero steps executed. This is an **account
+billing lock, NOT a code or test failure**, and **no hosted test has ever executed on this repo**. Every result in
+this entry is local Windows execution. Do not mark CI green, and do not describe any hosted run as a pass or a
+failure.
+
+**HOLD list unchanged (do not reopen):** R4-I3 missing source binary bytes/native artifact versions; generalized
+automatic DLP/redaction of message text (now with the confirmed edit-history caveat above — native edit history has
+no filter and is carried verbatim in `full-saved`); optional C10/C11 mounting; and a separate T4 provider-native
+mission.
+
+**Backlog corrections applied to `docs/track/queue.md` (ARCHIVE items, dated inline):**
+- "No conflicting-import case" is outdated: `test/unit/world-import-hardening.test.mjs:113` covers conflicting
+  import of identical original ids with changed content, and `:197` covers per-record `WORLD_IMPORT_COLLISION` with
+  `partial:true` and `failed[]`.
+- The secret-exclusion proof item is **IN PROGRESS** this sprint (a lane is building a real-bundle scan). No result
+  yet — not DONE.
+- W12's "second instance is a second `startStudio()` in the same process" gap is now closed for durability by
+  L2/T3p. The real-browser T3u leg is still open, so W12 is not accepted.

@@ -16,7 +16,7 @@
 | L1 | PASS | Architecture inventory PASS; focused 11-file suite 85/85; full `npm test` **1881 tests, 1878 pass, 0 fail**, 2 skipped, 1 todo (exit 0) on the committed tree; two `node --check` clean; two pre-existing stale test assertions fixed | — |
 | L2 | PASS | T3p two-process durability: 3 distinct OS PIDs, before/after `DOM_TURNS` byte + canonical hashes identical, cross-process CAS 409 with operands, torn commit + orphan, killed holder 423, token-checked recovery, exactly-once resubmit | — |
 | L3 | NOT RUN | Disposable instance prepared and verified over HTTP (list + search); that is T1/T2 only | T3u: real-browser J1 RETURN → J2 ORGANIZE → J3 FIND → J4 TAKE with a real download (not a CI requirement) |
-| L4 | PARTIAL | Risk-class matrix complete with local case IDs L4-01…L4-13; both gap classes closed and independently verified (traversal rejected; edit-history unfiltered → owner decision) | T3u; canonical A01–A18 mapping only if closeout requires it; G5 decision |
+| L4 | PARTIAL | Canonical `A01–A18` **retrieved and re-verified** (AION blob `92010eff`, 18 contiguous cases) and reconciled case-by-case; local `L4-01…L4-13` retained as a security-class index only. Both gap classes closed and independently verified (traversal rejected; edit-history unfiltered → owner decision). A15's required proof is T3p, which L2 satisfies | T3u (also the T3u half of A16); G5 decision |
 
 ## Gate L0 — PASS
 
@@ -76,13 +76,55 @@ Seeded content covers the required classes: markdown heading, list, external lin
 
 ## Gate L4 — adversarial coverage
 
-### Blocker: the A01–A18 case list is not in this repository
+### Canonical A01–A18 matrix — RETRIEVED (sprint 2)
 
-The runbook references it only as an external AION matrix (`R6-ADVERSARIAL-ACCEPTANCE-MATRIX.md`), and the local AION checkout does not contain that file. The runbook requires case IDs here, so either the canonical IDs must be pulled from AION or this receipt must define its own. Coverage is therefore enumerated by risk class.
+The list is not in this repository and never was; it lives in AION and is public. Retrieved and independently re-verified by the session owner:
+
+| Field | Value |
+|---|---|
+| Repo / path | `owenservera/aion` · `workspace/aion/sessions/roles/15-product-to-market/remote-prep-2026-10-26/R6-ADVERSARIAL-ACCEPTANCE-MATRIX.md` |
+| Blob / size | `92010eff691573d9923eb6f300ae2cf09e12e021` · 24196 bytes |
+| Machine form, authoritative for status | `R6-PROOF-AND-RELEASE-GATES.yaml` @ `cae0f49f0261571e8862831fb670d29b08ead165` |
+| AION `main` at read | `da4243e8` |
+| Cases | 18 contiguous, `A01`–`A18` |
+
+**Which document wins.** The `.md` case titles and acceptance text are stable, but its `Current assessment` column is pre-merge (10:58Z) and stale — it rates A12 a `code_gap` for missing `/objects`/`/selections` POSTs, while the 13:05Z YAML says `source_implemented_t3u_proof_pending` with `blockers.code: []`. Status is keyed against the **YAML**; definitions against the **MD**. The matrix was authored against Harness `32b7021`, older than local `bb6f1e2`, so its source line references are provenance, not current line numbers.
+
+#### Per-case status against the evidence in this receipt
+
+| Case | Pri | Gate | Canonical assessment (YAML) | Required proof | Local evidence |
+|---|---|---|---|---|---|
+| A01 | P0 | G1 | `implemented_fixture` | T3u | none |
+| A02 | P1 | G1 | `source_implemented_t3u_proof_pending` | T1 | none |
+| A03 | P1 | G1 | `source_implemented_t3u_proof_pending` | T1 | none |
+| A04 | P0 | G4 | `implemented_fixture` | T3u | S2-1: `references` carries no `messages` key at all; T3u outstanding |
+| A05 | P0 | G4 | `implemented_fixture_and_owner_decision` | T3u | S2-1 matrix: transcript/full-saved retain text verbatim; owner decision open |
+| A06 | P0 | G4 | `privacy_scope_proof_gap` | T2 | **S2-1 is T2** — providerUrl projection proven in all three modes; arbitrary nested-field audit not performed |
+| A07 | P0 | G4 | `implemented_fixture` | T2 | T0/T1 digest-tamper tests only |
+| A08 | P0 | G4 | `implemented_fixture` | T2 | T0/T1 traversal + malicious-structure tests only |
+| A09 | P0 | G4 | `implemented_fixture` | T2 | T0/T1 collision tests only |
+| A10 | P0 | G4 | `implemented_fixture` | T2 | T0/T1 closure tests only |
+| A11 | P0 | G4 | `implemented_fixture_runtime_proof_gap` | T3u | T0/T1 partial-200 tests only |
+| A12 | P0 | G2 | `source_implemented_t3u_proof_pending` | T1→T3u | none; the UI create path is unproven |
+| A13 | P1 | G3 | `source_test_committed_node_browser_proof_pending` | T2→T1→T3u | none |
+| A14 | P1 | G3 | `policy_and_test_gap` | T2 | none |
+| A15 | P0 | G5 | `windows_process_proof_gap` | **T3p** | **T3p PASS (Gate L2)** — real second OS process, kill/restart, CAS/lock recovery on a disposable root |
+| A16 | P0 | G5 | `release_proof_gap` | T3p **and** T3u | T3p PASS; T3u NOT RUN |
+| A17 | P1 | G5 | `browser_accessibility_proof_gap` | T3u | none |
+| A18 | P2 | G6 | `owner_decision_deferred` | owner only | C10/C11 intentionally unmounted |
+
+Two points this receipt does **not** claim:
+
+- The canonical YAML records `actual_pass_receipt: null` for all 18 and `release_status: G5_NOT_ACCEPTED`. Nothing here alters that document or asserts a canonical pass.
+- Gate L2's T3p evidence **meets the requirement A15 states** (*"separate Windows process restart and CAS/lock recovery evidence"*) and is the T3p half of A16. Whether that is accepted as A15 closure is the owner's call, not this receipt's.
+
+The canonical `prohibited_claims` list is adopted verbatim as binding on this receipt: a source-only audit is not a test pass; a sha256 digest does not verify exporter identity; the `providerUrl` origin+pathname sanitizer does not clean message bodies, nested `href`s or path secrets; a second `startStudio()` call in one Node process is not an OS restart; a partial-200 restore is not full success; and T0/T1/T2 fixture evidence is never live Chrome/provider acceptance.
+
+### Local security-class index (`L4-01 … L4-13`)
+
+These are retained as a **security-class index only** — the case axes genuinely differ from `A01–A18`, so no row-to-row equivalence is claimed. They attach to the A-row they actually evidence: L4-01→A08, L4-02→A07, L4-03→A09, L4-04→A11, L4-05→A08/A14, L4-06→A10, L4-07→A15, L4-08→A04/A05, L4-09→A06, L4-12→A04/A10, L4-13→A08. **L4-10 (binary bytes) and L4-11 (native edit history) map to no A-row** — they are R4/owner decisions and must not be recorded as A18.
 
 ### Risk-class matrix
-
-**Local case IDs.** The canonical `A01–A18` identifiers could not be obtained — the runbook references them only as an external AION document that is absent both from this repo and from the local AION checkout. Rather than leave unlabelled rows, this receipt defines `L4-01 … L4-13` in place of them. If closeout requires the canonical mapping, the AION matrix must be pulled; these IDs must not be presented as equivalent to `A01–A18`.
 
 | Case | Risk class | Enforcing code | Verdict |
 |---|---|---|---|
@@ -126,9 +168,64 @@ This is consistent with the runbook's stated limits — full-saved deliberately 
 ### Executed vs reviewed
 
 - **Executed:** `node --test test/unit/world-import-hardening.test.mjs` → 10 tests, 10 pass, 0 fail (8 pre-existing + 2 new). Diff scope `+137/−1`, the single deletion being an import line. Independently re-run by the session owner after the lane reported.
-- **Not executed:** a canonical A01–A18 ID mapping (source not available locally). The matrix above is by risk class.
+- **Not executed:** no canonical A01–A18 case has been run to its required tier; the mapping above is a status reconciliation, not a pass receipt.
 
 **No `src/` file has been changed by this sprint.** Every change is a test assertion or a documentation file.
+
+## Sprint 2 — non-browser evidence gaps
+
+Scope: close evidence gaps that need no real browser and cross no HOLD in `docs/track/queue.md:19`. **No `src/` file has been changed by sprint 2 either.**
+
+### S2-1 — Secret-exclusion proof on a real bundle (COMPLETE, tier T1/T2)
+
+Closes the queue item *"Exclusion is by construction only today. Needs a real (or realistic) bundle, not a fixture assertion."* New `test/unit/world-secret-exclusion.test.mjs`: 3 tests, 33 assertions, 3/3 pass, independently re-run by the session owner.
+
+Method: real `startStudio({ paths, port: 0 })` and the real `POST /api/v1/world/transfer/export` route over a disposable `mkdtemp` root seeded with a saved session, a real `RawLog` archive and a fake chrome-profile cookie file. Every artifact is synthetic and carries a random `FAKE-…` sentinel. Presence is measured by scanning `JSON.stringify(bundle)` — the actual download bytes — not by inspecting objects.
+
+| artifact | `references` | `transcript` | `full-saved` |
+|---|---|---|---|
+| session cookie, bearer token, provider key, email, display name, credential URL pasted in message text | absent | **PRESENT** | **PRESENT** |
+| secret inside a `key_backup` block | absent | absent (by block type) | **PRESENT** |
+| raw capture `Authorization`, `Set-Cookie`, response body (plain + base64) | absent | absent | absent |
+| chrome-profile cookie file | absent | absent | absent |
+| `providerUrl` query token, userinfo password, fragment | absent | absent | absent |
+| `providerUrl` **path segment** | **PRESENT** | **PRESENT** | **PRESENT** |
+
+Corrections to the queue's premise, all measured:
+
+1. **`providerUrl` really is sanitized** — not "by construction only". `src/studio/world-url.mjs:16` returns `url.origin + url.pathname`; applied at the source read (`world-service.mjs:48`) and at export (`world-transfer.mjs:184-186`) in all three modes. Query string, userinfo and fragment are dropped; origin and pathname are kept; the stored `session.json` is not rewritten (asserted), so this is a projection, not a mutation.
+2. **That sanitizer is field-scoped to `source.providerUrl`.** The identical credential URL pasted into message text survives `transcript` and `full-saved` untouched. This is the place a future reader will wrongly assume is covered.
+3. **Raw capture and browser-profile data are absent by omission, not scrubbing.** The test proves the raw log on disk genuinely holds the Authorization header, the Set-Cookie value and the response body (plain and base64), and that none of it reaches any mode. `src/capture/network.mjs:58-69` is a capture-time policy and was not exercised — no browser was used.
+4. **Documented limit confirmed:** a secret that sits in a path segment survives every mode, because the pathname is preserved by design (`world-url.mjs:8-10`).
+
+This is a measurement, not a pass. The current export carries cookies, tokens, provider keys and PII in two of three modes, and the bundle's own `coverage.qualification` discloses *"Selected content is not automatically redacted."* Redaction remains the owner decision at `queue.md:19`; nothing was filtered to make this table look better.
+
+### S2-2 — PR #1 triage, `centralize/aion-assets-20261025` (COMPLETE, read-only + disposable worktree)
+
+- Ref is **remote-only** at `63414d0`; merge-base `442b0b6`; **9 ahead / 41 behind** local `main`. The earlier "38 behind" figure was stale.
+- **Zero file overlap** confirmed independently (intersection of the two changed-file sets is empty).
+- **`src/capture` and `src/intel` are byte-identical** between `main` and the branch tip. Branch age therefore cannot explain any failure: the suite tests modules `main` never touched.
+- `test/qa/*.test.mjs`: 299 tests, 289 pass, **9 fail**, 1 `# TODO`. The "9 of 299" figure is exact.
+- All 9 classify as fixture/assertion drift. **Zero genuine product defects. Zero Windows or environment artefacts.**
+
+| failing group | count | classification |
+|---|---|---|
+| `sprint01-temporal-graph.test.mjs:21` references scoped to same site | 1 | fixture omits the typed key the canonical module keys on |
+| `sprint02-capture-safety.test.mjs:36` credential must never enter raw append | 3 | assertion against the non-default `filtered` policy |
+| `sprint02-capture-safety.test.mjs:42/46/50` split JSON/Bearer/JWT must not persist | 3 | same |
+| `sprint02-capture-safety.test.mjs:63` unverified thread must not send | 1 | fixture predates caller-resolved identity; fail-closed is by design |
+| `sprint02-capture-safety.test.mjs:84` lease not stolen from live owner | 1 | test passes `staleGraceMs: 0`, removing the grace it then asserts |
+
+Root causes re-verified in code by the session owner:
+
+- `src/capture/privacy.mjs:9` — default mode is `local-raw`; `:22-25` return url, headers, text and bytes unredacted under it; `filtered` is the opt-in that runs `redactUrl`/`redactHeaders`/`scrubText`/`scrubSecrets`. `:1-3` documents this as *"a fidelity preference, not an authorization boundary."*
+- `src/capture/drive-lease.mjs:81` — default `staleGraceMs = 2000`; `:57` reclaim eligibility requires `ageMs >= staleGraceMs`. `:2` and `:94` document reclaim-on-acquire for missing/corrupt owners.
+- `src/intel/graph.mjs:17` — a type carries `key: t.key?.field ?? null`; `:142` revision signature includes `method` and `keyType`. References keying needs a typed key.
+- `src/capture/conversation-service.mjs` — identity is caller-resolved; an unbound connect resolves `NOT_PROVIDED` and fail-closes.
+
+**Owner-relevant, and not merely a stale test:** the six `sprint02` failures assert that credentials never enter a raw append. They pass under `filtered` and fail under the shipped default `local-raw`. That default is deliberate, not a regression — but it means the default capture path does not run the credential guard. Recorded as a policy fact rather than silently filed under "stale".
+
+Recommendation: rebase-and-fix those 9 fixtures, then merge; zero file overlap makes conflicts structurally impossible. **Not executed** — no merge is authorized, and the failure count and filtered-mode probe were executed by the triage lane in a disposable worktree, with the topology and every code line above independently re-verified here.
 
 ## Hosted CI finding (important)
 
@@ -140,7 +237,8 @@ Every GitHub Actions run on this repo failed with zero executed steps. Root caus
 
 - **T3p** — PASS (two-process durability, independently re-run by the owner)
 - **T3u** — NOT RUN (real-browser J1→J4 journey; no fake-DOM or automated substitute accepted)
-- **L4** — risk-class matrix complete and both identified gaps closed; the canonical A01–A18 mapping is unavailable locally
+- **L4** — canonical `A01–A18` retrieved and reconciled case-by-case against local evidence; both identified gaps closed. **A15's required proof (T3p) is satisfied**; A16 still needs T3u. No canonical case is claimed as passed.
+- **Privacy** — a real bundle was measured: cookies, bearer tokens, provider keys and PII ride `transcript` and `full-saved` verbatim; `providerUrl` alone is sanitized to origin+pathname, and only in that field. Recorded, not fixed.
 - **Open owner decision** — a `full-saved` export carries native edit-history payloads verbatim; no filter exists anywhere. Accept as documented behaviour or commission redaction work. It must not be recorded as a pass.
 - **Hosted CI** — unusable (billing lock). Every claim here is local Windows execution.
 
@@ -153,6 +251,7 @@ Every change is reversible and none touches product code:
 - `git checkout -- test/unit/chat-ui.test.mjs test/unit/chat-rich-ui.test.mjs` reverts the two stale-assertion fixes
 - delete `test/unit/world-t3p-durability.test.mjs` and `test/unit/fixtures/t3p-worker.mjs` to drop the T3p proof
 - `git checkout -- test/unit/world-import-hardening.test.mjs` reverts the two adversarial gap tests
+- delete `test/unit/world-secret-exclusion.test.mjs` to drop the sprint-2 secret-exclusion proof
 - delete this receipt to remove the sprint record
 
 No `src/` file was modified, so no product behaviour changed and no migration is required.
