@@ -1,5 +1,33 @@
 # Local-world integration progress
 
+## Current canonical status — R4/R5/R6 source integrated (2026-10-26)
+
+- **Implementation authority:** `owenservera/vivim-harness` **main**. [PR #3](https://github.com/owenservera/vivim-harness/pull/3) was **squash-merged** at `842a8c472a58118ea84a77ae4a9704ece9ee4111`; subsequent sprint-doc commits are on main. This supersedes older trackers that call UI Workspace or search `partPath` absent.
+- **Code changed and source-verified on GitHub:** `src/studio/world-service.mjs` original truncation length; `src/studio/ui/world-view.mjs` source-observed inline links, message/part→project and note, source/reference jump, CAS/uncertain-write recovery and import continuation; new focused `test/unit/world-r456-*.test.mjs` and world-service assertion. Single existing world UI/store/actor ownership preserved. **Remote merge/push/readback proven**.
+- **Remote test evidence:** an isolated in-memory JavaScript/V8 mock-DOM check executed **13 of the new R4/R5/R6 cases successfully** on branch source at an earlier source SHA. This is **not** the Node `node:test` suite, actual browser, process restart, nor current-main `npm test` acceptance. New changes after that check require a fresh local run. Some later cases were synthetic V8-checked as recorded in the AION execution receipt; any aggregate count must cite its exact tested SHA. No full Node command run in the GitHub-only remote executor.
+- **GitHub Actions blocker:** CI workflow attempted Windows and Ubuntu Node 22/24. The jobs were marked **startup_failure** with **no executed steps** and logs unavailable (`BlobNotFound`). This is a hosted runner/administrative investigation until logs prove a code assertion failed. **Do not mark CI green**, or a full Node suite as failed by test assertions without evidence.
+- **Local G5 release:** **NOT ACCEPTED**. T2 loopback and T1 DOM sources are fixtures; no T3p independent OS process reboot, no T3u actual browser JSON download/import or human J1–J4 completed from this remote run. Independent T4 native-provider three-turn task in `PROMPT.md` is **untouched**.
+- **Active sprint:** [Local issue #4](https://github.com/owenservera/vivim-harness/issues/4), [five-gate local runbook](sprints/R456-LOCAL-SPRINT-2026-10-26.md) and the **single active** [ordered queue](track/queue.md). **L0 READY; L1–L4 blocked on ordered local proofs.** An issue and prompt are not locally running agents. Actual state changes go in one dated local receipt and an issue update.
+- **Owner boundaries:** local Windows is sole human/master; do not overwrite dirty worktrees/profiles/tasks, no second Chrome/CDP actor, no Playwright/Puppeteer, no generalized DLP/binary history claims, no automatic resend on uncertain provider sends.
+
+### Current release-contract scorecard (NOT a live test)
+
+| Gate | Source delivery | Acceptance truth |
+|---|---|---|
+| G0 source reconciliation | R4/R5/R6 merged to main, source readback verified | Source tier only |
+| G1 RETURN | saved rich reader + captured links/truncation | T3u pending |
+| G2 ORGANIZE | UI source object/selection→project/note + CAS/partial handling | T3u pending |
+| G3 FIND | uniquely attributable partPath, search→UI and source jump tests committed | Actual Node and T3u pending |
+| G4 TAKE | versioned modes/import/restore + applied navigation and partial controls | Browser file/clean-root T3u pending |
+| G5 WHOLE WORLD | source implementation on main | **NOT ACCEPTED; T3p + T3u pending** |
+| G6 provider-native | separate CDP/effect-owning local task | Not a WORLD gate; not affected |
+
+---
+
+## Archived earlier ledger (historical SHA and test receipts)
+
+*The paragraphs/tables below refer to earlier main commits and local sessions. They remain useful provenance, but not present-day assertions about the latest main or local machine.*
+
 Live ledger. Update on milestone only; not a monitor. Evidence tracking, not product decisions.
 
 Maintainer session: `ses_e8b0588e2ffeIAOxa01JPc9IqJ` (this docs lane), `docs-only` scope. Last update 2026-10-26,
