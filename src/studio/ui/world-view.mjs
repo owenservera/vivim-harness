@@ -389,6 +389,38 @@ export function custodyChip(item) {
   return null;
 }
 
+// Chip for a reading pane or focus header: the map node the user clicked decides first, so the
+// pane never contradicts the list; a stored record's custody/coverage can still correct an
+// unknown onto Imported snapshot instead of a bare unknown.
+export function readerProvenanceChip(node, record) {
+  for (const candidate of [node, record]) {
+    if (!candidate || typeof candidate !== 'object') continue;
+    if (candidate.provenance || candidate.custody) {
+      const chip = provenanceChip(candidate);
+      if (chip[0] !== 'Provenance unknown') return chip;
+    }
+    if (custodyChip(candidate) || candidate.coverage?.state === 'imported-snapshot'
+      || candidate.coverageState?.state === 'imported-snapshot' || candidate.coverageState === 'imported-snapshot') {
+      return ['Imported snapshot', 't-warn'];
+    }
+  }
+  return provenanceChip(node ?? record ?? {});
+}
+
+// What a saved object/selection actually addresses, as labelled rows. No payloads, no dumps.
+export function referenceReaderRows(item) {
+  const source = item?.source && typeof item.source === 'object' ? item.source : null;
+  const rows = [];
+  if (item?.objectType) rows.push({ label: 'Object type', value: item.objectType });
+  if (item?.conversationId) rows.push({ label: 'Source conversation', value: item.conversationId });
+  if (item?.selectionType) rows.push({ label: 'Selection type', value: item.selectionType });
+  if (item?.objectId) rows.push({ label: 'Parent object', value: item.objectId });
+  if (Number.isInteger(source?.messageIndex)) rows.push({ label: 'Message index', value: String(source.messageIndex) });
+  if (Array.isArray(source?.partPath) && source.partPath.length) rows.push({ label: 'Part path', value: source.partPath.map((key) => String(key)).join(' > ') });
+  if (typeof source?.revision === 'string' && source.revision) rows.push({ label: 'Pinned revision', value: source.revision });
+  return rows;
+}
+
 export function importedFromLines(importedFrom) {
   if (!importedFrom || typeof importedFrom !== 'object') return [];
   const digest = typeof importedFrom.digest === 'string' ? importedFrom.digest : '';
@@ -666,6 +698,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
   let relationsAbort = null;
   let workspaceReadTicket = 0;
   let workspaceReadAbort = null;
+  let readerHeadNode = null, readerStatusNode = null, readerBodyNode = null;
 
   let searchTicket = 0;
   let searchAbort = null;
@@ -995,14 +1028,14 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     for (const row of rows) if (row) dl.append(el('dt', { text: row.label }), el('dd', { text: row.value }));
     return dl;
   }
-  function conversationReading(item, error = null, tail = null) {
+  function conversationReading(item, error = null, tail = null, chipOverride = null) {
     const coverage = coverageView(item.coverage);
     return el('article', { class: 'panel pad local-mark' }, [
       el('h2', { text: item.title || 'Saved conversation' }),
       el('p', { class: 'note', text: custodyChip(item) || item.coverage?.state === 'imported-snapshot'
         ? 'This is an imported snapshot, not a recording Studio observed. It does not prove a provider still has these messages.'
         : 'Saved on this computer. A remote thread or account is shown only when this record actually has one.' }),
-      chips(coverage.chips.some((chip) => chip[0] === custodyChip(item)?.[0]) ? coverage.chips : [...(custodyChip(item) ? [custodyChip(item)] : []), ...coverage.chips]),
+      chips(chipOverride ?? (coverage.chips.some((chip) => chip[0] === custodyChip(item)?.[0]) ? coverage.chips : [...(custodyChip(item) ? [custodyChip(item)] : []), ...coverage.chips])),
       el('p', { text: coverage.sentence }),
       kv([
         { label: 'Session status', value: item.status || 'unknown' },
@@ -1913,6 +1946,14 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
         el('p', { class: 'note', text: `Linked but never read (${node.availabilityReason ?? 'NOT_SCANNED'}). There is nothing to open.` }),
       ]);
     }
+    if (!validWorldId(row.id)) {
+      return el('div', { class: 'member' }, [
+        el('span', { class: 'conv-title', text: node?.title || row.id }),
+        el('span', { class: 'note', text: row.id }),
+        el('span', { class: 'pill t-warn', text: 'Cannot be opened here: unrecognised id' }),
+        el('p', { class: 'note', text: 'This link points at an id this Studio does not recognise, so there is nothing to open.' }),
+      ]);
+    }
     const chip = provenanceChip(node);
     const availability = availabilityLabel(node);
     const basisLine = row.basis && row.basis !== STANDARD_RELATION_BASIS ? row.basis : null;
@@ -1961,22 +2002,39 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     const typed = el('input', { id: prefix + 'Id', type: 'text', 'aria-label': 'Paste an exact record id',
       placeholder: 'Or paste an exact record id (c-, p-, n-, o-, s-)' });
     typed.value = rel.typed ?? '';
-    on(typed, 'change', () => {
-      rel.typed = typed.value;
-      if (workspace) {
-        relationsTicket += 1; relationsAbort?.abort();
-        rel.id = ''; rel.map = null; rel.status = ''; rel.error = ''; rel.loading = false;
-        clearWorkspaceReading();
-      }
-      render();
-    });
     const show = el('button', { type: 'button', id: prefix + 'Show', text: rel.loading ? 'Loading relations…' : workspace ? 'Explore related items' : 'Show relations' });
     show.disabled = rel.loading || !(select.value || typed.value.trim());
-    on(show, 'click', () => runRelations((select.value || typed.value).trim(), view));
     const status = el('div', { id: prefix + 'Status', role: 'status', 'aria-live': 'polite', text: rel.status });
     const error = el('div', { class: 'err', id: prefix + 'Error', role: 'alert', text: rel.error });
     const results = el('div', { id: prefix + 'Results' });
-    results.append(el('p', { class: 'note', text: 'These are local associations kept on this computer. They are not proof that two records are the same thing on a provider.' }));
+    const resultsNote = el('p', { class: 'note', text: 'These are local associations kept on this computer. They are not proof that two records are the same thing on a provider.' });
+    results.append(resultsNote);
+    const focusIdEl = workspace ? el('p', { class: 'mono', id: 'worldWorkspaceFocus', text: rel.id || 'No starting item selected' }) : null;
+    const focusChipBox = workspace ? el('div', { id: 'worldWorkspaceFocusChip' }) : null;
+    const focusChip = workspace ? workspaceFocusChip(rel) : null;
+    if (focusChip && focusChipBox) focusChipBox.append(chips([focusChip]));
+    // The typed id updates the shell in place on change. A full re-render would replace the
+    // Explore button between mousedown and mouseup and cost a second click in a real browser.
+    on(typed, 'change', () => {
+      rel.typed = typed.value;
+      if (workspace) {
+        relationsTicket += 1; relationsAbort?.abort(); relationsAbort = null;
+        rel.id = ''; rel.map = null; rel.status = ''; rel.error = ''; rel.loading = false;
+        clearWorkspaceReading();
+        renderWorkspaceReading();
+        results.replaceChildren(resultsNote);
+        if (focusIdEl) focusIdEl.textContent = 'No starting item selected';
+        if (focusChipBox) focusChipBox.replaceChildren();
+      }
+      // Mirrors what a full re-render would show for the picker: in Workspace a typed id
+      // discards the picked record, in Relations the starting record stays if it still matches.
+      select.value = workspace || !choices.some((choice) => choice.id === rel.id) ? '' : rel.id;
+      show.disabled = rel.loading || !(select.value || typed.value.trim());
+      show.textContent = rel.loading ? 'Loading relations…' : workspace ? 'Explore related items' : 'Show relations';
+      status.textContent = rel.status;
+      error.textContent = rel.error;
+    });
+    on(show, 'click', () => runRelations((select.value || typed.value).trim(), view));
     if (rel.map) {
       const { groups, shown } = gatherRelations(rel);
       for (const group of groups) {
@@ -2000,7 +2058,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
       el('div', { class: 'row' }, [show]),
       status,
       error,
-      ...(workspace ? [el('h3', { text: 'Starting from' }), el('p', { class: 'mono', id: 'worldWorkspaceFocus', text: rel.id || 'No starting item selected' })] : []),
+      ...(workspace ? [el('h3', { text: 'Starting from' }), focusIdEl, focusChipBox] : []),
       results,
     );
     if (workspace) { renderWorkspaceReading(); return; }
@@ -2041,9 +2099,10 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     if (state.view === view) render();
     const params = new URLSearchParams({ id: raw, limit: '100' });
     const result = await call('/map?' + params.toString(), { signal: controller?.signal });
-    if (ticket !== relationsTicket || state.view !== view) return;
+    if (state.view !== view) { rel.loading = false; rel.status = ''; return; }
+    if (ticket !== relationsTicket) return;
     rel.loading = false;
-    if (result.aborted) return;
+    if (result.aborted) { rel.status = ''; return; }
     if (result.status !== 200 || !result.data || !Array.isArray(result.data.nodes) || !Array.isArray(result.data.edges)) {
       rel.map = null;
       rel.status = '';
@@ -2062,35 +2121,70 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     workspaceReadAbort?.abort();
     Object.assign(state.workspace, { item: null, readingId: '', readingNode: null, readingError: '', readingLoading: false });
   }
+  function findListedRecord(id) {
+    for (const kind of ['conversations', 'projects', 'notes', 'objects', 'selections']) {
+      const hit = state.lists[kind].items.find((item) => item?.id === id);
+      if (hit) return hit;
+    }
+    return null;
+  }
+  // Chip for the 'Starting from' header: the map's focus node first, then what the loaded list
+  // recorded (custody/coverage). Nothing is claimed when nothing is known.
+  function workspaceFocusChip(rel) {
+    if (!rel.id) return null;
+    const node = (rel.map && Array.isArray(rel.map.nodes) ? rel.map.nodes : []).find((n) => n && n.id === rel.id) ?? null;
+    const chip = readerProvenanceChip(node, findListedRecord(rel.id));
+    return chip[0] === 'Provenance unknown' ? null : chip;
+  }
+  function focusReaderHead() {
+    if (state.view !== 'workspace' || !readerHeadNode) return;
+    try {
+      if (typeof globalThis.matchMedia === 'function' && globalThis.matchMedia('(max-width: 800px)').matches) {
+        readerHeadNode.scrollIntoView?.({ block: 'start' });
+      }
+    } catch { /* narrow-screen positioning only; focus itself is what matters */ }
+    readerHeadNode.focus?.();
+  }
   function renderWorkspaceReading() {
     const ws = state.workspace;
-    const status = el('p', { id: 'worldWorkspaceReadStatus', role: 'status', 'aria-live': 'polite', text: ws.readingLoading ? 'Loading saved item…' : ws.readingError || (ws.item ? 'Saved item opened.' : 'Choose a related item to read here.') });
-    const children = [el('h2', { text: 'Reading pane' }), status];
-    if (ws.readingId) children.push(el('p', { class: 'mono', text: ws.readingId }));
-    if (ws.readingNode) {
-      children.push(chips([provenanceChip(ws.readingNode)]));
-      if (availabilityLabel(ws.readingNode)) children.push(el('p', { text: availabilityLabel(ws.readingNode) }));
+    // role=status nodes persist and mutate in place; only the body around them is rebuilt.
+    const deployed = readerHeadNode && readerStatusNode
+      && [...(detailPane.children ?? [])].includes(readerHeadNode);
+    if (!deployed) {
+      readerHeadNode = el('h2', { text: 'Reading pane', id: 'worldWorkspaceReadHead', tabindex: '-1' });
+      readerStatusNode = el('p', { id: 'worldWorkspaceReadStatus', role: 'status', 'aria-live': 'polite' });
+      readerBodyNode = el('div', { id: 'worldWorkspaceReadBody' });
+      detailPane.replaceChildren(readerHeadNode, readerStatusNode, readerBodyNode);
     }
+    readerStatusNode.textContent = ws.readingLoading ? 'Loading saved item…' : ws.readingError || (ws.item ? 'Saved item opened.' : 'Choose a related item to read here.');
+    const children = [];
+    if (ws.readingId) children.push(el('p', { class: 'mono', text: ws.readingId }));
+    // One chip, derived from the map node that was clicked, corrected by custody/coverage.
+    children.push(chips([readerProvenanceChip(ws.readingNode, ws.item ?? null)]));
+    if (availabilityLabel(ws.readingNode)) children.push(el('p', { text: availabilityLabel(ws.readingNode) }));
     const item = ws.item;
     if (item) {
       const refocus = el('button', { type: 'button', id: 'worldWorkspaceRefocus', text: 'Start from this item' });
-      on(refocus, 'click', () => { ws.typed = ''; return runRelations(item.id, 'workspace'); });
+      on(refocus, 'click', () => { ws.typed = ''; return runRelations(item.id, 'workspace').then(() => focusReaderHead()); });
       children.push(refocus);
-      if (ID_RE.conversations.test(item.id)) children.push(conversationReading(item));
+      if (ID_RE.conversations.test(item.id)) children.push(conversationReading(item, null, null, []));
       else children.push(el('article', { class: 'panel pad local-mark' }, [
         el('h2', { text: item.title || recordLabel(item.id) }),
-        chips([provenanceChip(item)]),
         availabilityLabel(item) ? el('p', { text: availabilityLabel(item) }) : null,
         ...importedFromLines(item.importedFrom).map((row) => el('p', { class: 'note', text: `${row.label}: ${row.value}` })),
-        ID_RE.notes.test(item.id) ? el('div', { class: 'workspace-note', text: typeof item.body === 'string' ? item.body : 'No saved note body was reported.' }) :
-          ID_RE.projects.test(item.id) ? kv([
-            { label: 'Saved conversations linked', value: String(item.conversationIds?.length ?? 0) },
-            { label: 'Notes linked', value: String(item.noteIds?.length ?? 0) },
-            { label: 'Other items linked', value: String(item.memberIds?.length ?? 0) },
-          ]) : el('p', { class: 'note', text: 'Saved reference only. This does not include the source content.' }),
+        ...(ID_RE.notes.test(item.id)
+          ? [el('div', { class: 'workspace-note', text: typeof item.body === 'string' ? item.body : 'No saved note body was reported.' })]
+          : ID_RE.projects.test(item.id)
+            ? [kv([
+                { label: 'Saved conversations linked', value: String(item.conversationIds?.length ?? 0) },
+                { label: 'Notes linked', value: String(item.noteIds?.length ?? 0) },
+                { label: 'Other items linked', value: String(item.memberIds?.length ?? 0) },
+              ])]
+            : [kv(referenceReaderRows(item)),
+              el('p', { class: 'note', text: 'Saved reference only. This does not include the source content.' })]),
       ]));
     }
-    detailPane.replaceChildren(...children);
+    readerBodyNode.replaceChildren(...children);
   }
   async function openWorkspaceItem(row) {
     const id = row?.id, node = row?.node;
@@ -2112,6 +2206,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
       : result.status === 409 ? 'This saved item is currently unavailable. It was not marked deleted.'
         : result.status === 0 ? 'Studio didn’t answer. No saved content was opened.' : `This item could not be read. ${problemText(result.data)}`;
     renderWorkspaceReading();
+    focusReaderHead();
   }
   async function openRelation(row) {
     const id = row?.id, node = row?.node;
@@ -2132,6 +2227,8 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
       relationsAbort?.abort(); relationsTicket += 1;
       state.relations.loading = false;
       state.workspace.loading = false;
+      state.relations.status = '';
+      state.workspace.status = '';
       clearWorkspaceReading();
     }
     state.view = view;

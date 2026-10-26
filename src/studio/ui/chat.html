@@ -222,6 +222,8 @@ ul.convs button { align-items: baseline; }
 .world #worldWorkspaceResults .rowbtn { min-height: 44px; }
 #viewWorkspace { min-height: 44px; }
 .world .workspace-note { white-space: pre-wrap; }
+/* Programmatic focus on the reading-pane heading only positions the reader; no flash. */
+.world #worldWorkspaceReadHead:focus { outline: none; }
 .local-mark { border-left: 4px solid var(--l3); }
 .unknown-part { border: 1px dashed var(--line); border-radius: 8px; padding: 8px 10px; margin: 8px 0 0; }
 .world .rowbtn { width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }

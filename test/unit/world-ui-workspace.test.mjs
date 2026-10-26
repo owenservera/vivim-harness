@@ -82,6 +82,9 @@ test('Workspace is a peer: reads saved messages, note body and project summary w
   assert.match(root.textContent, /edges scanned: up to 100/);
   await open(root, cid).click();
   assert.equal(controller.view(), 'workspace');
+  assert.ok(byId(root, 'worldWorkspaceReadBody'), 'the reader body renders; a broken render must fail loudly');
+  assert.ok(all(byId(root, 'worldDetail'), (node) => String(node.className).includes('pill')).length >= 1,
+    'the reading pane carries a provenance chip element');
   assert.match(byId(root, 'worldDetail').textContent, /Saved answer in reading pane/);
   assert.match(byId(root, 'worldDetail').textContent, /imported snapshot, not a recording Studio observed/);
   await byId(root, 'worldWorkspaceRefocus').click();
@@ -92,6 +95,158 @@ test('Workspace is a peer: reads saved messages, note body and project summary w
   await open(root, pid).click();
   assert.match(byId(root, 'worldDetail').textContent, /Saved conversations linked1Notes linked1/);
   assert.equal(byId(root, 'worldWorkspaceReadStatus').attrs['aria-live'], 'polite');
+});
+
+test('leaving Workspace mid-map and returning shows no fake loading line and keeps Explore usable', async () => {
+  const held = deferred();
+  const { root, controller } = mount((path) => path.startsWith('/map?') ? held.promise : null);
+  await controller.choose('workspace');
+  const pending = start(root, pid); await flush();
+  assert.equal(byId(root, 'worldWorkspaceStatus').textContent, 'Loading local associations…');
+  await controller.choose('capture');
+  await controller.choose('workspace');
+  held.resolve(answer(200, mapFor(pid))); await pending; await flush();
+  assert.doesNotMatch(root.textContent, /Loading local associations…/, 'an aborted map never leaves a fake loading line behind');
+  assert.equal(byId(root, 'worldWorkspaceStatus').textContent, '', 'the status is cleared, not stuck');
+  assert.equal(byId(root, 'worldWorkspaceShow').disabled, false);
+});
+
+test('the reader chip matches the clicked row and is drawn exactly once', async () => {
+  const { root, controller } = mount();
+  await controller.choose('workspace');
+  await start(root, pid);
+  await open(root, cid).click();
+  const detail = byId(root, 'worldDetail');
+  const importedPills = all(detail, (node) => String(node.className).includes('pill') && node.textContent === 'Imported snapshot');
+  assert.equal(importedPills.length, 1, 'Imported snapshot is drawn once, not once per pane layer');
+  assert.match(detail.textContent, /imported snapshot, not a recording Studio observed/);
+  assert.doesNotMatch(detail.textContent, /Provenance unknown/, 'the list said Imported snapshot, so the pane must not say unknown');
+});
+
+test('a stored import carrying only coverage.state still reads as Imported snapshot', async () => {
+  const nid2 = 'n-33333333-3333-4333-8333-333333333333';
+  const { root, controller } = mount((path) => {
+    if (path === '/notes/' + nid2) return answer(200, { id: nid2, title: 'Imported margin', coverage: { state: 'imported-snapshot' } });
+    if (path.startsWith('/map?')) return answer(200, {
+      nodes: [
+        { id: nid, kind: 'note', title: 'Margin', provenance: 'user-authored' },
+        { id: nid2, kind: 'note', title: 'Imported margin' },
+      ],
+      edges: [{ from: nid, to: nid2, kind: 'associates' }],
+      complete: true, truncated: false,
+    });
+    return null;
+  });
+  await controller.choose('workspace');
+  await start(root, nid);
+  await open(root, nid2).click();
+  const detail = byId(root, 'worldDetail');
+  const pills = all(detail, (node) => String(node.className).includes('pill') && node.textContent === 'Imported snapshot');
+  assert.equal(pills.length, 1);
+  assert.doesNotMatch(detail.textContent, /Provenance unknown/, 'coverage.state falls back to the custody chip, not unknown');
+});
+
+test('the Starting from header shows the focused item chip before anything is read', async () => {
+  const nid2 = 'n-33333333-3333-4333-8333-333333333333';
+  const { root, controller } = mount((path) => path.startsWith('/map?') ? answer(200, {
+    nodes: [
+      { id: nid2, kind: 'note', title: 'Imported margin', provenance: 'imported-snapshot' },
+      { id: nid, kind: 'note', title: 'Margin', provenance: 'user-authored' },
+      { id: pid, kind: 'project', title: 'Bag', provenance: 'user-authored' },
+    ],
+    edges: [{ from: nid2, to: nid, kind: 'associates' }],
+    complete: true, truncated: false,
+  }) : null);
+  await controller.choose('workspace');
+  await start(root, pid);
+  assert.match(byId(root, 'worldWorkspaceFocusChip').textContent, /Yours/, 'a user-authored start is marked Yours in the header');
+  const typed = byId(root, 'worldWorkspaceId');
+  const show = byId(root, 'worldWorkspaceShow');
+  typed.value = nid2;
+  await typed.dispatch('change');
+  assert.equal(byId(root, 'worldWorkspaceShow'), show, 'the Explore button survives the typed change (mousedown uses it)');
+  await show.click();
+  assert.match(byId(root, 'worldWorkspaceFocusChip').textContent, /Imported snapshot/,
+    'the imported flag is visible from the header, before the item is opened');
+  assert.doesNotMatch(byId(root, 'worldDetail').textContent, /Imported margin/, 'nothing was read yet');
+});
+
+test('an edge whose id is not recognised is an honest dead end, not a silent Open button', async () => {
+  const { root, controller } = mount((path) => path.startsWith('/map?') ? answer(200, {
+    nodes: [
+      { id: nid, kind: 'note', title: 'Margin', provenance: 'user-authored' },
+      { id: 'x-1', kind: 'mystery' },
+    ],
+    edges: [{ from: nid, to: 'x-1', kind: 'references' }],
+    complete: true, truncated: false,
+  }) : null);
+  await controller.choose('workspace');
+  await start(root, nid);
+  const results = byId(root, 'worldWorkspaceResults');
+  assert.match(results.textContent, /Cannot be opened here: unrecognised id/);
+  assert.equal(all(results, (node) => node.tag === 'button').length, 0, 'no Open button for an id Studio cannot open');
+});
+
+test('object and selection readers show what the record addresses as plain labelled rows', async () => {
+  const oid = 'o-55555555-5555-4555-8555-555555555555';
+  const { root, controller } = mount((path) => {
+    if (path === '/objects/' + oid) return answer(200, { id: oid, kind: 'source-reference', objectType: 'conversation', conversationId: cid });
+    if (path === '/selections/' + sid) return answer(200, { id: sid, kind: 'selection', selectionType: 'part', objectId: oid,
+      source: { messageIndex: 3, partPath: ['blocks', 0], revision: 'a'.repeat(12) } });
+    if (path.startsWith('/map?')) return answer(200, {
+      nodes: [
+        { id: nid, kind: 'note', title: 'Margin', provenance: 'user-authored' },
+        { id: oid, kind: 'source-reference', title: 'conversation reference', provenance: 'user-linked-source' },
+        { id: sid, kind: 'selection', provenance: 'user-selected' },
+      ],
+      edges: [{ from: nid, to: oid, kind: 'references' }, { from: nid, to: sid, kind: 'references' }],
+      complete: true, truncated: false,
+    });
+    return null;
+  });
+  await controller.choose('workspace');
+  await start(root, nid);
+  await open(root, oid).click();
+  const detail = byId(root, 'worldDetail');
+  assert.match(detail.textContent, new RegExp(`Source conversation${cid}`));
+  await open(root, sid).click();
+  const rows = byId(root, 'worldDetail').textContent;
+  assert.match(rows, /Selection typepart/);
+  assert.match(rows, /Parent object/);
+  assert.match(rows, /Message index3/);
+  assert.match(rows, /Part pathblocks > 0/);
+  assert.match(rows, /Pinned revisionaaaaaaaaaaaa/);
+  assert.doesNotMatch(rows, /sessionId|revisionBasis|partPath" /, 'source internals stay out; labelled rows only');
+});
+
+test('typing an id keeps the Explore control in place for a single click', async () => {
+  const { root, controller } = mount();
+  await controller.choose('workspace');
+  await start(root, pid);
+  const typed = byId(root, 'worldWorkspaceId');
+  const show = byId(root, 'worldWorkspaceShow');
+  typed.value = nid;
+  await typed.dispatch('change');
+  assert.equal(byId(root, 'worldWorkspaceShow'), show, 'the button between mousedown and mouseup must never be rebuilt');
+  assert.equal(show.disabled, false);
+  await show.click();
+  assert.equal(byId(root, 'worldWorkspaceFocus').textContent, nid);
+});
+
+test('opening moves focus to the reading-pane heading and mutates the status node in place', async () => {
+  const read = deferred();
+  const { root, controller } = mount((path) => path === '/conversations/' + cid ? read.promise : null);
+  await controller.choose('workspace');
+  await start(root, pid);
+  const statusBefore = byId(root, 'worldWorkspaceReadStatus');
+  const pending = open(root, cid).click(); await flush();
+  assert.match(statusBefore.textContent, /Loading saved item…/);
+  read.resolve(answer(200, { id: cid, title: 'Imported conversation', custody: 'imported', messages: [] })); await pending;
+  assert.equal(byId(root, 'worldWorkspaceReadStatus'), statusBefore, 'role=status is mutated in place, not rebuilt');
+  assert.match(statusBefore.textContent, /Saved item opened\./);
+  const head = byId(root, 'worldWorkspaceReadHead');
+  assert.equal(head.attrs.tabindex, '-1', 'the reader heading is focusable');
+  assert.equal(head.focused, true, 'focus moved to the reading pane after Open');
 });
 
 test('unresolved neighbours cannot open; invalid typed ids cause no request', async () => {
@@ -153,7 +308,10 @@ test('shell includes Workspace and keeps the existing narrow-screen stack and in
   const html = readFileSync(new URL('../../src/studio/ui/chat.html', import.meta.url), 'utf8');
   assert.match(html, /data-view="workspace"/);
   assert.match(html, /worldWorkspaceResults \.rowbtn \{ min-height: 44px/);
-  assert.match(html, /\.world-grid \{ grid-template-columns: minmax\(0, 1fr\);/);
+  // Pin the stacked-layout media query itself, not just a stray rule: the rule must live inside
+  // @media (max-width: 800px) exactly once.
+  assert.match(html, /@media \(max-width: 800px\) \{[^@]*?\.world-grid \{ grid-template-columns: minmax\(0, 1fr\);/);
+  assert.equal((html.match(/\.world-grid \{ grid-template-columns/g) ?? []).length, 1);
   const source = readFileSync(new URL('../../src/studio/ui/world-view.mjs', import.meta.url), 'utf8');
   assert.doesNotMatch(source, /innerHTML|insertAdjacentHTML|outerHTML|document\.write/);
 });
