@@ -1,6 +1,7 @@
 import { randomUUID, createHash } from 'node:crypto';
 import { problem, page } from './http.mjs';
 import { TemporalGraph } from '../intel/graph.mjs';
+import { sanitizedSource } from './world-url.mjs';
 
 const check = (ok, message) => { if (!ok) throw problem(400, message, 'WORLD_INVALID_INPUT'); };
 const clean = ({ name, changeNote, ...value }) => value;
@@ -31,7 +32,9 @@ export function createWorldRelations({ store, service, save }) {
     let record;
     try { record = store.load(id); } catch (e) { if (e.code !== 'STORE_NO_SUCH_ITEM') throw e; throw problem(404, 'Local object not found', 'WORLD_NOT_FOUND'); }
     check(record.kind === kind, 'Object type mismatch');
-    return clean(record);
+    // Read-time projection: a stored record.source.providerUrl is sanitized (origin+pathname),
+    // covering object/selection API reads, search hit source and every export of these records.
+    return { ...clean(record), source: sanitizedSource(record.source) };
   };
   const context = () => ({ projections: new Map(), fingerprints: new Map() });
   const projection = (id, ctx) => {

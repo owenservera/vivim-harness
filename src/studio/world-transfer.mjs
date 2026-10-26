@@ -3,6 +3,7 @@ import { stableStringify } from '../intel/similarity.mjs';
 import { validateStoreName } from '../store/versioned.mjs';
 import { storeProblem } from './http.mjs';
 import { legacySelectionFingerprint } from './world-relations.mjs';
+import { sanitizedSource, providerUrlRemovalReason } from './world-url.mjs';
 
 export const WORLD_EXPORT_LIMITS = Object.freeze({ maxSelected: 100, maxRecords: 256,
   maxDependenciesPerRecord: 3000, maxRecordBytes: 2 * 1024 * 1024, maxTotalBytes: 8 * 1024 * 1024 });
@@ -176,6 +177,13 @@ export function createWorldTransfer({ service }) {
           continue;
         }
         data = jsonCopy(data);
+        // Export-time re-application of the read-time sanitizer (see world-url.mjs): providerUrl is
+        // origin+pathname only. Service reads already sanitize; this choke point keeps the record
+        // byte-identical when no providerUrl key exists (a changed envelope would break the record
+        // digest over a JSON round trip).
+        if (data.source && typeof data.source === 'object' && Object.hasOwn(data.source, 'providerUrl')) {
+          data.source = sanitizedSource(data.source);
+        }
         if (data.id !== id || kind !== 'conversation' && data.kind !== kind) throw fail('WORLD_EXPORT_INVALID_RECORD', 'Service record identity/type mismatch');
         if (kind === 'conversation' && reduce) reduce(data, omitted, id);
 
@@ -216,7 +224,7 @@ export function createWorldTransfer({ service }) {
           providerCompleteness: 'not-established', recordsIncluded: records.length, referencesDiscovered: discovered.size,
           sourceSnapshotsIncluded: records.filter((r) => r.custody === 'saved-observation').length,
           referenceOnlyRevision: includeSources ? 'not-applicable' : 'selection revisions may point to content absent from this bundle',
-          qualification: 'User overlays are not provider assertions; source snapshots retain observed uncertainty. Selected content is not automatically redacted.' } };
+          qualification: 'User overlays are not provider assertions; source snapshots retain observed uncertainty. Selected content is not automatically redacted. providerUrl is projected as origin plus pathname only: userinfo, query strings and fragments are removed at read time; the pathname itself is kept and is not scanned for secret-looking segments.' } };
       if (bytes(payload) > WORLD_EXPORT_LIMITS.maxTotalBytes) throw fail('WORLD_EXPORT_LIMIT', 'Export envelope exceeds byte limit');
       const bundle = { ...payload, integrity: { algorithm: 'sha256', canonicalization: 'stableStringify',
         recordScope: 'record excluding sha256', bundleScope: 'bundle excluding integrity', sha256: hash(payload),
@@ -267,8 +275,21 @@ export function createWorldTransfer({ service }) {
         }
       }
       try { if (digest) validateStoreName(`i-${digest.slice(0, 40)}`, 'import receipt'); } catch (error) { errors.push({ code: error.code, message: error.message }); }
+      // providerUrl sanitize-and-note: imported bundles are enforced at RESTORE (the stored record is
+      // written sanitized), while validate honestly names every record whose bundle bytes carry a
+      // providerUrl that a sanitized projection would change. Bundle bytes are never mutated here — a
+      // validate must not break the integrity digest it just verified.
+      const omittedNotes = [], providerUrlSanitized = [];
+      for (const record of records) {
+        const url = record?.data?.source && typeof record.data.source === 'object' ? record.data.source.providerUrl : undefined;
+        if (url === undefined) continue;
+        const reason = providerUrlRemovalReason(url);
+        if (!reason) continue;
+        providerUrlSanitized.push(record.id);
+        omittedNotes.push({ id: record.id, reason, aspect: 'source', expected: true, count: 1 });
+      }
       const omitted = list(bundle?.omitted), shownErrors = list(errors);
-      return { valid: errors.length === 0, digest, counts: { records: records.length, unresolved: unresolved.length, omitted: Array.isArray(bundle?.omitted) ? bundle.omitted.length : 0, errors: errors.length }, idMap, unresolved: list(unresolved), omitted, coverage: bundle?.coverage ?? null, errors: shownErrors };
+      return { valid: errors.length === 0, digest, counts: { records: records.length, unresolved: unresolved.length, omitted: Array.isArray(bundle?.omitted) ? bundle.omitted.length : 0, providerUrlSanitized: providerUrlSanitized.length, errors: errors.length }, idMap, unresolved: list(unresolved), omitted: [...omitted, ...omittedNotes], providerUrlSanitized, coverage: bundle?.coverage ?? null, errors: shownErrors };
     },
     restoreBundle(request = {}) {
       const dryRun = request.dryRun ?? true;
@@ -294,6 +315,11 @@ export function createWorldTransfer({ service }) {
             plan.skipped.push(record.id); plan.pending = plan.pending.filter((item) => item !== record.id); continue;
           }
           const data = jsonCopy(record.data);
+          // Import re-validation enforcement: the stored record is WRITTEN sanitized (origin+
+          // pathname only); the validate report already named the removal per original id.
+          if (data.source && typeof data.source === 'object' && Object.hasOwn(data.source, 'providerUrl')) {
+            data.source = sanitizedSource(data.source);
+          }
           for (const key of ['conversationIds', 'noteIds', 'memberIds', 'commentsOn']) if (Array.isArray(data[key])) data[key] = rewrite(data[key]);
           if (data.objectId) data.objectId = map[data.objectId] ?? null;
           if (data.conversationId) data.conversationId = map[data.conversationId] ?? null;

@@ -4,6 +4,7 @@ import { Session, listSessions } from '../store/session.mjs';
 import { VersionedStore } from '../store/versioned.mjs';
 import { problem, storeProblem, page } from './http.mjs';
 import { buildObservation } from '../shapes/observation.mjs';
+import { sanitizeProviderUrl, sanitizedSource } from './world-url.mjs';
 import { createWorldRelations } from './world-relations.mjs';
 import { registerWorldSearchRoutes } from './world-search.mjs';
 import { registerWorldTransferRoutes, importedConversationId } from './world-transfer.mjs';
@@ -44,7 +45,7 @@ export function createWorldService({ paths, isSessionActive = () => false }) {
       thread: { ...observed.conversation, state: observed.conversation.nativeRef ? 'qualified-inference' : 'unknown' },
       account: observed.account, observedAt: m.createdAt ?? null,
       qualification: 'Saved observation only; URL parsing and runtime ownership do not prove account identity or full archive identity' },
-    source: { sessionId: m.id, kind: 'saved-session', providerUrl: m.target?.url ?? null },
+    source: { sessionId: m.id, kind: 'saved-session', providerUrl: sanitizeProviderUrl(m.target?.url ?? null) },
     identityScope: 'source-observation-alias; use world objects for durable local references' });
   };
   const allMetadata = () => listSessions(paths.sessions).filter((m) => typeof m.id === 'string' && /^[a-z0-9][a-z0-9._-]{0,127}$/i.test(m.id));
@@ -60,7 +61,7 @@ export function createWorldService({ paths, isSessionActive = () => false }) {
     check(typeof id === 'string' && /^c-(?:[a-f0-9]{40}|i[a-f0-9]{38})$/.test(id), 'Invalid conversation ID');
     const imported = importedConversation(id);
     if (imported) return { id: imported.id, sessionId: null, title: imported.title, status: 'imported', createdAt: imported.importedFrom?.observedAt ?? null,
-      identity: imported.identity, source: imported.source, identityScope: 'imported snapshot; not local capture identity',
+      identity: imported.identity, source: sanitizedSource(imported.source), identityScope: 'imported snapshot; not local capture identity',
       availability: 'imported', availabilityReason: 'IMPORTED_SNAPSHOT', custody: 'imported', importedFrom: imported.importedFrom };
     request.metadata ??= allMetadata();
     const m = request.metadata.find((m) => conversationId(m.id) === id);
@@ -89,7 +90,7 @@ export function createWorldService({ paths, isSessionActive = () => false }) {
       const rows = allMetadata(), observed = rows.filter((m) => !active(m)).map((m) => ({ ...metadata(m), custody: 'observed', importedFrom: null }));
       const imported = mode === 'observed' ? [] : store.names().filter(importedConversationId).map(importedConversation)
         .filter(Boolean).map((r) => ({ id: r.id, sessionId: null, title: r.title, status: 'imported', createdAt: r.importedFrom?.observedAt ?? null,
-          identity: r.identity, source: r.source, custody: 'imported', importedFrom: r.importedFrom }));
+          identity: r.identity, source: sanitizedSource(r.source), custody: 'imported', importedFrom: r.importedFrom }));
       const selected = page(mode === 'imported' ? imported : mode === 'all' ? [...observed, ...imported] : observed, q);
       return { ...selected, metadataEnumerated: rows.length, custody: mode };
     },
