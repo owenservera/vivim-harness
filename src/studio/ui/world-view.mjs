@@ -1089,6 +1089,16 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     create.disabled = state.selectionSave.busy;
     on(create, 'click', () => createProjectFromConversation());
     box.append(el('div', { class: 'row' }, [picker]));
+    if (state.lists.projects.nextOffset != null) {
+      const more = el('button', { type: 'button', id: 'worldSelectionMoreProjects',
+        text: 'Load more projects' });
+      more.disabled = state.lists.projects.loading || state.selectionSave.busy;
+      on(more, 'click', async () => {
+        await fetchList('projects', { more: true });
+        if (state.view === 'conversations') renderDetailPane();
+      });
+      box.append(more);
+    }
     box.append(el('div', { class: 'row' }, [title, create]));
     if (!state.lists.projects.items.length) box.append(el('p', { class: 'note', text: 'Create a project here; your saved conversation stays open.' }));
     box.append(el('p', { class: 'note', text: 'Selections point to recorded content; they do not copy an attachment, edit the recording, or verify a provider account.' }));
