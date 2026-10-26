@@ -336,10 +336,10 @@ test('R5 leapfrog: choose a project outside the first 50 without abandoning the 
   const { root, calls, controller } = mount({ failStage: 'pagedProjects' });
   await openSaved(root, controller);
   assert.ok(findId(root, 'worldSelectionMoreProjects'), 'pagination control available');
-  assert.equal(collect(findId(root, 'worldSelectionProject'), (x) => x.tag === 'option' && x.value === pid).length, 0);
+  assert.equal(collect(findId(root, 'worldSelectionProject'), (x) => x.tag === 'option' && x.getAttribute('value') === pid).length, 0);
   await findId(root, 'worldSelectionMoreProjects').click();
   const picker = findId(root, 'worldSelectionProject');
-  assert.equal(collect(picker, (x) => x.tag === 'option' && x.value === pid).length, 1);
+  assert.equal(collect(picker, (x) => x.tag === 'option' && x.getAttribute('value') === pid).length, 1);
   picker.value = pid; await picker.dispatch('change');
   await findId(root, 'worldSavePart-0-0').click();
   assert.equal(controller.view(), 'conversations');
