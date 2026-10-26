@@ -93,7 +93,8 @@ test('ambiguous block-level search returns no partPath and focuses message witho
   const ambiguous = search.items.find((x) => x.kind === 'message' && x.source?.index === 1);
   assert.ok(ambiguous);
   assert.equal(ambiguous.source.partPath ?? null, null);
-  const button = await find(f.root, f.controller, 'sharedr456term');
+  await find(f.root, f.controller, 'sharedr456term');
+  const button = all(f.root, (x) => x.tag === 'button' && x.getAttribute('aria-label') === 'Open message ' + ambiguous.id)[0];
   assert.ok(button);
   await button.click();
   assert.equal(f.controller.view(), 'conversations');
