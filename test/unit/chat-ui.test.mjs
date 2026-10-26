@@ -51,6 +51,17 @@ test('Studio really serves /chat and /ui/chat.mjs (loopback, injected fake runti
   assert.equal(script.status, 200);
   assert.match(script.headers.get('content-type'), /javascript/);
   assert.equal(lf(await script.text()), source);
+  // Every module chat.mjs dynamically imports must be served from the same origin, or the
+  // feature silently fails to mount in a real browser while all in-process tests still pass.
+  // (Found by a real-browser T3u pass: /ui/world-view.mjs was 404 and the whole world UI was dead.)
+  const dynamicModules = [...source.matchAll(/import\('\.\/([A-Za-z0-9._-]+\.mjs)'\)/g)].map((m) => m[1]);
+  assert.ok(dynamicModules.length >= 2, 'chat.mjs still declares its dynamic UI modules');
+  for (const name of dynamicModules) {
+    const res = await fetch(base + '/ui/' + name, { headers: auth });
+    assert.equal(res.status, 200, `/ui/${name} must be served because chat.mjs imports it`);
+    assert.match(res.headers.get('content-type'), /javascript/, `/ui/${name} content-type`);
+    assert.equal(lf(await res.text()), read(name), `/ui/${name} must be the real module`);
+  }
   assert.equal((await fetch(base + '/chat', { method: 'POST', headers: auth })).status, 405);
   assert.equal((await fetch(base + '/drive', { headers: auth })).status, 200, '/drive is retained');
   assert.equal((await (await fetch(base + '/api/v1/conversation-targets', { headers: auth })).json()).sites.length, 0);

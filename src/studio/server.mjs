@@ -178,12 +178,15 @@ const hub = createIntegrationHub({ paths, profileStore, learner, recorder, conve
         res.writeHead(200, { 'content-type': script ? 'text/javascript; charset=utf-8' : 'text/html; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none'; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'" });
         return res.end(content);
       }
-      if (['/chat', '/ui/chat.mjs', '/ui/universal-chat.mjs'].includes(url.pathname)) {
+      if (['/chat', '/ui/chat.mjs', '/ui/universal-chat.mjs', '/ui/world-view.mjs'].includes(url.pathname)) {
         if (req.method !== 'GET') { res.setHeader('allow', 'GET'); return send(res, 405, { error: 'GET required' }); }
         const script = url.pathname.endsWith('.mjs');
         let content;
-        // universal-chat.mjs is the U1 additive read-only panel module mounted by chat.mjs
-        const file = url.pathname === '/ui/universal-chat.mjs' ? './ui/universal-chat.mjs' : script ? './ui/chat.mjs' : './ui/chat.html';
+        // universal-chat.mjs (U1 read-only panel) and world-view.mjs (saved-world views) are
+        // dynamic imports of chat.mjs, so they must be served from this same route; otherwise
+        // the feature silently fails to mount in a real browser while every in-process test passes.
+        const CHAT_MODULES = { '/ui/universal-chat.mjs': './ui/universal-chat.mjs', '/ui/world-view.mjs': './ui/world-view.mjs' };
+        const file = CHAT_MODULES[url.pathname] ?? (script ? './ui/chat.mjs' : './ui/chat.html');
         try { content = readFileSync(new URL(file, import.meta.url)); }
         catch (e) { if (e.code === 'ENOENT') return send(res, 404, { error: 'Chat UI not installed yet' }); throw e; }
         res.writeHead(200, { 'content-type': script ? 'text/javascript; charset=utf-8' : 'text/html; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none'; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'" });
