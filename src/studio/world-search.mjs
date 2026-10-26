@@ -3,6 +3,7 @@
 // so edits are visible and no second persistent store or duplicated content index is created.
 // It indexes local saved evidence only: no provider network, no URL/session continuity merging.
 import { CorpusSearchIndex } from '../intel/search.mjs';
+import { textTokens } from '../intel/similarity.mjs';
 import { problem, integer, text, storeProblem } from './http.mjs';
 
 // Kinds are the actual local record families; messages are saved DOM_TURNS projections.
@@ -76,6 +77,22 @@ function observedAvailability(value) {
   return { observed, availability: observed === null ? 'unknown' : KNOWN_AVAILABILITY.has(observed) ? observed : 'unavailable' };
 }
 const cleanSnippet = (value) => String(value ?? '').replace(/\s+/gu, ' ').trim();
+// Part refs follow the same top-level [blockIndex] convention as selection part refs and the UI
+// planFrames: path [i] names message.blocks[i]. Attribution reuses the already-flattened block text.
+const tokenSet = (value) => new Set(textTokens(value));
+// Attribute a ranked message hit to exactly one top-level block. Matches that also live in the
+// message's own text, span several blocks, or belong to a blockless message stay message-level.
+function attributedPartPath(record, row) {
+  if (!record?.blockTokens || !record?.plainTokens || !Array.isArray(record.blockTokens)) return null;
+  const terms = row?.matchedTerms ?? [];
+  if (!terms.length) return null;
+  if (terms.every((term) => record.plainTokens.has(term))) return null;
+  const candidates = [];
+  for (const [blockIndex, tokens] of record.blockTokens.entries()) {
+    if (terms.every((term) => tokens.has(term))) candidates.push(blockIndex);
+  }
+  return candidates.length === 1 ? [candidates[0]] : null;
+}
 const clip = (value, max = 280) => {
   const snippet = cleanSnippet(value);
   return snippet.length > max ? snippet.slice(0, max - 3) + '...' : snippet;
@@ -176,6 +193,11 @@ export function createWorldSearch({ service, limits } = {}) {
             custody: imported ? 'imported-snapshot' : 'observed',
             ...(imported ? { contentScope: 'imported-snapshot; not observed', importedFrom } : {}),
             truncated: message?.truncated === true, redactions: message?.redactions ?? null,
+            // Block attribution inputs (internal; never surfaced in hits): per-block token sets keep
+            // partPath attribution bounded within the same per-message caps the scan already paid.
+            ...(Array.isArray(message?.blocks)
+              ? { blockTokens: message.blocks.map((block) => tokenSet(richText(block))), plainTokens: tokenSet(message?.text ?? '') }
+              : {}),
           }, content, {
             ...recorded,
             conversationId: meta.id, messageId: id,
@@ -272,8 +294,9 @@ export function createWorldSearch({ service, limits } = {}) {
     for (const row of ranked) {
       const record = hitMeta.get(row.id);
       if (!record) continue;
+      const partPath = attributedPartPath(record, row);
       hits.push({ id: record.id, kind: record.kind, title: record.title, score: row.score,
-        snippet: clip(row.snippet), source: record.source,
+        snippet: clip(row.snippet), source: { ...record.source, ...(partPath ? { partPath } : {}) },
         ...(record.role !== undefined ? { role: record.role } : {}),
         ...(record.conversation !== undefined ? { conversation: record.conversation } : {}),
         ...(record.custody !== undefined ? { custody: record.custody } : {}),

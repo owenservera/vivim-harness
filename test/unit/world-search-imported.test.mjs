@@ -12,13 +12,13 @@ import { dataPaths, ensureDataDirs } from '../../src/config.mjs';
 import { startStudio } from '../../src/studio/server.mjs';
 import { ProfileStore } from '../../src/profiles/profiles.mjs';
 
-function world(t, text = 'saved') {
+function world(t, text, blocks) {
   const root = mkdtempSync(path.join(os.tmpdir(), 'world-search-import-'));
   t.after(() => rmSync(root, { recursive: true, force: true }));
   const paths = dataPaths(root); ensureDataDirs(paths);
   const session = Session.create(paths.sessions, { site: 'fixture' });
   session.meta.status = 'complete'; session.saveMeta();
-  session.kv.set('DOM_TURNS', [{ id: 'observed', role: 'assistant', text, blocks: [{ type: 'future-native', opaque: { marker: text } }] }]);
+  session.kv.set('DOM_TURNS', [{ id: 'observed', role: 'assistant', text, blocks: blocks ?? [{ type: 'future-native', opaque: { marker: text } }] }]);
   return { root, paths, session, service: createWorldService({ paths }) };
 }
 function bundleOf(service) {
@@ -49,7 +49,7 @@ test('imported snapshot messages are searchable and keep imported custody', (t) 
   assert.equal(hit.contentScope, 'imported-snapshot; not observed');
   assert.equal(hit.source.kind, 'imported-reference');
   assert.match(hit.conversation.id, /^c-i[a-f0-9]{38}$/);
-  assert.equal(hit.conversation.id.endsWith('f'), false);
+  assert.match(hit.conversation.id, /^c-i[0-9a-f]{38}$/);
   assert.equal(hit.source.sessionId, null);
   assert.equal(Object.hasOwn(hit.source, 'originSessionId'), false);
   assert.equal(hit.source.sessionId === source.session.id, false);
@@ -150,6 +150,19 @@ test('same-machine export and restore keeps observed and imported hits distinct 
   const detail = target.service.conversation(imported.conversation.id);
   assert.equal(detail.coverage.state, 'imported-snapshot');
   assert.ok(detail.messages[0].text.includes('self-import-marker'));
+});
+
+test('imported snapshot hits also attribute a single-block match', (t) => {
+  const source = world(t, 'plain body', [{ type: 'note-part', payload: { label: 'moon-part-marker' } }]);
+  const target = world(t, 'unrelated observed text');
+  restore(target.service, bundleOf(source.service));
+  const result = searchOf(target.service)({ q: 'moon-part-marker', custody: 'imported' });
+  assert.equal(result.total, 1);
+  const hit = result.items[0];
+  assert.equal(hit.custody, 'imported-snapshot');
+  assert.match(hit.id, /^c-i[a-f0-9]{38}:turn:0$/, 'imported hit identity stays local');
+  assert.deepEqual(hit.source.partPath, [0]);
+  assert.equal(hit.source.kind, 'imported-reference');
 });
 
 test('invalid custody is rejected before scanning', (t) => {

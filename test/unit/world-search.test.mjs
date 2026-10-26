@@ -75,6 +75,32 @@ test('note edits are visible on the next query because the index is transient', 
   assert.match(second.items[0].snippet, /beta marker/);
 });
 
+test('message hits attribute partPath to exactly one top-level block or stay message-level', (t) => {
+  const turns = [{ id: 'observed-parts', role: 'assistant', text: 'plain surfaces',
+    blocks: [{ type: 'code', text: 'slate inside first' }, { type: 'future-native-part', payload: { label: 'beta inlay', bytes: [1, 2] } }] },
+  { id: 'observed-plain', role: 'user', text: 'separate sheet', blocks: [] }];
+  const f = fixture(t, turns);
+  const one = f.search({ q: 'beta inlay', kind: 'message' }).items[0];
+  assertHitShape(one);
+  assert.deepEqual(one.source.partPath, [1], 'all matched terms live in exactly one block');
+  assert.equal(one.snippet.includes(JSON.stringify(one.source.partPath)), false, 'the snippet stays text only');
+  for (const [query, expected] of [['inlay', [1]], ['first', [0]], ['surfaces', null]]) {
+    const hit = f.search({ q: query, kind: 'message' }).items[0];
+    if (expected === null) assert.equal(hit.source.partPath, undefined, `"${query}" matches do not name a block`);
+    else assert.deepEqual(hit.source.partPath, expected, `"${query}" should name block ${expected}`);
+  }
+  assert.equal(f.search({ q: 'surfaces' }).items.every((hit) => hit.source.partPath === undefined), true,
+    'message-text matches and blockless messages stay message-level');
+  const spanning = f.search({ q: 'first inlay', kind: 'message' }).items[0];
+  assert.equal(spanning.custody, 'observed');
+  assert.equal(spanning.source.partPath, undefined, 'a match spread across two blocks is not attributed');
+  assert.equal(f.search({ q: 'sheet', kind: 'message' }).items[0].source.partPath, undefined,
+    'a message without blocks has no partPath');
+  const identity = f.search({ q: 'first', kind: 'message' }).items[0];
+  assert.match(identity.id, /^c-[a-z0-9]{40}:turn:0$/, 'hit identity is unchanged');
+  assert.equal(identity.source.index, 0);
+});
+
 test('rich unknown blocks are searchable by value and field, with alias-qualified source identity', (t) => {
   const turns = [{ id: 'observed-rich', role: 'assistant', text: 'plain answer',
     blocks: [{ type: 'future-native-part', payload: { label: 'quartzite-vein', bytes: [1, 2, 3] } }] }];
@@ -88,6 +114,8 @@ test('rich unknown blocks are searchable by value and field, with alias-qualifie
   assert.equal(hit.source.key, 'DOM_TURNS');
   assert.match(hit.source.identityScope, /source-observation-alias; not durable part identity/);
   assert.match(hit.snippet, /quartzite-vein/);
+  assert.deepEqual(hit.source.partPath, [0], 'an unknown-block value match is attributable to its block');
+  assert.equal(Object.hasOwn(hit, 'partPath'), false);
   assert.equal(f.search({ q: 'payload', kind: 'message' }).total, 1, 'unknown block field names stay searchable');
 });
 
