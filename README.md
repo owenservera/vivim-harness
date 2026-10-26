@@ -79,6 +79,12 @@ Design rules that are enforced in code:
 - **Google Chrome** (or Edge) for the capture browser. Auto-detected; override with `CHROME_PATH`.
 - Windows, macOS or Linux. The tool is Windows-first but platform-neutral in code.
 
+## Native Windows and Linux parity
+
+One Node.js >=22 codebase serves Windows and Linux with **no WSL, Bash, PowerShell or per-release porting**. The former Windows-only `npm run chrome:cdp` now calls the existing cross-platform `studio launch` browser owner; the `scripts/chrome-cdp.ps1` helper remains optional legacy Windows tooling, never a prerequisite. Chrome/Chromium/Edge discovery includes native installation paths and `PATH`, with `CHROME_PATH` as an explicit override.
+
+Run `node scripts/platform-smoke.mjs` on either OS to check CLI, disposable storage, loopback Studio, saved-world modules and API **without opening a browser or sending provider messages**. See [portable setup and acceptance tiers](docs/PORTABILITY.md).
+
 ## Quick start
 
 ```powershell
