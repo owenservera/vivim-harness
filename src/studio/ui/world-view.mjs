@@ -207,6 +207,22 @@ function unknownPart(type) {
   return { type: label, note: `Recorded part (${label}). Studio does not know how to format it, so it is not shown as content.` };
 }
 
+/** Only links recorded inside this saved paragraph/heading; never inferred citations. */
+export function savedInlineLinks(block) {
+  if (!['paragraph', 'heading'].includes(block?.type)) return [];
+  const seen = new Set(), links = [];
+  for (const part of Array.isArray(block.inline) ? block.inline : []) {
+    if (part?.t !== 'link' && part?.t !== 'citation') continue;
+    const href = safeHttp(part.href);
+    const label = typeof part.text === 'string' && part.text.trim() ? clip(part.text.trim(), 120) : 'Recorded link';
+    const key = JSON.stringify([part.t, label, href]);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    links.push({ kind: part.t, label, href, basis: 'link observed in saved page, not source verification' });
+  }
+  return links;
+}
+
 function blockToMarkdown(block, lines, unknowns, depth) {
   if (!block || typeof block !== 'object' || depth > 8) { unknowns.push(unknownPart('unknown')); return; }
   const type = (typeof block.type === 'string' && block.type) || (typeof block.kind === 'string' && block.kind) || 'unknown';
@@ -324,7 +340,10 @@ export function turnPlan(message) {
       ? 'Saved text. The recorded parts could not be formatted, so this is the saved text only.'
       : 'Saved text. No separate rich parts were recorded with this turn.';
   } else if (!markdown && !unknowns.length) note = 'No text saved for this turn.';
-  return { markdown, note, unknowns, truncated: message?.truncated === true, redactionNote: redactionNote(message?.redactions) };
+  return { markdown, note, unknowns, truncated: message?.truncated === true,
+    truncatedOriginalLength: Number.isSafeInteger(message?.truncatedOriginalLength) && message.truncatedOriginalLength > 0
+      ? message.truncatedOriginalLength : null,
+    redactionNote: redactionNote(message?.redactions) };
 }
 
 /** One entry per top-level saved block, so a rendered part can carry its own data-part-path marker.
@@ -336,7 +355,7 @@ export function planFrames(message) {
     const lines = [];
     const unknowns = [];
     blockToMarkdown(block, lines, unknowns, 0);
-    return { path: [index], markdown: lines.join('\n').trim() };
+    return { path: [index], markdown: lines.join('\n').trim(), links: savedInlineLinks(block) };
   });
 }
 
@@ -992,12 +1011,25 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     messages.forEach((message, index) => {
       const plan = turnPlan(message);
       const body = el('div', { class: 'rich' });
-      const frames = planFrames(message).filter((frame) => frame.markdown);
+      const frames = planFrames(message).filter((frame) => frame.markdown || frame.links.length);
       if (frames.length) {
         for (const frame of frames) {
           const frameBody = el('div', { class: 'rich', 'data-part-path': String(frame.path[0]), tabindex: '-1' });
-          if (typeof rich?.renderStatic === 'function') rich.renderStatic(frameBody, frame.markdown);
-          else frameBody.textContent = frame.markdown;
+          if (frame.markdown) {
+            if (typeof rich?.renderStatic === 'function') rich.renderStatic(frameBody, frame.markdown);
+            else frameBody.textContent = frame.markdown;
+          }
+          if (frame.links.length) {
+            const sources = el('div', { class: 'note', 'aria-label': 'Links observed in saved page' });
+            for (const link of frame.links) {
+              const title = (link.kind === 'citation' ? 'Recorded citation link: ' : 'Recorded link: ') + link.label;
+              sources.append(link.href
+                ? el('a', { href: link.href, target: '_blank', rel: 'noopener noreferrer nofollow', text: title })
+                : el('span', { text: title + ' (address unavailable)' }));
+              sources.append(el('span', { text: ' · ' }));
+            }
+            frameBody.append(sources);
+          }
           body.append(frameBody);
         }
       } else if (plan.markdown) {
@@ -1015,7 +1047,9 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
         body.children?.length || body.textContent ? body : null,
         unknownList.children?.length ? unknownList : null,
         plan.redactionNote ? el('p', { class: 'note', text: plan.redactionNote }) : null,
-        plan.truncated ? el('p', { class: 'note', text: 'This saved turn is not complete.' }) : null,
+        plan.truncated ? el('p', { class: 'note', text: plan.truncatedOriginalLength == null
+            ? 'This saved turn is not complete.'
+            : 'This saved turn is not complete. Original text length observed before truncation: ' + plan.truncatedOriginalLength + ' characters.' }) : null,
         kv(messageSourceRows(message?.source)),
       ]);
       state.messageNodes.set(index, row);
