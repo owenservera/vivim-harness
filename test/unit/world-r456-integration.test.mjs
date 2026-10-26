@@ -8,6 +8,7 @@ const pid = 'p-11111111-1111-4111-8111-111111111111';
 const oid = 'o-22222222-2222-4222-8222-222222222222';
 const sid = 's-33333333-3333-4333-8333-333333333333';
 const newPid = 'p-44444444-4444-4444-8444-444444444444';
+const nid = 'n-55555555-5555-4555-8555-555555555555';
 
 class TextNode {
   constructor(text) { this.data = String(text); }
@@ -70,7 +71,7 @@ function mount({ failStage = '' } = {}) {
       selectionReads++;
       return answer(200, {
       id: sid, kind: 'selection', objectId: oid, selectionType: 'part',
-        availability: failStage === 'stale' || (failStage === 'driftOnJump' && selectionReads > 1) ? 'stale' : 'locally-available',
+        availability: failStage === 'stale' || failStage === 'staleNote' || (failStage === 'driftOnJump' && selectionReads > 1) ? 'stale' : 'locally-available',
         source: { messageIndex: 0, partPath: [0], revision: 'known-snapshot-fingerprint' },
       });
     }
@@ -82,11 +83,17 @@ function mount({ failStage = '' } = {}) {
       return answer(200, savedProject);
     }
     if (path === '/projects/' + savedProject.id && (init.method ?? 'GET') === 'GET') return answer(200, savedProject);
+    if (path === '/notes' && init.method === 'POST') return answer(200, {
+      id: nid, kind: 'note', version: 1, title: body.title, body: body.body,
+      commentsOn: body.commentsOn, provenance: 'user-authored',
+    });
     if (path === '/objects' && init.method === 'POST') return failStage === 'object'
       ? answer(503, { code: 'ERROR' }) : answer(200, { id: oid, version: 1, kind: 'source-reference', conversationId: cid });
     if (path === '/selections' && init.method === 'POST') return failStage === 'selection'
       ? answer(400, { code: 'INVALID' }) : answer(200, { id: sid, version: 1, kind: 'selection', objectId: oid, source: { partPath: body.partPath, messageIndex: body.messageIndex } });
     if (path === '/projects/' + savedProject.id && init.method === 'PUT') {
+      if (failStage === 'noteLinkConflict' && calls.filter((c) => c.path === path && c.method === 'PUT').length > 1)
+        return answer(409, { code: 'CAS_VERSION_CONFLICT', expected: 2, actual: 3 });
       if (failStage === 'project') return answer(409, { code: 'CAS_VERSION_CONFLICT', expected: 1, actual: 2 });
       if (failStage === 'projectOnce' && !conflictSeen) {
         conflictSeen = true;
@@ -272,4 +279,50 @@ test('R6 leapfrog: a selection revised after Find listing is refused on fresh so
   assert.match(findId(root, 'worldFindError').textContent, /stale, missing or unavailable/);
   assert.equal(calls.filter((c) => c.path === '/selections/' + sid).length, 2);
   assert.equal(calls.filter((c) => c.path === '/conversations/' + cid).length, 0);
+});
+
+test('J2 leapfrog: write a personal note from the just-saved part without navigating away', async () => {
+  const { root, calls, controller } = mount();
+  await openSaved(root, controller);
+  const picker = findId(root, 'worldSelectionProject'); picker.value = pid; await picker.dispatch('change');
+  await findId(root, 'worldSavePart-0-0').click();
+  const title = findId(root, 'worldSelectionNoteTitle');
+  assert.ok(title, 'a note form is available after the source selection is linked');
+  title.value = 'Thought on evidence'; await title.dispatch('input');
+  const body = findId(root, 'worldSelectionNoteBody');
+  body.value = 'Examine the quoted claim.'; await body.dispatch('input');
+  await findId(root, 'worldSelectionCreateNote').click();
+  assert.equal(controller.view(), 'conversations');
+  const note = calls.find((c) => c.path === '/notes' && c.method === 'POST');
+  assert.ok(note);
+  assert.deepEqual(note.body, { title: 'Thought on evidence', body: 'Examine the quoted claim.',
+    expectedVersion: null, commentsOn: [sid] });
+  const links = calls.filter((c) => c.path === '/projects/' + pid && c.method === 'PUT');
+  assert.equal(links.length, 2);
+  assert.deepEqual(links[1].body.noteIds, [nid]);
+  assert.equal(links[1].body.expectedVersion, 2);
+  assert.match(findId(root, 'worldSelectionNoteStatus').textContent, /saved on the original selection and linked/);
+  assert.equal(calls.filter((c) => c.path === '/objects' && c.method === 'POST').length, 1);
+});
+test('R6 leapfrog: failed project-link after note POST preserves confirmed local note', async () => {
+  const { root, calls, controller } = mount({ failStage: 'noteLinkConflict' });
+  await openSaved(root, controller);
+  const picker = findId(root, 'worldSelectionProject'); picker.value = pid; await picker.dispatch('change');
+  await findId(root, 'worldSavePart-0-0').click();
+  const title = findId(root, 'worldSelectionNoteTitle'); title.value = 'Review note'; await title.dispatch('input');
+  await findId(root, 'worldSelectionCreateNote').click();
+  assert.match(findId(root, 'worldSelectionNoteStatus').textContent, /saved on the selection, but its project link was NOT confirmed/);
+  assert.equal(calls.filter((c) => c.path === '/notes' && c.method === 'POST').length, 1);
+  assert.equal(calls.filter((c) => c.path === '/projects/' + pid && c.method === 'PUT').length, 2);
+  assert.equal(controller.view(), 'conversations');
+});
+test('R6 leapfrog: no note creation on freshly stale source selection', async () => {
+  const { root, calls, controller } = mount({ failStage: 'staleNote' });
+  await openSaved(root, controller);
+  const picker = findId(root, 'worldSelectionProject'); picker.value = pid; await picker.dispatch('change');
+  await findId(root, 'worldSavePart-0-0').click();
+  const title = findId(root, 'worldSelectionNoteTitle'); title.value = 'Should not write'; await title.dispatch('input');
+  await findId(root, 'worldSelectionCreateNote').click();
+  assert.match(findId(root, 'worldSelectionNoteStatus').textContent, /No note was created/);
+  assert.equal(calls.some((c) => c.path === '/notes' && c.method === 'POST'), false);
 });
