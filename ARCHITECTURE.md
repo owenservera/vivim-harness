@@ -56,7 +56,8 @@ The capture capability list remains [UNIVERSAL-CAPTURE-STUDIO-CAPABILITIES.md](.
 4. **Credentials never reach disk.** Cookie and auth headers are dropped, auth endpoints are metadata-only, and in-body tokens are masked in place with each mask recorded.
 5. **Inferences are hypotheses with evidence and confidence** until the user confirms them.
 6. **Universal core, families as priors.** Nothing in the core names a website. `ai-chat`, `data-table` and the other families are reusable semantic guides, not classification gates.
-7. **Zero-dependency Node ≥ 22** for Windows-first portability. Python or other languages are allowed later as optional sidecars only where measurement shows they beat the JS algorithms.
+7. **Zero-dependency Node ≥ 22** for native Windows and Linux parity: one CLI, one UI, one browser-effect owner, and no OS-specific runtime prerequisites. Python or other languages are allowed only as optional sidecars where measured benefit justifies them.
+8. **Platform parity is a release gate.** Every cross-cutting feature must run without source edits on Windows and Linux, with shared code and automated tests on both; see [the parity contract](docs/PLATFORM-PARITY.md).
 
 ## 3. Layered architecture
 
