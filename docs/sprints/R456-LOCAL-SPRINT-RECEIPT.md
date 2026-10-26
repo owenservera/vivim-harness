@@ -5,6 +5,7 @@
 - **Date:** 2026-10-26
 - **Host:** Windows, Node v24.22.1, npm 11.19.1
 - **Baseline commit:** d129d5255d48524b527ae561c0ff8b9e36bd6aa8 (main, fast-forwarded from origin/main)
+- **Verified commit:** 8b8a20e (local only, not pushed — 6 files, +924/−3, no `src/` change)
 - **Owner:** local Windows OpenCode session
 
 ## Gate table
@@ -12,10 +13,10 @@
 | Gate | Status | Evidence | Still owed |
 |------|--------|----------|------------|
 | L0 | PASS | Clean worktree, no Studio/CDP processes, no listeners on 19000-19300/9222/9223/19224/4310, no default private data root, PROMPT.md mission recorded as separate owner lane | — |
-| L1 | PASS | Architecture inventory PASS; focused 11-file suite 85/85; full `npm test` 1878 tests, 1875 pass, 0 fail, 2 skipped, 1 todo (exit 0); two `node --check` clean; two pre-existing stale test assertions fixed | — |
+| L1 | PASS | Architecture inventory PASS; focused 11-file suite 85/85; full `npm test` **1881 tests, 1878 pass, 0 fail**, 2 skipped, 1 todo (exit 0) on the committed tree; two `node --check` clean; two pre-existing stale test assertions fixed | — |
 | L2 | PASS | T3p two-process durability: 3 distinct OS PIDs, before/after `DOM_TURNS` byte + canonical hashes identical, cross-process CAS 409 with operands, torn commit + orphan, killed holder 423, token-checked recovery, exactly-once resubmit | — |
 | L3 | NOT RUN | Disposable instance prepared and verified over HTTP (list + search); that is T1/T2 only | T3u: real-browser J1 RETURN → J2 ORGANIZE → J3 FIND → J4 TAKE with a real download (not a CI requirement) |
-| L4 | PARTIAL | Risk-class matrix complete; both gap classes closed and independently verified (traversal rejected; edit-history unfiltered → owner decision) | T3u; canonical A01–A18 mapping; G5 decision |
+| L4 | PARTIAL | Risk-class matrix complete with local case IDs L4-01…L4-13; both gap classes closed and independently verified (traversal rejected; edit-history unfiltered → owner decision) | T3u; canonical A01–A18 mapping only if closeout requires it; G5 decision |
 
 ## Gate L0 — PASS
 
@@ -31,7 +32,8 @@
 - Focused 11-file suite (`world-r456-integration`, `world-r456-search-http-ui`, `world-service`, `world-search`, `world-ui`, `world-ui-find`, `world-ui-workspace`, `world-ui-transfer`, `world-journeys`, `world-import-hardening`, `world-provider-url`) -> 85 tests, 85 pass, 0 fail
 - `node --check src/studio/ui/world-view.mjs` -> 0; `node --check src/studio/world-service.mjs` -> 0
 - Two reproducible defects fixed **in test assertions (not product code)**: `test/unit/chat-ui.test.mjs` and `test/unit/chat-rich-ui.test.mjs` pinned an outdated CSS selector; `src/studio/ui/chat.html:47` legitimately widened the 44px hit-area rule to include `input[type=search]` and `input[type=file]`. Both assertions updated. Both had already failed at pre-merge commit `32b7021`, so they were pre-existing, not caused by R4-R6.
-- Full `npm test` result: **PASS** — 1878 tests, 1875 pass, 0 fail, 2 skipped, 1 todo, exit 0 (Node v24.22.1, Windows, 2026-10-26)
+- Full `npm test` result before the new tests were added: **PASS** — 1878 tests, 1875 pass, 0 fail, 2 skipped, 1 todo, exit 0 (Node v24.22.1, Windows, 2026-10-26)
+- Full `npm test` on the committed tree `8b8a20e`: **PASS** — 1881 tests, 1878 pass, 0 fail, 2 skipped, 1 todo, exit 0. The +3 are exactly the T3p durability test and the two adversarial gap tests; nothing regressed.
 - Focused R456 pair (`world-r456-integration`, `world-r456-search-http-ui`) -> 16/16 pass on this host
 
 ## Gate L2 — PASS (tier T3p)
@@ -80,21 +82,23 @@ The runbook references it only as an external AION matrix (`R6-ADVERSARIAL-ACCEP
 
 ### Risk-class matrix
 
-| Risk class | Enforcing code | Verdict |
-|---|---|---|
-| Bounded/malicious import (size, depth) | `src/studio/world-transfer.mjs:10,47` `IMPORT_CONTENT_LIMITS` | COVERED — import is JSON-only; no zip path exists |
-| Tampered digest | `world-transfer.mjs:242-243` `WORLD_IMPORT_DIGEST_MISMATCH` | COVERED (digest = integrity, never authentication) |
-| Record id collision | `world-transfer.mjs:19` `localId`, `world-service.mjs:164` create-on-null CAS | COVERED — partial:true + failed[] reported honestly |
-| Partial HTTP 200 / truncated body | `world-transfer` failed[]/partial; `src/capture/network.mjs:259-292` `body.truncated` | COVERED |
-| HTML injection into saved content | `src/studio/ui/drive.mjs:2-15` textContent-only policy | COVERED |
-| Stale source reference | world service/relations readers | COVERED |
-| CAS conflict | `world-service.mjs:80` compareAndSave | COVERED |
-| Reference-only vs transcript/full-saved exposure | `world-transfer.mjs:134` scope by construction | COVERED — tests assert verbatim carriage rather than hide it |
-| URL pathname / nested-link leakage | `src/studio/world-url.mjs:11-29` origin+pathname sanitizer | COVERED — path segments are retained by design |
-| Captured remote binary bytes | none | **HOLD** (owner choice, runbook line 19) — not a pass |
-| Native edit-history exposure | **none** | **OPEN — owner decision** (Finding 2) |
-| Export-scope escalation | `world-transfer.mjs:124,135-141,199,228,232` | COVERED |
-| Import path traversal | `validId` / idMap / integrity + `validateStoreName` | COVERED — now proven through the *restore* path (Finding 1) |
+**Local case IDs.** The canonical `A01–A18` identifiers could not be obtained — the runbook references them only as an external AION document that is absent both from this repo and from the local AION checkout. Rather than leave unlabelled rows, this receipt defines `L4-01 … L4-13` in place of them. If closeout requires the canonical mapping, the AION matrix must be pulled; these IDs must not be presented as equivalent to `A01–A18`.
+
+| Case | Risk class | Enforcing code | Verdict |
+|---|---|---|---|
+| L4-01 | Bounded/malicious import (size, depth) | `src/studio/world-transfer.mjs:10,47` `IMPORT_CONTENT_LIMITS` | COVERED — import is JSON-only; no zip path exists |
+| L4-02 | Tampered digest | `world-transfer.mjs:242-243` `WORLD_IMPORT_DIGEST_MISMATCH` | COVERED (digest = integrity, never authentication) |
+| L4-03 | Record id collision | `world-transfer.mjs:19` `localId`, `world-service.mjs:164` create-on-null CAS | COVERED — partial:true + failed[] reported honestly |
+| L4-04 | Partial HTTP 200 / truncated body | `world-transfer` failed[]/partial; `src/capture/network.mjs:259-292` `body.truncated` | COVERED |
+| L4-05 | HTML injection into saved content | `src/studio/ui/drive.mjs:2-15` textContent-only policy | COVERED |
+| L4-06 | Stale source reference | world service/relations readers | COVERED |
+| L4-07 | CAS conflict | `world-service.mjs:80` compareAndSave | COVERED |
+| L4-08 | Reference-only vs transcript/full-saved exposure | `world-transfer.mjs:134` scope by construction | COVERED — tests assert verbatim carriage rather than hide it |
+| L4-09 | URL pathname / nested-link leakage | `src/studio/world-url.mjs:11-29` origin+pathname sanitizer | COVERED — path segments are retained by design |
+| L4-10 | Captured remote binary bytes | none | **HOLD** (owner choice, runbook line 19) — not a pass |
+| L4-11 | Native edit-history exposure | **none** | **OPEN — owner decision** (Finding 2) |
+| L4-12 | Export-scope escalation | `world-transfer.mjs:124,135-141,199,228,232` | COVERED |
+| L4-13 | Import path traversal | `validId` / idMap / integrity + `validateStoreName` | COVERED — now proven through the *restore* path (Finding 1) |
 
 ### Finding 1 — import-side traversal: rejected, no defect
 
