@@ -1,10 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, writeFileSync, rmSync, readFileSync, chmodSync } from 'node:fs';
 import os from 'node:os';
+import net from 'node:net';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { chromeCandidates, findChrome } from '../../src/chrome/launch.mjs';
+import { chromeCandidates, findChrome, launchChrome } from '../../src/chrome/launch.mjs';
 import { defaultDataDir, dataPaths } from '../../src/config.mjs';
 
 const repo = fileURLToPath(new URL('../../', import.meta.url));
@@ -54,4 +55,27 @@ test('the native launcher command uses the existing Studio browser owner', () =>
   assert.equal(pkg.scripts['chrome:cdp'], 'node bin/studio.mjs launch');
   assert.equal(pkg.scripts['smoke:platform'], 'node scripts/platform-smoke.mjs');
   assert.equal(pkg.engines.node, '>=22');
+});
+
+test('an installed but non-executable browser reports a caught spawn error', { timeout: 20000 }, async (t) => {
+  if (process.platform === 'win32') return t.skip('POSIX execute permission has no Windows equivalent');
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'vivim-invalid-browser-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const fake = path.join(dir, 'unexecutable-browser');
+  writeFileSync(fake, '#!/not-an-interpreter\\n');
+  chmodSync(fake, 0o644);
+  const previous = process.env.CHROME_PATH;
+  process.env.CHROME_PATH = fake;
+  t.after(() => {
+    if (previous === undefined) delete process.env.CHROME_PATH;
+    else process.env.CHROME_PATH = previous;
+  });
+  const sock = net.createServer();
+  await new Promise((resolve) => sock.listen(0, '127.0.0.1', resolve));
+  const port = sock.address().port;
+  await new Promise((resolve) => sock.close(resolve));
+  await assert.rejects(
+    launchChrome({ profileDir: path.join(dir, 'profile'), port, headless: true }),
+    /Cannot launch capture browser at/,
+  );
 });
