@@ -700,7 +700,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     errors: { conversations: '', projects: '', notes: '' },
     creating: false,
     messageNodes: new Map(),
-    selectionSave: { projectId: '', newTitle: '', busy: false, notice: '', pending: null, savedKeys: new Set() },
+    selectionSave: { projectId: '', newTitle: '', busy: false, notice: '', pending: null, savedKeys: new Set(), lastLinked: null, noteTitle: '', noteBody: '', noteStatus: '' },
     find: { query: '', kind: '', items: [], total: null, nextOffset: null, coverage: null, error: '', status: '', loading: false, recordId: null },
     custody: 'observed',
     relations: { id: '', typed: '', map: null, error: '', status: '', loading: false, recordId: null },
@@ -1115,6 +1115,26 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
       });
       box.append(dismiss);
     }
+    const linked = state.selectionSave.lastLinked;
+    if (linked?.conversationId === item.id) {
+      box.append(el('h3', { text: 'Write a note on your saved selection' }));
+      box.append(el('p', { class: 'note', text: 'This is a personal note on selection '
+        + linked.selectionId + '. It does not change the source or send anything to a provider.' }));
+      const noteTitle = el('input', { type: 'text', id: 'worldSelectionNoteTitle', maxlength: '300',
+        'aria-label': 'Title for a note on this selection', placeholder: 'Note title' });
+      noteTitle.value = state.selectionSave.noteTitle;
+      on(noteTitle, 'input', () => { state.selectionSave.noteTitle = noteTitle.value; });
+      const noteBody = el('textarea', { id: 'worldSelectionNoteBody', rows: '3',
+        'aria-label': 'Your note on the saved selection', placeholder: 'Your note' });
+      noteBody.value = state.selectionSave.noteBody;
+      on(noteBody, 'input', () => { state.selectionSave.noteBody = noteBody.value; });
+      const addNote = el('button', { type: 'button', id: 'worldSelectionCreateNote',
+        text: 'Save note on selection' });
+      addNote.disabled = state.selectionSave.busy;
+      on(addNote, 'click', () => createNoteForSavedSelection());
+      box.append(noteTitle, noteBody, addNote,
+        el('p', { id: 'worldSelectionNoteStatus', role: 'status', text: state.selectionSave.noteStatus }));
+    }
     box.append(el('p', { id: 'worldSelectionStatus', role: 'status', text: state.selectionSave.notice }));
     return box;
   }
@@ -1243,6 +1263,8 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
         return;
       }
       work.savedKeys.add(key);
+      work.lastLinked = { conversationId, projectId, objectId: object.id, selectionId: selection.id };
+      work.noteStatus = '';
       work.pending = null;
       work.notice = 'Saved this recorded ' + (partPath.length ? 'part' : 'message') + ' in project ' + (project.title || projectId)
         + '. The original conversation was not modified.';
@@ -1289,6 +1311,9 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
       if (nextConversations.length === (project.conversationIds ?? []).length
           && nextMembers.length === (project.memberIds ?? []).length) {
         work.savedKeys.add(pending.key);
+        work.lastLinked = { conversationId: pending.conversationId, projectId: pending.projectId,
+          objectId: pending.objectId, selectionId: pending.selectionId };
+        work.noteStatus = '';
         work.pending = null;
         work.notice = 'This saved selection was already linked. No duplicate project write was made.';
         return;
@@ -1308,11 +1333,84 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
       if (index >= 0) state.lists.projects.items[index] = { ...state.lists.projects.items[index], ...written.saved };
       if (state.editors.has(pending.projectId)) state.editors.set(pending.projectId, editorFrom(written.saved, 'Saved.'));
       work.savedKeys.add(pending.key);
+      work.lastLinked = { conversationId: pending.conversationId, projectId: pending.projectId,
+        objectId: pending.objectId, selectionId: pending.selectionId };
+      work.noteStatus = '';
       work.pending = null;
       work.notice = 'Existing saved selection linked to project. No new source reference was created.';
       announce('Existing selection linked to project.');
     } catch {
       work.notice = 'Could not verify the existing selection/project link. Local records remain; no new source was created.';
+    } finally {
+      work.busy = false;
+      if (state.view === 'conversations') renderDetailPane();
+    }
+  }
+
+  /** Personal note, using the existing note.commentsOn relation and project CAS. */
+  async function createNoteForSavedSelection() {
+    const work = state.selectionSave, linked = work.lastLinked;
+    if (work.busy || !linked?.selectionId) return;
+    const title = validTitle(work.noteTitle ?? '');
+    const body = work.noteBody ?? '';
+    if (!title || typeof body !== 'string' || body.length > 200000) {
+      work.noteStatus = 'Not saved. Enter a title of 1–300 characters and a note up to 200,000 characters.';
+      renderDetailPane();
+      return;
+    }
+    work.busy = true;
+    work.noteStatus = 'Checking saved source and saving a personal note…';
+    if (state.view === 'conversations') renderDetailPane();
+    let savedNote = null;
+    try {
+      const selection = await call('/selections/' + encodeURIComponent(linked.selectionId));
+      if (selection.status !== 200 || selection.data?.id !== linked.selectionId
+          || selection.data.availability !== 'locally-available') {
+        work.noteStatus = 'No note was created. The original selection is stale or unavailable.';
+        return;
+      }
+      const result = await call('/notes', { method: 'POST',
+        body: { ...noteCreateBody(title, body), commentsOn: [linked.selectionId] } });
+      const outcome = interpretCreate(result, { title, body });
+      if (!outcome.ok || !ID_RE.notes.test(outcome.saved?.id || '')) {
+        work.noteStatus = 'Note save was not confirmed. Check Notes before retrying.';
+        return;
+      }
+      savedNote = outcome.saved;
+      const notes = state.lists.notes;
+      notes.items = appendPage([savedNote], { items: notes.items });
+      notes.total = Math.max(notes.total, notes.items.length);
+      notes.loaded = true;
+      state.editors.set(savedNote.id, editorFrom(savedNote, 'Saved.'));
+      work.noteTitle = '';
+      work.noteBody = '';
+      work.noteStatus = 'Personal note saved. Linking it to the project…';
+      const current = await call('/projects/' + encodeURIComponent(linked.projectId));
+      if (current.status !== 200 || current.data?.id !== linked.projectId
+          || !Number.isInteger(current.data.version)) {
+        work.noteStatus = 'Note ' + savedNote.id + ' saved on the selection, but its project link was NOT confirmed. Open Projects to add it manually.';
+        return;
+      }
+      const project = current.data;
+      const resultLink = await call('/projects/' + encodeURIComponent(linked.projectId), { method: 'PUT',
+        body: { title: project.title, conversationIds: project.conversationIds ?? [],
+          noteIds: withId(project.noteIds ?? [], savedNote.id), memberIds: project.memberIds ?? [],
+          expectedVersion: project.version } });
+      const written = interpretWrite(resultLink, project);
+      if (!written.ok) {
+        work.noteStatus = 'Note ' + savedNote.id + ' saved on the selection, but its project link was NOT confirmed. '
+          + written.message + ' Add the note in Projects if needed.';
+        return;
+      }
+      const index = state.lists.projects.items.findIndex((p) => p.id === linked.projectId);
+      if (index >= 0) state.lists.projects.items[index] = { ...state.lists.projects.items[index], ...written.saved };
+      if (state.editors.has(linked.projectId)) state.editors.set(linked.projectId, editorFrom(written.saved, 'Saved.'));
+      work.noteStatus = 'Personal note saved on the original selection and linked to your project.';
+      announce('Note saved and linked to project.');
+    } catch {
+      work.noteStatus = savedNote
+        ? 'Note ' + savedNote.id + ' saved locally; project link could not be verified. Review Projects.'
+        : 'Note write could not be verified. Review Notes before retrying.';
     } finally {
       work.busy = false;
       if (state.view === 'conversations') renderDetailPane();
