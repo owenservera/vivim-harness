@@ -6,6 +6,14 @@ import { existsSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { isReachable, browserVersion, waitForReachable, discoveryProbe } from '../cdp/discovery.mjs';
 
+// Resolve executables from PATH as well as conventional install directories. Windows and
+// POSIX use different PATH separators; keeping this explicit makes synthetic OS tests reliable.
+function executableNames(platform) {
+  if (platform === 'win32') return ['chrome.exe', 'msedge.exe', 'chromium.exe'];
+  if (platform === 'darwin') return ['Google Chrome', 'Chromium', 'chrome', 'chromium'];
+  return ['google-chrome', 'google-chrome-stable', 'chromium', 'chromium-browser', 'microsoft-edge', 'microsoft-edge-stable'];
+}
+
 export function chromeCandidates(env = process.env, platform = process.platform) {
   const c = [];
   if (env.CHROME_PATH) c.push(env.CHROME_PATH);
@@ -20,15 +28,33 @@ export function chromeCandidates(env = process.env, platform = process.platform)
   } else if (platform === 'darwin') {
     c.push('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome');
     c.push('/Applications/Chromium.app/Contents/MacOS/Chromium');
+    if (env.HOME) {
+      c.push(path.posix.join(env.HOME, 'Applications/Google Chrome.app/Contents/MacOS/Google Chrome'));
+      c.push(path.posix.join(env.HOME, 'Applications/Chromium.app/Contents/MacOS/Chromium'));
+    }
   } else {
-    c.push('/usr/bin/google-chrome', '/usr/bin/google-chrome-stable', '/usr/bin/chromium', '/usr/bin/chromium-browser');
+    c.push(
+      '/usr/bin/google-chrome', '/usr/bin/google-chrome-stable',
+      '/usr/bin/chromium', '/usr/bin/chromium-browser',
+      '/usr/bin/microsoft-edge', '/usr/bin/microsoft-edge-stable',
+      '/opt/google/chrome/chrome', '/opt/microsoft/msedge/msedge',
+      '/snap/bin/chromium', '/snap/bin/google-chrome',
+    );
   }
-  return c;
+  const isWindows = platform === 'win32';
+  const pathLib = isWindows ? path.win32 : path.posix;
+  const pathValue = env.PATH ?? env.Path ?? env.path ?? '';
+  const separator = isWindows ? ';' : ':';
+  for (const directory of pathValue.split(separator).filter(Boolean)) {
+    for (const executable of executableNames(platform)) c.push(pathLib.join(directory, executable));
+  }
+  // Preserve override precedence, avoid duplicates (PATH often repeats /usr/bin).
+  return [...new Set(c)];
 }
 
-export function findChrome() {
-  const hit = chromeCandidates().find((p) => p && existsSync(p));
-  if (!hit) throw new Error('Chrome not found. Set CHROME_PATH to chrome.exe.');
+export function findChrome(env = process.env, platform = process.platform, fileExists = existsSync) {
+  const hit = chromeCandidates(env, platform).find((p) => p && fileExists(p));
+  if (!hit) throw new Error('Chrome/Chromium not found. Install a supported browser or set CHROME_PATH to its executable.');
   return hit;
 }
 
