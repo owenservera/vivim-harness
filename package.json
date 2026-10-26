@@ -33,7 +33,9 @@
     "always-on": "node scripts/always-on.mjs",
     "always-on:status": "node scripts/always-on.mjs --status",
     "always-on:stop": "node scripts/always-on.mjs --stop",
-    "chrome:cdp": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/chrome-cdp.ps1",
-    "help": "node bin/studio.mjs help"
+    "chrome:cdp": "node bin/studio.mjs launch",
+    "help": "node bin/studio.mjs help",
+    "test:platform": "node --test test/unit/platform-parity.test.mjs",
+    "smoke:platform": "node scripts/platform-smoke.mjs"
   }
 }
