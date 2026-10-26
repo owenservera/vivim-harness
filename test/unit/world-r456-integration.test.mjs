@@ -60,6 +60,17 @@ function mount({ failStage = '' } = {}) {
       messages: [{ role: 'assistant', text: 'Read this reference.', blocks: [paragraph],
         truncated: true, truncatedOriginalLength: 170000, source: { key: 'DOM_TURNS', index: 0 } }],
     });
+    if (path.startsWith('/search?')) return answer(200, {
+      items: [{ kind: 'selection', id: sid, title: 'Saved selection', snippet: 'recorded part' }],
+      total: 1, offset: 0, limit: 50, nextOffset: null, coverage: { complete: true, truncated: false, reasons: [], failures: [] },
+    });
+    if (path === '/selections/' + sid) return answer(200, {
+      id: sid, kind: 'selection', objectId: oid, selectionType: 'part', availability: 'locally-available',
+      source: { messageIndex: 0, partPath: [0], revision: 'known-snapshot-fingerprint' },
+    });
+    if (path === '/objects/' + oid) return answer(200, {
+      id: oid, kind: 'source-reference', conversationId: cid, availability: 'locally-available',
+    });
     if (path === '/projects/' + pid && (init.method ?? 'GET') === 'GET') return answer(200, project());
     if (path === '/objects' && init.method === 'POST') return failStage === 'object'
       ? answer(503, { code: 'ERROR' }) : answer(200, { id: oid, version: 1, kind: 'source-reference', conversationId: cid });
@@ -142,4 +153,38 @@ test('R6: failed selection stage discloses orphan source reference without proje
   assert.match(findId(root, 'worldSelectionStatus').textContent, /Source reference o-/);
   assert.match(findId(root, 'worldSelectionStatus').textContent, /NOT confirmed/);
   assert.equal(calls.some((c) => c.method === 'PUT'), false);
+});
+
+
+test('R5: a Find selection record follows its object back to the exact saved part', async () => {
+  const { root, calls, controller } = mount();
+  await controller.choose('find');
+  const query = findId(root, 'worldFindQuery');
+  query.value = 'recorded';
+  await query.dispatch('input');
+  await findId(root, 'worldFindSubmit').click();
+  const found = collect(root, (x) => x.tag === 'button' && x.getAttribute('aria-label') === 'Open selection ' + sid)[0];
+  assert.ok(found, 'Find result for source-qualified selection exists');
+  await found.click();
+  const jump = findId(root, 'worldSourceJump-' + sid);
+  assert.ok(jump, 'reference detail has an actionable original-source path');
+  await jump.click();
+  assert.equal(controller.view(), 'conversations');
+  const frame = collect(root, (x) => x.getAttribute('data-part-path') === '0')[0];
+  assert.ok(frame, 'opened exact recorded part');
+  assert.equal(frame.getAttribute('aria-current'), 'true');
+  assert.equal(calls.some((c) => c.path === '/objects/' + oid), true);
+  assert.equal(calls.some((c) => c.path === '/conversations/' + cid), true);
+});
+test('R5/R6: a stale source selection cannot open another conversation or pretend it resolved', async () => {
+  const { root, calls, controller } = mount();
+  await controller.choose('find');
+  const query = findId(root, 'worldFindQuery'); query.value = 'recorded'; await query.dispatch('input');
+  await findId(root, 'worldFindSubmit').click();
+  const btn = collect(root, (x) => x.tag === 'button' && x.getAttribute('aria-label') === 'Open selection ' + sid)[0];
+  await btn.click();
+  // Direct source-return control is conservatively disabled on explicit stale status;
+  // unknown content cannot become an arbitrarily selected provider conversation.
+  assert.ok(findId(root, 'worldSourceJump-' + sid));
+  assert.equal(calls.filter((c) => c.path === '/conversations/' + cid).length, 0);
 });
