@@ -141,7 +141,7 @@ clusters:
       - "src/studio/harness-api.mjs:33-104 runs + durable pre-effect intent binding, :136 /harness/runs/{run}/reconcile read-only"
       - "src/studio/intent-bindings.mjs:26 createIntentBindingStore() exclusive record, never an effect grant"
       - "src/studio/core-runtime-bridge.mjs:93 deny('JOURNAL_NOT_ADMITTED'), :125 reconcileUncertainStep()"
-      - "test/unit/commands.test.mjs (6 pass at 803d165), test/unit/harness-api.test.mjs, round9-guardrails.test.mjs, send-once.test.mjs"
+      - "test/unit/commands.test.mjs (12 tests: 12 pass at 2fb9476, re-run 12 pass / 0 fail at 20574af), test/unit/harness-api.test.mjs, round9-guardrails.test.mjs, send-once.test.mjs"
     gap: "The catalog half is now real: an explicit symbol table, a frozen command catalog with per-command input schema/scope/preconditions/effects, and a preview route that explains without performing. Still partial: preview-only by design so nothing executes, the module reads no store and opens no browser, registerCommandRoutes is NOT mounted on the integration hub (so no HTTP surface is live), there is no UI, no natural-language intent resolver, no 17-family symbol taxonomy, and no execution proof (core, execution deferred)"
     evidence_grade: fixture_tested
   - id: C-11

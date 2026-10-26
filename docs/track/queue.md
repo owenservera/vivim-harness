@@ -3,18 +3,16 @@
 Top READY item with no unmet dependency is the next iteration. Evidence tiers: fixture / local-HTTP / synthetic-DOM /
 source-only. Nothing here is live, browser, provider or owner-data proof.
 
-HEAD `ad01f06b520690fab30b53734ac728f166729e8b` (2026-10-26 00:19:14 +0100, branch `main`). Tree clean except
-untracked `PROMPT.md` and `clone-tmp/` (`git status --porcelain` in this lane).
+HEAD `20574af45c494db46908e8d0dbf5cf8da9531f9f` (origin/main; 2026-10-26 00:37:22 +0100, branch `main`). Tree clean
+except untracked `PROMPT.md` and `clone-tmp/` (`git status --porcelain` in this lane).
 
-Lane note: this refresh is docs-only — `docs/track/queue.md` and `docs/INTEGRATION-PROGRESS.md`. `docs/track/worklog.yaml`
-was **not** touched (outside this lane's scope); it is stale at `8098b12` and its W12 evidence still says no J1–J4
-journey exists, which `1569abc` contradicts.
+Lane note: this refresh is docs-only — `docs/track/queue.md` and `docs/track/crosswalk.yaml`. `docs/track/worklog.yaml`
+was refreshed at `20574af` (basis `007e357`) and is outside this lane's scope.
 
 ## RUNNING
-- C-10 defect fixes. One free review of `src/studio/commands.mjs` reported **10 defects**; the fix lane is running and
-  nothing has landed (`git log -- src/studio/commands.mjs` = `2c62a6d` only, tree clean). The module stays unmounted
-  (`integration-hub.mjs` imports only `registerWorldRoutes`). The review output is analysis, not proof, and no defect
-  list exists as a committed artefact.
+- search-side `partPath`. A free lane is emitting `partPath` on message hits (needs block-level match info) so the Find
+  part focus committed in `007e357` stops being dormant. Nothing reported landed yet.
+- `FORMAL-TEST-PREP` doc. Preparation for the owner-scheduled formal pass (READY 5); being written now.
 
 ## READY — owner decision (blocked on owner, not on code)
 1. Mount C-10 and/or C-11 on the hub. Both are committed, tested and deliberately unmounted; wiring is a value
@@ -26,23 +24,27 @@ journey exists, which `1569abc` contradicts.
    commit in this increment; no owner instruction exists either way.
 
 ## READY — dispatchable
-4. Tracker-lane refresh of `docs/track/worklog.yaml` (last written `8098b12`): W12 evidence, W13/W14 and the C-10
-   review state all predate `ed1d6b7`, `1ec3be0`, `1569abc`, `ad01f06`.
-5. Commit this docs refresh via `git-manager`, explicit paths, no push unless authorized (needs: parent decision on
+4. Commit this docs refresh via `git-manager`, explicit paths, no push unless authorized (needs: parent decision on
    push, see READY 3).
-6. Formal testing pass per owner schedule (next week): full repo suite plus W12 acceptance, reported at its real tier.
-   First-hand focused evidence at `ad01f06`, this lane: **62 pass / 0 fail / 0 skipped** across 10 world suites;
+5. Formal testing pass per owner schedule (next week): full repo suite plus W12 acceptance, reported at its real tier.
+   First-hand focused evidence at `ad01f06`, earlier lane: **62 pass / 0 fail / 0 skipped** across 10 world suites;
    **27 pass / 2 skipped / 0 fail** across `commands` + `agentic-files` (29 tests, skips platform-gated);
    architecture inventory **0 uncovered, 0 missing ownership**. Parent-reported, different suite sets: 88 across 14
-   world/UI suites; 63 across UI+agentic; the earlier 101/2/0 run at `803d165` is superseded in count, same tier.
+   world/UI suites; 63 across UI+agentic; the earlier 101/2/0 run at `803d165` is superseded in count, same tier. This
+   lane re-ran `commands` (**12 pass / 0 fail**) and `agentic-files` (**21 pass / 2 skip / 0 fail**) at `20574af`.
 
 ## BACKLOG (from atlas/worklog gaps)
 - W12 formal acceptance. The J1–J4 journeys now exist (`1569abc`, 7 tests, fixture-level HTTP) but do not close W12:
   the "second instance" is a second `startStudio()` in the same process, there is no conflicting-import case, no
   secret-exclusion scan, and no import→export round trip through the UI.
-- Exact part deep link: `partPath` travels in a Find hit but `openHit()` (`src/studio/ui/world-view.mjs:1421`) focuses
-  the message node by index and never reads `partPath`; no part-level target is opened.
-- search side: emit partPath for message hits (needs block-level match info) so Find part focus is live
+- Exact part deep link: the UI consumer is **committed** (`007e357`) and **dormant** until search emits `partPath`. The
+  consumer side is real — `planFrames()` marks each top-level saved block with `data-part-path`, `validPartPath()` applies
+  the selection path grammar, `partFrameOf()` resolves the frame inside the opened message row, and `openHit()`
+  (`src/studio/ui/world-view.mjs:1469`) focuses it or reports "Opened the message; the matching part could not be
+  located." Committed `src/studio/world-search.mjs` still builds message hits without `partPath`, so nothing in the
+  running app opens a part-level target yet.
+- search side: emit partPath for message hits (needs block-level match info) so Find part focus is live — a free lane is
+  on this now (RUNNING).
 - Secret-exclusion proof: scan an actual exported bundle for cookies/tokens/profile data. Exclusion is by construction
   only today. Needs a real (or realistic) bundle, not a fixture assertion.
 - VD-0046 atomic knowledge-unit taxonomy (notes are title + free-text body; no addressable provenance-qualified unit).
@@ -55,6 +57,12 @@ journey exists, which `1569abc` contradicts.
 - Live provider/browser work and Windows runtime cutover: deferred until local stability.
 
 ## DONE (since last update at `803d165`)
+- `2fb9476` C-10 defect fixes landed: preview never claims executability (`canProceed`/`wouldRequireConfirmation`), world
+  id grammar, symbol resolution as data not code, multi-line text, own-property argument gate, deep-frozen catalog. The
+  earlier 10-defect list was analysis; this is code plus tests. `test/unit/commands.test.mjs` is now **12 tests** (this
+  lane: 12 pass / 0 fail at `20574af`). `src/studio/commands.mjs` is still **not** imported by `integration-hub.mjs`
+  (only `registerWorldRoutes`), so no command HTTP surface is live.
+- `007e357` Find part-focus consumer, committed and intentionally dormant until search emits `partPath` (see BACKLOG).
 - `ed1d6b7` atlas/crosswalk correction: C-10/C-11 rows now cite the committed modules; VD-0021 `adapted_in_harness`
   with evidence through `src/studio/ui/world-view.mjs`. Verified by reading `docs/track/atlas.yaml:73-79` and the
   C-10 crosswalk rows.
