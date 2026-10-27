@@ -96,6 +96,13 @@ test('unknown post-send outcome leaves original run ID and never resends on same
   assert.equal(f.calls.submits, 1);
   assert.ok(['uncertain', 'in_flight'].includes(preserved.lastStep.status));
 });
+test('a generic harness task that spoofs a recipe prefix is not accepted as a recipe run', (t) => {
+  const f = fixture(t);
+  const fake = f.runs.create({ task: 'recipe:unregistered.run:operation:fake' });
+  assert.throws(() => f.service.status(fake.id), (e) => e.code === 'RECIPE_RUN_NOT_FOUND');
+  assert.throws(() => f.service.reconcile(fake.id, 'anything'), (e) => e.code === 'RECIPE_RUN_NOT_FOUND');
+});
+
 test('mutation cannot execute without both authorization and stable operation key', async (t) => {
   const f = fixture(t);
   await assert.rejects(f.service.run('conversation.continue', turn, { execute: true }), (e) => e.code === 'RECIPE_AUTHORIZATION_REQUIRED');
