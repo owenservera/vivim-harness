@@ -2,6 +2,7 @@
 // that a refusal writes nothing: no new conversation file, no journal, no prefix.
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import * as fs from 'node:fs';
 import { workspace, rawPage, OTHER_THREAD, PROMPT, REPLY, THREAD, sha } from './conversation-prefix-fixture.mjs';
 import { acquireDriveLease } from '../../src/capture/drive-lease.mjs';
 
@@ -91,24 +92,7 @@ const cases = [
     const lease = acquireDriveLease({ root: f.leaseRoot, port: 19271, holder: { kind: 'test', id: 'other' } });
     try { return await f.bind(); } finally { lease.release(); }
   }],
-  ['a second bind with a different prompt digest', 'PREFIX_IDEMPOTENCY_CONFLICT', (t) => workspace(t), async (f) => {
-    await f.bind();
-    await assert.rejects(f.bind({ promptAttestation: `${PROMPT} ` }), (e) => e.code === 'PREFIX_IDEMPOTENCY_CONFLICT');
-    return f.runtime.bindObservedPrefix; // never reached
-  }],
-  ['a pending record whose stored preimage no longer matches', 'PREFIX_PENDING_UNRESOLVED', (t) => workspace(t), async (f) => {
-    const pending = await f.bind();
-    const file = `${f.conversations}\\${pending.id}.conversation.json`;
-    const fsMod = await import('node:fs');
-    const disk = JSON.parse(fsMod.readFileSync(file, 'utf8'));
-    disk.prefix.preimageDigest = 'f'.repeat(64);
-    fsMod.writeFileSync(file, JSON.stringify(disk));
-    return f.bind();
-  }],
-  ['re-adopting the same source attempt into a second thread', 'PREFIX_SOURCE_ALREADY_ADOPTED', (t) => workspace(t, { targets: twoTargets }), async (f) => {
-    await f.bind();
-    return f.bind({ targetId: 'tab-2', expectedThread: `chatgpt-c:${OTHER_THREAD}` });
-  }],
+
 ];
 
 for (const [name, code, make, run] of cases) {
@@ -120,6 +104,43 @@ for (const [name, code, make, run] of cases) {
     assert.equal(f.state.sends, 0);
   });
 }
+
+// These three refusals intentionally follow a SUCCESSFUL first-stage bind. Snapshot after
+// staging, not before: a rejected second action must leave existing stored bytes unchanged.
+const storedFiles = (f) => Object.fromEntries(f.files().map((name) =>
+  [name, fs.readFileSync(f.conversations + '/' + name, 'utf8')]));
+
+test('refuses PREFIX_IDEMPOTENCY_CONFLICT without mutating the staged prefix', async (t) => {
+  const f = workspace(t);
+  await f.bind();
+  const before = storedFiles(f);
+  await assert.rejects(f.bind({ promptAttestation: PROMPT + ' ' }), (e) => e.code === 'PREFIX_IDEMPOTENCY_CONFLICT');
+  assert.deepEqual(storedFiles(f), before);
+  assert.equal(f.state.sends, 0);
+});
+
+test('refuses PREFIX_PENDING_UNRESOLVED without mutating an already-corrupt staged record', async (t) => {
+  const f = workspace(t);
+  const pending = await f.bind();
+  const file = f.conversations + '/' + pending.id + '.conversation.json';
+  const disk = JSON.parse(fs.readFileSync(file, 'utf8'));
+  disk.prefix.preimageDigest = 'f'.repeat(64);
+  fs.writeFileSync(file, JSON.stringify(disk));
+  const before = storedFiles(f);
+  await assert.rejects(f.bind(), (e) => e.code === 'PREFIX_PENDING_UNRESOLVED');
+  assert.deepEqual(storedFiles(f), before);
+  assert.equal(f.state.sends, 0);
+});
+
+test('refuses PREFIX_SOURCE_ALREADY_ADOPTED without mutating the first valid adoption', async (t) => {
+  const f = workspace(t, { targets: twoTargets });
+  await f.bind();
+  const before = storedFiles(f);
+  await assert.rejects(f.bind({ targetId: 'tab-2', expectedThread: 'chatgpt-c:' + OTHER_THREAD }),
+    (e) => e.code === 'PREFIX_SOURCE_ALREADY_ADOPTED');
+  assert.deepEqual(storedFiles(f), before);
+  assert.equal(f.state.sends, 0);
+});
 
 test('a pending prefix is never sendable; activation drift invalidates it and refuses every later submit', async (t) => {
   const f = workspace(t);

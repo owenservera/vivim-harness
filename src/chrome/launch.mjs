@@ -5,6 +5,7 @@ import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { isReachable, browserVersion, waitForReachable, discoveryProbe } from '../cdp/discovery.mjs';
+import { browserMarkerPath, recordBrowserOwner, verifyBrowserOwner } from './browser-ownership.mjs';
 
 // One implementation for native Windows, Linux, and macOS: no which/where shell.
 function searchDirs(env, platform) {
@@ -49,13 +50,15 @@ export function findChrome(env = process.env, platform = process.platform) {
 }
 
 export async function launchChrome({ profileDir, port = 9222, url = 'about:blank', headless = false, extraArgs = [] } = {}) {
+  // Even when CDP is already reachable, it may belong to an unrelated browser.
+  // No tab operations or sends are permitted before proving continuity with this profile.
+  browserMarkerPath(profileDir);
   if (await isReachable({ port })) {
     const v = await browserVersion({ port });
-    return { alreadyRunning: true, port, browser: v.Browser, pid: null };
+    const ownership = await verifyBrowserOwner({ profileDir, port, version: v });
+    return { alreadyRunning: true, port, browser: v.Browser, pid: null, ...ownership };
   }
-  // Chrome 136+ refuses remote debugging on the default profile; a launch without a
-  // dedicated profile directory would silently target the operator's real profile.
-  if (!profileDir || typeof profileDir !== 'string') throw new Error('A dedicated Chrome profileDir is required to launch the capture browser.');
+  // Chrome 136+ refuses remote debugging on the default profile.
   mkdirSync(profileDir, { recursive: true });
   const exe = findChrome();
   // Local-integrator escape hatch (owner machines and synthetic-https test fixtures): extra,
@@ -83,7 +86,8 @@ export async function launchChrome({ profileDir, port = 9222, url = 'about:blank
     if (spawnError) throw new Error(`Cannot launch capture browser at ${exe}: ${spawnError.message}`, { cause: spawnError });
     if (await isReachable({ port })) {
       const v = await browserVersion({ port });
-      return { alreadyRunning: false, port, browser: v.Browser, pid: child.pid, exe, profileDir };
+      const ownership = recordBrowserOwner({ profileDir, port, version: v, pid: child.pid });
+      return { alreadyRunning: false, port, browser: v.Browser, pid: child.pid, exe, profileDir, ...ownership };
     }
     await new Promise((r) => setTimeout(r, 250));
   }
@@ -108,7 +112,13 @@ export async function ensureChrome({ profileDir, port = 9222, url = 'about:blank
 // Is a browser already serving DevTools on this port, and is it the profile we expect?
 export async function chromeStatus({ port = 9222, profileDir = null } = {}) {
   const probe = await discoveryProbe({ port });
+  let ownership = { verified: false, reason: profileDir ? 'BROWSER_PROFILE_UNVERIFIED' : 'BROWSER_PROFILE_REQUIRED' };
+  if (probe.reachable && profileDir) {
+    try { ownership = await verifyBrowserOwner({ profileDir, port }); }
+    catch (e) { ownership = { verified: false, reason: e.code ?? 'BROWSER_PROFILE_UNVERIFIED' }; }
+  }
   return {
+    ownership,
     port,
     reachable: probe.reachable,
     browser: probe.browser ?? null,

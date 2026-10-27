@@ -3,6 +3,7 @@ import path from 'node:path';
 import { EXIT } from '../../src/config.mjs';
 import { ADAPTER_IDS, getAdapter, listAdapters } from '../../src/profiles/sites/index.mjs';
 import { driveSite } from '../../src/capture/actions.mjs';
+import { launchChrome } from '../../src/chrome/launch.mjs';
 import { expectedAnswer, replyMatchesExpectation } from '../../src/capture/campaign.mjs';
 import { define } from '../lib/registry.mjs';
 import { notFound, envError, usageError, oneLine, truncate, fmtMs } from '../lib/ui.mjs';
@@ -79,6 +80,8 @@ define({
       return;
     }
 
+    // One command for a live action, but never attach to an arbitrary Chrome CDP listener.
+    await launchChrome({ profileDir: ctx.paths.chromeProfile, port: ctx.port });
     const dataDir = ctx.paths.home ?? path.dirname(ctx.paths.sessions);
     const result = await driveSite({
       adapter, prompt, port: ctx.port, dataDir, record, timeoutMs, freshTab: !flags['reuse-tab'],

@@ -4,6 +4,7 @@ import { define } from '../lib/registry.mjs';
 import { usageError } from '../lib/ui.mjs';
 import { EXIT } from '../../src/config.mjs';
 import { defaultConversationRuntime, validateConversationBody } from '../../src/studio/conversation-api.mjs';
+import { launchChrome } from '../../src/chrome/launch.mjs';
 
 export async function runChat(ctx, { factory = defaultConversationRuntime, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), now = Date.now } = {}) {
   const { flags, args, out } = ctx;
@@ -20,6 +21,8 @@ export async function runChat(ctx, { factory = defaultConversationRuntime, sleep
     emit({ dryRun: true, site: connect.site, targetId: connect.targetId ?? null, freshTab: connect.freshTab ?? false, promptChars: prompt.length, timeoutSeconds: timeout, action: 'connect-submit-poll-finish', browserAction: false });
     return;
   }
+  // A single user command prepares (or verifies) the dedicated browser before any live send.
+  await launchChrome({ profileDir: ctx.paths.chromeProfile, port: ctx.port });
   const runtime = await factory({ paths: ctx.paths, profileStore: ctx.profiles(), familyStore: ctx.families(), port: ctx.port });
   let conversation, finalized = false;
   try {
