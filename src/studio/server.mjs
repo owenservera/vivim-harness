@@ -213,6 +213,18 @@ const hub = createIntegrationHub({ paths, profileStore, learner, recorder, conve
     const p = url.pathname.slice(5).split('/').map(decodeURIComponent);
     const q = Object.fromEntries(url.searchParams);
     const [a, b, c, d] = p;
+    // State-changing legacy endpoints require POST. In the default 'local' access mode there is no
+    // token, the Host check passes for any page in the user's own browser, and a plain cross-site
+    // GET (an <img src>, a link prefetch) carries no Origin header, so a GET here would let any web
+    // page start a recording, launch Chrome, reload the recorded tab or rewrite a profile. A
+    // cross-site POST always carries Origin and is refused by the Origin check above. The Studio UI
+    // already sends every one of these as POST.
+    const mutating = a === 'record' || a === 'chrome'
+      || (a === 'live' && ['pause', 'resume', 'reload', 'highlight', 'snapshot'].includes(b))
+      || (a === 'profiles' && (b === '_import' || ['apply', 'rollback', 'save', 'clone', 'model'].includes(c)))
+      || (a === 'families' && b === '_register')
+      || (a === 'sessions' && ['delete', 'derive'].includes(c));
+    if (mutating && req.method !== 'POST') { res.setHeader('allow', 'POST'); return send(res, 405, { error: 'POST required', code: 'METHOD_NOT_ALLOWED' }); }
     const sessionOf = (id) => {
       if (id !== undefined) storageName(id, 'session');
       try { return Session.open(paths.sessions, id); }

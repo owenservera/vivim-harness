@@ -110,12 +110,14 @@ export function createConversationEvents({ runtime, intervalMs = 200, feedOption
     },
     async subscribe(req, res, id, q = {}) {
       if (feed.closed || textFeed.closed) throw problem(503, 'Conversation event feed is closing');
+      // Validate before watching: a refused request must not leave a 200 ms diff pump re-reading
+      // this conversation for the rest of the process.
+      if (q.include !== undefined && q.include !== 'text') throw problem(400, 'Unknown include value; only "text" is supported');
       try { await runtime.get(id); } // Existence check: never stream an unknown conversation.
       catch (e) { throw e?.status ? e : problem(404, 'Conversation not found', 'CONVERSATION_NOT_FOUND'); }
       this.watch(id);
       // The session filter is forced to this conversation; clients cannot eavesdrop on others.
       // Default remains the metadata-only feed. `include=text` opts into bounded reply text.
-      if (q.include !== undefined && q.include !== 'text') throw problem(400, 'Unknown include value; only "text" is supported');
       const withText = q.include === 'text';
       return (withText ? textFeed : feed).subscribe(req, res, { ...q, session: id }, {
         status: { conversationId: id, derived: 'conversation snapshot diff; reply text only on the include=text feed, bounded and snapshot-based', durable: false },
