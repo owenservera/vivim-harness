@@ -21,9 +21,11 @@ These two files are specialized subagent profiles, **not** automatically running
 
 ## Agent recipe entrypoint (implemented on main)
 
-Before guessing CLI commands or inventing multi-step automation, read
+**For ordinary implementation/debugging only:** before changing recipe code, read
 [`docs/architecture/AGENT-RECIPE-RUNTIME-V1.md`](docs/architecture/AGENT-RECIPE-RUNTIME-V1.md)
 and the source registry `src/recipes/catalog.mjs`.
+
+**EXCEPTION — real-user ChatGPT probe agents:** Do NOT read either file or any source code to solve a scenario. The measured experience is limited to the native CLI and the two probe helper files below. Source inspection is allowed only after the probe is recorded, in the separate developer/debugger lane.
 
 - Discover: `node bin/studio.mjs agent capabilities --json`, `studio recipe list --json`,
   `studio recipe choose --intent "your requested outcome" --json`, then `studio recipe show <family.name> --json`.
