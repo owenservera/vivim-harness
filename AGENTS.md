@@ -5,7 +5,6 @@ This repository is the runnable VIVIM product. **Do the assigned work now**; no 
 OpenCode v2 automatically loads this file. Project `opencode.json` automatically loads **`context.md`** as the single shared native CLI command and runtime helper. Do not read it again unless the active instructions are missing or the specific task requires more detail.
 
 ## Dispatch
-- **Full 100-objective live speed campaign:** use `@live-100-coordinator` (`.opencode/agents/live-100-coordinator.md`) for durable measured rounds of genuine ChatGPT user actions. Coordinate `@chatgpt-probe` (CLI-only) and `@local-opencode` (fixes); cluster shared failures, retest affected IDs, then rerun all 100. Keep one real Studio/browser owner. Record local evidence and timing; never claim live passes without observations.
 - **100-objective probe:** assign one distinct objective from `docs/agents/CHATGPT-100-OBJECTIVES.md` to `@chatgpt-probe`. Probe sees the shared CLI helper and its *assigned* objective, not internal source or scripted solutions. Parallel read-only probes are fine; serialize browser mutations through the one existing Studio owner.
 - **Bug / implementation:** use the smallest relevant code surface; implement and verify, then commit/push on `main` where possible. `@local-opencode` handles focused local debugging. Developer may inspect source, probe may not.
 - **OpenCode orchestration or model configuration:** read `docs/agents/OPENCODE-V2.md` once per coordinator task. Do not make every probe reread it.
