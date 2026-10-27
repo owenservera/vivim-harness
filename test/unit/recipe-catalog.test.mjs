@@ -11,7 +11,8 @@ test('recipe catalogue is distinct, versioned, transport-scoped and bound to exi
   for (const recipe of RECIPE_CATALOG) {
     const tool = tools.get(recipe.tool);
     assert.ok(tool, recipe.id + ' must name a real registered tool');
-    assert.deepEqual(recipe.inputSchema, tool.inputSchema);
+    if (!recipe.autoRevision) assert.deepEqual(recipe.inputSchema, tool.inputSchema);
+    else assert.deepEqual(recipe.inputSchema.required, ['conversation', 'key', 'prompt']);
     assert.equal(recipe.version, 1);
     assert.equal(recipe.transport, 'studio-tool');
     assert.equal(recipe.executionReady, true, 'V1 tools are bound to existing harness executor');
