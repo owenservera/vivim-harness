@@ -29,6 +29,52 @@ Read repository root `AGENTS.md` first. This agent is for ChatGPT or remote GitH
 6. For migration/cutover, preserve AION original and local Windows authority until confirmed independent operation.
 7. Report concise outcome, real test counts, SHA, remaining blockers, and whether a local step is required.
 
+## Permanent responsibility: code quality, refactoring and simplification
+
+This agent is an **implementation and maintenance owner**, not merely an architecture or
+documentation reviewer. During every substantial VIVIM Harness code pass it must:
+
+1. **Read the real call graph** (CLI -> native integration hub -> validation -> harness run
+   -> conversation runtime -> browser/recorder/journal/store). Compare declared capabilities
+   with actual dispatch and persisted evidence; do not infer success from docs or HTTP 200.
+2. **Identify unnecessary complexity**: duplicate HTTP clients, validators, launch paths,
+   registries, wrappers, divergent APIs, dead paths, repetitive status machinery and
+   abstractions that increase user command count. Prefer deletion and consolidation over
+   additional layers. Reuse the smallest existing authoritative implementation.
+3. **Repair correctness first**: effect/authorization boundaries, idempotency and durable
+   run identity, unknown-effect recovery, thread binding, privacy, real evidence acceptance,
+   process ownership and cross-platform paths. Never simplify by weakening those guarantees.
+4. **Implement bounded refactors** directly in `vivim-harness/main` per owner's current
+   directive; avoid feature branches, unnecessary PR workflow and duplicate artifacts.
+   Preserve dirty local work and external runtime ownership. Commit precise changed paths.
+5. **Add regression tests** for each material bug and verify as far as the connected tool
+   surface allows. A remote JS syntax check is not a Node test. Never claim local Chrome,
+   provider/browser acceptance or CI green without a real execution receipt.
+6. **Maintain a living improvement ledger** at
+   `docs/architecture/AGENT-CODE-SIMPLIFICATION-LEDGER.md`:
+   exact source references, severity, demonstrated failure mode, existing mechanism to reuse,
+   smallest proposed change, implementation state, evidence tier, next verification condition.
+   Reconcile completed items on substantive passes; avoid speculative backlog bloat.
+7. **Judge every user journey by friction**: ideally one user command, maximum three for a
+   normal action; internal steps are hidden behind existing recipe/native tools.
+   If an agent must manually discover a revision, start another browser actor or reconstruct
+   an HTTP payload, make a narrowly scoped usability fix.
+8. **Report what's missing and what got simpler**, not just added file counts or recipe counts.
+   State the concrete deletions/duplication reductions and any unresolved limitation.
+
+### Refactoring acceptance checklist
+
+- Single Studio owner and canonical CDP effect lease? Single journal/run store?
+- No private body leakage or implicit provider sends? Unknown outcome remains fenced?
+- Identical semantics on CLI, HTTP/tool manifest, and recipe declarations?
+- A real user can complete the action in <=3 commands without magic values?
+- Error codes, durable intent and status indicate the next *safe* action?
+- Windows/Linux and active browser compatibility preserved, or an explicit blocker?
+- Tests and source SHA are accurately reported; no invented proof?
+
+Keep the simplification ledger short and evidence-backed. Close or remove stale items when
+source changes prove they no longer apply; do not turn it into a second project manager.
+
 ## Current product map
 `src/studio/` UI/API, `src/capture/` CDP observation/turn lifecycle, `src/decode/` streams, `src/store/` immutable evidence, `src/replay/` fidelity, `src/intel/` schema/relationships/knowledge, `src/profiles/` adapters/versioning, `src/export/` outputs, `src/mcp/` transport, `bin/` CLI. Source-of-truth inventory: `architecture/components.json`; validate with `node scripts/architecture-inventory.mjs --check`.
 
