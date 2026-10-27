@@ -1128,7 +1128,14 @@ export async function driveSite({ adapter, prompt, port = 9222, dataDir, record 
     // new chat, any tab on the site. A thread with no open tab is opened in a new one.
     let target = null;
     if (!freshTab) {
-      target = targets.find((t) => (expectedThread ? threadOf(t.url)?.ref === expectedThread.ref : hostMatches(adapter, t.url))) ?? null;
+      // Reuse only a blank ChatGPT home tab for a first turn. An arbitrary site tab may
+      // already contain a different conversation; sending there would change the wrong thread.
+      const eligibleNewChatTab = (t) => {
+        if (!hostMatches(adapter, t.url)) return false;
+        if (adapter?.id !== 'chatgpt') return true;
+        try { return new URL(t.url).pathname === '/'; } catch { return false; }
+      };
+      target = targets.find((t) => (expectedThread ? threadOf(t.url)?.ref === expectedThread.ref : eligibleNewChatTab(t))) ?? null;
       if (target) {
         // Synthetic key input only reaches a VISIBLE tab, so a reused tab is brought to front first.
         try { await page_bringToFront(port, target.id); } catch { /* best effort */ }
@@ -1204,13 +1211,18 @@ export async function driveSite({ adapter, prompt, port = 9222, dataDir, record 
         return;
       }
       result.threadRef = expectedThread.ref;
-    } else if (freshTab) {
+    } else if (adapter?.id === 'chatgpt') {
       const home = await where();
-      const path = home.ok ? home.value?.path : null;
-      const turns = home.ok ? Number(home.value?.turns ?? 0) : 0;
-      if (typeof path === 'string' && path && (path !== '/' || turns > 0)) {
+      if (!home.ok || typeof home.value?.path !== 'string' || !Number.isFinite(Number(home.value?.turns))) {
+        result.reason = 'page-unreadable';
+        errors.push('could not verify a blank ChatGPT home page; nothing was typed');
+        return;
+      }
+      const path = home.value.path;
+      const turns = Number(home.value.turns);
+      if (path !== '/' || turns !== 0) {
         result.reason = 'not-a-new-chat';
-        errors.push(`fresh tab is not a blank new chat (path ${path}, ${turns} rendered turn(s))`);
+        errors.push(`tab is not a blank new chat (path ${path}, ${turns} rendered turn(s)); nothing was typed`);
         return;
       }
     }
@@ -1307,6 +1319,12 @@ export async function driveSite({ adapter, prompt, port = 9222, dataDir, record 
     if (expectedThread && after?.ref !== expectedThread.ref) {
       result.reason = 'thread-changed';
       errors.push(`tab left ${expectedThread.ref} during the turn (now ${after?.ref ?? 'no thread'})`);
+      return;
+    }
+    if (!expectedThread && adapter?.id === 'chatgpt' && !after) {
+      result.reason = 'thread-not-established';
+      result.uncertain = true; // Preserve the sent tab and evidence for manual reconciliation.
+      errors.push('send occurred but no durable /c/ thread identity was observed; tab retained for reconciliation');
       return;
     }
     if (wait.failed) { errors.push(wait.reason); result.reason = 'site-failure'; return; }

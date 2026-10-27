@@ -194,8 +194,8 @@ function gateG3(conv, reply, scan) {
   if (!reply.best) return unknown('no reply stream to check for a terminal record');
   const s = scan.streams.get(reply.best.sid) ?? { done: false, fail: false };
   const evidence = { sid: reply.best.sid, done: s.done, fail: s.fail };
+  if (s.fail) return gate('failed', 'reply stream has a fail record (even if done was also observed)', evidence);
   if (s.done) return gate('passed', 'drive-time stability observed and reply stream has a done record', evidence);
-  if (s.fail) return gate('failed', 'reply stream ended with a fail record', evidence);
   return unknown('reply stream has no done or fail record', evidence);
 }
 
@@ -232,7 +232,7 @@ function gateG6(session) {
   if (ks.status !== 'complete') return unknown(`derive status is ${ks.status ?? 'missing'}; not finished`, { status: ks.status ?? null });
   const datasetPresent = session.dataset('entities').exists();
   const evidence = { status: ks.status, entityCount: ks.entityCount ?? null, entitiesDatasetPresent: datasetPresent };
-  if (typeof ks.entityCount !== 'number') return unknown('KNOWLEDGE_STATUS has no entityCount', evidence);
+  if (!Number.isSafeInteger(ks.entityCount) || ks.entityCount < 0) return unknown('KNOWLEDGE_STATUS has no valid nonnegative entityCount', evidence);
   if (ks.entityCount > 0) {
     return datasetPresent
       ? gate('passed', 'derive complete; entity dataset present', evidence)

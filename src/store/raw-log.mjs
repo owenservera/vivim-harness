@@ -142,7 +142,8 @@ export class RawLog extends EventEmitter {
     if (this.closed) return null;
     const seq = ++this.seq;
     const t = Date.now();
-    const line = JSON.stringify({ seq, t, ...rec }) + '\n';
+    // Caller-supplied data cannot override writer-owned sequence or timestamp.
+    const line = JSON.stringify({ ...rec, seq, t }) + '\n';
     const bytes = Buffer.byteLength(line);
     // Hysteresis: once dropping starts, keep dropping until the queue drains to half and the gap
     // record is written, so every gap is one contiguous, fully described seq range.

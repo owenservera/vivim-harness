@@ -9,6 +9,7 @@ import { createHash } from 'node:crypto';
 import {
   existsSync,
   mkdirSync,
+  lstatSync,
   readFileSync,
   readdirSync,
   writeFileSync,
@@ -97,6 +98,21 @@ function readRel(root, rel) {
   return readFileSync(join(root, ...rel.split('/')));
 }
 
+// A manifest or imported snapshot is untrusted. Never follow symlinks in any existing
+// component of an advertised relative file path, including a directory symlink.
+function refuseSymlinkPath(root, rel) {
+  let current = root;
+  for (const segment of rel.split('/')) {
+    current = join(current, segment);
+    try {
+      if (lstatSync(current).isSymbolicLink()) throw new Error(`unsafe symlink in snapshot path: ${rel}`);
+    } catch (error) {
+      if (error.code === 'ENOENT') break;
+      throw error;
+    }
+  }
+}
+
 /**
  * Hash every file under `dir` and write `dir/MANIFEST.json`.
  * @param {string} dir
@@ -143,9 +159,13 @@ export function verifyManifest(dir) {
   let checked = 0;
 
   for (const entry of manifest.files) {
-    const path = toPosix(entry && entry.path);
-    if (!path) continue;
+    if (!entry || typeof entry.path !== 'string') throw new Error('verifyManifest: invalid file path');
+    const path = assertSafeRelPath(entry.path);
+    if (path === MANIFEST_NAME || listed.has(path)) throw new Error(`verifyManifest: duplicate or reserved path: ${path}`);
+    if (!Number.isSafeInteger(entry.bytes) || entry.bytes < 0 || !/^[a-f0-9]{64}$/.test(entry.sha256 ?? ''))
+      throw new Error(`verifyManifest: invalid entry checksum or length: ${path}`);
     listed.add(path);
+    refuseSymlinkPath(root, path);
     const abs = join(root, ...path.split('/'));
     if (!existsSync(abs)) {
       missing.push(path);
@@ -217,9 +237,13 @@ export function importSnapshot(json, destDir, { overwrite = false } = {}) {
   }
   const dest = resolve(destDir);
   const plan = [];
+  const seen = new Set();
 
   for (const entry of snapshot.files) {
     const rel = assertSafeRelPath(entry && entry.path);
+    if (rel === MANIFEST_NAME || seen.has(rel)) throw new Error(`importSnapshot: duplicate or reserved path: ${rel}`);
+    seen.add(rel);
+    refuseSymlinkPath(dest, rel);
     if (typeof entry.sha256 !== 'string' || entry.sha256.length === 0) {
       throw new Error(`importSnapshot: missing sha256 for ${rel}`);
     }
@@ -232,12 +256,13 @@ export function importSnapshot(json, destDir, { overwrite = false } = {}) {
     if (relFromDest.startsWith('..') || isAbsolute(relFromDest)) {
       throw new Error(`importSnapshot: path escapes destination: ${rel}`);
     }
-    plan.push({ abs, buf });
+    plan.push({ abs, buf, rel });
   }
 
   let written = 0;
   let skipped = 0;
   for (const item of plan) {
+    refuseSymlinkPath(dest, item.rel);
     if (existsSync(item.abs) && !overwrite) {
       skipped += 1;
       continue;

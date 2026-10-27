@@ -25,7 +25,8 @@ export const sanitizedSource = (source) => {
 // Diff the given providerUrl against its sanitized form and name what was changed. Returns
 // null when the value already projects as itself (clean, absent or non-string): no note needed.
 export const providerUrlRemovalReason = (value) => {
-  if (typeof value !== 'string') return null;
+  if (value === undefined || value === null) return null;
+  if (typeof value !== 'string') return 'provider-url-unparsable-removed';
   const safe = sanitizeProviderUrl(value);
   if (safe !== null) return safe === value.trim() ? null : 'provider-url-query-removed';
   return safe === null ? 'provider-url-unparsable-removed' : null;

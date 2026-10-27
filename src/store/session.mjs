@@ -88,7 +88,7 @@ export class Dataset {
     const text = arr.map((i) => JSON.stringify(i)).join('\n') + '\n';
     this.count += arr.length;
     if (!this.buffered) { appendFileSync(this.file, text); return; }
-    this._buf.push(text); this._bufBytes += text.length;
+    this._buf.push(text); this._bufBytes += Buffer.byteLength(text);
     if (this._bufBytes >= this.flushBytes) { this.flush(); return; }
     pendingDatasets.add(this);
     if (!exitHookInstalled) { exitHookInstalled = true; process.once('exit', () => { try { flushPendingDatasets(); } catch { /* best effort at exit */ } }); }
@@ -225,10 +225,15 @@ export class Session {
     this.flushDatasets();
     const rawDir = this.rawDir;
     const manifestPath = path.join(rawDir, 'manifest.json');
-    const manifest = existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, 'utf8')) : { segments: [] };
+    const hasManifest = existsSync(manifestPath);
+    const manifest = hasManifest ? JSON.parse(readFileSync(manifestPath, 'utf8')) : { segments: [] };
     const bySeg = new Map((manifest.segments ?? []).map((s) => [s.file, s]));
     const files = existsSync(rawDir) ? readdirSync(rawDir).filter((f) => /^\d{6}\.jsonl$/.test(f)).sort() : [];
-    const report = { segments: [], ok: true, seqGaps: [], gapRecords: 0, droppedRecords: 0, records: 0, mergedRecords: 0, compacted: !!manifest.compacted };
+    const report = { segments: [], ok: hasManifest && Array.isArray(manifest.segments), seqGaps: [], gapRecords: 0, droppedRecords: 0, records: 0, mergedRecords: 0, compacted: !!manifest.compacted };
+    const present = new Set(files);
+    for (const file of bySeg.keys()) {
+      if (!present.has(file)) { report.ok = false; report.segments.push({ file, inManifest: true, missing: true }); }
+    }
     let lastSeq = 0;
     for (const f of files) {
       const p = path.join(rawDir, f);
@@ -236,7 +241,7 @@ export class Session {
       const sha = createHash('sha256').update(buf).digest('hex');
       const m = bySeg.get(f);
       const entry = { file: f, bytes: buf.length, inManifest: !!m, shaMatches: m ? m.sha256 === sha : null, torn: buf.length > 0 && buf[buf.length - 1] !== 0x0a };
-      if (m && !entry.shaMatches) report.ok = false;
+      if (!m || !entry.shaMatches || (m.bytes !== undefined && m.bytes !== buf.length)) report.ok = false;
       if (entry.torn) report.ok = false;
       report.segments.push(entry);
     }
@@ -244,7 +249,12 @@ export class Session {
     for await (const r of this.records()) {
       if (r.k === 'corrupt') { report.ok = false; continue; }
       report.records++;
-      if (r.seq !== lastSeq + 1) report.seqGaps.push({ from: lastSeq + 1, to: r.seq - 1 });
+      if (!Number.isSafeInteger(r.seq) || r.seq <= lastSeq ||
+        (r.seqTo !== undefined && (!Number.isSafeInteger(r.seqTo) || r.seqTo < r.seq))) {
+        report.ok = false;
+        continue;
+      }
+      if (r.seq > lastSeq + 1) report.seqGaps.push({ from: lastSeq + 1, to: r.seq - 1 });
       lastSeq = r.seqTo ?? r.seq;
       if (r.seqTo !== undefined && r.seqTo > r.seq) { report.mergedRecords++; ranges.push([r.seq + 1, r.seqTo]); }
       if (r.k === 'gap') { report.gapRecords++; report.droppedRecords += r.droppedRecords ?? 0; ranges.push([r.droppedSeqFrom, r.droppedSeqTo]); }

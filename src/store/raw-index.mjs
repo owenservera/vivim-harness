@@ -30,9 +30,9 @@ export function readSegmentIndex(rawDir, segFile) {
     for (const line of readFileSync(p, 'utf8').split('\n')) {
       if (!line.trim()) continue;
       const e = JSON.parse(line);
-      if (typeof e.s === 'number' && typeof e.o === 'number') out.push(e);
+      if (Number.isSafeInteger(e.s) && e.s > 0 && Number.isSafeInteger(e.o) && e.o >= 0) out.push(e);
     }
-  } catch { return out.length ? out : null; }
+  } catch { return null; } // A torn index cannot justify skipping raw evidence.
   out.sort((a, b) => a.s - b.s);
   return out;
 }
@@ -122,7 +122,19 @@ export async function* iterateRaw(rawDir, {
     let start = 0;
     if (useIndex && (fromSeq || fromT !== null)) {
       const entries = readSegmentIndex(rawDir, file);
-      if (entries?.length) start = seekOffset(entries, { fromSeq, fromT });
+      if (entries?.length) {
+        const proposed = seekOffset(entries, { fromSeq, fromT });
+        if (proposed > 0) {
+          // Never trust a stale or incorrectly rebuilt index: verify its record boundary
+          // against the source segment before skipping earlier raw records.
+          const marker = entries.find((entry) => entry.o === proposed);
+          const probe = iterateSegment(rawDir, file, proposed);
+          try {
+            const first = await probe.next();
+            if (!first.done && first.value?.seq === marker?.s) start = proposed;
+          } finally { await probe.return?.(); }
+        }
+      }
     }
     for await (const r of iterateSegment(rawDir, file, start)) {
       if (r.k === 'corrupt') { if (includeCorrupt) yield r; continue; }
@@ -131,7 +143,8 @@ export async function* iterateRaw(rawDir, {
         if (r.seq > toSeq) return;
       }
       if (fromT !== null && fromT !== undefined && r.t < fromT) continue;
-      if (toT !== null && toT !== undefined && r.t > toT) return;
+      // Wall clocks can jump backwards; a later sequence may still fall in the time window.
+      if (toT !== null && toT !== undefined && r.t > toT) continue;
       if (kindSet && !kindSet.has(r.k)) continue;
       if (sidSet && !sidSet.has(r.sid)) continue;
       yield r;
@@ -148,6 +161,24 @@ export async function* iterateStreamRecords(rawDir, sid, opts = {}) {
   yield* iterateRaw(rawDir, base);
 }
 
+// Read exact byte offsets, including CRLF and a crash-truncated final line. readline
+// removes line terminators and cannot safely reconstruct byte offsets on Windows.
+async function* segmentLines(file) {
+  let offset = 0;
+  let rest = Buffer.alloc(0);
+  for await (const chunk of createReadStream(file)) {
+    const data = rest.length ? Buffer.concat([rest, chunk]) : chunk;
+    let cursor = 0, end;
+    while ((end = data.indexOf(0x0a, cursor)) !== -1) {
+      yield { line: data.subarray(cursor, end).toString('utf8'), off: offset + cursor, bytes: end - cursor + 1 };
+      cursor = end + 1;
+    }
+    offset += cursor;
+    rest = data.subarray(cursor);
+  }
+  if (rest.length) yield { line: rest.toString('utf8'), off: offset, bytes: rest.length };
+}
+
 // Rebuild the sparse seek index and the per-stream locator from the segments themselves.
 export async function buildRawIndex(rawDir, { strideBytes = 64 * 1024, write = true } = {}) {
   const manifest = readManifest(rawDir);
@@ -158,9 +189,8 @@ export async function buildRawIndex(rawDir, { strideBytes = 64 * 1024, write = t
     const p = path.join(rawDir, file);
     const entries = [];
     let off = 0, nextAt = 0, records = 0, firstSeq = null, lastSeq = null;
-    const rl = readline.createInterface({ input: createReadStream(p), crlfDelay: Infinity });
-    for await (const line of rl) {
-      const bytes = Buffer.byteLength(line) + 1;
+    for await (const { line, off: recordOffset, bytes } of segmentLines(p)) {
+      off = recordOffset;
       let r = null;
       try { r = JSON.parse(line); } catch { off += bytes; continue; }
       records++;

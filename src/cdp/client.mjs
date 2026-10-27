@@ -126,12 +126,13 @@ export class CdpConnection extends EventEmitter {
     }
     this.stats.events++;
     if (msg.method === 'Target.attachedToTarget') {
-      const { sessionId, targetInfo } = msg.params;
+      const { sessionId, targetInfo } = msg.params ?? {};
       if (!this.sessions.has(sessionId)) this.sessions.set(sessionId, new CdpSession(this, sessionId, targetInfo));
     }
     if (msg.method === 'Target.detachedFromTarget') {
-      const s = this.sessions.get(msg.params.sessionId);
-      if (s) { s.detached = true; this.sessions.delete(msg.params.sessionId); s.emit('detached', msg.params); }
+      const sessionId = msg.params?.sessionId;
+      const s = this.sessions.get(sessionId);
+      if (s) { s.detached = true; this.sessions.delete(sessionId); s.emit('detached', msg.params); }
     }
     const target = msg.sessionId ? this.sessions.get(msg.sessionId) : this;
     if (target) {
