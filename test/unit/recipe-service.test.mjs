@@ -29,14 +29,27 @@ function fixture(t, { throwAfterSend = false } = {}) {
 const turn = { conversation: 'c1', key: 'original-key-1', prompt: 'A private prompt body',
   confirm: true, expectedRevision: 0 };
 
-test('read-only recipe uses harness owner once and closes successful run; no second runtime', async (t) => {
+test('read-only recipe reuses native tool dispatcher without creating a durable run', async (t) => {
   const f = fixture(t);
   const result = await f.service.run('provider.targets', {}, { includeContent: true });
   assert.equal(result.status, 'succeeded');
   assert.equal(result.effectState, 'none');
   assert.equal(f.calls.targets, 1);
   assert.deepEqual(result.result, { sites: [], targets: [] });
-  assert.equal(f.service.status(result.runId).status, 'succeeded');
+  assert.equal(result.runId, null);
+  assert.equal(result.persisted, false);
+  assert.equal(result.retryAllowed, true);
+  assert.deepEqual(f.runs.list(), []);
+});
+
+test('more than 200 read-only inspections never exhaust the finite run store', async (t) => {
+  const f = fixture(t);
+  for (let n = 0; n < 205; n++) {
+    const result = await f.service.run('provider.targets', {});
+    assert.equal(result.status, 'succeeded');
+  }
+  assert.equal(f.calls.targets, 205);
+  assert.equal(f.runs.list().length, 0);
 });
 test('provider send is fenced by a stable operation key and does not claim reply/capture success', async (t) => {
   const f = fixture(t);
