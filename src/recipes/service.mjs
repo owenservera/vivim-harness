@@ -38,6 +38,8 @@ export function createRecipeService({ harnessApi, conversationRuntime } = {}) {
       // operation even after an HTTP timeout, crash, failed call or unknown browser response.
       const effectful = recipe.effects.some((e) => e !== 'read');
       const identity = operationId ?? (recipe.effects.includes('provider-send') ? input.key : null);
+      if (recipe.effects.includes('provider-send') && operationId !== undefined && operationId !== input.key)
+        throw fail(409, 'RECIPE_SEND_OPERATION_MISMATCH');
       if (effectful && !validOperation(identity)) throw fail(400, 'RECIPE_OPERATION_REQUIRED');
       const op = identity ?? randomUUID();
       const task = 'recipe:' + id + ':operation:' + op;
@@ -108,9 +110,27 @@ export function createRecipeService({ harnessApi, conversationRuntime } = {}) {
       return { ...status(runId), reconciliation: result.reconciliation, lifecycle: result.lifecycle, dispatched: false,
         retryAllowed: false, nextSafeAction: 'inspect-reconciliation-evidence' };
     },
-    finish(runId, state) {
+    async finish(runId, state) {
       if (!['succeeded', 'failed', 'interrupted'].includes(state)) throw fail(400, 'INVALID_RUN_STATUS');
       const prior = status(runId);
+      if (state === 'succeeded') {
+        const run = harnessApi.get(runId).run;
+        const recipe = recipeDefinition(prior.recipe);
+        const step = run.steps.at(-1);
+        if (!recipe || step?.status !== 'succeeded' || step.tool !== recipe.tool)
+          throw fail(409, 'RECIPE_COMPLETION_UNVERIFIED');
+        if (recipe.effects.includes('provider-send')) {
+          if (!run.conversationId) throw fail(409, 'RECIPE_COMPLETION_UNVERIFIED');
+          const snapshot = await conversationRuntime.get(run.conversationId);
+          const turn = snapshot.turns?.find((t) => t.key === step.key);
+          // A registered submit != a delivered reply. The exact original turn must have
+          // observed delivery, an attributable ready reply and proven final capture stop.
+          if (!turn || turn.send?.state !== 'observed' || turn.reply?.state !== 'ready'
+            || turn.readiness?.state !== 'ready' || !snapshot.sessionId
+            || snapshot.diagnostic?.finishPhase !== 'done')
+            throw fail(409, 'RECIPE_COMPLETION_UNVERIFIED');
+        }
+      }
       const out = harnessApi.finish(runId, { status: state });
       return { ...prior, ...toView(out.run) };
     },
