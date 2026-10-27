@@ -190,7 +190,11 @@ function gateG3(conv, reply, scan) {
   if (!rule || typeof rule !== 'object') return unknown('no completionRule supplied; completion cannot be judged');
   if (typeof rule.stableObserved !== 'boolean') return unknown('completionRule.stableObserved is not a boolean; drive-time stability unknown');
   if (rule.stableObserved === false) return gate('failed', 'reply was not observed stable at drive time', { stableObserved: false });
-  if (rule.requireDone === false) return gate('passed', 'drive-time stability observed; terminal record not required by rule', { requireDone: false });
+  if (rule.requireDone === false) {
+    const stream = reply.best ? scan.streams.get(reply.best.sid) : null;
+    if (stream?.fail) return gate('failed', 'reply stream failed despite optional terminal-record rule', { sid: reply.best.sid, fail: true });
+    return gate('passed', 'drive-time stability observed; terminal record not required by rule', { requireDone: false });
+  }
   if (!reply.best) return unknown('no reply stream to check for a terminal record');
   const s = scan.streams.get(reply.best.sid) ?? { done: false, fail: false };
   const evidence = { sid: reply.best.sid, done: s.done, fail: s.fail };

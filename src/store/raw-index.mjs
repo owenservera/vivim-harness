@@ -77,13 +77,14 @@ export function loadRawIndex(rawDir) {
 }
 
 // Largest index entry whose seq/time is still at or before the requested start.
-export function seekOffset(entries, { fromSeq = 0, fromT = null } = {}) {
-  if (!entries?.length) return 0;
+export function seekOffset(entries, { fromSeq = 0 } = {}) {
+  // Only sequence is monotonic. Wall-clock timestamps may jump in either direction,
+  // so using time to seek can silently omit matching records.
+  if (!entries?.length || !fromSeq) return 0;
   let off = 0;
   for (const e of entries) {
-    const beforeSeq = fromSeq ? e.s <= fromSeq + 1 : true;
-    const beforeT = fromT === null || fromT === undefined ? true : (e.t ?? 0) <= fromT;
-    if (beforeSeq && beforeT) off = e.o; else break;
+    if (e.s <= fromSeq + 1) off = e.o;
+    else break;
   }
   return off;
 }
@@ -120,10 +121,10 @@ export async function* iterateRaw(rawDir, {
     if (m && typeof m.lastSeq === 'number' && m.lastSeq <= fromSeq) continue;
     if (m && typeof m.firstSeq === 'number' && m.firstSeq > toSeq) break;
     let start = 0;
-    if (useIndex && (fromSeq || fromT !== null)) {
+    if (useIndex && fromSeq) {
       const entries = readSegmentIndex(rawDir, file);
       if (entries?.length) {
-        const proposed = seekOffset(entries, { fromSeq, fromT });
+        const proposed = seekOffset(entries, { fromSeq });
         if (proposed > 0) {
           // Never trust a stale or incorrectly rebuilt index: verify its record boundary
           // against the source segment before skipping earlier raw records.

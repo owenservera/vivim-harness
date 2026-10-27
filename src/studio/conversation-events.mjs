@@ -67,8 +67,17 @@ export function createConversationEvents({ runtime, intervalMs = 200, feedOption
   // The opt-in text feed carries the metadata events too, so one subscription is sufficient.
   const textFeed = new EventFeed({ eventTypes: CONVERSATION_TEXT_EVENT_TYPES, ...textFeedOptions });
   const watched = new Map(); // conversation id -> { last: string|null, lastTextKey: string|null, missing: boolean }
-  let timer = null;
-  const start = () => { if (timer || watched.size === 0) return; timer = setInterval(() => { pump().catch(() => {}); }, intervalMs); timer.unref?.(); };
+  let timer = null, pumping = false;
+  // A slow snapshot read must not stack another full scan every 200 ms.
+  const start = () => {
+    if (timer || watched.size === 0) return;
+    timer = setInterval(() => {
+      if (pumping) return;
+      pumping = true;
+      pump().catch(() => {}).finally(() => { pumping = false; });
+    }, intervalMs);
+    timer.unref?.();
+  };
   const stop = () => { if (timer) { clearInterval(timer); timer = null; } };
   async function pump() {
     for (const [id, state] of watched) {
@@ -115,15 +124,28 @@ export function createConversationEvents({ runtime, intervalMs = 200, feedOption
       if (q.include !== undefined && q.include !== 'text') throw problem(400, 'Unknown include value; only "text" is supported');
       try { await runtime.get(id); } // Existence check: never stream an unknown conversation.
       catch (e) { throw e?.status ? e : problem(404, 'Conversation not found', 'CONVERSATION_NOT_FOUND'); }
-      this.watch(id);
-      // The session filter is forced to this conversation; clients cannot eavesdrop on others.
-      // Default remains the metadata-only feed. `include=text` opts into bounded reply text.
+      // Validate SSE cursors, filters and client limits BEFORE installing a watch.
+      // Watching is tied to the actual live subscribers; a disconnected SSE client must
+      // not leave an expensive permanent poll behind.
       const withText = q.include === 'text';
-      return (withText ? textFeed : feed).subscribe(req, res, { ...q, session: id }, {
+      const selected = withText ? textFeed : feed;
+      const result = selected.subscribe(req, res, { ...q, session: id }, {
         status: { conversationId: id, derived: 'conversation snapshot diff; reply text only on the include=text feed, bounded and snapshot-based', durable: false },
       });
+      if (!res.destroyed && !res.writableEnded) {
+        this.watch(id);
+        const release = () => {
+          // EventFeed installs its own client cleanup first, so closed connections
+          // are absent from both client sets by the time this callback runs.
+          const active = [...feed.clients, ...textFeed.clients].some((client) => client.session === id);
+          if (!active) { watched.delete(id); if (watched.size === 0) stop(); }
+        };
+        res.once('close', release);
+        res.once('error', release);
+      }
+      return result;
     },
     info() { return { ...feed.info(), text: textFeed.info(), textLimits: { maxChars }, watched: [...watched.keys()] }; },
-    close() { stop(); feed.close(); textFeed.close(); },
+    close() { stop(); feed.close(); textFeed.close(); watched.clear(); },
   };
 }

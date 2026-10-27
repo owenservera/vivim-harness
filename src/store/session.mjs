@@ -101,7 +101,7 @@ export class Dataset {
     const text = this._buf.length === 1 ? this._buf[0] : this._buf.join('');
     this._buf = []; this._bufBytes = 0; pendingDatasets.delete(this);
     try { appendFileSync(this.file, text); }
-    catch (e) { this._buf = [text]; this._bufBytes = text.length; pendingDatasets.add(this); throw e; } // never drop lines on a failed write
+    catch (e) { this._buf = [text]; this._bufBytes = Buffer.byteLength(text); pendingDatasets.add(this); throw e; } // never drop lines on a failed write
   }
   close() { this.flush(); }
   reset() { this._buf = []; this._bufBytes = 0; pendingDatasets.delete(this); if (this._timer) { clearTimeout(this._timer); this._timer = null; } if (existsSync(this.file)) rmSync(this.file); this.count = 0; }
@@ -231,6 +231,7 @@ export class Session {
     const files = existsSync(rawDir) ? readdirSync(rawDir).filter((f) => /^\d{6}\.jsonl$/.test(f)).sort() : [];
     const report = { segments: [], ok: hasManifest && Array.isArray(manifest.segments), seqGaps: [], gapRecords: 0, droppedRecords: 0, records: 0, mergedRecords: 0, compacted: !!manifest.compacted };
     const present = new Set(files);
+    if ((manifest.segments ?? []).length !== bySeg.size) report.ok = false; // duplicate manifest entries
     for (const file of bySeg.keys()) {
       if (!present.has(file)) { report.ok = false; report.segments.push({ file, inManifest: true, missing: true }); }
     }
