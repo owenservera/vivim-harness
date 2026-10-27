@@ -293,7 +293,7 @@ async function main() {
       }
       if (['G4', 'G5', 'G6', 'G7'].some((id) => acceptance.gates?.[id]?.value !== 'passed')) throw new Error('offline capture gates did not pass');
       const before = rawDigest(session).digest;
-      const moduleUrl = pathToFileURL(path.resolve(ROOT, '../../../../../../ops/capture-studio-value-oracle/prototypes/saved-session-outcome.mjs'));
+      const moduleUrl = pathToFileURL(path.resolve(ROOT, 'src/export/saved-session-outcome.mjs'));
       const { packetFromSavedSession } = await import(moduleUrl.href);
       packetResult = await packetFromSavedSession({ sessionId, home: dataDir, outDir: path.join(dataDir, 'outcome-packet') });
       const p = packetResult.packet;
