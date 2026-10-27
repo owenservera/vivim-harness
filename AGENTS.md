@@ -9,14 +9,23 @@ These two files are specialized subagent profiles, **not** automatically running
 ## Governing decisions (from owner conversations, October 11–25, 2026)
 - **Deliver actual engineering**: inspect current repo, implement smallest useful fix, run focused tests and the relevant full suite, commit/push proven results. Avoid ritual planning, extra subagents, status documents, formal handoffs and duplicated systems.
 - **Windows is the local master**; GitHub is persistent task/evidence transport, not remote desktop control. Never claim a Windows install, browser test, push, or scheduled-task change without execution and verification.
-- **Live-first development is the default**: when the live server, dedicated VIVIM browser, or provider is available and within authorized scope, inspect and test the actual runtime early; use observations to guide the smallest useful fix instead of repeatedly theorizing. Keep fixture tests for regression and dangerous edge cases, and distinguish live proof from synthetic results.
+- **Live-first development is the default**: execute the actual change against the live runtime and stated objective before creating tests or fixtures. Once a working path is proven live, add regression and dangerous-edge-case coverage. If live execution is unavailable or outside authorized scope, report the blocker rather than substitute synthetic tests or claim live proof.
 - **Live safety**: use the existing browser-effect owner; preserve active sessions and unresolved evidence. Read-only inspection is not permission to send, restart, close, clear, or overwrite; honor the owner's explicit effect scope and never resend an uncertain turn.
+- **Agent coordination**: the orchestrator or main agent checks in with delegated work regularly at meaningful milestones and when progress stalls, steers it toward the objective, and verifies the result. Use completion notifications instead of polling loops.
 - **No Playwright or Puppeteer.** Use existing CDP-based browser architecture and the one established owner of effects.
 - **Capture is read-only by default**; browser send requires explicit scope and effect authorization. Preserve origin/account/tab/thread identity and evidence provenance. Never auto-resend when effect outcome is uncertain.
 - **One source of truth**: no second browser actor, message store, adapter registry, knowledge engine or `/chat` UI. Source evidence remains immutable; derived outputs rebuildable. Holdout evidence must be independent; rollback must remain possible.
 - Do not leak private captures, auth tokens or credentials into Git. Preserve local datasets, profiles, Chrome sessions and existing scheduled tasks until validated migration.
 - User's command convention: `#repo` scopes, `@agent` selects role, `/SITREP` refreshes relevant current status, `/BOOTSTRAP` bootstraps, `+/EXECUTE` means implement. Agent/GitHub messages inform but do not authorize irreversible/local browser effects. Keep SITREP short and grounded in exact SHA/tests.
 - No Slack and no speculative infrastructure. Prefer built-in tools. Propose ChatGPT tasks with Instant/Medium/High effort specified.
+
+## Subagent dispatch — explicit and narrow
+- Use the fewest lanes needed; do one isolated, clear, low-risk action directly when delegation would take longer.
+- Every delegation must name one concrete outcome, the exact target and starting point, allowed actions and files, excluded actions, and a proportionate completion check with its owner.
+- Pass relevant facts and evidence already known. Limit discovery to what is needed for that outcome; do not repeat broad repository, Git, process, session, or history surveys by default.
+- For a requested live action, use the existing effect owner and proceed as soon as the necessary identity, authorization, and safety checks pass. Do not replace the action with planning, fixtures, or an unrelated investigation; never resend an uncertain turn.
+- For a requested document, use the supplied findings and cited sources to write the document; do not turn it into a new investigation or touch the live runtime.
+- If blocked, stop and report the specific blocker and evidence rather than expanding scope, spawning extra agents, or inventing work. Respect a user-requested pause.
 
 ## Source and cutover truth
 - Product source: `owenservera/vivim-harness` root. Original AION folder: `workspace/aion/sessions/roles/09-global-research/labs/website-to-local-streaming/capture-studio/` at AION source SHA `671c0b5a8f1e22822524fccc7543067ab89d121d`.
@@ -27,12 +36,13 @@ These two files are specialized subagent profiles, **not** automatically running
 
 ## Verification and closeout
 1. Read relevant instructions, current branch/SHA/dirty work, code and recently changed interfaces.
-2. Keep development inside existing modules. Verify focused tests then full suite; also check actual browser behavior when reachable.
+2. Keep development inside existing modules. After the live path is proven, run focused regression tests, then the relevant full suite.
 3. Report truthfully: source-only, synthetic/offline, saved-real-data observation, or live Windows/provider proof. GitHub action `startup_failure` is **not** a passing test.
 4. Publish exact changed paths, tests run, measured outcome, SHA, and remaining genuine blockers.
 
 ## Git management
 For staging, commits and pushes of verified increments, dispatch [git-manager](.opencode/agents/git-manager.md) (free model). It stages explicit paths only and pushes only when the task says "push authorized".
+- **Do not run tests before committing or pushing.** A requested commit/push proceeds after the Git safety checks; tests are separate follow-up work and must not delay publication. Record unrun tests honestly rather than presenting the commit as test-verified.
 
 ## Model routing for specialist lanes
 - Look up the exact model id and its variants before use; ids and variant sets differ per model and change without notice.
