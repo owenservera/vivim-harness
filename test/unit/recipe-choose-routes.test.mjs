@@ -28,7 +28,7 @@ test('recipe native route registration uses the supplied Studio add() owner; no 
     routes.push({ method, route, summary, handler, opts }), harnessApi: fakeApi, conversationRuntime: fakeRuntime });
   assert.ok(api);
   assert.equal(routes.length, 9);
-  assert.ok(routes.some((r) => r.method === 'GET' && r.route === '/recipes/choose'));
+  assert.ok(routes.some((r) => r.method === 'POST' && r.route === '/recipes/choose' && r.opts.annotations.readOnlyHint === true));
   assert.ok(routes.some((r) => r.method === 'POST' && r.route === '/recipes/{recipe}/run'
     && r.opts.tool === 'recipe_run'));
   assert.ok(routes.some((r) => r.route === '/recipes/runs/{run}/reconcile'
