@@ -110,7 +110,12 @@ export async function runAgentCapabilities(ctx) {
   emit(ctx, { schema: 'vivim.agent-capabilities/1', recipes: listRecipes().length,
     transport: 'running-studio', browserAccountState: 'unknown-not-probed',
     source: 'static-native-tool-catalog', noBackgroundEffects: true,
-    families: RECIPE_FAMILIES, canonicalCommand: 'studio recipe' });
+    families: RECIPE_FAMILIES, canonicalCommand: 'studio recipe', contextCommand: 'studio agent context' });
+}
+export async function runAgentContext(ctx) {
+  only(ctx, 0, 'agent context');
+  const content = readFileSync(new URL('../../context.md', import.meta.url), 'utf8');
+  ctx.out.emit({ source: 'context.md', content }, (o) => o.raw(content));
 }
 export async function runAgentStatus(ctx, dependencies = {}) {
   only(ctx, 0, 'agent status');
@@ -162,5 +167,8 @@ define({ name: 'recipe finish', section: 'Knowledge', usage: 'RUN_ID --status ST
   flags: { ...shared, status: { type: 'string', valueName: 'STATUS' } }, run: runRecipeFinish });
 define({ name: 'agent capabilities', noData: true, section: 'Get started', summary: 'Read registered agent capabilities without probing accounts',
   run: runAgentCapabilities });
+define({ name: 'agent context', noData: true, section: 'Get started', summary: 'Read repository context for ordinary agents (not measured probes)',
+  description: 'Read this CLI checkout’s context.md offline. Real-user measured probes must not read it during a scenario; follow AGENTS.md.',
+  run: runAgentContext });
 define({ name: 'agent status', noData: true, section: 'Get started', summary: 'Read running Studio health without browser effects',
   flags: shared, run: runAgentStatus });

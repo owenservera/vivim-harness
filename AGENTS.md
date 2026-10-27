@@ -1,6 +1,7 @@
 # VIVIM Harness — agent operating contract
 
 This repository is the **standalone product candidate** extracted from AION Capture Studio. It contains the runnable application, not a second experimental runtime. Read this file before work; invoke specialized instructions when the job fits:
+- **CLI work and delegations:** ordinary agents and subagents working on or operating the VIVIM CLI must read [context.md](context.md) before acting. Include that requirement in their dispatch; reconcile its historical defaults with the verified live owner. The real-user probe exception below remains CLI-only and must not read this file during a measured scenario.
 - [ChatGPT / AION GitHub specialist](.opencode/agents/chatgpt-aion.md) — remote GitHub integration and AION agent context.
 - [OpenCode / local Windows specialist](.opencode/agents/local-opencode.md) — local execution, runtime, tests and Windows migration.
 
@@ -74,6 +75,8 @@ duplicate paths before adding abstractions. Follow owner direction: **commit cha
 
 
 ## Source and cutover truth
+- **Local workspace terminology:** `C:\0-BlackBoxProject-0\vivim-harness` is the source repository; `C:\VIVIM` is the VIVIM workspace/data root. The owner identifies `.dev` as containing the development profile: verify its actual location and the running owner's profile before use. Historical profile paths and ports in probe helpers are candidates, not proof of the current setup. If discovery is blocked, investigate read-only in a separate developer lane before asking the owner for information already available locally; keep probe agents within their CLI-only boundary.
+- **Maintain local hints:** when the owner corrects durable workspace conventions or supplies operational hints, update this file or the appropriate authoritative helper, distinguishing owner guidance from verified current runtime state. Avoid recording credentials or private capture content.
 - Product source: `owenservera/vivim-harness` root. Original AION folder: `workspace/aion/sessions/roles/09-global-research/labs/website-to-local-streaming/capture-studio/` at AION source SHA `671c0b5a8f1e22822524fccc7543067ab89d121d`.
 - The 386 source files were copied with matching Git blob SHAs; **full original Git ancestry was not transplanted**.
 - AION original and independent Chrome Relay/Bus/Velocity remain separate. Do not assume the local Windows cutover, CI success or live provider acceptance has happened.
