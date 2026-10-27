@@ -4,9 +4,9 @@ Version: 2026-10-27. This is a **helper file**, not a launcher or script. It pro
 ## Known Windows environment / resolve at launch
 | Field | Last observed | Trust rule |
 |---|---|---|
-| Canonical source checkout | `C:\\0-BlackBoxProject-0\\vivim-harness` | Confirm it exists; `git status --short --branch` locally; another checkout might be active |
-| Local VIVIM private data root | `C:\\VIVIM` | From 2026-10-27 runtime observation; compare live `/api/status` dataDir |
-| Dedicated Chrome user profile | `C:\\VIVIM\\chrome-profile` | Derived by `src/config.mjs:dataPaths(dataDir).chromeProfile`; never ordinary Chrome profile |
+| Canonical source checkout | `C:\0-BlackBoxProject-0\vivim-harness` | Confirm it exists; `git status --short --branch` locally; another checkout might be active |
+| Local VIVIM private data root | `C:\VIVIM` | From 2026-10-27 runtime observation; compare live `/api/status` dataDir |
+| Dedicated Chrome user profile | `C:\VIVIM\chrome-profile` | Derived by `src/config.mjs:dataPaths(dataDir).chromeProfile`; never ordinary Chrome profile |
 | Studio HTTP port | `38703` | Historical; inspect actual `/api/status` / use `agent status` before calls |
 | Chrome DevTools CDP port | `38702` | Historical; obtain from running Studio status, do not scan unrelated browsers |
 | Source runtime | `node bin/studio.mjs` | Node >=22, Windows PowerShell; `node bin/studio.mjs help` is CLI source of truth |
