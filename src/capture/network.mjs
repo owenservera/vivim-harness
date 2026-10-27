@@ -75,7 +75,14 @@ export class NetworkRecorder extends EventEmitter {
 
   async attach(session, tag, targetInfo = {}) {
     this.sessions.set(session.sessionId, { tag, session, targetInfo });
-    const on = (ev, fn) => session.on(ev, (p) => { try { fn(p); } catch (e) { this.stats.handlerErrors++; this.emit('error', e); } });
+    // Handlers may be async (_onResponse arms the stream; _onFinished starts _finalize): a rejection
+    // is counted and reported the same way as a synchronous throw, never left unhandled (which
+    // terminates a Node 22 process, i.e. the whole recorder).
+    const failed = (e) => { this.stats.handlerErrors++; this.emit('error', e); };
+    const on = (ev, fn) => session.on(ev, (p) => {
+      try { const r = fn(p); if (r && typeof r.then === 'function') r.then(undefined, failed); }
+      catch (e) { failed(e); }
+    });
     on('Network.requestWillBeSent', (p) => this._onRequest(session, tag, p, targetInfo));
     on('Network.webSocketWillSendHandshakeRequest', (p) => this._onWsHandshakeRequest(tag, p));
     on('Network.responseReceived', (p) => this._onResponse(session, tag, p));
@@ -147,8 +154,10 @@ export class NetworkRecorder extends EventEmitter {
     const sid = this._sid(tag, p.requestId);
     const url = p.request.url;
     // Redirects reuse the requestId: close the previous hop explicitly.
+    // An ignored (out-of-scope) previous hop never wrote a req record, so it gets no res/done
+    // either: those would be orphan records for a sid replay never saw opened.
     const prev = this.reqs.get(sid);
-    if (prev && p.redirectResponse) {
+    if (prev && !prev.ignored && p.redirectResponse) {
       if (prev.guard?.discard()) this.append({ k: 'body.excluded', sid, reason: 'security_tail_unfinished_redirect' });
       if (prev.frameGuard?.discard().length) this.append({ k: 'body.excluded', sid, reason: 'security_frames_unfinished_redirect' });
       if (prev.esGuard?.discard().length) this.append({ k: 'body.excluded', sid, reason: 'security_events_unfinished_redirect' });
@@ -207,7 +216,7 @@ export class NetworkRecorder extends EventEmitter {
       st.pendingBytes = 0;
       // Bytes after the overflow point were never buffered, so everything after it is a gap: marked, not resumed.
       if (st.pendingOverflow) { this._truncateStream(st, 'arming_buffer_overflow', this.maxPendingArmBytes, st.pendingOverflow.bytes); st.pendingOverflow = null; }
-      if (st.finishedWhileArming) this._finalize(st.finishedWhileArming.session, st, st.finishedWhileArming.p);
+      if (st.finishedWhileArming) await this._finalize(st.finishedWhileArming.session, st, st.finishedWhileArming.p);
     }
   }
 
@@ -322,7 +331,7 @@ export class NetworkRecorder extends EventEmitter {
     if (!st) return;
     if (st.ignored) { this.reqs.delete(st.sid); return; }
     if (st.arming) { st.finishedWhileArming = { session, p }; return; }
-    this._finalize(session, st, p);
+    return this._finalize(session, st, p);
   }
 
   async _finalize(session, st, p) {
