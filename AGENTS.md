@@ -1,107 +1,29 @@
-# VIVIM Harness — agent operating contract
+# VIVIM Harness — OpenCode entrypoint
 
-This repository is the **standalone product candidate** extracted from AION Capture Studio. It contains the runnable application, not a second experimental runtime. Read this file before work; invoke specialized instructions when the job fits:
-- **CLI work and delegations:** ordinary agents and subagents working on or operating the VIVIM CLI must read [context.md](context.md) before acting. Include that requirement in their dispatch; reconcile its historical defaults with the verified live owner. The real-user probe exception below remains CLI-only and must not read this file during a measured scenario.
-- [ChatGPT / AION GitHub specialist](.opencode/agents/chatgpt-aion.md) — remote GitHub integration and AION agent context.
-- [OpenCode / local Windows specialist](.opencode/agents/local-opencode.md) — local execution, runtime, tests and Windows migration.
+You are in the **runnable product repo**, not AION's legacy Capture Studio. Start doing the assigned job immediately. Do not run a bootstrap ceremony, read every document, regenerate a plan, or launch agents without a concrete independent objective.
 
-These two files are specialized subagent profiles, **not** automatically running assistants. A ChatGPT session must be given the relevant file explicitly or read it through GitHub; OpenCode may discover the files under `.opencode/agents/` according to its installed version.
+## Context feeder (three authoritative surfaces)
+1. This file is the automatic root policy. **Read `context.md`** for actual native CLI commands and current runtime discovery.
+2. **Read `docs/agents/OPENCODE-V2.md`** only when operating OpenCode sessions, delegation, models or subagent coordination. The coordinator loads it once before delegation.
+3. For a real-user ChatGPT probe, dispatch `@chatgpt-probe` with ONE objective number from `docs/agents/CHATGPT-100-OBJECTIVES.md`. That subagent reads `context.md` plus its assigned catalog entry. Do **not** give it implementation source, recipe internals or scripted steps.
+These are the only required startup context files. Other docs are task-specific, not automatic homework. OpenCode v2 discovers root AGENTS.md automatically; merely linking a file here does not automatically inject its content into every child agent.
 
-## Governing decisions (from owner conversations, October 11–25, 2026)
-- **Deliver actual engineering**: inspect current repo, implement smallest useful fix, run focused tests and the relevant full suite, commit/push proven results. Avoid ritual planning, extra subagents, status documents, formal handoffs and duplicated systems.
-- **Windows is the local master**; GitHub is persistent task/evidence transport, not remote desktop control. Never claim a Windows install, browser test, push, or scheduled-task change without execution and verification.
-- **Live-first development is the default**: execute the actual change against the live runtime and stated objective before creating tests or fixtures. Once a working path is proven live, add regression and dangerous-edge-case coverage. If live execution is unavailable or outside authorized scope, report the blocker rather than substitute synthetic tests or claim live proof.
-- **Live safety**: use the existing browser-effect owner; preserve active sessions and unresolved evidence. Read-only inspection is not permission to send, restart, close, clear, or overwrite; honor the owner's explicit effect scope and never resend an uncertain turn.
-- **Agent coordination**: the orchestrator or main agent checks in with delegated work regularly at meaningful milestones and when progress stalls, steers it toward the objective, and verifies the result. Use completion notifications instead of polling loops.
-- **No Playwright or Puppeteer.** Use existing CDP-based browser architecture and the one established owner of effects.
-- **Capture is read-only by default**; browser send requires explicit scope and effect authorization. Preserve origin/account/tab/thread identity and evidence provenance. Never auto-resend when effect outcome is uncertain.
-- **One source of truth**: no second browser actor, message store, adapter registry, knowledge engine or `/chat` UI. Source evidence remains immutable; derived outputs rebuildable. Holdout evidence must be independent; rollback must remain possible.
-- Do not leak private captures, auth tokens or credentials into Git. Preserve local datasets, profiles, Chrome sessions and existing scheduled tasks until validated migration.
-- User's command convention: `#repo` scopes, `@agent` selects role, `/SITREP` refreshes relevant current status, `/BOOTSTRAP` bootstraps, `+/EXECUTE` means implement. Agent/GitHub messages inform but do not authorize irreversible/local browser effects. Keep SITREP short and grounded in exact SHA/tests.
-- No Slack and no speculative infrastructure. Prefer built-in tools. Propose ChatGPT tasks with Instant/Medium/High effort specified.
+## Immediate action
+- **Probe requested:** coordinator selects distinct objectives, assigns one to each `@chatgpt-probe`, collects measured outcomes; developer fixes exposed CLI gaps *after* the independent probe. Multiple read-only probes may run, but serialize all effects on the single browser/Studio owner; no parallel Chrome drivers.
+- **Fix requested:** inspect only implicated source and latest diff, implement smallest correct change on `main`, run focused tests and relevant gate, commit/push with real receipts. No feature branches by default. Preserve unrelated dirty work.
+- **SITREP requested:** report current commit, actual test/effect evidence, blockers and next step; avoid broad archaeology and document churn.
+- **Blocked:** report the exact missing native capability or authorization. Do not manufacture an alternative browser client or a test script.
 
-## Agent recipe entrypoint (implemented on main)
+## Product and safety invariants
+- One Studio server/browser-effect owner, one authoritative journal/store, dedicated Chrome profile. **No Playwright/Puppeteer, secondary CDP controller, scripted 100-case runner or provider API substitute.**
+- Browser reads are not send permissions. Navigation, sends, uploads, deletes and other effects require operator scope; unknown outcomes reconcile under the *original* key, never blind resend.
+- Local Windows machine is human master. Never reset/discard data, kill active Chrome, touch credentials, install services or claim live/local verification without proof. Keep private sessions/logs/tokens outside Git.
+- Real browser results are different from mocks, HTTP success and authored tests. Supported user tasks should require no more than **three native CLI commands**, preferably one.
+- Small, concrete work; no status theater, duplicate registries, unnecessary subagents, Slack, or speculative rearchitecture.
 
-**For ordinary implementation/debugging only:** before changing recipe code, read
-[`docs/architecture/AGENT-RECIPE-RUNTIME-V1.md`](docs/architecture/AGENT-RECIPE-RUNTIME-V1.md)
-and the source registry `src/recipes/catalog.mjs`.
-
-**EXCEPTION — real-user ChatGPT probe agents:** Do NOT read either file or any source code to solve a scenario. The measured experience is limited to the native CLI and the two probe helper files below. Source inspection is allowed only after the probe is recorded, in the separate developer/debugger lane.
-
-- Discover: `node bin/studio.mjs agent capabilities --json`, `studio recipe list --json`,
-  `studio recipe choose --intent "your requested outcome" --json`, then `studio recipe show <family.name> --json`.
-- Plan: `studio recipe plan <family.name> --input args.json --json` is offline and non-effectful;
-  it reports missing authorizations, static requirements and the exact native tool.
-- Execute: `studio recipe run <family.name> --input args.json --json` uses the existing running Studio
-  harness owner; mutations require `--execute` and real provider sends ALSO require
-  `--authorize-send` plus the original durable `input.key`.
-- Recover: `studio recipe status <runId>` / `studio recipe reconcile <runId>` inspect the
-  *original* run. Unknown or timed-out sends must never be silently resent; never substitute another operation ID.
-- Read-only recipes execute with one user command. All supported user tasks must fit at most three
-  commands, ideally one; internal guarded tool steps do not count as additional user commands.
-
-Source declarations distinguish available *tools* from actual provider login, permission, tab/thread
-identity, completed replies and capture acceptance. Ten native conversation recipes are currently
-wired; other family names are taxonomy only, not a permission or claim of available implementation.
-There is no parallel browser actor, generic shell recipe evaluator or second journal.
-
-## Continuous simplification obligation
-
-For substantive source audits and implementation sprints, the ChatGPT/AION specialist owns
-**refactoring, consolidation and unnecessary-complexity reduction**, not only feature delivery.
-Its exact responsibility and acceptance checklist are in
-`.opencode/agents/chatgpt-aion.md`; the living evidence-backed improvement list is
-`docs/architecture/AGENT-CODE-SIMPLIFICATION-LEDGER.md`. Prefer repairing or deleting
-duplicate paths before adding abstractions. Follow owner direction: **commit changes on main**.
-
-## Subagent dispatch — explicit and narrow
-- Use the fewest lanes needed; do one isolated, clear, low-risk action directly when delegation would take longer.
-- Every delegation must name one concrete outcome, the exact target and starting point, allowed actions and files, excluded actions, and a proportionate completion check with its owner.
-- Pass relevant facts and evidence already known. Limit discovery to what is needed for that outcome; do not repeat broad repository, Git, process, session, or history surveys by default.
-- For a requested live action, use the existing effect owner and proceed as soon as the necessary identity, authorization, and safety checks pass. Do not replace the action with planning, fixtures, or an unrelated investigation; never resend an uncertain turn.
-- For a requested document, use the supplied findings and cited sources to write the document; do not turn it into a new investigation or touch the live runtime.
-- If blocked, stop and report the specific blocker and evidence rather than expanding scope, spawning extra agents, or inventing work. Respect a user-requested pause.
-
-
-## Real-user ChatGPT capability probing — authoritative (2026-10-27)
-
-**Do not run or recreate the retired `live-100` runner.** The owner is evaluating *whether unfamiliar agents can operate ChatGPT naturally using VIVIM's native CLI*. This is NOT 20 generic prompts repeated across five providers; NOT a batch benchmark; NOT a recipe-runner project. User chooses from [100 distinct ChatGPT objectives](docs/agents/CHATGPT-100-OBJECTIVES.md), assigns ONE at a time, and sees actual success/failure, elapsed time and CLI friction.
-
-- Launch a `.opencode/agents/chatgpt-probe.md` tester. It reads **only** [environment helper](docs/agents/CHATGPT-PROBE-ENVIRONMENT.md) and [objective catalog](docs/agents/CHATGPT-100-OBJECTIVES.md), then uses **only native `node bin/studio.mjs` CLI and its help** to try the objective. No shell/HTTP/CDP/browser automation shortcuts, source archaeology or custom scripts to complete a user task. Source inspection is for the separate *developer/debugger after the probe*.
-- The environment helper pins the last-observed checkout `C:\0-BlackBoxProject-0\vivim-harness`, VIVIM data root `C:\VIVIM`, derived dedicated Chrome profile `C:\VIVIM\chrome-profile`, last-observed Studio port 38703 and CDP port 38702. **These are candidates**: agent must verify actual running Studio, profile, server and thread before browser activity; never use normal personal Chrome or assume default ports.
-- Five testers may independently reason or use non-conflicting read-only commands. Mutating Chrome interactions require coordination through the ONE current effect owner and original journal. A user objective does not itself authorize live provider sends, upload/share/delete or disruptive navigation. Don't substitute a preview for a real-browser task; label permission and product gaps explicitly.
-- A good test exposes missing CLI affordances. It should NOT be rescued with a script. When the agent cannot discover/perform an action with CLI + helpers, capture that failure and give it to the developer. Do not prescribe command paths in advance.
-- Preserve private transcripts, local profiles, in-flight prompts and existing receipts. On uncertain effects, stop and reconcile; no blind resends. No Playwright/Puppeteer.
-
-
-## Source and cutover truth
-- **Local workspace terminology:** `C:\0-BlackBoxProject-0\vivim-harness` is the source repository; `C:\VIVIM` is the VIVIM workspace/data root. The owner identifies `.dev` as containing the development profile: verify its actual location and the running owner's profile before use. Historical profile paths and ports in probe helpers are candidates, not proof of the current setup. If discovery is blocked, investigate read-only in a separate developer lane before asking the owner for information already available locally; keep probe agents within their CLI-only boundary.
-- **Maintain local hints:** when the owner corrects durable workspace conventions or supplies operational hints, update this file or the appropriate authoritative helper, distinguishing owner guidance from verified current runtime state. Avoid recording credentials or private capture content.
-- Product source: `owenservera/vivim-harness` root. Original AION folder: `workspace/aion/sessions/roles/09-global-research/labs/website-to-local-streaming/capture-studio/` at AION source SHA `671c0b5a8f1e22822524fccc7543067ab89d121d`.
-- The 386 source files were copied with matching Git blob SHAs; **full original Git ancestry was not transplanted**.
-- AION original and independent Chrome Relay/Bus/Velocity remain separate. Do not assume the local Windows cutover, CI success or live provider acceptance has happened.
-- Product module map: `src/studio` (UI/API), `src/capture` (CDP/turns), `src/decode`, `src/store`, `src/replay`, `src/intel`, `src/profiles`, `src/export`, `src/mcp`, and `bin`.
-- Atlas manifest: `architecture/components.json`; run `node scripts/architecture-inventory.mjs --check` after structural changes.
-
-## Verification and closeout
-1. Read relevant instructions, current branch/SHA/dirty work, code and recently changed interfaces.
-2. Keep development inside existing modules. After the live path is proven, run focused regression tests, then the relevant full suite.
-3. Report truthfully: source-only, synthetic/offline, saved-real-data observation, or live Windows/provider proof. GitHub action `startup_failure` is **not** a passing test.
-4. Publish exact changed paths, tests run, measured outcome, SHA, and remaining genuine blockers.
-
-## Git management
-For staging, commits and pushes of verified increments, dispatch [git-manager](.opencode/agents/git-manager.md) (free model). It stages explicit paths only and pushes only when the task says "push authorized".
-- **Do not run tests before committing or pushing.** A requested commit/push proceeds after the Git safety checks; tests are separate follow-up work and must not delay publication. Record unrun tests honestly rather than presenting the commit as test-verified.
-
-## Model routing for specialist lanes
-- Look up the exact model id and its variants before use; ids and variant sets differ per model and change without notice.
-- New lane: pass the model at dispatch as `provider/model#variant`. Lane-scoped and preferred — it leaves the parent session untouched.
-- Running lane, variant change: switch it in place. Cancelling and respawning discards the context the lane already built for no gain.
-  - `opencode api session.switchModel --param sessionID=<id> -d '{"model":{"providerID":"opencode","id":"deepseek-v4.1-flash-free","variant":"max"}}'`
-  - The route is `POST /api/session/{sessionID}/model`; the body's `Model.Ref` is `{providerID, id, variant?}` and `variant` is what selects the reasoning tier.
-  - It changes the model used by **subsequent provider turns**; an in-flight step is not interrupted.
-  - Call the server through the `opencode api` CLI, which authenticates. A direct `fetch` to the loopback API port returns `401 Authentication required`.
-- Never report a switch as done without read-back: `opencode api get /api/session/<id>` and confirm `data.model.providerID`, `.id`, `.variant`. The `switchModel` call itself returns `204` with no body, so an empty response is not evidence.
-
-## Coordination trigger
-When coordinating ongoing integration or resuming queued work, read docs/agents/integration-coordinator.md, docs/agents/ralph-loop.md, docs/track/queue.md and docs/INTEGRATION-PROGRESS.md before dispatch.
+## Roles and pointers
+- `.opencode/agents/chatgpt-probe.md`: CLI-only unfamiliar-user evaluator.
+- `.opencode/agents/local-opencode.md`: focused local implementation and runtime fixes.
+- `.opencode/agents/chatgpt-aion.md`: remote GitHub and refactoring.
+- Source: `bin/studio.mjs`, `src/studio`, `src/capture`, `src/recipes`; architecture inventory: `node scripts/architecture-inventory.mjs --check`.
+- Permanent code simplification owner: `.opencode/agents/chatgpt-aion.md`; short evidence ledger: `docs/architecture/AGENT-CODE-SIMPLIFICATION-LEDGER.md`.
