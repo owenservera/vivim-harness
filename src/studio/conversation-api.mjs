@@ -10,9 +10,12 @@ export async function defaultConversationRuntime(options) {
 
 export function validateConversationBody(kind, body) {
   object(body);
-  const fields = { connect: ['site', 'targetId', 'freshTab', 'expectedThread', 'prefixSource'], prefix: ['site', 'targetId', 'expectedThread', 'source', 'promptAttestation'], submit: ['key', 'prompt', 'confirm', 'expectedRevision'], reconcile: ['expectedRevision', 'turnId'], finish: ['closeTab'],
+  const fields = { create: ['site'], connect: ['site', 'targetId', 'freshTab', 'expectedThread', 'prefixSource'], prefix: ['site', 'targetId', 'expectedThread', 'source', 'promptAttestation'], submit: ['key', 'prompt', 'confirm', 'expectedRevision'], reconcile: ['expectedRevision', 'turnId'], finish: ['closeTab'],
     chatIndex: ['targetId', 'site', 'maxEntries', 'maxTitleChars', 'scanLimit', 'containers'], read: ['maxMessages', 'maxChars'] }[kind];
   if (Object.keys(body).some((key) => !fields.includes(key))) throw problem(400, 'Unexpected request field');
+  if (kind === 'create') {
+    if (body.site !== 'chatgpt') throw problem(400, 'Only ChatGPT fresh conversation creation is supported', 'INVALID_CREATE');
+  }
   if (kind === 'connect') {
     text(body.site, 'site', 128);
     if (body.targetId !== undefined) text(body.targetId, 'targetId', 256);
@@ -65,6 +68,8 @@ export function createConversationApi({ runtime, events } = {}) {
       methods = ['POST']; run = async () => json(res, 200, await runtime.chatIndex(validateConversationBody('chatIndex', body)));
     } else if (p === '/api/v1/conversation-targets') {
       methods = ['GET']; run = async () => json(res, 200, await runtime.targets());
+    } else if (p === '/api/v1/conversations/create') {
+      methods = ['POST']; run = async () => json(res, 201, { conversation: await runtime.connect({ ...validateConversationBody('create', body), freshTab: true }) });
     } else if (p === '/api/v1/conversations/prefix') {
       methods = ['POST']; run = async () => json(res, 201, { conversation: await runtime.bindObservedPrefix(validateConversationBody('prefix', body)) });
     } else if (p === '/api/v1/conversations') {

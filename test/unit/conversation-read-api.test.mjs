@@ -65,3 +65,17 @@ test('browser-unavailable is HTTP 503 with a stable code, not 500', async (t) =>
   runtime.failTargets = Object.assign(new Error('BROWSER_UNAVAILABLE'), { status: 503, code: 'BROWSER_UNAVAILABLE' });
   const res = await request('/api/v1/conversation-targets'); assert.equal(res.status, 503); assert.equal(res.body.code, 'BROWSER_UNAVAILABLE');
 });
+
+test('create route is POST-only, uses the existing owner once, and never submits', async (t) => {
+  const { request, runtime } = await fixture(t);
+  const get = await request('/api/v1/conversations/create');
+  assert.equal(get.status, 405); assert.equal(get.headers.get('allow'), 'POST');
+  for (const body of [{}, { site: 'claude' }, { site: 'chatgpt', targetId: 'selected' }, { site: 'chatgpt', freshTab: false }])
+    assert.equal((await request('/api/v1/conversations/create', 'POST', body)).status, 400, JSON.stringify(body));
+  assert.deepEqual(runtime.calls, []);
+  const res = await request('/api/v1/conversations/create', 'POST', { site: 'chatgpt' });
+  assert.equal(res.status, 201);
+  assert.equal(res.body.conversation.id, 'conv-1');
+  assert.deepEqual(runtime.calls, [['connect', { site: 'chatgpt', freshTab: true }]]);
+  assert.equal(runtime.calls.some(([name]) => name === 'submit'), false);
+});

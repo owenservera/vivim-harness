@@ -14,6 +14,7 @@ const bounds = (spec) => ({ type: 'integer', minimum: spec.min, maximum: spec.ma
 const indexBody = schema({ targetId: string(256), site: { type: 'string', enum: ['chatgpt'], default: 'chatgpt' },
   ...Object.fromEntries(Object.entries(CHAT_INDEX_LIMITS).map(([name, spec]) => [name, bounds(spec)])),
   containers: { type: 'array', maxItems: 8, items: schema({ label: { ...string(40), pattern: '^(?!unknown$)[a-z][a-z-]{0,39}$' }, selector: string(200) }, ['label', 'selector']) } }, ['targetId']);
+const createBody = schema({ site: { type: 'string', enum: ['chatgpt'] } }, ['site']);
 const connectBody = schema({ site: { type: 'string', enum: ['chatgpt'] }, targetId: string(256),
   expectedThread: { ...string(200), pattern: threadPattern }, freshTab: { type: 'boolean', const: false } }, ['site', 'targetId', 'expectedThread']);
 const readBody = schema({ maxMessages: bounds(TRANSCRIPT_LIMITS.maxMessages), maxChars: bounds(TRANSCRIPT_LIMITS.maxChars) });
@@ -38,6 +39,9 @@ export const CONVERSATION_TOOLS = Object.freeze([
   { name: 'get_conversation', method: 'GET', path: '/conversations/{conversation}', runtime: 'get',
     description: `Read a stored conversation snapshot including current/historical turn replies. No browser action or recovery. ${evidence}`,
     inputSchema: withConversation(), annotations: annotations(true, false), wrapper: 'conversation' },
+  { name: 'create_conversation', method: 'POST', path: '/conversations/create', runtime: 'connect', kind: 'create', body: createBody, status: 201,
+    description: 'Create a fresh Studio-owned ChatGPT tab through the EXISTING single browser/runtime owner; never submits a turn or attaches an existing tab. Returns an unbound NEW_CHAT until a new exact /c/ thread is proven.',
+    inputSchema: createBody, annotations: annotations(false), wrapper: 'conversation' },
   { name: 'connect_conversation', method: 'POST', path: '/conversations', runtime: 'connect', kind: 'connect', body: connectBody, status: 201,
     description: 'Attach capture to the selected EXISTING exact /c/ thread, expectedThread required. Acquires resources/drive lease; never submits. Tool intentionally excludes fresh/root creation. No account readiness guarantee.',
     inputSchema: connectBody, annotations: annotations(false), wrapper: 'conversation' },
@@ -78,9 +82,13 @@ export async function executeConversationTool(conversationRuntime, name, args = 
   const valid = validateConversationTool(name, args);
   const handler = conversationRuntime[definition.runtime];
   if (typeof handler !== 'function') throw problem(501, 'Owning runtime capability unavailable', 'CONVERSATION_CAPABILITY_UNAVAILABLE');
-  return handler.apply(conversationRuntime, valid.conversation !== undefined
-    ? definition.kind ? [valid.conversation, valid.body] : [valid.conversation]
-    : definition.kind ? [valid.body] : []);
+  // Fresh creation is the SAME runtime.connect implementation. The caller cannot override
+  // freshTab/targetId; this never instantiates an extra driver or invokes a provider send.
+  const argsForOwner = definition.kind === 'create' ? [{ site: valid.body.site, freshTab: true }]
+    : valid.conversation !== undefined
+      ? definition.kind ? [valid.conversation, valid.body] : [valid.conversation]
+      : definition.kind ? [valid.body] : [];
+  return handler.apply(conversationRuntime, argsForOwner);
 }
 
 export function registerConversationTools({ add, conversationRuntime }) {
