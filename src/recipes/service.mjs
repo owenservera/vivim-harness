@@ -24,7 +24,7 @@ export function createRecipeService({ harnessApi, conversationRuntime } = {}) {
   if (!harnessApi || !conversationRuntime) throw fail(503, 'RECIPE_OWNER_UNAVAILABLE');
   const status = (runId) => {
     const run = harnessApi.get(runId).run;
-    const label = /^recipe:([a-z]+\\.[a-z-]+):operation:([a-zA-Z0-9][a-zA-Z0-9_.:-]{0,99})$/.exec(run.task?.description ?? '');
+    const label = /^recipe:([a-z]+\.[a-z-]+):operation:([a-zA-Z0-9][a-zA-Z0-9_.:-]{0,99})$/.exec(run.task?.description ?? '');
     if (!label || !recipeDefinition(label[1])) throw fail(404, 'RECIPE_RUN_NOT_FOUND');
     return { schema: 'vivim.recipe-run/1', recipe: label[1], ...toView(run) };
   };
