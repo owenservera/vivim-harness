@@ -44,7 +44,9 @@ export function planRecipe(id, input = {}, { execute = false, authorizeSend = fa
   const invalid = Object.entries(input).filter(([key, val]) => schema.properties?.[key] && !valueIs(val, schema.properties[key])).map(([key]) => key);
   // Native validator enforces contract-specific guards (e.g. exact ChatGPT /c thread).
   if (!unknown.length && !missing.length && !invalid.length) {
-    try { validateConversationTool(recipe.tool, input); } catch (e) { throw fail(e.code ?? 'INVALID_RECIPE_INPUT'); }
+    try { validateConversationTool(recipe.tool, recipe.autoRevision
+      ? { ...input, expectedRevision: 0, confirm: true } : input); }
+    catch (e) { throw fail(e.code ?? 'INVALID_RECIPE_INPUT'); }
   }
   if (unknown.length || missing.length || invalid.length) throw Object.assign(fail('INVALID_RECIPE_INPUT'), { fields: { unknown, missing, invalid } });
   const effects = recipe.effects.filter((e) => e !== 'read');
