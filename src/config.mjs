@@ -111,16 +111,22 @@ export function loadUserConfig(configFile) {
 const sleepSync = (ms) => { Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms); };
 
 // Replace is atomic on POSIX. On Windows a concurrent replace of the same target can
-// fail transiently with EPERM/EBUSY/EACCES while the previous owner still holds the
-// handle; retrying converges instead of surfacing a spurious failure to the caller.
+// fail transiently with EPERM/EBUSY while another writer, an antivirus scanner or the
+// previous handle owner still holds the destination. Retry the documented transient
+// codes only, bounded by wall clock, so a genuine permission error still surfaces.
 const REPLACE_RETRY_CODES = new Set(['EPERM', 'EBUSY', 'EACCES', 'ENOTEMPTY']);
 
-function replaceWithRetry(from, to, attempts = 100) {
+function replaceWithRetry(from, to, budgetMs = 5000) {
+  const deadline = Date.now() + budgetMs;
   for (let attempt = 1; ; attempt++) {
     try { renameSync(from, to); return; }
     catch (e) {
-      if (!REPLACE_RETRY_CODES.has(e.code) || attempt >= attempts) throw e;
-      sleepSync(attempt < 10 ? 2 : 10);
+      if (!REPLACE_RETRY_CODES.has(e.code)) throw e;
+      if (Date.now() > deadline) throw e;
+      // Sub-millisecond contention (another process mid-replace) clears inside a
+      // tight retry. Only reach for a sleep once that has demonstrably failed:
+      // a real wait costs ~17ms on Windows, so sleeping early would dominate.
+      if (attempt > 200) sleepSync(1);
     }
   }
 }
