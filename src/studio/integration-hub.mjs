@@ -20,6 +20,7 @@ import { registerCapabilities, LIVE_EVENTS } from './capabilities.mjs';
 import { problem, json, integer, text, object, storageName, timestamp, page, datasetPage, storeProblem, storeFields } from './http.mjs';
 import { registerConversationTools } from './conversation-tools.mjs';
 import { registerHarnessTools } from './harness-api.mjs';
+import { registerRecipeRoutes } from './recipe-routes.mjs';
 import { registerWorldRoutes } from './world-service.mjs';
 
 const str = { type: 'string' };
@@ -109,6 +110,7 @@ export function createIntegrationHub({ paths, profileStore, learner, recorder, c
   }
   registerConversationTools({ add, conversationRuntime });
   registerHarnessTools({ add, harnessApi });
+  registerRecipeRoutes({ add, harnessApi, conversationRuntime });
   registerWorldRoutes({ add, paths, isSessionActive: (id) => conversationRuntime?.isSessionActive(id) ?? false });
 
   add('GET', '/health', 'Studio process health without probing Chrome', () => ({ version: VERSION, apiVersion: 1, time: new Date().toISOString(), recorder: recorder.status(), events: feed.info() }), { tool: 'studio_health' });
