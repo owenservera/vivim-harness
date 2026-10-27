@@ -28,7 +28,8 @@ export function browserMarkerPath(profileDir) {
 }
 
 export function checkBrowserOwner({ profileDir, port, version, marker } = {}) {
-  const profilePath = path.resolve(profileDir);
+  browserMarkerPath(profileDir);
+  const profilePath = existsSync(profileDir) ? realpathSync(profileDir) : path.resolve(profileDir);
   const expected = browserIdentity(version, port);
   if (!marker || marker.schema !== 'vivim.chrome-owner/1'
     || marker.profilePath !== profilePath || marker.port !== Number(port) || marker.browserIdentity !== expected)
