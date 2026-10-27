@@ -34,7 +34,7 @@ Everything else that mentions the platform only reports it. `process.platform` m
 
 | Tier | Procedure | Establishes | Does not establish |
 | --- | --- | --- | --- |
-| P0 | `node --test test/unit/platform-parity.test.mjs` | Simulated Windows/Linux browser candidates, external data roots, single launcher | Installed real browser |
+| P0 | `node --test test/unit/platform-parity.test.mjs test/unit/platform-boundary.test.mjs` | Simulated Windows/Linux browser candidates, external data roots, single launcher, and the platform-branching budget | Installed real browser |
 | P1 | `node scripts/platform-smoke.mjs` | Real disposable native Node process, CLI, loopback chat, all dynamic WORLD modules, health API | Provider capture or human browser |
 | P2 | `npm test` and OS-process persistence tests | Actual suite on the executing OS | Other OS without a separate run |
 | P3 | `doctor`, `start`, `selftest` with browser evidence on **each** OS | CDP/browser discovery, local runtime | Unobserved network/provider effects |
@@ -49,9 +49,12 @@ Receipts from this repository, executed locally in this increment:
 | Gate | Windows (win32, Node v24.22.1) | Ubuntu (WSL2, Node v24.14.1) |
 | --- | --- | --- |
 | `node scripts/architecture-inventory.mjs --check` | exit 0, 0 uncovered / 0 missing ownership | exit 0, 0 uncovered / 0 missing ownership |
-| `node --test test/unit/platform-parity.test.mjs` | 5 pass, 1 skipped (POSIX exec bit) | 6 pass, 0 skipped |
+| `node --test test/unit/platform-parity.test.mjs test/unit/platform-boundary.test.mjs` | 8 pass, 1 skipped (POSIX exec bit) | 9 pass, 0 skipped |
 | `node scripts/platform-smoke.mjs` | `ok: true`, 8 checks | `ok: true`, 8 checks |
-| `npm test` (full unit suite) | 1974 tests, 1969 pass, 0 fail, 0 cancelled, 3 skipped, 2 todo | 1974 tests, 1972 pass, 0 fail, 0 cancelled, 0 skipped, 2 todo |
+| `npm test` (full unit suite) | 1977 tests, 1972 pass, 0 fail, 0 cancelled, 3 skipped, 2 todo | 1977 tests, 1975 pass, 0 fail, 0 cancelled, 0 skipped, 2 todo |
+| `npm run gate` (the four rows above, in order) | `gate OK`, 4 steps in 154.4 s | `gate OK`, 4 steps in 436.1 s |
+
+The gate runtime is not a parity measure and the two hosts are not comparable: the Ubuntu column runs inside WSL2 on two cores, and the same suite has taken anywhere from 308 s to 428 s there. Only the exit code and the counts are evidence.
 
 - `npm run gate` runs every row above in order and stops at the first failure; `npm run gate:fast` stops before the suite and says so, because a fast pass is a development loop and not a parity claim. The release rule is one line: gate green on Windows **and** on Ubuntu, or parity is not claimed.
 - Hosted cross-OS CI is **not** part of acceptance: `3503195` removed the workflow because every Actions run stopped before executing a step ("account is locked due to a billing issue"). Verification is local, and these two local receipts are the gate.
