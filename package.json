@@ -39,6 +39,8 @@
     "chrome:cdp": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/chrome-cdp.ps1",
     "help": "node bin/studio.mjs help",
     "test:parity": "node --test test/unit/platform-parity.test.mjs",
-    "smoke:platform": "node scripts/platform-smoke.mjs"
+    "smoke:platform": "node scripts/platform-smoke.mjs",
+    "gate": "node scripts/gate.mjs",
+    "gate:fast": "node scripts/gate.mjs --fast"
   }
 }

@@ -265,7 +265,9 @@ function readRegular(full, realRoot, limits) {
     if (!realInside(realRoot, real)) return { refused: 'escaped-root' };
     if (!Number.isSafeInteger(before.size) || before.size < 0) return { refused: 'unreadable' };
     if (before.size > limits.maxFileBytes) return { overCap: true, bytes: before.size, mtime: before.mtimeMs };
-    const flags = constants.O_RDONLY | (process.platform === 'win32' ? 0 : (constants.O_NOFOLLOW || 0));
+    // Capability probe, not an OS check: O_NOFOLLOW is simply absent where the concept does not
+    // exist (Windows), and the surrounding catch already treats ELOOP/EINVAL as a symlink refusal.
+    const flags = constants.O_RDONLY | (constants.O_NOFOLLOW || 0);
     fd = openSync(full, flags);
     const st = fstatSync(fd);
     if (!st.isFile() || !sameMeta(before, st)) return { refused: 'swapped' };

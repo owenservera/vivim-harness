@@ -15,6 +15,21 @@ Install Node >=22 and Chrome, Chromium or Edge. `CHROME_PATH` is the operator-su
 
 `npm run chrome:cdp` deliberately keeps invoking `scripts/chrome-cdp.ps1` on Windows. That script junctions the debug profile to the operator's real Chrome profile (so existing sign-ins and cookies are reused) and `scripts/install-autostart.ps1` passes the same `chrome-cdp-profile` path. Repointing the alias at `studio launch` would silently switch to a fresh profile and appear to lose every sign-in, so the alias is Windows-only maintenance tooling by design and is not the cross-platform entrypoint.
 
+## The four platform decisions
+
+Platform knowledge is data, never flow: each decision below chooses a *value*, and the rest of the program is platform-blind.
+
+| Decision | Owner | What the OS fixes |
+| --- | --- | --- |
+| Private data root | `defaultDataDir()` in `src/config.mjs` | `LOCALAPPDATA`, `Library/Application Support`, `XDG_DATA_HOME` |
+| Browser executable | `chromeCandidates()` in `src/chrome/launch.mjs` | install locations, binary names, `Path` vs `PATH` |
+| URL opener | `openUrl()` in `bin/commands/capture.mjs` | `explorer.exe`, `open`, `xdg-open` |
+| Filename case | `src/store/versioned.mjs`, `src/studio/agentic-files.mjs` | NTFS folds case, ext4 does not |
+
+Everything else that mentions the platform only reports it. `process.platform` means "the OS decided this and a probe cannot know it"; case sensitivity, hard-link support and `O_NOFOLLOW` are probed instead of inferred from the OS name.
+
+`test/unit/platform-boundary.test.mjs` enforces the budget. Platform branching may appear only in allowlisted lines, each carrying a reason and one of the domains above; a new branch fails, and so does an allowlisted branch that disappears — deleting the Windows data root "because only Linux was tested" is exactly the regression the test exists to catch. One capability probe replaced an OS check while this test was introduced: `readRegular()` in `src/studio/agentic-files.mjs` now uses `constants.O_NOFOLLOW || 0` instead of a `win32` branch, which is the same behaviour on both hosts.
+
 ## Evidence tiers
 
 | Tier | Procedure | Establishes | Does not establish |
@@ -38,6 +53,7 @@ Receipts from this repository, executed locally in this increment:
 | `node scripts/platform-smoke.mjs` | `ok: true`, 8 checks | `ok: true`, 8 checks |
 | `npm test` (full unit suite) | 1974 tests, 1969 pass, 0 fail, 0 cancelled, 3 skipped, 2 todo | 1974 tests, 1972 pass, 0 fail, 0 cancelled, 0 skipped, 2 todo |
 
+- `npm run gate` runs every row above in order and stops at the first failure; `npm run gate:fast` stops before the suite and says so, because a fast pass is a development loop and not a parity claim. The release rule is one line: gate green on Windows **and** on Ubuntu, or parity is not claimed.
 - Hosted cross-OS CI is **not** part of acceptance: `3503195` removed the workflow because every Actions run stopped before executing a step ("account is locked due to a billing issue"). Verification is local, and these two local receipts are the gate.
 - The parity assertions are discriminating: running them against a pre-integration tree yields 1 pass / 4 fail / 1 skip, so they fail loudly if the launcher, data-root or script contract regresses.
 - `node scripts/platform-smoke.mjs` alone is **not** parity proof — it passes on older trees too. It establishes that the native CLI, disposable storage, the WORLD module graph, loopback HTTP and IPC shutdown work on the executing OS; the parity unit test is what pins the platform logic.
