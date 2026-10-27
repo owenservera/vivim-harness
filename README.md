@@ -2,11 +2,11 @@
 
 ![VIVIM — Your AI. Your world.](assets/vivim-repo-banner.svg)
 
-### Your AI work deserves a home.
+### Your webapps. Your data. Your AI world.
 
 **Own your AI · Share your AI · Evolve your AI**
 
-VIVIM is building a **personal, persistent AI world**: a place to keep what matters from your AI interactions, make it part of your projects, and return to it when you need it.
+VIVIM is building a **local-first personal world for your webapps and AI**. Interact with the services you already use, bring useful information together on your own machine, and organize, search, and reuse it under your direction.
 
 [**The vision**](#the-idea) · [**How it works**](#a-world-you-can-return-to) · [**What's available**](#what-exists-today) · [**Try the preview**](#try-the-developer-preview)
 
@@ -20,17 +20,17 @@ VIVIM is building a **personal, persistent AI world**: a place to keep what matt
 
 ## The idea
 
-**The most valuable thing about AI isn't one answer. It's what you learn, create, and build over time.**
+**Your data lives across the web. Your personal world shouldn't have to.**
 
-Today, that work is scattered: a useful explanation in one provider, a code snippet in another, a project idea you can no longer find. Most chat interfaces start fresh; your work doesn't.
+Today your work is scattered across AI chats, documents, dashboards, feeds, and other webapps. Every service has its own interface, history, and context. Finding and connecting what matters means switching between them.
 
-VIVIM is designed around a different starting point: **you and the context you've chosen to keep**.
+VIVIM is designed around a different starting point: **you, your webapps, and the information you choose to keep locally**.
 
-Rather than replace your favorite AI services, VIVIM aims to give their useful outputs a lasting home — with a clear record of where they came from, what you added, and what is actually saved.
+Its ambition is to **interact with any webapp through a common, user-directed layer**, capture useful content with source context, and bring that information into one locally managed personal world. AI providers are an important first use case, not the limit of the platform. Universal compatibility is a goal, not a claim of verified support for every site.
 
 | **Own your AI** | **Share your AI** | **Evolve your AI** |
 | :--- | :--- | :--- |
-| Keep locally held conversations, notes and useful parts in a world you control. | Choose exactly which information to export or carry into another task. | Organize, annotate, connect and improve your own context over time. |
+| Bring selected webapp data, conversations, notes and artifacts into a locally managed world. | Choose which information to export or carry into another website, AI task or workflow. | Organize, annotate, connect and improve your own context over time. |
 | **Your knowledge, beyond one provider.** | **Your choice, not automatic exposure.** | **Your work, increasingly useful.** |
 
 > **My machine. My data. My AI.** A product direction built on local-first ownership, user choice and traceable sources — not a promise of absolute security or features that haven't shipped.
@@ -46,12 +46,15 @@ VIVIM's core experience is one connected journey, not four separate tools.
 | **03 · Find** | Locate the idea, answer or artifact again — without remembering which provider or chat held it. |
 | **04 · Take** | Carry selected knowledge into a new task or interaction, deliberately and with context. |
 
-**One personal world. Many sources of intelligence.**
+**One personal world. Many webapps. Your data stays under your direction.**
 
 VIVIM Projects are *your* organization layer, not a claim that remote provider Projects have been imported or modified. The provider remains authoritative for its remote account and conversations; VIVIM preserves the local record and user-created context.
 
 ### What makes VIVIM different?
 
+- **Webapp-wide ambition.** A reusable browser-based interaction and capture layer aims to work across AI chat, tables, feeds, forms, articles and more — subject to per-site behavior and permissions.
+- **Local centralization.** Bring selected records from separate services into one personal data space on your machine, without claiming ownership of remote provider records.
+- **Security-conscious control.** Dedicated browser profiles, local-only default server binding, explicit authorization for external actions and clear evidence provenance are part of the current approach. Raw capture still requires care.
 - **Persistent by intent.** Saved local material should remain useful even when a provider is disconnected.
 - **Source-grounded.** Know what was observed, imported, derived or written by you — including missing or uncertain content.
 - **Human-directed.** Reading, selecting, sharing and external actions have distinct boundaries.
@@ -66,10 +69,11 @@ The code in this repository is the **VIVIM Harness** — the operating foundatio
 
 | Capability | Current status |
 | :--- | :--- |
-| Local capture and evidence records | **Implemented in source.** Dedicated-browser-profile capture, recorded observations and local storage. |
+| Browser-based webapp observation | **Implemented in source.** Chrome DevTools Protocol capture for authorized tabs, including DOM and network observations; site behavior and coverage vary. |
+| Local data centralization | **Foundation present.** Locally stored evidence, derived records, and emerging personal-world views; universal webapp ingestion is not verified. |
 | Saved conversations and world views | **Present in source.** Local views for saved material, projects, notes, find, transfer, relations and workspace are under active integration. |
 | Native conversation content and provenance | **Partially integrated.** Rich content and source/coverage handling exist; fidelity varies with what was actually observed. |
-| Explicit AI-provider interaction | **Harness capability present.** Live usage depends on authorization, the browser state and provider behavior. |
+| Webapp interaction | **Selective capability present.** Explicit browser actions and supported AI-provider flows exist; arbitrary websites do not automatically have working action recipes. |
 | Full first-run experience and durable end-to-end user journey | **Still being validated and completed.** This is not yet a polished consumer release. |
 | Multi-account support, whole-account history and automatic sync | **Not advertised as available.** Significant decisions and implementation work remain. |
 
@@ -95,11 +99,13 @@ node bin/studio.mjs help
 
 For setup details see the [full technical guide](docs/TECHNICAL-README.md), [live testing instructions](docs/LIVE-TEST.md), and [platform support notes](docs/PORTABILITY.md). A local start does **not** establish that your AI provider is connected or that a particular live workflow succeeds.
 
-## Your information, your choices
+## Centralized locally. Managed with care.
 
-VIVIM's current capture tooling stores evidence locally outside the Git repository, and does not implement a product cloud-sync or telemetry service by default. But **local-first does not mean entirely offline or automatically secure**: external AI providers still receive the network activity you direct to them.
+VIVIM is designed to **centralize the webapp information you choose on your own machine**, where it can be reviewed, organized and reused with source provenance. The current capture tooling stores evidence locally outside the Git repository and has no product cloud-sync or telemetry service by default. Its Studio server binds to localhost with an optional token access mode, and external browser actions require explicit scope.
 
-Raw captures can contain sensitive data, including authentication material observed in browser traffic. Keep local data folders and browser profiles private. VIVIM does not need your passwords entered into its own account records.
+**Secure management is a design objective, not a security certification.** Local-first does not mean completely offline, encrypted by default, or isolated from every threat: external webapps still process requests sent to them, and locally stored records need protection.
+
+Raw captures can contain sensitive data, including authentication material observed in browser traffic. Protect local data folders and browser profiles; consider filtered capture when appropriate. Dedicated Chrome profiles are useful separation, **not** operating-system security isolation. VIVIM does not need passwords entered into its own account records.
 
 [Read the local-first boundaries](docs/LOCAL-FIRST.md) · [Read first-user decisions](docs/product/FIRST-USER-ONBOARDING-DECISIONS-2026-10-27.md)
 
