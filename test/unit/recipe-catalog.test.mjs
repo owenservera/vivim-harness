@@ -14,7 +14,7 @@ test('recipe catalogue is distinct, versioned, transport-scoped and bound to exi
     assert.deepEqual(recipe.inputSchema, tool.inputSchema);
     assert.equal(recipe.version, 1);
     assert.equal(recipe.transport, 'studio-tool');
-    assert.equal(recipe.executionReady, false, 'V1 declarations are not an executor');
+    assert.equal(recipe.executionReady, true, 'V1 tools are bound to existing harness executor');
     assert.equal(recipe.maxUserCommands, 1);
     assert.equal(recipe.onUnknownEffect, 'halt-and-reconcile');
     if (tool.annotations.readOnlyHint) assert.deepEqual(recipe.effects, ['read']);
