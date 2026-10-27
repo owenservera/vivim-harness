@@ -115,6 +115,7 @@ define({
     out.emit(result, (o) => {
       o.result(`${result.site}  ${result.sessionId ?? '(not recorded)'}  ${fmtMs(result.ms)}  ${result.ok ? (verified === false ? 'unverified' : 'ok') : `failed: ${result.reason ?? first}`}`);
       o.result(`reply: ${reply ? truncate(reply, 120) : '(empty)'}`);
+      if (result.threadRef) o.line(`  thread    ${result.threadRef}`);
       if (check && !check.ok) o.line(`  check: ${check.reason}`);
       if (result.target?.url) o.line(`  tab ${result.target.url}`);
       for (const e of result.errors ?? []) if (e !== result.reason) o.line(`  note: ${e}`);

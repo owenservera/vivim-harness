@@ -1,57 +1,62 @@
-# VIVIM Harness — one native CLI reference for all agents
+# VIVIM Harness — native CLI reference
 
-**Start here, from repository root** (`C:\\0-BlackBoxProject-0\\vivim-harness` was last observed; check actual cwd). Requires Node >=22. Invoke **only** `node bin/studio.mjs` for the user-facing VIVIM product. No direct HTTP, CDP, shell automation, source reading or scripts *to complete a probe*. Developer agents may inspect source to repair a failure.
+Run from the repository root with Node >=22. Data root `C:\VIVIM`, Studio on port `38703`, dedicated Chrome CDP on `38702`, profile `C:\VIVIM\chrome-profile`.
 
-## 30-second orientation (choose the minimum commands needed)
+## Start and check
 ```powershell
 node bin/studio.mjs help
-node bin/studio.mjs agent capabilities --json
+node bin/studio.mjs doctor --port 38702 --json
+node bin/studio.mjs launch --data-dir C:\VIVIM --port 38702
 node bin/studio.mjs agent status --studio-port 38703 --json
+node bin/studio.mjs targets --port 38702 --json
 ```
-`38703` is last observed, **not guaranteed**. Do not silently substitute default `7878`, restart servers, or attach to unknown Chrome. A stale or missing server is a reportable blocker.
 
-## Command map — native CLI
+## Discover
 ```powershell
-# Discover without effect
 node bin/studio.mjs tools list --studio-port 38703 --json
 node bin/studio.mjs help tools call
 node bin/studio.mjs recipe list --json
 node bin/studio.mjs recipe choose --intent 'user objective' --json
 node bin/studio.mjs recipe show conversation.read --json
+```
 
-# Plan, execute or reconcile a supported recipe (substitute ID and input path)
-node bin/studio.mjs recipe plan conversation.read --input args.json --json
-node bin/studio.mjs recipe run conversation.read --input args.json --json
-node bin/studio.mjs recipe status RUN_ID --json
-node bin/studio.mjs recipe reconcile RUN_ID --json
-
-# Existing native tool bridge; names/schemas discovered via tools list/help
+## Read
+```powershell
 '{}' | node bin/studio.mjs tools call conversation_targets --input - --studio-port 38703 --json
 '{}' | node bin/studio.mjs tools call list_conversations --input - --studio-port 38703 --json
+'{"conversation":"<id>"}' | node bin/studio.mjs tools call get_conversation --input - --studio-port 38703 --json
+node bin/studio.mjs session list --json
+node bin/studio.mjs export transcript latest --json
 ```
-Use `help` and the tool/recipe manifest for exact current arguments. Not every recipe taxonomy family is executable. Pure read-only recipes need no send authorization. Effectful recipe runs require `--execute`; provider sends also require `--authorize-send` and a stable original `input.key`. The separate native `studio chat` path uses `--execute --accept-sends`. **Do not use these flags without explicit operator authorization.** The prompt objective alone is never such authorization.
 
-## Environment and identity
-| Field | Last observed / verification |
+## Effectful
+```powershell
+node bin/studio.mjs chat chatgpt --prompt "..." --execute --accept-sends
+node bin/studio.mjs drive chatgpt --prompt "..." --json
+'{"conversation":"<id>","key":"<stable-key>","prompt":"...","confirm":true,"expectedRevision":<n>}' | node bin/studio.mjs tools call submit_conversation_turn --input - --studio-port 38703 --json
+node bin/studio.mjs recipe run conversation.ask --input args.json --json --execute --authorize-send
+node bin/studio.mjs recipe reconcile RUN_ID --json
+```
+The flags are the switch: `--execute` performs the action, `--accept-sends` / `--authorize-send` allow the provider send. Reuse the same `key` to re-check an outcome; a new key is a new send.
+
+## Environment facts
+| Field | Value |
 |---|---|
-| Source checkout | `C:\\0-BlackBoxProject-0\\vivim-harness`; check actual working directory |
-| Private local data root | `C:\\VIVIM`; compare active Studio `agent status` |
-| Derived dedicated Chrome profile | `C:\\VIVIM\\chrome-profile`; existence/path alone does **not** prove browser identity |
-| Studio HTTP port | `38703`; discover actual running owner, never spawn a competing one |
-| Chrome CDP port | `38702`; only existing Studio owner uses it |
-| Browser identity | Verify correct origin/account/tab/thread and readiness; `agent status` alone does not prove profile/account binding |
+| Source checkout | `C:\\0-BlackBoxProject-0\\vivim-harness` |
+| Data root | `C:\VIVIM` |
+| Chrome profile | `C:\VIVIM\chrome-profile` |
+| Studio port | `38703` |
+| CDP port | `38702` |
 
-`profiles/chatgpt.json` is a *site capture profile*, not the signed-in Chrome user-data directory. User's ordinary Chrome is off limits. If server owner or profile binding cannot be verified with native CLI, classify `STALE_RUNTIME_OR_CLI_GAP`; do not bypass the CLI. Do not print private transcript fields unless operator explicitly requests them.
+`profiles/chatgpt.json` is a site capture profile, not a Chrome user-data directory. The browser identity check compares the CDP endpoint with the expected profile; a plain reachable port is not enough.
 
-## Probe rule (one objective, one result)
-Assigned objective from `docs/agents/CHATGPT-100-OBJECTIVES.md` → native CLI discovery → actual webapp outcome → short receipt. Distinguish `PASS / PARTIAL / BLOCKED / UNSUPPORTED / FEATURE_UNAVAILABLE / NOT_TESTED`. Include command count, wall time, actual observed effect, privacy-safe evidence, exact friction. **More than 3 user commands is a UX defect.** Never rescue failure with a custom script or pre-read implementation source. Read-only tasks can be parallel; **effects serialize on one owner**, with exact durable identity and no blind retries.
+## Scenarios
+Run `docs/agents/CHATGPT-100-OBJECTIVES.md` in order through this CLI. Per objective record: status, commands used, observed outcome, elapsed time, friction.
 
-## Developer verification (not probe commands)
+## Checks
 ```powershell
 git status --short --branch
-git rev-parse HEAD
 node scripts/architecture-inventory.mjs --check
-npm test
+bun run test
 node bin/studio.mjs selftest
 ```
-Use focused Node tests before full gate when editing. Windows is the local master; GitHub push is not evidence of executing on this PC. Escalate only the concrete blockage. Additional old command references are historical; this file and **live CLI help** are the operational source of truth.

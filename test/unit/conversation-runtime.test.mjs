@@ -919,3 +919,47 @@ test('§11.3 guard exception is narrow: only the pending adopted prefix may bind
   assert.equal(bound.prefix.state, 'active');
   assert.equal(bound.identity.state, 'bound');
 });
+
+// A legacy one-turn snapshot keeps its uncertainty for its own record, but it cannot fence a
+// thread it never identified. Without a recorded thread ref the old attempt is unattributable,
+// so blocking every ChatGPT connect forever is a dead end with no reconciliation path.
+test('legacy attempt with no recorded thread does not fence an unrelated thread', async (t) => {
+  const f = fixture(t);
+  const dir = path.join(f.paths.root, 'conversations');
+  fs.mkdirSync(dir, { recursive: true });
+  const legacyId = '00000000-0000-4000-8000-00000000dead';
+  const legacy = {
+    id: legacyId, state: 'closed', revision: 3,
+    identity: { state: 'unbound', reason: 'NEW_CHAT' },
+    binding: { targetId: 'gone', origin: 'https://chatgpt.com', ownedByStudio: true },
+    attempts: [{ id: '00000000-0000-4000-8000-000000000001', phase: 'uncertain', journal: false,
+      typingStartedAt: '2026-10-27T14:08:02.979Z', send: { state: 'uncertain' }, reply: { state: 'unknown' } }],
+  };
+  const file = path.join(dir, `${legacyId}.conversation.json`);
+  fs.writeFileSync(file, JSON.stringify(legacy));
+  const c = await f.connect();
+  assert.equal(c.binding.thread.ref, 'chatgpt-c:11111111-1111-4111-8111-111111111111');
+  assert.equal(c.identity.state, 'bound');
+  assert.equal(f.calls.includes('submit'), false);
+  const after = JSON.parse(fs.readFileSync(file, 'utf8'));
+  assert.equal(after.attempts[0].phase, 'uncertain', 'the stale record keeps its own uncertainty');
+});
+
+// The fence still applies where it can be attributed: the legacy attempt records this exact thread.
+test('legacy attempt bound to this thread still fences it', async (t) => {
+  const f = fixture(t);
+  const dir = path.join(f.paths.root, 'conversations');
+  fs.mkdirSync(dir, { recursive: true });
+  const legacyId = '00000000-0000-4000-8000-00000000beef';
+  const legacy = {
+    id: legacyId, state: 'needs-reconciliation', revision: 4,
+    identity: { state: 'bound', reason: null },
+    binding: { targetId: 'gone', origin: 'https://chatgpt.com', ownedByStudio: true,
+      thread: { kind: 'chatgpt-c', id: '11111111-1111-4111-8111-111111111111', ref: 'chatgpt-c:11111111-1111-4111-8111-111111111111' } },
+    attempts: [{ id: '00000000-0000-4000-8000-000000000002', phase: 'uncertain', journal: false,
+      typingStartedAt: '2026-10-27T14:08:02.979Z', send: { state: 'uncertain' }, reply: { state: 'unknown' } }],
+  };
+  fs.writeFileSync(path.join(dir, `${legacyId}.conversation.json`), JSON.stringify(legacy));
+  await assert.rejects(f.connect(), (e) => e.code === 'LEGACY_ATTEMPT_REQUIRES_RECONCILIATION');
+  assert.equal(f.calls.includes('submit'), false);
+});

@@ -153,15 +153,27 @@ export async function focusComposer(page, target = null) {
 
 async function composerText(page) {
   const r = await tryEval(page, String.raw`(() => { ${IN_PAGE}
-    const el = live(); if (!el) return '';
-    return el.tagName === 'TEXTAREA' || el.tagName === 'INPUT' ? String(el.value ?? '') : String(el.innerText ?? el.textContent ?? '');
+    const el = live() || document.querySelector('form div[contenteditable="true"]') || document.querySelector('textarea');
+    if (!el) return null;
+    const text = el.tagName === 'TEXTAREA' || el.tagName === 'INPUT' ? el.value : (el.innerText ?? el.textContent);
+    return typeof text === 'string' ? text : null;
   })()`);
-  return r.ok ? String(r.value ?? '') : '';
+  return r.ok && typeof r.value === 'string' ? r.value : null;
 }
 
 // Clear a composer that still holds a draft (select-all + Backspace as real key input).
+// A fresh tab paints the composer before the page can read its text, so an unreadable composer is
+// retried for a bounded window; persistent unreadability still fails closed before any typing.
+async function readableComposerText(page, { timeoutMs = 2500, pollMs = 150 } = {}) {
+  const deadline = Date.now() + timeoutMs;
+  let text = await composerText(page);
+  while (text === null && Date.now() < deadline) { await sleep(pollMs); text = await composerText(page); }
+  return text;
+}
+
 export async function clearComposer(page) {
-  const before = await composerText(page);
+  const before = await readableComposerText(page);
+  if (before === null) return { ok: false, cleared: false, reason: 'composer-unreadable' };
   if (!norm(before)) return { ok: true, cleared: false, before: '' };
   const ctrl = { modifiers: 2, windowsVirtualKeyCode: 65, nativeVirtualKeyCode: 65, key: 'a', code: 'KeyA' };
   await page.send('Input.dispatchKeyEvent', { type: 'keyDown', ...ctrl });
@@ -172,7 +184,9 @@ export async function clearComposer(page) {
   await page.send('Input.dispatchKeyEvent', { type: 'keyUp', ...bs });
   await sleep(250);
   const after = await composerText(page);
-  return { ok: !norm(after), cleared: true, before, after };
+  if (after === null) return { ok: false, cleared: null, reason: 'composer-unreadable' };
+  const cleared = !norm(after);
+  return { ok: cleared, cleared, before, after, ...(cleared ? {} : { reason: 'draft-not-cleared' }) };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -182,12 +196,12 @@ export async function clearComposer(page) {
 // used instead of setting value/textContent, because rich composers (ProseMirror, Lexical, Slate)
 // keep their own editor state: a DOM write shows text the app does not believe exists, so Enter
 // silently does nothing. The pacing itself lives in src/capture/human.mjs.
-export async function typeText(page, text, { human = true, pace = DEFAULT_PACE, beforeInsert } = {}) {
+export async function typeText(page, text, { human = true, pace = DEFAULT_PACE, beforeInsert, requireEmpty = false } = {}) {
   const s = String(text ?? '');
   if (!s) return { ok: false, typed: '', method: 'none' };
 
   const focus = await tryEval(page, String.raw`(() => { ${IN_PAGE}
-    let el = live();
+    let el = live() || document.querySelector('form div[contenteditable="true"]') || document.querySelector('div[contenteditable="true"]') || document.querySelector('textarea');
     if (!el) {
       const a = document.activeElement;
       if (a && (a.tagName === 'TEXTAREA' || a.tagName === 'INPUT' || a.isContentEditable || a.getAttribute('role') === 'textbox')) el = a;
@@ -200,6 +214,8 @@ export async function typeText(page, text, { human = true, pace = DEFAULT_PACE, 
   if (!focus.ok || !focus.value?.ok) return { ok: false, typed: '', method: 'none', reason: focus.ok ? 'no composer focused or remembered' : focus.error };
 
   const before = await composerText(page);
+  if (before === null) return { ok: false, typed: '', method: 'none', reason: 'composer-unreadable' };
+  if (requireEmpty && norm(before)) return { ok: false, typed: '', method: 'none', reason: 'draft-not-cleared' };
   const res = await humanType(page, s, { pace, human, beforeInsert });
   const after = res.typed ?? await composerText(page);
   return {
@@ -217,7 +233,7 @@ export async function typeText(page, text, { human = true, pace = DEFAULT_PACE, 
 
 // One click attempt. `dispatched` is true as soon as an input event was handed to the page, so a
 // later error means "attempted, outcome unknown" rather than "nothing happened".
-async function clickStoredOnce(page, globalName, { canDispatch } = {}) {
+async function clickStoredOnce(page, globalName, { canDispatch, beforeClick } = {}) {
   const box = await tryEval(page, String.raw`(() => { const el = globalThis.${globalName}; if (!el || !el.isConnected) return null;
     el.scrollIntoView({ block: 'center' }); const r = el.getBoundingClientRect();
     return { x: Math.round(r.x + r.width / 2), y: Math.round(r.y + r.height / 2), w: r.width }; })()`);
@@ -225,6 +241,9 @@ async function clickStoredOnce(page, globalName, { canDispatch } = {}) {
   if (!b || !(b.w > 1)) return { dispatched: false, error: box.ok ? 'control has no visible box' : box.error };
   let dispatched = false;
   let dispatchError = null;
+  if (beforeClick) {
+    try { await beforeClick(); } catch { return { dispatched: false, error: 'send button verification unavailable' }; }
+  }
   if (canDispatch && !canDispatch()) return { dispatched: false, error: 'SUBMISSION_STOPPED' };
   try {
     dispatched = true;
@@ -295,7 +314,7 @@ export async function findSendButton(page, adapter = null) {
 export async function sendMessage(page, adapter = null, deps = {}) {
   const d = {
     sendState, findSendButton, pressEnter, sleep,
-    clickSendButton: (p) => clickStoredOnce(p, '__aionSendBtn', { canDispatch: deps.canDispatch }),
+    clickSendButton: (p) => clickStoredOnce(p, '__aionSendBtn', { canDispatch: deps.canDispatch, beforeClick: deps.verifyDispatch }),
     observeWaits: SEND_OBSERVE_WAITS,
     ...deps,
   };
@@ -323,6 +342,7 @@ export async function sendMessage(page, adapter = null, deps = {}) {
   let dispatchError = null;
   // Final synchronous latch; button dispatch also rechecks after its asynchronous box lookup.
   if (d.beforeDispatch) await d.beforeDispatch();
+  if (method === 'enter' && d.verifyDispatch) await d.verifyDispatch();
   if (d.canDispatch && !d.canDispatch()) return notAttempted(method, 'SUBMISSION_STOPPED');
   try {
     if (method === 'enter') {
@@ -1156,19 +1176,41 @@ export async function driveSite({ adapter, prompt, port = 9222, dataDir, record 
       errors.push(`cookie banner handling failed: ${String(e?.message ?? e)}`);
     }
 
-    // Re-derive on the recording connection when the probe did not resolve one; the page-level
-    // selection survives, so this is normally a single fast lookup.
-    const found = composerFound ?? await findComposer(page, adapter);
+    // The composer must be located on the connection that will type: the probe holds its own
+    // execution context, so its element reference is not usable here.
+    // A fresh tab is not proof of a blank chat: the root URL can restore a recent or pinned
+    // conversation. Refuse before typing when the page is anything but an empty new chat.
+    if (freshTab) {
+      const home = await tryEval(page, `({ path: location.pathname, turns: document.querySelectorAll('[data-message-author-role]').length })`);
+      const path = home.ok ? home.value?.path : null;
+      const turns = home.ok ? Number(home.value?.turns ?? 0) : 0;
+      if (typeof path === 'string' && path && (path !== '/' || turns > 0)) {
+        result.reason = 'not-a-new-chat';
+        errors.push(`fresh tab is not a blank new chat (path ${path}, ${turns} rendered turn(s))`);
+        return;
+      }
+    }
+
+    // The probe's element handle lives in a different execution context. Locate the composer again
+    // on the page that will type, so live() and the later text checks see the same element.
+    const found = await waitForComposer(page, adapter, { timeoutMs: 20000 });
     emit({ type: 'composer', ...found });
     if (!found.found) { errors.push(found.reason ?? 'no composer found'); result.reason = 'no-composer'; return; }
 
-    const focus = await focusComposer(page, found);
+    // Focus also stores the element handle the rest of the run reads; a fresh tab can reject the
+    // first synthetic click while it finishes hydrating, so retry briefly before giving up.
+    let focus = await focusComposer(page, found);
+    for (let attempt = 0; !focus.ok && attempt < 4; attempt++) { await sleep(400); focus = await focusComposer(page, found); }
     emit({ type: 'focus', ...focus });
     if (!focus.ok) errors.push(`could not focus the composer (${focus.reason ?? focus.method ?? 'unknown'})`);
 
     const cleared = await clearComposer(page);
     emit({ type: 'clear', ...cleared });
-    if (!cleared.ok) errors.push('composer still holds a draft after select-all + Backspace');
+    if (!cleared.ok) {
+      result.reason = cleared.reason ?? 'draft-not-cleared';
+      errors.push(result.reason === 'composer-unreadable' ? 'composer unreadable while checking for drafts' : 'composer still holds a draft after select-all + Backspace');
+      return;
+    }
 
     // What the page says BEFORE the prompt is sent. The reply is only accepted when new content
     // has appeared since then, so a static greeting is never mistaken for an answer.
@@ -1186,18 +1228,40 @@ export async function driveSite({ adapter, prompt, port = 9222, dataDir, record 
         assistantTurns: t0.filter((x) => x?.role === 'assistant').length, sampledAt: new Date().toISOString() };
     } catch { result.baselineTurns = null; }
 
-    const typed = await typeText(page, result.prompt, { human: humanPace });
+    const typed = await typeText(page, result.prompt, { human: humanPace, requireEmpty: true });
     emit({ type: 'typed', ok: typed.ok, method: typed.method, chars: String(typed.typed ?? '').length, grewBy: typed.grewBy });
-    if (!typed.ok) { errors.push(`typing failed (${typed.method ?? 'unknown'}): ${typed.reason ?? ''}`.trim()); result.reason = 'type-failed'; return; }
+    if (!typed.ok) {
+      errors.push(`typing failed (${typed.method ?? 'unknown'}): ${typed.reason ?? ''}`.trim());
+      result.reason = ['composer-unreadable', 'draft-not-cleared'].includes(typed.reason) ? typed.reason : 'type-failed';
+      return;
+    }
 
     // A person looks at what they typed before pressing send.
     if (humanPace) await humanIdle(page, { pace: DEFAULT_PACE });
     else await sleep(150);
 
-    const sent = await sendMessage(page, adapter);
+    let promptError = null;
+    const sent = await sendMessage(page, adapter, {
+      verifyDispatch: async () => {
+        const actual = await readableComposerText(page);
+        promptError = actual === null ? 'composer-unreadable' : norm(actual) === norm(result.prompt) ? null : 'prompt-mismatch';
+      },
+      canDispatch: () => promptError === null,
+    });
+    if (promptError) {
+      result.reason = promptError;
+      errors.push(promptError === 'composer-unreadable' ? 'composer unreadable before submission' : 'composer text does not match the prompt');
+      return;
+    }
     if (sent.uncertain) result.uncertain = true;
     emit({ type: 'sent', ...sent });
-    if (!sent.ok) { errors.push(`send did not take (${sent.method})`); result.reason = 'send-failed'; return; }
+    if (!sent.ok) { errors.push(sent.dispatched ? `send did not take (${sent.method})` : `send not attempted (${sent.method})`); result.reason = 'send-failed'; return; }
+
+    // The thread a send just created must be identified now: without it the conversation cannot be
+    // continued and the captured page has no durable native identity.
+    const pathProbe = await tryEval(page, 'location.pathname');
+    const threadId = pathProbe.ok ? /^\/c\/([a-f0-9-]{36})$/.exec(String(pathProbe.value ?? ''))?.[1] : null;
+    if (threadId) result.threadRef = `chatgpt-c:${threadId}`;
 
     const wait = await waitForCompletion(page, adapter, { timeoutMs, baseline, baseCount, exclude: [result.prompt] });
     emit({ type: 'completion', done: wait.done, failed: !!wait.failed, ms: wait.ms, reason: wait.reason });

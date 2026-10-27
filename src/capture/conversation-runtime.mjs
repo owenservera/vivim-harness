@@ -602,10 +602,21 @@ export function createConversationRuntime({ paths, profileStore, familyStore, po
         }
       }
       // Historic one-turn snapshots without durable thread admission cannot be bypassed by a new record.
+      // The fence needs attribution: the thread recorded in the snapshot, or the thread named by the
+      // capture session it points at. An attempt with neither names no thread and has no journal to
+      // reconcile against, so it must not lock every thread on the origin forever.
+      const priorThreadRef = (prior) => {
+        if (prior.binding?.thread?.ref) return prior.binding.thread.ref;
+        if (!validId(prior.sessionId)) return null;
+        try {
+          const url = JSON.parse(readFileSync(path.join(paths.sessions, prior.sessionId, 'session.json'), 'utf8'))?.target?.url;
+          return typeof url === 'string' ? parseThread('chatgpt', url)?.ref ?? null : null;
+        } catch { return null; }
+      };
       if (thread) for (const priorId of ids()) {
         let prior; try { prior = JSON.parse(readFileSync(path.join(directory, `${priorId}.conversation.json`), 'utf8')); }
         catch { throw fail(409, 'CORRUPT_OR_UNREADABLE_SNAPSHOT'); }
-        if (prior.binding?.origin === origin && (!prior.binding.thread || prior.binding.thread.ref === thread.ref)
+        if (prior.binding?.origin === origin && priorThreadRef(prior) === thread.ref
           && prior.attempts?.some((a) => !a.journal && (a.phase !== 'blocked' || a.typingStartedAt))) throw fail(409, 'LEGACY_ATTEMPT_REQUIRES_RECONCILIATION');
         if (prior.binding?.origin === origin && prior.binding.thread?.ref === thread.ref && prior.attempts?.some((a) => a.journal)) peek(priorId).service.read();
       }
