@@ -21,7 +21,7 @@ Read root `AGENTS.md` and `docs/agents/integration-coordinator.md` first. You ow
 - Never force-push, reset --hard, clean, rebase published history, delete branches, or amend commits you did not just make.
 - Never stage or commit: `PROMPT.md`, `clone-tmp/`, `.env*`, tokens, profiles, captures, `*.bak`, or anything under a sessions or data directory. If one appears in the staged set, unstage it and report.
 - Before committing, scan the staged diff (`git diff --cached`) for credentials, cookies, bearer tokens, absolute private paths, and captured transcripts. Stop and report on any hit.
-- Run `git diff --check` and `bun run scripts/architecture-inventory.mjs --check` before commit. Run the focused test list the coordinator supplies via `bun exec "node --test <files>"`. If anything fails, do not commit.
+- Run `git diff --check` and `bun run scripts/architecture-inventory.mjs --check` before commit. **Do not run tests before committing or pushing**, even when a coordinator prompt lists them. Leave tests for a separate follow-up and record them as not run; a whitespace or architecture-inventory failure still blocks the commit.
 - LF/CRLF warnings are noise; whitespace errors are not.
 - Do not claim a push, merge, or CI result without the command output that proves it. A GitHub `startup_failure` is not a pass.
 - Make small commits grouped by concern (backend, search, UI, docs/tracking) rather than one blob, when the coordinator provides the grouping.
