@@ -1,29 +1,18 @@
-# VIVIM Harness — OpenCode entrypoint
+# VIVIM Harness — start here
 
-You are in the **runnable product repo**, not AION's legacy Capture Studio. Start doing the assigned job immediately. Do not run a bootstrap ceremony, read every document, regenerate a plan, or launch agents without a concrete independent objective.
+This repository is the runnable VIVIM product. **Do the assigned work now**; no repository-wide ceremony, fresh status documents, or redundant agent launches.
 
-## Context feeder (three authoritative surfaces)
-1. This file is the automatic root policy. **Read `context.md`** for actual native CLI commands and current runtime discovery.
-2. **Read `docs/agents/OPENCODE-V2.md`** only when operating OpenCode sessions, delegation, models or subagent coordination. The coordinator loads it once before delegation.
-3. For a real-user ChatGPT probe, dispatch `@chatgpt-probe` with ONE objective number from `docs/agents/CHATGPT-100-OBJECTIVES.md`. That subagent reads `context.md` plus its assigned catalog entry. Do **not** give it implementation source, recipe internals or scripted steps.
-These are the only required startup context files. Other docs are task-specific, not automatic homework. OpenCode v2 discovers root AGENTS.md automatically; merely linking a file here does not automatically inject its content into every child agent.
+OpenCode v2 automatically loads this file. Project `opencode.json` automatically loads **`context.md`** as the single shared native CLI command and runtime helper. Do not read it again unless the active instructions are missing or the specific task requires more detail.
 
-## Immediate action
-- **Probe requested:** coordinator selects distinct objectives, assigns one to each `@chatgpt-probe`, collects measured outcomes; developer fixes exposed CLI gaps *after* the independent probe. Multiple read-only probes may run, but serialize all effects on the single browser/Studio owner; no parallel Chrome drivers.
-- **Fix requested:** inspect only implicated source and latest diff, implement smallest correct change on `main`, run focused tests and relevant gate, commit/push with real receipts. No feature branches by default. Preserve unrelated dirty work.
-- **SITREP requested:** report current commit, actual test/effect evidence, blockers and next step; avoid broad archaeology and document churn.
-- **Blocked:** report the exact missing native capability or authorization. Do not manufacture an alternative browser client or a test script.
+## Dispatch
+- **100-objective probe:** assign one distinct objective from `docs/agents/CHATGPT-100-OBJECTIVES.md` to `@chatgpt-probe`. Probe sees the shared CLI helper and its *assigned* objective, not internal source or scripted solutions. Parallel read-only probes are fine; serialize browser mutations through the one existing Studio owner.
+- **Bug / implementation:** use the smallest relevant code surface; implement and verify, then commit/push on `main` where possible. `@local-opencode` handles focused local debugging. Developer may inspect source, probe may not.
+- **OpenCode orchestration or model configuration:** read `docs/agents/OPENCODE-V2.md` once per coordinator task. Do not make every probe reread it.
+- **SITREP:** fresh remote/local evidence, exact SHA, tests, blocker and next action; no status theater.
 
-## Product and safety invariants
-- One Studio server/browser-effect owner, one authoritative journal/store, dedicated Chrome profile. **No Playwright/Puppeteer, secondary CDP controller, scripted 100-case runner or provider API substitute.**
-- Browser reads are not send permissions. Navigation, sends, uploads, deletes and other effects require operator scope; unknown outcomes reconcile under the *original* key, never blind resend.
-- Local Windows machine is human master. Never reset/discard data, kill active Chrome, touch credentials, install services or claim live/local verification without proof. Keep private sessions/logs/tokens outside Git.
-- Real browser results are different from mocks, HTTP success and authored tests. Supported user tasks should require no more than **three native CLI commands**, preferably one.
-- Small, concrete work; no status theater, duplicate registries, unnecessary subagents, Slack, or speculative rearchitecture.
+## Hard constraints
+One Studio browser-effect owner, dedicated Chrome profile, single journal and store. No Playwright, Puppeteer, secondary CDP actor, provider API bypass or scripted `live-100` runner. Read-only discovery is not authorization to send, navigate, upload, edit, share or delete; reconcile ambiguous effects under original operation IDs and never blindly resend. Preserve Chrome, private data, login sessions, user files and local dirty work. Local Windows PC is the human/master; a GitHub commit is not local/browser proof. No Slack.
 
-## Roles and pointers
-- `.opencode/agents/chatgpt-probe.md`: CLI-only unfamiliar-user evaluator.
-- `.opencode/agents/local-opencode.md`: focused local implementation and runtime fixes.
-- `.opencode/agents/chatgpt-aion.md`: remote GitHub and refactoring.
-- Source: `bin/studio.mjs`, `src/studio`, `src/capture`, `src/recipes`; architecture inventory: `node scripts/architecture-inventory.mjs --check`.
-- Permanent code simplification owner: `.opencode/agents/chatgpt-aion.md`; short evidence ledger: `docs/architecture/AGENT-CODE-SIMPLIFICATION-LEDGER.md`.
+Aim for **one native user command, maximum three**. Tests, source presence and HTTP replies are not authenticated live-user acceptance. Use focused tests then appropriate full gate; report actual results only.
+
+Existing roles: `.opencode/agents/chatgpt-probe.md`, `.opencode/agents/local-opencode.md`, `.opencode/agents/chatgpt-aion.md`. Product CLI: `bin/studio.mjs`. Refactoring ledger: `docs/architecture/AGENT-CODE-SIMPLIFICATION-LEDGER.md`. Load other documentation only when the task needs it.
