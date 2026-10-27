@@ -12,6 +12,10 @@ const norm = (s) => String(s ?? '').replace(/\s+/g, ' ').trim();
 const problem = (code) => Object.assign(new Error(code), { code, status: 409 });
 const digest = (text) => createHash('sha256').update(text, 'utf8').digest('hex');
 export const readTurnPage = (page, adapter) => evaluate(page, turnObservationExpression(adapter));
+// Read-only observed-prefix page read: one evaluation, same shaper, reports the positive-idle
+// controls alongside the transcript so idle and empty composer describe the same instant.
+export const readPrefixPage = (page, adapter) => evaluate(page, transcriptExpression({ composerSelectors: adapter?.composer?.selectors ?? [],
+  streamingSelectors: adapter?.assistant?.streamingSelectors ?? [], sendSelectors: adapter?.send?.buttonSelectors ?? [] }));
 
 // Pre-send per-turn cursor: what already exists on the page (count, role split, ordered ids, content
 // digest) and the prior stream cursor (raw-log sequence). Metadata only; never message bodies.
@@ -47,7 +51,7 @@ export function createConversationBrowserAdapter({ paths, profileStore, familySt
   // hundred ms later. This only lengthens OBSERVATION; it never sends, retries or grants acceptance.
   const d = { listTargets, listSessions, Recorder, CdpConnection, browserWsUrl, fetch: globalThis.fetch, evaluate, findComposer, focusComposer,
     typeText, sendMessage, sendState, readTranscript, waitForCompletion, readUserTurns, detectAuthWall, detectSiteFailure,
-    readTurnPage, sleep, now: () => Date.now(), replyPollMs: 250, replyTimeoutMs: 120000, replySettleMs: 2000, replySettlePolls: 2,
+    readTurnPage, readPrefixPage, sleep, now: () => Date.now(), replyPollMs: 250, replyTimeoutMs: 120000, replySettleMs: 2000, replySettlePolls: 2,
     readinessTimeoutMs: 20000, readinessPollMs: 200, checkAgainTimeoutMs: 3000, fetchTimeoutMs: 10000, connectGraceMs: 2000, ...dependencies };
   let recorder, binding, pending, stopResult, tap, idlePage, idleConn, connectHooks;
   const attempts = new Map();
@@ -224,7 +228,7 @@ export function createConversationBrowserAdapter({ paths, profileStore, familySt
     // An empty rich-text (ProseMirror) composer reports a lone trailing line break, not ''.
     const trailing = (t) => String(t).replace(/\r\n/g, '\n').replace(/\n$/, '');
     if (typeof page.draft?.text !== 'string' || trailing(page.draft.text) !== (empty ? '' : trailing(saved.prompt))) throw problem('COMPOSER_READBACK_MISMATCH');
-    if (!empty && !samePrefix(page, saved)) throw problem('TURN_BOUNDARY_CHANGED');
+    if (page.messages.length !== saved.baseline.length || !samePrefix(page, saved)) throw problem('TURN_BOUNDARY_CHANGED');
     if (submissionStopped) throw problem('SUBMISSION_STOPPED');
     beforeEffect?.(page); // Fresh persisted thread+reply fence check is LAST, after asynchronous page inspection.
   }
@@ -320,6 +324,38 @@ export function createConversationBrowserAdapter({ paths, profileStore, familySt
     get active() { return recorder?.state === 'recording' || recorder?.state === 'stopping'; },
     get limitReason() { return recorder?._quotaHit ? 'byte-budget' : null; },
     get bytesWritten() { return recorder?.session?.raw?.stats?.bytes ?? 0; },
+    // An exact-target idle attachment; never starts capture or drives the page.
+    async readPrefixEvidence({ targetId: requested, origin, expectedThread }) {
+      const targetCheck = async () => {
+        let targets;
+        try { targets = await d.listTargets({ port }); } catch { throw problem('PREFIX_TARGET_NOT_FOUND'); }
+        if (!Array.isArray(targets)) throw problem('PREFIX_TARGET_NOT_FOUND');
+        const selected = targets.filter((t) => t.id === requested);
+        if (selected.length !== 1) throw problem('PREFIX_TARGET_NOT_FOUND');
+        const target = selected[0];
+        if (target.type !== 'page') throw problem('PREFIX_TARGET_NOT_PAGE');
+        let url; try { url = new URL(target.url); } catch { throw problem('PREFIX_TARGET_ORIGIN_MISMATCH'); }
+        if (!['https://chatgpt.com', 'https://chat.openai.com'].includes(url.origin) || url.origin !== origin) throw problem('PREFIX_TARGET_ORIGIN_MISMATCH');
+        const thread = parseThread(siteAdapter.id, target.url);
+        if (!thread) throw problem('PREFIX_TARGET_URL_UNSUPPORTED');
+        if (thread.ref !== expectedThread || url.search || url.hash || url.username || url.password) throw problem('PREFIX_THREAD_ID_MISMATCH');
+        if (targets.filter((t) => t.type === 'page' && parseThread(siteAdapter.id, t.url)?.ref === thread.ref).length !== 1) throw problem('PREFIX_TARGET_AMBIGUOUS');
+        if (d.listSessions(paths.sessions).some((s) => s.target?.id === requested && ['recording', 'stopping'].includes(s.status))) throw problem('TARGET_RECORDER_BUSY');
+        return thread;
+      };
+      return bounded(async () => {
+        const thread = await targetCheck();
+        let result;
+        try { result = await d.readPrefixPage(await openIdlePage(requested), siteAdapter); } catch { throw problem('PREFIX_PAGE_UNREADABLE'); }
+        if (!result || !Array.isArray(result.messages)) throw problem('PREFIX_PAGE_UNREADABLE');
+        if (result.origin !== origin || parseThread(siteAdapter.id, `${result.origin}${result.pathname}`)?.ref !== thread.ref
+          || result.pathname !== `/c/${thread.id}` && result.pathname !== `/c/${thread.id}/`) throw problem('PREFIX_PAGE_THREAD_MISMATCH');
+        try { await targetCheck(); } catch (e) { if (e.code === 'TARGET_RECORDER_BUSY') throw e; throw problem('PREFIX_TARGET_CHANGED'); }
+        return { ...result, targetId: requested, thread };
+      }, d.fetchTimeoutMs, 'PREFIX_PAGE_UNREADABLE');
+    },
+    // Detach only our own observation client, never close a tab.
+    async closePrefixReader() { idleConn?.close(); idleConn = null; idlePage = null; },
     // Total connect time is bounded by readinessTimeoutMs + a small grace. A hung step fails closed
     // with CONNECT_TIMEOUT; whatever it creates late is cleaned up by the continuation itself.
     async connect(initial, hooks) {
@@ -354,7 +390,7 @@ export function createConversationBrowserAdapter({ paths, profileStore, familySt
         return { userTurns: count('user'), assistantTurns: count('assistant'), sampledAt: new Date().toISOString() };
       } catch { return null; }
     },
-    async preflight(_, { priorTurns = [], readOnly = false } = {}) {
+    async preflight(_, { priorTurns = [], readOnly = false, prefix = null } = {}) {
       // Read-only "Check again" with no armed capture (deferred first turn, or between turns): inspect the
       // idle page only. No recorder is armed, nothing is typed or sent, and no turn baseline is taken.
       if (readOnly && !recorder?.page) {
@@ -413,9 +449,14 @@ export function createConversationBrowserAdapter({ paths, profileStore, familySt
       }
       const boundary = { sessionId: recorder.session.id, sequence: recorder.session.raw.seq, transcriptCount: page.messages.length };
       pending = { baseline: structuredClone(page.messages), boundary };
+      const user = page.messages[0], assistant = page.messages[1];
+      const prefixAudit = prefix ? (!user || user.role !== 'user' || user.id !== prefix.userMessageId || digest(user.text) !== prefix.userMessageDigest
+        ? { ok: false, reason: 'PREFIX_USER_MESSAGE_MISSING' }
+        : !assistant || assistant.role !== 'assistant' || assistant.id !== prefix.assistantMessageId || digest(assistant.text) !== prefix.assistantDigest || assistant.text.length !== prefix.assistantChars
+          ? { ok: false, reason: 'PREFIX_REPLY_CHANGED' } : { ok: true, reason: null }) : undefined;
       return { binding: { ...binding }, draft: { present: page.draft?.chars > 0, chars: page.draft?.chars }, boundary,
         controls: page.controls, priorReplies, ready: idleControls(page.controls) && !priorReplies.length,
-        baseline: await this.sampleTurnBaseline(), cursor: turnCursor(page.messages, boundary.sequence) };
+        baseline: await this.sampleTurnBaseline(), cursor: turnCursor(page.messages, boundary.sequence), ...(prefix ? { prefixAudit } : {}) };
     },
     async type({ prompt, turnId, beforeEffect }) {
       await check();

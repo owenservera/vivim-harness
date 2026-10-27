@@ -27,6 +27,7 @@ import path from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
 import { sameThread, validThread, validIdentity } from './conversation-thread.mjs';
 import { createThreadTurnJournal } from './thread-turn-journal.mjs';
+import { validPrefixRecord, prefixDescriptor } from './conversation-prefix.mjs';
 
 const now = () => new Date().toISOString();
 const error = (code) => Object.assign(new Error(code), { code });
@@ -72,6 +73,8 @@ function validSnapshot(s, id) {
     try { const url = new URL(s.binding.origin); if (url.origin !== s.binding.origin || url.protocol !== 'https:') return false; } catch { return false; }
   }
   if (s.state !== 'disconnected' && !s.binding) return false;
+  // Observed-prefix recovery is additive: absent means an ordinary snapshot, present must be exact.
+  if (s.prefix !== undefined && !validPrefixRecord(s.prefix)) return false;
   // Old saved snapshots may contain several attempts from earlier releases; never promote multiple observed sends.
   if (s.attempts.filter((a) => a?.send?.state === 'observed').length > 1 && s.attempts.some((a) => a.journal?.id !== a.id)) return false;
   return s.attempts.every((a) => typeof a.key === 'string' && a.key.length > 0 && typeof a.id === 'string'
@@ -81,6 +84,9 @@ function validSnapshot(s, id) {
     && (a.boundary === null || Number.isSafeInteger(a.boundary?.sequence) && a.boundary.sequence >= 0 && Number.isSafeInteger(a.boundary?.transcriptCount) && a.boundary.transcriptCount >= 0));
 }
 
+// Additive export for the observed-prefix adoption path (O1 uses the same field validation as load).
+export const validConversationSnapshot = validSnapshot;
+
 export function createConversationService({ dataDir, id = randomUUID(), adapter, io = fs, context = {}, recover = true } = {}) {
   if (!/^[a-z0-9][a-z0-9_-]{0,127}$/i.test(id)) throw error('INVALID_CONVERSATION_ID');
   if (!adapter) throw error('ADAPTER_REQUIRED');
@@ -88,6 +94,9 @@ export function createConversationService({ dataDir, id = randomUUID(), adapter,
   let snapshot, existed = false;
   try { const raw = io.readFileSync(file, 'utf8'); existed = true; snapshot = JSON.parse(raw); }
   catch (e) { if (e.code !== 'ENOENT') throw error('CORRUPT_OR_UNREADABLE_SNAPSHOT'); }
+  // A prefix that parses but cannot be validated is its own refusal: the caller must never confuse
+  // a corrupt adoption with an ordinary corrupt snapshot (or, worse, trust it).
+  if (existed && snapshot?.prefix !== undefined && !validPrefixRecord(snapshot.prefix)) throw error('PREFIX_CORRUPT_OR_UNREADABLE_SNAPSHOT');
   if (existed && !validSnapshot(snapshot, id)) throw error('CORRUPT_OR_UNREADABLE_SNAPSHOT');
   // JSON null is existing corrupt state, not a missing file.
   if (snapshot === null) throw error('CORRUPT_OR_UNREADABLE_SNAPSHOT');
@@ -424,6 +433,10 @@ export function createConversationService({ dataDir, id = randomUUID(), adapter,
         writable();
         revision(expectedRevision);
         if (confirm !== true) throw error('CONFIRM_REQUIRED');
+        // Observed-prefix gate: only an adopted, still-valid prefix may continue. Refuse before the
+        // writer window opens, so a refusal costs no lease and no browser work.
+        if (snapshot.prefix && snapshot.prefix.state === 'invalidated') throw error('PREFIX_INVALIDATED');
+        if (snapshot.prefix && snapshot.prefix.state !== 'active') throw error('PREFIX_NOT_ACTIVE');
         // Short foreground writer window: opened before any browser-facing work of this turn and
         // held until its delivery is observed, the turn proves no effect, or — for unresolved
         // outcomes (unknown delivery, partial draft) — until reconcile/finish resolves it.
@@ -470,7 +483,8 @@ export function createConversationService({ dataDir, id = randomUUID(), adapter,
         };
         if (stopped()) return view().attempts.find((a) => a.id === attempt.id);
         let preflight;
-        try { preflight = await adapter.preflight(structuredClone(snapshot.binding), { priorTurns: threadJournal().read().turns.filter((a) => a.id !== attempt.id) }); }
+        try { preflight = await adapter.preflight(structuredClone(snapshot.binding), { priorTurns: threadJournal().read().turns.filter((a) => a.id !== attempt.id),
+          ...(snapshot.prefix ? { prefix: prefixDescriptor(snapshot.prefix) } : {}) }); }
         catch (e) {
           invalidatePrior(e.invalidatedTurnIds);
           applyPriorReplies(e.priorReplies); blockPreEffect(attempt);
@@ -479,6 +493,26 @@ export function createConversationService({ dataDir, id = randomUUID(), adapter,
           snapshot.state = 'blocked'; updateAttempt(attempt, 'blocked', 'not-attempted'); save(); throw error('PREFLIGHT_FAILED');
         }
         applyPriorReplies(preflight?.priorReplies);
+        // §11.2: the adopted turn 1 must still be exactly the observed prefix, proven inside the same
+        // page read the preflight just made. Missing proof never dispatches; changed proof also kills
+        // the prefix, because a human must re-bind rather than Studio guessing a new baseline.
+        if (snapshot.prefix) {
+          const audit = preflight?.prefixAudit;
+          if (!audit) {
+            attempt.reason = 'PREFIX_AUDIT_REQUIRED';
+            snapshot.readiness = { ready: false, draft: { present: null, chars: null }, reason: attempt.reason };
+            blockPreEffect(attempt); snapshot.state = 'blocked'; updateAttempt(attempt, 'blocked', 'not-attempted'); save();
+            throw error('PREFIX_AUDIT_REQUIRED');
+          }
+          if (audit.ok !== true) {
+            const reason = /^PREFIX_[A-Z0-9_]{1,70}$/.test(audit.reason ?? '') ? audit.reason : 'PREFIX_REPLY_CHANGED';
+            snapshot.prefix = { ...snapshot.prefix, state: 'invalidated', reason, invalidatedAt: now(), adoptedAt: snapshot.prefix.adoptedAt ?? null };
+            attempt.reason = reason;
+            snapshot.readiness = { ready: false, draft: { present: null, chars: null }, reason };
+            blockPreEffect(attempt); snapshot.state = 'blocked'; updateAttempt(attempt, 'blocked', 'not-attempted'); save();
+            throw Object.assign(error('PREFIX_AUDIT_FAILED'), { reason });
+          }
+        }
         snapshot.readiness = { ready: preflight?.draft?.present === false && preflight?.draft?.chars === 0,
           draft: { present: preflight?.draft?.present ?? null, chars: preflight?.draft?.chars ?? null }, reason: null };
         if (preflight?.ready === false || !exactBinding(snapshot.binding, preflight?.binding) || preflight?.draft?.present !== false || preflight?.draft?.chars !== 0
@@ -608,6 +642,46 @@ export function createConversationService({ dataDir, id = randomUUID(), adapter,
     },
     recordCapture(capture) {
       return serial(() => { snapshot.capture = { ...snapshot.capture, ...capture }; save(); return view(); });
+    },
+    // §10.2 step 3: write the complete adoption record in an explicitly non-sendable state. This is
+    // the only write a bind performs; activation needs a fresh page re-read in the same call.
+    stagePrefix(prefix) {
+      return serial(() => {
+        if (!validPrefixRecord(prefix) || prefix.state !== 'pending') throw error('PREFIX_PENDING_UNRESOLVED');
+        if (snapshot.prefix) throw error('PREFIX_PENDING_UNRESOLVED');
+        if (snapshot.state !== 'disconnected' || snapshot.binding) throw error('ALREADY_CONNECTED');
+        snapshot.prefix = structuredClone(prefix); save(); return view();
+      });
+    },
+    claimPrefixOwner(owner) {
+      return serial(() => {
+        if (snapshot.prefix?.state !== 'pending' || snapshot.state !== 'disconnected' || snapshot.binding || snapshot.finish.requested) throw error('PREFIX_PENDING_UNRESOLVED');
+        snapshot.owner = structuredClone(owner); save(); return view();
+      });
+    },
+    // §10.2 step 5 / §10.3: pending -> active only with the matching identity and the re-read evidence.
+    activatePrefix({ prefixId: expectedId, reads } = {}) {
+      return serial(() => {
+        const p = snapshot.prefix;
+        if (!p) throw error('PREFIX_NOT_ACTIVE');
+        if (p.state === 'invalidated') throw error('PREFIX_INVALIDATED');
+        if (p.state !== 'pending' || p.prefixId !== expectedId) throw error('PREFIX_PENDING_UNRESOLVED');
+        if (!Array.isArray(reads) || reads.length < 2) throw error('PREFIX_PENDING_UNRESOLVED');
+        const next = { ...p, state: 'active', adoptedAt: now(), reads: reads.slice(-4) };
+        if (!validPrefixRecord(next)) throw error('PREFIX_PENDING_UNRESOLVED');
+        snapshot.prefix = next; save(); return view();
+      });
+    },
+    // §11.2: a failed continuation audit kills the prefix until a human re-binds.
+    invalidatePrefix(reason) {
+      return serial(() => {
+        const p = snapshot.prefix;
+        if (!p || p.state === 'invalidated') return view();
+        const next = { ...p, state: 'invalidated', adoptedAt: p.adoptedAt ?? null,
+          reason: /^[A-Z][A-Z0-9_]{0,79}$/.test(reason ?? '') ? reason : 'PREFIX_INVALIDATED', invalidatedAt: now() };
+        if (!validPrefixRecord(next)) throw error('PREFIX_INVALIDATED');
+        snapshot.prefix = next; save(); return view();
+      });
     },
     finish({ closeTab = false } = {}) {
       submissionStopped = true;

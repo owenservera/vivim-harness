@@ -899,3 +899,23 @@ test('runtime chatIndex uses accepted reader with its own exact read-only sessio
   await f.runtime.close();
   await assert.rejects(f.runtime.chatIndex({ targetId: 'index-tab' }), (e) => e.code === 'RUNTIME_CLOSED');
 });
+
+test('§11.3 guard exception is narrow: only the pending adopted prefix may bind that thread', async (t) => {
+  const { workspace, PROMPT, sha } = await import('./conversation-prefix-fixture.mjs');
+  const f = workspace(t);
+  const thread = `chatgpt-c:${(await import('./conversation-prefix-fixture.mjs')).THREAD}`;
+  const connectBody = (extra = {}) => ({ site: 'chatgpt', targetId: 'tab-1', expectedThread: thread, ...extra });
+  // Without prefixSource the source conversation's journal-less attempt still fences the thread.
+  await assert.rejects(f.runtime.connect(connectBody()), (e) => e.code === 'LEGACY_ATTEMPT_REQUIRES_RECONCILIATION');
+  const pending = await f.bind();
+  // A pending record alone does not widen the exception to a caller that does not name it.
+  await assert.rejects(f.runtime.connect(connectBody()), (e) => e.code === 'LEGACY_ATTEMPT_REQUIRES_RECONCILIATION');
+  // A forged prefixSource (unknown attempt) does not qualify either.
+  await assert.rejects(f.runtime.connect(connectBody({ prefixSource: { conversationId: f.conversationId,
+    attemptId: '00000000-0000-4000-8000-00000000000b', payloadDigest: sha(PROMPT) } })), (e) => e.code === 'LEGACY_ATTEMPT_REQUIRES_RECONCILIATION');
+  // The exact source+attempt+digest+thread does, and only for the adopted conversation id.
+  const bound = await f.connect();
+  assert.equal(bound.id, pending.id);
+  assert.equal(bound.prefix.state, 'active');
+  assert.equal(bound.identity.state, 'bound');
+});

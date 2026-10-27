@@ -73,11 +73,14 @@ export function turnObservationExpression(adapter = {}) {
 }
 
 // In-page reader. Pure observation: it never focuses, scrolls, clicks, types, navigates or writes a
-// property. Draft handling reports presence and length only, never the draft text.
+// property. Draft handling reports presence and length only, never the draft text. `controls` is the
+// same positive-idle proof the turn reader uses, so an observed-prefix read can refuse a spinner
+// instead of inferring completion from a missing one.
 export function transcriptExpression({ userSelectors = TRANSCRIPT_SELECTORS.user, assistantSelectors = TRANSCRIPT_SELECTORS.assistant,
-  composerSelectors = [], perMessageCap = TRANSCRIPT_LIMITS.perMessageCap, scanLimit = TRANSCRIPT_LIMITS.scanLimit } = {}) {
+  composerSelectors = [], streamingSelectors = [], sendSelectors = [], perMessageCap = TRANSCRIPT_LIMITS.perMessageCap, scanLimit = TRANSCRIPT_LIMITS.scanLimit } = {}) {
   return `(() => {
     const USER = ${JSON.stringify(userSelectors)}, ASSISTANT = ${JSON.stringify(assistantSelectors)}, COMPOSER = ${JSON.stringify(composerSelectors)};
+    const STREAMING = ${JSON.stringify(streamingSelectors)}, SEND = ${JSON.stringify(sendSelectors)};
     const CAP = ${Math.trunc(perMessageCap)}, SCAN = ${Math.trunc(scanLimit)};
     const all = (sels) => { const out = []; for (const sel of sels) { let list = []; try { list = Array.from(document.querySelectorAll(sel)); } catch (e) { list = []; } for (const el of list) if (!out.includes(el)) out.push(el); } return out; };
     const visible = (el) => { const r = el.getBoundingClientRect(); return r.width > 1 && r.height > 1; };
@@ -102,14 +105,21 @@ export function transcriptExpression({ userSelectors = TRANSCRIPT_SELECTORS.user
         }
       }
     }
-    let draft = { present: null, chars: null };
+    let draft = { present: null, chars: null }, composerEl = null;
     for (const sel of COMPOSER) {
       let el = null; try { el = document.querySelector(sel); } catch (e) { el = null; }
       if (!el) continue;
       const value = typeof el.value === 'string' ? el.value : String(el.innerText ?? el.textContent ?? '');
-      const chars = value.replace(/\\s+/g, ' ').trim().length; draft = { present: chars > 0, chars }; break;
+      const chars = value.replace(/\\s+/g, ' ').trim().length; draft = { present: chars > 0, chars }; composerEl = el; break;
     }
-    return { pathname: String(location.pathname), origin: String(location.origin), renderedTotal: total, messages, hiddenSkipped, nestedDropped, ambiguousSkipped, scroll, draft };
+    const stop = all(STREAMING).some(visible);
+    const sendBtn = all(SEND).some(visible);
+    // A visible idle control is positive evidence; absence of a stop button alone is not.
+    const idle = sendBtn;
+    const enabled = !!composerEl && composerEl.disabled !== true && composerEl.getAttribute('aria-disabled') !== 'true';
+    const controls = { observed: !!composerEl && idle, state: stop ? 'busy' : (idle && enabled ? 'idle' : 'unknown'),
+      idleControlPresent: idle, stopPresent: stop, composerEnabled: enabled };
+    return { pathname: String(location.pathname), origin: String(location.origin), renderedTotal: total, messages, hiddenSkipped, nestedDropped, ambiguousSkipped, scroll, draft, controls };
   })()`;
 }
 

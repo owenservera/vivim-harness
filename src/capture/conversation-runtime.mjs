@@ -2,11 +2,14 @@
 import { mkdirSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { randomUUID, createHash } from 'node:crypto';
+import { setTimeout as sleep } from 'node:timers/promises';
 import { listTargets } from '../cdp/discovery.mjs';
 import { getAdapter, ADAPTER_IDS } from '../profiles/sites/index.mjs';
 import { listSessions } from '../store/session.mjs';
-import { createConversationService } from './conversation-service.mjs';
+import { createConversationService, validConversationSnapshot } from './conversation-service.mjs';
 import { createConversationBrowserAdapter } from './conversation-browser-adapter.mjs';
+import { isPrefixCode, prefixId, preimageDigest, resolvePromptTier, checkPrefixPage, comparePrefixRead, comparePrefixReads,
+  prefixGuardSource, sha256Hex, PREFIX_ORIGINS, validPrefixRecord } from './conversation-prefix.mjs';
 import { acquireDriveLease } from './drive-lease.mjs';
 import { parseThread, threadSupported, TRANSCRIPT_LIMITS } from './conversation-thread.mjs';
 import { buildCapabilityCapsule } from './conversation-capsule.mjs';
@@ -27,7 +30,7 @@ export function createConversationRuntime({ paths, profileStore, familyStore, po
   const d = { listTargets, getAdapter, createAdapter: createConversationBrowserAdapter, acquireLease: acquireDriveLease,
     listSessions, readChatIndex, captureEvidence: captureConversationEvidence,
     ownerIsAlive: (pid) => { try { process.kill(pid, 0); return true; } catch (e) { return e.code !== 'ESRCH'; } },
-    maxDurationMs: 15 * 60 * 1000, maxBytes: 256 * 1024 * 1024, ...dependencies };
+    maxDurationMs: 15 * 60 * 1000, maxBytes: 256 * 1024 * 1024, sleep, prefixStabilityMs: 1500, ...dependencies };
   const directory = path.join(paths.root, 'conversations');
   mkdirSync(directory, { recursive: true });
   const entries = new Map(); let closed = false;
@@ -75,7 +78,12 @@ export function createConversationRuntime({ paths, profileStore, familyStore, po
   // separate explicit mutation (`recover`, or any mutating call such as reconcile/finish/submit).
   function peek(id) {
     if (!validId(id)) throw fail(400, 'INVALID_CONVERSATION_ID');
-    if (entries.has(id)) return entries.get(id);
+    if (entries.has(id)) {
+      let disk; try { disk = JSON.parse(readFileSync(path.join(directory, `${id}.conversation.json`), 'utf8')); }
+      catch { throw fail(409, 'CORRUPT_OR_UNREADABLE_SNAPSHOT'); }
+      if (disk?.prefix !== undefined && !validPrefixRecord(disk.prefix)) throw fail(409, 'PREFIX_CORRUPT_OR_UNREADABLE_SNAPSHOT');
+      return entries.get(id);
+    }
     if (!ids().includes(id)) throw fail(404, 'CONVERSATION_NOT_FOUND');
     let header; try { header = JSON.parse(readFileSync(path.join(directory, `${id}.conversation.json`), 'utf8')); }
     catch { throw fail(409, 'CORRUPT_OR_UNREADABLE_SNAPSHOT'); }
@@ -130,6 +138,7 @@ export function createConversationRuntime({ paths, profileStore, familyStore, po
     if (!entry.recovered && entry.adapter.active === false && capture.state === 'recording') capture.state = 'incomplete';
     if (entry.recovered && !entry.readOnly && capture.state === 'recording') capture.state = 'incomplete';
     return { id: s.id, revision: s.revision, state: s.state, site: s.site, binding: s.binding, sessionId: s.sessionId,
+      ...(s.prefix ? { prefix: structuredClone(s.prefix) } : {}),
       turn: a ? turnView(a) : null, turns: s.attempts.map(turnView),
       identity: s.identity, recovery: { pending },
       readiness: s.readiness,
@@ -274,6 +283,201 @@ export function createConversationRuntime({ paths, profileStore, familyStore, po
       },
     };
   }
+  // Adoption and activation use the same host lease as browser effects. All snapshot scans,
+  // replays and writes happen inside it; neither operation writes the thread journal.
+  async function prefixLease(fn) {
+    let lease;
+    try { lease = d.acquireLease({ port, root: d.leaseRoot, holder: { kind: 'observed-prefix', id: randomUUID() } }); }
+    catch (e) { if (e.code === 'DRIVE_LEASE_BUSY') throw fail(409, 'PREFIX_WRITER_BUSY'); throw outward(e); }
+    let result, failure;
+    try { result = await fn(); } catch (e) { failure = e; }
+    try { lease.release(); } catch (e) {
+      const detail = leaseFailure(e);
+      if (failure) failure.leaseReleaseError = detail;
+      else failure = Object.assign(fail(409, 'PREFIX_WRITER_BUSY'), { leaseReleaseError: detail });
+    }
+    if (failure) throw outward(failure);
+    return result;
+  }
+  function prefixSnapshots(sourceId) {
+    return ids().map((id) => {
+      let value;
+      try { value = JSON.parse(readFileSync(path.join(directory, `${id}.conversation.json`), 'utf8')); }
+      catch { throw fail(409, id === sourceId ? 'PREFIX_SOURCE_CORRUPT' : 'PREFIX_CORRUPT_OR_UNREADABLE_SNAPSHOT'); }
+      if (!validConversationSnapshot(value, id)) throw fail(409, id === sourceId ? 'PREFIX_SOURCE_CORRUPT' : 'PREFIX_CORRUPT_OR_UNREADABLE_SNAPSHOT');
+      if (value.prefix && (preimageDigest(value.prefix) !== value.prefix.preimageDigest
+        || prefixId({ ...value.prefix.source, threadRef: value.prefix.thread.ref, promptDigest: value.prefix.prompt.digest }) !== value.prefix.prefixId)) {
+        throw fail(409, value.prefix.state === 'pending' ? 'PREFIX_PENDING_UNRESOLVED' : 'PREFIX_CORRUPT_OR_UNREADABLE_SNAPSHOT');
+      }
+      return value;
+    });
+  }
+  function prefixSourceEvidence(records, request, targetId, origin) {
+    const source = records.find((s) => s.id === request.conversationId);
+    if (!source) throw fail(409, 'PREFIX_SOURCE_MISSING');
+    const matches = source.attempts.filter((a) => a.id === request.attemptId);
+    if (matches.length !== 1) throw fail(409, 'PREFIX_SOURCE_ATTEMPT_MISSING');
+    const attempt = matches[0];
+    if (attempt.creation !== true) throw fail(409, 'PREFIX_SOURCE_ATTEMPT_NOT_CREATION');
+    if (source.attempts.length !== 1) throw fail(409, 'PREFIX_SOURCE_ATTEMPTS_AMBIGUOUS');
+    if (!/^[a-f0-9]{64}$/.test(attempt.payloadDigest ?? '')) throw fail(409, 'PREFIX_SOURCE_DIGEST_INVALID');
+    if (attempt.phase !== 'uncertain' || attempt.journal || attempt.send?.state !== 'uncertain') throw fail(409, 'PREFIX_SOURCE_STATE_UNEXPECTED');
+    if (!validId(source.sessionId) || source.binding?.targetId !== targetId || source.binding?.origin !== origin || source.binding?.thread || source.site !== 'chatgpt') throw fail(409, 'PREFIX_SESSION_OWNER_MISMATCH');
+    let session;
+    try { session = JSON.parse(readFileSync(path.join(paths.sessions, source.sessionId, 'session.json'), 'utf8')); }
+    catch (e) { throw fail(409, e.code === 'ENOENT' ? 'PREFIX_SOURCE_MISSING' : 'PREFIX_SESSION_METADATA_INVALID'); }
+    if (session?.id !== source.sessionId || session.conversationOwner?.conversationId !== source.id) throw fail(409, 'PREFIX_SESSION_OWNER_MISMATCH');
+    if (['recording', 'stopping'].includes(session.status)) throw fail(409, 'PREFIX_SESSION_STILL_RECORDING');
+    if (!['complete', 'complete_with_integrity_warnings', 'incomplete'].includes(session.status) || !Number.isFinite(Date.parse(session.endedAt))
+      || typeof session.endReason !== 'string' || !session.endReason || !session.integrity || typeof session.integrity !== 'object') throw fail(409, 'PREFIX_SESSION_METADATA_INVALID');
+    let kv = null;
+    try { kv = JSON.parse(readFileSync(path.join(paths.sessions, source.sessionId, 'kv', `CONVERSATION_ATTEMPT_${request.attemptId}.json`), 'utf8')); }
+    catch (e) { if (e.code !== 'ENOENT') throw fail(409, 'PREFIX_SOURCE_KV_MISMATCH'); }
+    if (kv && (kv.payloadDigest !== attempt.payloadDigest || kv.boundary?.sessionId !== source.sessionId
+      || kv.boundary?.sequence !== attempt.boundary?.sequence || kv.boundary?.transcriptCount !== attempt.boundary?.transcriptCount
+      || typeof kv.prompt !== 'string' || sha256Hex(kv.prompt) !== attempt.payloadDigest || kv.creation !== true || kv.turnId !== attempt.id)) throw fail(409, 'PREFIX_SOURCE_KV_MISMATCH');
+    return { source, attempt, session, kv, corroboration: session.status === 'incomplete' ? 'terminal-incomplete' : 'terminal-complete' };
+  }
+  function prefixThreadFence(records, threadRef, sourceId, currentId = null) {
+    for (const s of records) {
+      if (s.id === currentId) continue;
+      if (Array.isArray(s.threadDenylist) && s.threadDenylist.includes(threadRef)) throw fail(409, 'PREFIX_THREAD_DENYLISTED');
+      if (s.id !== sourceId && (s.binding?.thread?.ref === threadRef || s.prefix?.thread?.ref === threadRef)) throw fail(409, 'PREFIX_THREAD_BOUND_ELSEWHERE');
+    }
+  }
+  function checkPrefixRequest(body, sourceField = 'source') {
+    const source = body[sourceField];
+    if (body.site !== 'chatgpt' || typeof body.targetId !== 'string' || !body.targetId || body.targetId.length > 256
+      || !THREAD_REF.test(body.expectedThread ?? '') || !source || typeof source !== 'object' || Array.isArray(source)
+      || !validId(source.conversationId) || !validId(source.attemptId)
+      || body.promptAttestation !== undefined && (typeof body.promptAttestation !== 'string' || body.promptAttestation.length > 250000)) throw fail(400, 'INVALID_PREFIX_REQUEST');
+    if (sourceField === 'prefixSource' && !/^[a-f0-9]{64}$/.test(source.payloadDigest ?? '')) throw fail(400, 'INVALID_PREFIX_REQUEST');
+  }
+  function prefixMatch(records, request, expectedThread, targetId, attestation) {
+    const found = records.filter((s) => s.prefix?.source.conversationId === request.conversationId && s.prefix?.source.attemptId === request.attemptId);
+    if (found.length > 1) throw fail(409, 'PREFIX_CORRUPT_OR_UNREADABLE_SNAPSHOT');
+    if (!found.length) return null;
+    const p = found[0].prefix;
+    if (p.thread.ref !== expectedThread) throw fail(409, 'PREFIX_SOURCE_ALREADY_ADOPTED');
+    if (p.target.targetId !== targetId || request.payloadDigest && request.payloadDigest !== p.prompt.digest
+      || attestation !== undefined && sha256Hex(attestation) !== p.prompt.digest) throw fail(409, 'PREFIX_IDEMPOTENCY_CONFLICT');
+    if (p.state === 'invalidated') throw fail(409, 'PREFIX_INVALIDATED');
+    return found[0];
+  }
+  async function prefixRead(adapter, targetId, origin, threadRef) {
+    try {
+      const page = await adapter.readPrefixEvidence({ targetId, origin, expectedThread: threadRef });
+      checkPrefixPage(page); return page;
+    } catch (e) { throw fail(409, isPrefixCode(e.code) ? e.code : e.code === 'TARGET_RECORDER_BUSY' ? 'PREFIX_SESSION_STILL_RECORDING' : 'PREFIX_PAGE_UNREADABLE'); }
+  }
+  const readStamp = (page) => ({ at: new Date().toISOString(), assistantDigest: sha256Hex(page.messages[1].text), controls: 'idle' });
+  async function verifyPrefixReads(adapter, { targetId, origin, threadRef }, saved = null) {
+    const first = await prefixRead(adapter, targetId, origin, threadRef);
+    if (saved && comparePrefixRead(saved, first)) throw fail(409, 'PREFIX_PENDING_UNRESOLVED');
+    await d.sleep(d.prefixStabilityMs);
+    let second;
+    try { second = await prefixRead(adapter, targetId, origin, threadRef); }
+    catch (e) { if (['PREFIX_TARGET_URL_UNSUPPORTED', 'PREFIX_TARGET_NOT_FOUND', 'PREFIX_THREAD_ID_MISMATCH', 'PREFIX_TARGET_ORIGIN_MISMATCH'].includes(e.code)) throw fail(409, 'PREFIX_TARGET_CHANGED'); throw e; }
+    const changed = comparePrefixReads(first, second);
+    if (changed) throw fail(409, changed);
+    if (saved && comparePrefixRead(saved, second)) throw fail(409, 'PREFIX_PENDING_UNRESOLVED');
+    return { first, second, reads: [readStamp(first), readStamp(second)] };
+  }
+  async function bindPrefix(body) {
+    active(); checkPrefixRequest(body);
+    return prefixLease(async () => {
+      const records = prefixSnapshots(body.source.conversationId);
+      const previous = prefixMatch(records, body.source, body.expectedThread, body.targetId, body.promptAttestation);
+      if (previous?.prefix.state === 'active') return view(peek(previous.id));
+      const siteAdapter = await d.getAdapter(body.site);
+      if (!siteAdapter?.url) throw fail(409, 'PREFIX_TARGET_ORIGIN_MISMATCH');
+      let targets; try { targets = await tabs(); } catch { throw fail(409, 'PREFIX_TARGET_NOT_FOUND'); }
+      const target = targets.find((t) => t.id === body.targetId);
+      if (!target) throw fail(409, 'PREFIX_TARGET_NOT_FOUND');
+      if (target.type !== 'page') throw fail(409, 'PREFIX_TARGET_NOT_PAGE');
+      let origin; try { origin = new URL(target.url).origin; } catch { throw fail(409, 'PREFIX_TARGET_ORIGIN_MISMATCH'); }
+      if (!PREFIX_ORIGINS.includes(origin) || origin !== new URL(siteAdapter.url).origin) throw fail(409, 'PREFIX_TARGET_ORIGIN_MISMATCH');
+      const source = prefixSourceEvidence(records, body.source, body.targetId, origin);
+      prefixThreadFence(records, body.expectedThread, source.source.id, previous?.id);
+      const id = previous?.id ?? randomUUID();
+      const existing = entries.get(id);
+      const adapter = existing?.adapter ?? d.createAdapter({ paths, profileStore, familyStore, port, siteAdapter, targetId: body.targetId,
+        freshTab: false, conversationId: id, ownerToken: null, maxBytes: d.maxBytes });
+      let retained = !!existing;
+      try {
+        const sampled = await verifyPrefixReads(adapter, { targetId: body.targetId, origin, threadRef: body.expectedThread }, previous?.prefix);
+        const prompt = resolvePromptTier({ digest: source.attempt.payloadDigest, kv: source.kv, pageUserText: sampled.first.messages[0].text,
+          attestation: body.promptAttestation ?? null, corroboration: source.corroboration });
+        if (previous) return view(peek(id));
+        const [user, assistant] = sampled.first.messages;
+        const prefix = { kind: 'observed-prefix', schema: 1, state: 'pending',
+          prefixId: prefixId({ ...body.source, threadRef: body.expectedThread, promptDigest: prompt.digest }),
+          source: { ...body.source, sessionId: source.source.sessionId, phase: 'uncertain', journalless: true },
+          thread: sampled.first.thread, target: { targetId: body.targetId, origin }, prompt,
+          userMessage: { id: user.id, index: 0, digest: sha256Hex(user.text), chars: user.text.length },
+          assistant: { id: assistant.id, index: 1, digest: sha256Hex(assistant.text), chars: assistant.text.length, completion: 'observed-complete' },
+          sendActor: 'unknown', dispatch: 'unknown', account: 'unknown', arrival: 'page-observed',
+          capture: { sessionId: source.source.sessionId, status: source.session.status, endReason: source.session.endReason,
+            integrityOk: source.session.integrity.ok === true, corroboration: source.corroboration },
+          reads: sampled.reads, observedAt: new Date().toISOString(), adoptedAt: null };
+        prefix.preimageDigest = preimageDigest(prefix);
+        const service = createConversationService({ dataDir: directory, id, adapter, io: d.io, recover: false,
+          context: { site: body.site, owner: { pid: process.pid, token: null, port } } });
+        const entry = { service, adapter, lease: null, registration: Promise.resolve(), work: Promise.resolve(), recovered: false, leaseReleaseError: null };
+        entry.writer = writerWindow(entry);
+        try { await service.stagePrefix(prefix); } catch (e) { if (e.code === 'PERSISTENCE_FAILED_REOPEN_REQUIRED') throw fail(409, 'PREFIX_PERSISTENCE_FAILED_REOPEN_REQUIRED'); throw e; }
+        entries.set(id, entry); retained = true;
+        return view(entry);
+      } finally { if (!retained) await adapter.closePrefixReader?.().catch(() => {}); }
+    });
+  }
+  async function connectPrefix(body) {
+    active(); checkPrefixRequest(body, 'prefixSource');
+    if (body.freshTab === true) throw fail(400, 'INVALID_TARGET_SELECTION');
+    return prefixLease(async () => {
+      const records = prefixSnapshots(body.prefixSource.conversationId);
+      const stored = prefixMatch(records, body.prefixSource, body.expectedThread, body.targetId);
+      if (!stored) throw fail(409, 'LEGACY_ATTEMPT_REQUIRES_RECONCILIATION');
+      const p = stored.prefix;
+      if (p.state === 'active') return view(peek(stored.id));
+      if (stored.state !== 'disconnected' || stored.binding || stored.finish.requested || stored.attempts.length) throw fail(409, 'PREFIX_PENDING_UNRESOLVED');
+      const source = prefixSourceEvidence(records, body.prefixSource, body.targetId, p.target.origin);
+      if (!prefixGuardSource({ prefixSource: body.prefixSource, sourceSnapshot: source.source, prefixRecords: [stored], origin: p.target.origin, threadRef: body.expectedThread })) throw fail(409, 'LEGACY_ATTEMPT_REQUIRES_RECONCILIATION');
+      prefixThreadFence(records, p.thread.ref, source.source.id, stored.id);
+      for (const other of records) {
+        if (other.id === source.source.id || other.id === stored.id) continue;
+        if (other.binding?.origin === p.target.origin && (!other.binding.thread || other.binding.thread.ref === p.thread.ref)
+          && other.attempts.some((a) => !a.journal && (a.phase !== 'blocked' || a.typingStartedAt))) throw fail(409, 'LEGACY_ATTEMPT_REQUIRES_RECONCILIATION');
+      }
+      let entry = entries.get(stored.id);
+      if (entry && (entry.service.read().revision !== stored.revision || entry.service.read().prefix?.state !== 'pending')) throw fail(409, 'PREFIX_PENDING_UNRESOLVED');
+      if (!entry && Number.isInteger(stored.owner?.pid) && d.ownerIsAlive(stored.owner.pid)) throw fail(409, 'PREFIX_WRITER_BUSY');
+      const siteAdapter = await d.getAdapter(body.site);
+      if (!siteAdapter?.url || new URL(siteAdapter.url).origin !== p.target.origin) throw fail(409, 'PREFIX_TARGET_ORIGIN_MISMATCH');
+      if (!entry) {
+        const adapter = d.createAdapter({ paths, profileStore, familyStore, port, siteAdapter, targetId: body.targetId,
+          freshTab: false, conversationId: stored.id, ownerToken: null, maxBytes: d.maxBytes });
+        const service = createConversationService({ dataDir: directory, id: stored.id, adapter, io: d.io, recover: false });
+        entry = { service, adapter, lease: null, registration: Promise.resolve(), work: Promise.resolve(), recovered: false, leaseReleaseError: null };
+        entry.writer = writerWindow(entry);
+        await service.claimPrefixOwner({ pid: process.pid, token: null, port });
+        entries.set(stored.id, entry);
+      }
+      try {
+        const attached = await entry.service.connect({ targetId: p.target.targetId, origin: p.target.origin, ownedByStudio: false,
+          thread: p.thread, identity: { state: 'bound', reason: null }, expectedRevision: entry.service.read().revision });
+        if (!attached.readiness?.ready) throw fail(409, 'PREFIX_INVALIDATED');
+        const page = await prefixRead(entry.adapter, p.target.targetId, p.target.origin, p.thread.ref);
+        if (comparePrefixRead(p, page)) throw fail(409, 'PREFIX_INVALIDATED');
+        await entry.service.activatePrefix({ prefixId: p.prefixId, reads: [...p.reads, readStamp(page)] });
+        return view(entry);
+      } catch (e) {
+        try { await entry.service.invalidatePrefix('PREFIX_INVALIDATED'); } catch { /* poisoned state remains non-sendable */ }
+        await entry.adapter.closePrefixReader?.().catch(() => {});
+        throw fail(409, 'PREFIX_INVALIDATED');
+      }
+    });
+  }
   return {
     // Read-only journal snapshot through the owning service (pure snapshot when the conversation
     // is not open). Used by the Round 7 uncertain-step reconciliation; never mutates anything.
@@ -363,8 +567,10 @@ export function createConversationRuntime({ paths, profileStore, familyStore, po
         return false;
       } catch { return true; }
     },
+    async bindObservedPrefix(body = {}) { return bindPrefix(body); },
     async connect(body = {}) {
       active();
+      if (body.prefixSource !== undefined) return connectPrefix(body);
       if (!ADAPTER_IDS.includes(body.site) || body.freshTab !== undefined && typeof body.freshTab !== 'boolean'
         || body.targetId !== undefined && (typeof body.targetId !== 'string' || !body.targetId)
         || body.expectedThread !== undefined && (typeof body.expectedThread !== 'string' || !body.expectedThread || body.expectedThread.length > 200)) throw fail(400, 'INVALID_CONNECT');
@@ -439,6 +645,9 @@ export function createConversationRuntime({ paths, profileStore, familyStore, po
         const replay = stored.service.lookupRequest({ key: body.key, payloadDigest: createHash('sha256').update(body.prompt, 'utf8').digest('hex') });
         if (replay) return view(stored, false, replay);
       } catch (e) { throw outward(e); }
+      const prefixState = stored.service.read().prefix?.state;
+      if (prefixState === 'pending') throw fail(409, 'PREFIX_NOT_ACTIVE');
+      if (prefixState === 'invalidated') throw fail(409, 'PREFIX_INVALIDATED');
       const entry = load(id);
       const registered = entry.registration.then(async () => {
         if (typeof body.key !== 'string' || !body.key || body.key.length > 200 || typeof body.prompt !== 'string' || !body.prompt.trim() || body.prompt.length > 250000) throw fail(400, 'INVALID_SUBMISSION');
@@ -459,8 +668,9 @@ export function createConversationRuntime({ paths, profileStore, familyStore, po
         scheduleBudget(entry); // The duration clock starts at explicit send, not at idle connect.
         let resolve, reject;
         const ack = new Promise((yes, no) => { resolve = yes; reject = no; });
-        const execution = entry.service.submit(body, { registered: (_, attempt) => resolve(view(entry, false, attempt)), writer: entry.writer });
+        const execution = entry.service.submit(body, { registered: (_, attempt) => { if (!s.prefix) resolve(view(entry, false, attempt)); }, writer: entry.writer });
         entry.work = execution.then(async (attempt) => {
+          if (s.prefix) resolve(view(entry, false, attempt));
           // Reply attribution starts only after a bound, observed delivery. A creation send that
           // never pinned does not reach send.state observed, so it does not read a reply.
           try {
@@ -512,7 +722,9 @@ export function createConversationRuntime({ paths, profileStore, familyStore, po
       closed = true;
       // Every live entry is finalized on close, lease or not: an idle connected conversation may
       // hold no driving lease between turns, but its recorder still needs an explicit stop.
-      await Promise.all([...entries.values()].filter((e) => !e.recovered).map((entry) => finishEntry(entry)));
+      await Promise.all([...entries.values()].filter((e) => !e.recovered).map((entry) =>
+        entry.service.read().prefix?.state === 'pending' && entry.service.read().state === 'disconnected'
+          ? entry.adapter.closePrefixReader?.() : finishEntry(entry)));
     },
   };
 }
