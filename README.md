@@ -1,172 +1,126 @@
 <div align="center">
 
-# VIVIM
+![VIVIM — Your AI. Your world.](assets/vivim-repo-banner.svg)
 
-### Your AI. Your world.
+### Your AI work deserves a home.
 
-**Own your AI. · Share your AI. · Evolve your AI.**
+**Own your AI · Share your AI · Evolve your AI**
 
-A local-first foundation for a personal AI world — so your conversations, ideas, and knowledge can become something you control and build upon.
+VIVIM is building a **personal, persistent AI world**: a place to keep what matters from your AI interactions, make it part of your projects, and return to it when you need it.
 
-[**Explore the vision**](#why-vivim) · [**See what's working**](#what-exists-today) · [**Try the developer preview**](#try-it-locally) · [**Follow development**](https://github.com/owenservera/vivim-harness/issues)
+[**The vision**](#the-idea) · [**How it works**](#a-world-you-can-return-to) · [**What's available**](#what-exists-today) · [**Try the preview**](#try-the-developer-preview)
 
-<br>
-
-![Status](https://img.shields.io/badge/status-active_development-B9E8CF?style=flat-square&labelColor=202B2B)
-![Local first](https://img.shields.io/badge/approach-local--first-8BD6B0?style=flat-square&labelColor=202B2B)
-![Runtime](https://img.shields.io/badge/runtime-Node.js_22%2B-92C7E3?style=flat-square&labelColor=202B2B)
-![Platforms](https://img.shields.io/badge/target-Windows_%7C_Linux-DCC7FA?style=flat-square&labelColor=202B2B)
+![Status: active development](https://img.shields.io/badge/status-active_development-508e72?style=flat-square)
+![Approach: local-first](https://img.shields.io/badge/approach-local--first-3c7974?style=flat-square)
+![Node.js 22+](https://img.shields.io/badge/Node.js-22%2B-456d70?style=flat-square)
 
 </div>
 
 ---
 
-## Your AI life shouldn't be scattered everywhere.
+## The idea
 
-A conversation in one assistant. A useful insight in another. Weeks later, you remember the idea — but not where it lives.
+**The most valuable thing about AI isn't one answer. It's what you learn, create, and build over time.**
 
-**VIVIM is building a personal AI world around *you*, not around a single AI provider.**
+Today, that work is scattered: a useful explanation in one provider, a code snippet in another, a project idea you can no longer find. Most chat interfaces start fresh; your work doesn't.
 
-The goal is simple: bring your AI interactions into a world where you can find, organize, relate, and use what matters — while making deliberate choices about what stays local and what gets shared.
+VIVIM is designed around a different starting point: **you and the context you've chosen to keep**.
 
-<table>
-<tr>
-<td width="33%" valign="top">
+Rather than replace your favorite AI services, VIVIM aims to give their useful outputs a lasting home — with a clear record of where they came from, what you added, and what is actually saved.
 
-### 🏡 Own your AI
+| **Own your AI** | **Share your AI** | **Evolve your AI** |
+| :--- | :--- | :--- |
+| Keep locally held conversations, notes and useful parts in a world you control. | Choose exactly which information to export or carry into another task. | Organize, annotate, connect and improve your own context over time. |
+| **Your knowledge, beyond one provider.** | **Your choice, not automatic exposure.** | **Your work, increasingly useful.** |
 
-Build lasting personal context beyond a single chat interface. Keep the foundation under your direction.
+> **My machine. My data. My AI.** A product direction built on local-first ownership, user choice and traceable sources — not a promise of absolute security or features that haven't shipped.
 
-</td>
-<td width="33%" valign="top">
+## A world you can return to
 
-### 🔗 Share your AI
+VIVIM's core experience is one connected journey, not four separate tools.
 
-Choose what to bring into a conversation or workflow. Sharing should be deliberate, not assumed.
+| Step | What it means for you |
+| :--- | :--- |
+| **01 · Return** | Open a conversation or piece of work you've actually saved. Read it with its original meaning and context intact. |
+| **02 · Organize** | Keep the useful part in your own project, add notes, and relate it to other work. |
+| **03 · Find** | Locate the idea, answer or artifact again — without remembering which provider or chat held it. |
+| **04 · Take** | Carry selected knowledge into a new task or interaction, deliberately and with context. |
 
-</td>
-<td width="34%" valign="top">
+**One personal world. Many sources of intelligence.**
 
-### 🌱 Evolve your AI
+VIVIM Projects are *your* organization layer, not a claim that remote provider Projects have been imported or modified. The provider remains authoritative for its remote account and conversations; VIVIM preserves the local record and user-created context.
 
-Turn disconnected moments into more useful knowledge as your work, interests, and ideas grow.
+### What makes VIVIM different?
 
-</td>
-</tr>
-</table>
-
-> **My machine. My data. My AI.** That's the direction we're building toward — not a claim that every envisioned feature is available today.
-
-## Why VIVIM?
-
-Most AI products start with a model and an empty chat box. VIVIM starts with the person using them.
-
-- **One personal world:** a coherent place for conversations and knowledge, rather than a collection of isolated chat histories.
-- **Provider-aware:** work with your existing AI experiences instead of requiring you to adopt one new model.
-- **Local-first by design:** the existing capture foundation stores its evidence on your machine, outside the source checkout.
-- **Explicit control:** user-directed conversation selection and provider interactions; capture does not imply permission to send.
-- **Built for continuity:** a foundation for remembering, finding and reusing context over time.
-
-These are product goals and architectural principles. The next section separates current code from the broader vision.
+- **Persistent by intent.** Saved local material should remain useful even when a provider is disconnected.
+- **Source-grounded.** Know what was observed, imported, derived or written by you — including missing or uncertain content.
+- **Human-directed.** Reading, selecting, sharing and external actions have distinct boundaries.
+- **Provider-independent identity.** Your world is not defined by any single chatbot, browser or model.
+- **Built for ownership.** Local storage, selected exports and recovery matter more than keeping everything inside one interface.
 
 ## What exists today?
 
-VIVIM is in **active development**. This public repository contains the runnable **Capture Studio / VIVIM Harness foundation**, not a finished one-click consumer release.
+<sup>Public development snapshot · October 2026. Source presence is not the same as a completed live-user acceptance test.</sup>
 
-| Area | Current state |
-| --- | --- |
-| Local capture engine | Implemented: Chrome DevTools Protocol-based capture and local evidence storage |
-| AI conversation interaction | Implemented in the harness: explicit, user-authorized send/read flows for supported targets; live operation depends on the site's current UI, account sign-in and browser state |
-| Local Studio UI and CLI | Present in source; developer-oriented and still evolving |
-| Evidence and derived knowledge | Raw, decoded and rendered records with rebuildable derived outputs |
-| Agent workflows | CLI discovery, recipes and guarded execution paths are present |
-| Personal AI World experience | **In progress** — the cohesive consumer journey is not yet a finished product |
-| Onboarding and multi-account experience | **In progress / design decisions parked** — do not assume hands-free setup, full-history discovery or production-ready account switching |
-| Cross-platform support | Windows and Linux are engineering targets; see the portability document for verified scope |
+The code in this repository is the **VIVIM Harness** — the operating foundation for this product. It contains a local Studio UI, a CLI, browser-capture infrastructure and work toward an integrated personal world.
 
-**Important:** The original developer-facing Capture Studio system is the technical core. The product we're building on top of it is VIVIM — a more approachable, connected personal experience.
+| Capability | Current status |
+| :--- | :--- |
+| Local capture and evidence records | **Implemented in source.** Dedicated-browser-profile capture, recorded observations and local storage. |
+| Saved conversations and world views | **Present in source.** Local views for saved material, projects, notes, find, transfer, relations and workspace are under active integration. |
+| Native conversation content and provenance | **Partially integrated.** Rich content and source/coverage handling exist; fidelity varies with what was actually observed. |
+| Explicit AI-provider interaction | **Harness capability present.** Live usage depends on authorization, the browser state and provider behavior. |
+| Full first-run experience and durable end-to-end user journey | **Still being validated and completed.** This is not yet a polished consumer release. |
+| Multi-account support, whole-account history and automatic sync | **Not advertised as available.** Significant decisions and implementation work remain. |
 
-## The experience we're building
+The **vision is broader than the verified product**. We deliberately distinguish a real saved item from a remote reference, a partial capture from a complete conversation, and an implemented endpoint from a tested human journey.
 
-<table>
-<tr><td width="50%" valign="top">
+## Try the developer preview
 
-**01 · Return**
+VIVIM is **not yet a one-click consumer download**. If you're comfortable running a local development tool, you can explore the current Harness.
 
-Find the conversations and ideas you want to revisit.
+**Prerequisites:** Node.js 22+ and Chrome or a compatible browser for live browser features. Sign in to provider websites yourself. No runtime `npm install` is required.
 
-</td><td width="50%" valign="top">
-
-**02 · Organize**
-
-Build a world that reflects your own projects, interests and thinking.
-
-</td></tr>
-<tr><td valign="top">
-
-**03 · Find**
-
-Locate useful context without hunting through unrelated histories.
-
-</td><td valign="top">
-
-**04 · Take action**
-
-Carry the context you choose into your next AI interaction or task.
-
-</td></tr>
-</table>
-
-*The four stages describe the intended product journey, not four claims of completed consumer functionality.*
-
-## Try it locally
-
-This is currently a **developer preview**, not an installer for general users.
-
-**You'll need:** Node.js 22 or newer, and Chrome or a compatible browser for live capture. You sign into AI provider sites yourself. The repository has no runtime npm dependency install step.
-
-```bash
+```sh
 git clone https://github.com/owenservera/vivim-harness.git
 cd vivim-harness
 node bin/studio.mjs start
 ```
 
-Open the localhost URL reported by the running Studio server. Use the Studio UI to explore the current local harness. To inspect available commands without starting the server:
+Open the local address reported by Studio. To explore available commands without running the server:
 
-```bash
+```sh
 node bin/studio.mjs help
-node bin/studio.mjs agent capabilities --json
 ```
 
-For browser setup, user-authorized capture, troubleshooting, and environment-specific instructions, see the [technical manual](docs/TECHNICAL-README.md), [Windows live-test guide](docs/LIVE-TEST.md), and [portability notes](docs/PORTABILITY.md).
+For setup details see the [full technical guide](docs/TECHNICAL-README.md), [live testing instructions](docs/LIVE-TEST.md), and [platform support notes](docs/PORTABILITY.md). A local start does **not** establish that your AI provider is connected or that a particular live workflow succeeds.
 
-**No silent provider sends.** Sending a prompt is a separate, explicitly authorized action that can use your provider account. A local preview is not proof that a live provider has passed end-to-end acceptance.
+## Your information, your choices
 
-## Built around trust and user choice
+VIVIM's current capture tooling stores evidence locally outside the Git repository, and does not implement a product cloud-sync or telemetry service by default. But **local-first does not mean entirely offline or automatically secure**: external AI providers still receive the network activity you direct to them.
 
-**Local-first ≠ offline-only ≠ guaranteed isolation.** The harness writes captured evidence to a local directory outside Git; it does not run a product cloud-sync or telemetry backend by default. Visiting or sending to a third-party AI website still involves that provider's network and account services.
+Raw captures can contain sensitive data, including authentication material observed in browser traffic. Keep local data folders and browser profiles private. VIVIM does not need your passwords entered into its own account records.
 
-Capture may include sensitive content and, in raw mode, authentication material from browser traffic. Protect your local workspace and never commit captures or browser profiles. Dedicated browser profiles help separate worlds but are not an operating-system security boundary.
+[Read the local-first boundaries](docs/LOCAL-FIRST.md) · [Read first-user decisions](docs/product/FIRST-USER-ONBOARDING-DECISIONS-2026-10-27.md)
 
-Read the [local-first design](docs/LOCAL-FIRST.md) and [first-user onboarding decisions](docs/product/FIRST-USER-ONBOARDING-DECISIONS-2026-10-27.md) for exact boundaries.
+## Explore and follow progress
 
-## Explore the project
+| Looking for… | Go here |
+| :--- | :--- |
+| The product direction | [V1 integrated experience blueprint](docs/product/V1-INTEGRATED-APP-BLUEPRINT.md) |
+| Technical architecture | [Architecture](ARCHITECTURE.md) |
+| Complete command and capture documentation | [Technical README](docs/TECHNICAL-README.md) |
+| Latest tasks, bugs and progress | [GitHub issues](https://github.com/owenservera/vivim-harness/issues) |
+| Agent and contributor conventions | [AGENTS.md](AGENTS.md) |
 
-| I want to… | Start here |
-| --- | --- |
-| Understand the architecture | [Architecture overview](ARCHITECTURE.md) |
-| Dive into commands and technical capabilities | [Complete technical manual](docs/TECHNICAL-README.md) |
-| See the intended product | [Integrated app blueprint](docs/product/V1-INTEGRATED-APP-BLUEPRINT.md) |
-| Follow current work | [GitHub issues](https://github.com/owenservera/vivim-harness/issues) |
-| See local test guidance | [Live testing runbook](docs/LIVE-TEST.md) |
-| Understand portability | [Windows + Linux](docs/PORTABILITY.md) |
-| Contribute as a coding agent | [Agent instructions](AGENTS.md) |
-| View the separate visual landing-page experiment | [Marketing prototype](marketing/index.html) |
+**Building in public, with product reality clearly separated from ambition.** Feedback is welcome through [GitHub Issues](https://github.com/owenservera/vivim-harness/issues). Please never include personal chat history, secrets or browser-session data in public reports.
 
-## Building in the open
+<div align="center">
 
-This is an evolving product and engineering repository. Contributions, discussions and bug reports can start in [Issues](https://github.com/owenservera/vivim-harness/issues). Please don't attach private conversations, cookies, access tokens or browser profiles to reports.
+---
 
-**Project website:** [vivim.live](https://vivim.live) · **Source:** [GitHub](https://github.com/owenservera/vivim-harness)
+**VIVIM** · Own your AI. Share your AI. Evolve your AI.
 
-<sub>VIVIM — Own your AI. Share your AI. Evolve your AI.</sub>
+[vivim.live](https://vivim.live) · [Source](https://github.com/owenservera/vivim-harness) · [Follow development](https://github.com/owenservera/vivim-harness/issues)
+
+</div>
