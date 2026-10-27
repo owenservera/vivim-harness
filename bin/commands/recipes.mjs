@@ -6,6 +6,7 @@ import { usageError, CliError } from '../lib/ui.mjs';
 import { EXIT } from '../../src/config.mjs';
 import { listRecipes, recipeDefinition, RECIPE_FAMILIES } from '../../src/recipes/catalog.mjs';
 import { planRecipe } from '../../src/recipes/plan.mjs';
+import { chooseRecipe } from '../../src/recipes/choose.mjs';
 
 const shared = {
   'studio-port': { type: 'number', valueName: 'PORT', desc: 'Existing Studio HTTP port (default configured port)' },
@@ -64,6 +65,11 @@ export async function runRecipeShow(ctx) {
   const recipe = recipeDefinition(ctx.args[0]);
   if (!recipe) throw usageError('Unknown recipe: ' + ctx.args[0]);
   emit(ctx, recipe);
+}
+export async function runRecipeChoose(ctx) {
+  only(ctx, 0, 'recipe choose --intent TEXT');
+  if (!ctx.flags.intent) throw usageError('Provide an intent with --intent TEXT.');
+  emit(ctx, chooseRecipe(ctx.flags.intent, { ...(ctx.flags.family ? { family: ctx.flags.family } : {}) }));
 }
 export async function runRecipePlan(ctx) {
   only(ctx, 1, 'recipe plan FAMILY.NAME [--input FILE]');
@@ -129,6 +135,10 @@ define({ name: 'recipe list', noData: true, section: 'Knowledge', summary: 'List
   flags: { family: { type: 'string', valueName: 'NAME', desc: 'Filter by recipe family' } }, run: runRecipeList });
 define({ name: 'recipe show', noData: true, section: 'Knowledge', usage: 'FAMILY.NAME', summary: 'Read the exact tool, schema, effects and guard rules',
   run: runRecipeShow });
+define({ name: 'recipe choose', noData: true, section: 'Knowledge', summary: 'Suggest recipes from intent text; no side effects or authorization',
+  flags: { intent: { type: 'string', valueName: 'TEXT', desc: 'User goal; suggestion only, no send' },
+    family: { type: 'string', valueName: 'NAME', desc: 'Optional recipe family' } },
+  run: runRecipeChoose });
 define({ name: 'recipe plan', noData: true, section: 'Knowledge', usage: 'FAMILY.NAME [--input FILE]', summary: 'Validate typed inputs and effects without side effects',
   flags: { ...inputFlag, execute: { type: 'boolean' }, 'authorize-send': { type: 'boolean' } }, run: runRecipePlan });
 define({ name: 'recipe run', section: 'Knowledge', usage: 'FAMILY.NAME [--input FILE] [--execute] [--authorize-send]',
