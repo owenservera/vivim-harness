@@ -621,7 +621,10 @@ export class Recorder extends EventEmitter {
     if (!this.session || this.session.raw.closed) return null;
     if (this.paused && !['run.end', 'lifecycle', 'pause'].includes(rec.k)) { this.pausedCounts[rec.k] = (this.pausedCounts[rec.k] ?? 0) + 1; return null; }
     if (this.maxSessionBytes && this.session.raw.stats.bytes + this.session.raw.queueBytes > this.maxSessionBytes && this.state === 'recording' && !this._quotaHit) {
-      this._quotaHit = true; setImmediate(() => this.stop({ reason: 'quota_reached' }));
+      // Fire-and-forget: a failed stop is already recorded by _markStopFailed (session marked
+      // incomplete, state stop_failed). Without the catch, the rejection is unhandled and Node 22
+      // terminates the whole Studio process.
+      this._quotaHit = true; setImmediate(() => this.stop({ reason: 'quota_reached' }).catch((e) => this.emit('warn', e)));
     }
     const terminal = TERMINAL_KINDS.has(rec.k);
     const tFin = terminal ? performance.now() : 0;
@@ -729,15 +732,20 @@ export class Recorder extends EventEmitter {
     return out;
   }
 
+  // Called from CDP event handlers that never await it, so it must never reject: an unhandled
+  // rejection here (a stop that fails after the tab or transport is gone) would terminate the
+  // Studio process. A failed stop is still recorded by _markStopFailed and stays retryable.
   async _onLost(reason) {
     if (this.state !== 'recording') return;
-    // Only a dropped DevTools transport is recoverable: a detached or crashed target means the
-    // tab the person chose is gone, and silently re-attaching to something else would be a lie.
-    if (reason === 'devtools_connection_closed' && this.reconnect) {
-      this.net.markConnectionLost(reason);
-      if (await this._tryReconnect(reason)) return;
-    }
-    await this.stop({ reason });
+    try {
+      // Only a dropped DevTools transport is recoverable: a detached or crashed target means the
+      // tab the person chose is gone, and silently re-attaching to something else would be a lie.
+      if (reason === 'devtools_connection_closed' && this.reconnect) {
+        this.net.markConnectionLost(reason);
+        if (await this._tryReconnect(reason)) return;
+      }
+      await this.stop({ reason });
+    } catch (e) { this.emit('warn', e); }
   }
 
   // A failed stop is retryable: the cached rejected promise is dropped, the session metadata is
