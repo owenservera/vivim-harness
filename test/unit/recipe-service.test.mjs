@@ -90,11 +90,38 @@ test('mutation cannot execute without both authorization and stable operation ke
   assert.equal(f.calls.submits, 0);
   assert.deepEqual(f.runs.list(), []);
 });
+test('provider send operation ID must equal journal key, without touching browser/run store', async (t) => {
+  const f = fixture(t);
+  await assert.rejects(f.service.run('conversation.continue', turn,
+    { execute: true, authorizeSend: true, operationId: 'different-operation' }),
+    (e) => e.code === 'RECIPE_SEND_OPERATION_MISMATCH');
+  assert.equal(f.calls.submits, 0);
+  assert.deepEqual(f.runs.list(), []);
+});
+
+test('succeeded send recipe requires exact original turn, ready reply and finalized capture', async (t) => {
+  const f = fixture(t);
+  const result = await f.service.run('conversation.continue', turn,
+    { execute: true, authorizeSend: true });
+  await assert.rejects(f.service.finish(result.runId, 'succeeded'),
+    (e) => e.code === 'RECIPE_COMPLETION_UNVERIFIED');
+  assert.equal(f.service.status(result.runId).status, 'running');
+  const original = f.runtime.get;
+  f.runtime.get = async (id) => ({
+    ...await original(id), sessionId: 'captured-session',
+    diagnostic: { finishPhase: 'done' },
+    turns: [{ key: turn.key, send: { state: 'observed' },
+      reply: { state: 'ready' }, readiness: { state: 'ready' } }],
+  });
+  const closed = await f.service.finish(result.runId, 'succeeded');
+  assert.equal(closed.status, 'succeeded');
+});
+
 test('recipe run finish is explicit, and native send evidence cannot be automatically promoted to success', async (t) => {
   const f = fixture(t);
   const result = await f.service.run('conversation.continue', turn, { execute: true, authorizeSend: true });
   assert.equal(f.service.status(result.runId).status, 'running');
-  const closed = f.service.finish(result.runId, 'interrupted');
+  const closed = await f.service.finish(result.runId, 'interrupted');
   assert.equal(closed.status, 'interrupted');
   await assert.rejects(async () => f.service.finish(result.runId, 'succeeded'), (e) => e.code === 'RUN_FINISHED');
 });
