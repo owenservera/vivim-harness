@@ -83,7 +83,7 @@ Read-only recipes may omit both effect authorizations. A returned `tool-complete
 
 Registered family taxonomy: bootstrap, provider, conversation, capture, world, knowledge, recovery, diagnostics, verification.
 
-**Currently executable V1 declarations (nine):** provider.targets, provider.chat-index, conversation.list, conversation.inspect, conversation.read, conversation.connect-existing, conversation.continue, conversation.finish, recovery.reconcile-turn.
+**Currently executable V1 declarations (ten):** provider.targets, provider.chat-index, conversation.list, conversation.inspect, conversation.read, conversation.connect-existing, conversation.ask, conversation.continue, conversation.finish, recovery.reconcile-turn.
 
 Some other families have no executable recipe yet. They are reserved taxonomy, **not** claimed capabilities. World routes and the fresh multi-provider UI path remain present elsewhere in the repository, but are **not** automatically elevated to this recipe surface.
 
