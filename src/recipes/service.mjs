@@ -41,28 +41,45 @@ export function createRecipeService({ harnessApi, conversationRuntime } = {}) {
       if (effectful && !validOperation(identity)) throw fail(400, 'RECIPE_OPERATION_REQUIRED');
       const op = identity ?? randomUUID();
       const task = 'recipe:' + id + ':operation:' + op;
-      // Precheck source identity for turn effects BEFORE creating a durable run or touching the browser.
-      if (recipe.effects.includes('provider-send')) {
-        const current = await conversationRuntime.get(input.conversation);
-        if (current.revision !== input.expectedRevision) throw fail(409, 'RECIPE_REVISION_CHANGED');
-        if (current.state === 'closed' || current.identity?.state === 'unverified'
-          || current.identity?.state === 'unbound' || current.recovery?.pending)
-          throw fail(409, 'RECIPE_THREAD_NOT_WRITABLE');
-      }
-      // This lookup and the create below must be adjacent with NO await between them:
-      // two concurrent requests for the same operation cannot both pass this local owner.
-      const existing = harnessApi.list().runs.find((r) => r.taskDescription === task);
-      if (existing) {
+      // A duplicate attempt must discover its ORIGINAL run even after the native revision
+      // advanced. Check once before any browser read, then again immediately before create
+      // (no await between the second check and create, so concurrent requests cannot race).
+      const prior = () => {
+        const existing = harnessApi.list().runs.find((r) => r.taskDescription === task);
+        if (!existing) return null;
         const saved = harnessApi.get(existing.id).run;
         const last = saved.steps.at(-1);
-        if (last && last.argsDigest !== argsDigestOf(input)) throw fail(409, 'RECIPE_OPERATION_CONFLICT');
+        const originalDigest = saved.context?.recipeIntentDigest
+          ?? (!recipe.autoRevision ? last?.argsDigest : null);
+        if (!originalDigest) throw fail(409, 'RECIPE_ORIGINAL_INTENT_UNVERIFIED');
+        if (originalDigest !== argsDigestOf(input)) throw fail(409, 'RECIPE_OPERATION_CONFLICT');
         return { ...status(existing.id), existing: true,
           nextSafeAction: 'inspect-existing-run-no-retry', note: 'Existing operation preserved; no tool call was attempted.' };
+      };
+      const found = prior();
+      if (found) return found;
+      let nativeArgs = input;
+      if (recipe.effects.includes('provider-send')) {
+        const current = await conversationRuntime.get(input.conversation);
+        if (!Number.isSafeInteger(current.revision) || current.revision < 0)
+          throw fail(409, 'RECIPE_REVISION_UNAVAILABLE');
+        if (current.state === 'closed' || current.identity?.state !== 'bound' || current.recovery?.pending)
+          throw fail(409, 'RECIPE_THREAD_NOT_WRITABLE');
+        if (!recipe.autoRevision && current.revision !== input.expectedRevision)
+          throw fail(409, 'RECIPE_REVISION_CHANGED');
+        if (recipe.autoRevision)
+          nativeArgs = { ...input, expectedRevision: current.revision, confirm: true };
       }
+      const raced = prior();
+      if (raced) return raced;
       const created = harnessApi.create({ task, ...(input.conversation ? { conversationId: input.conversation } : {}) }).run;
       const key = recipe.effects.includes('provider-send') ? input.key : 'recipe-step:' + op;
       try {
-        const result = await harnessApi.step(created.id, { key, tool: recipe.tool, arguments: input });
+        // Store only a cryptographic digest of the caller intent before any provider effect.
+        // The native step can have hydrated revision/confirm fields without confusing replay.
+        harnessApi.note(created.id, { context: { recipeIntentDigest: argsDigestOf(input),
+          recipeVersion: recipe.version } });
+        const result = await harnessApi.step(created.id, { key, tool: recipe.tool, arguments: nativeArgs });
         if (result.step?.status !== 'succeeded') throw fail(409, 'RECIPE_STEP_NOT_VERIFIED');
         // The harness step being recorded is not enough to claim a provider reply or local
         // capture acceptance. Reads can finish immediately; mutations remain inspectable.
