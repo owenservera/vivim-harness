@@ -4,13 +4,14 @@ import { readFileSync } from 'node:fs';
 import { define, defineGroup } from '../lib/registry.mjs';
 import { usageError, CliError } from '../lib/ui.mjs';
 import { EXIT } from '../../src/config.mjs';
+import { createStudioToolClient } from '../../src/studio/tool-client.mjs';
 import { listRecipes, recipeDefinition, RECIPE_FAMILIES } from '../../src/recipes/catalog.mjs';
 import { planRecipe } from '../../src/recipes/plan.mjs';
 import { chooseRecipe } from '../../src/recipes/choose.mjs';
 
 const shared = {
   'studio-port': { type: 'number', valueName: 'PORT', desc: 'Existing Studio HTTP port (default configured port)' },
-  timeout: { type: 'number', valueName: 'SECONDS', default: 60, desc: 'One request, 1..120 seconds; no retries' },
+  timeout: { type: 'number', valueName: 'SECONDS', default: 60, desc: 'One request, 1..60 seconds; no retries' },
 };
 const inputFlag = { input: { type: 'string', valueName: 'FILE|-', desc: 'Private JSON object file or stdin (default empty object)' } };
 const emit = (ctx, result) => ctx.out.emit(result, (o) => o.line(JSON.stringify(result, null, 2)));
@@ -26,29 +27,19 @@ function inputOf(ctx) {
 async function callStudio(ctx, method, route, body) {
   const timeout = ctx.flags.timeout ?? 60;
   const port = ctx.flags['studio-port'] ?? ctx.settings.studioPort;
-  if (!Number.isFinite(timeout) || timeout < 1 || timeout > 120 ||
-      !Number.isSafeInteger(port) || port < 1 || port > 65535)
-    throw usageError('Invalid Studio port or timeout (1..120 seconds).');
-  const headers = { accept: 'application/json', ...(body !== undefined ? { 'content-type': 'application/json' } : {}) };
-  if (process.env.CAPTURE_STUDIO_TOKEN) headers['x-studio-token'] = process.env.CAPTURE_STUDIO_TOKEN;
-  let response, data;
+  if (!Number.isSafeInteger(timeout) || timeout < 1 || timeout > 60)
+    throw usageError('Timeout must be 1..60 seconds.');
+  let client;
   try {
-    response = await fetch('http://127.0.0.1:' + port + '/api/v1' + route, {
-      method, headers, redirect: 'error', credentials: 'omit',
-      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-      signal: AbortSignal.timeout(timeout * 1000),
-    });
-    data = await response.json();
-  } catch {
-    throw new CliError('STUDIO_REQUEST_UNKNOWN', { exit: EXIT.ENVIRONMENT, code: 'STUDIO_REQUEST_UNKNOWN',
-      details: { effect: method === 'POST' ? 'unknown' : 'none', retry: false } });
+    client = createStudioToolClient({ port, timeoutMs: timeout * 1000,
+      ...(process.env.CAPTURE_STUDIO_TOKEN ? { token: process.env.CAPTURE_STUDIO_TOKEN } : {}) });
+    return await client.recipeRequest(method, '/api/v1' + route, body);
+  } catch (error) {
+    const code = /^[A-Z][A-Z0-9_]{0,79}$/.test(error?.code ?? '') ? error.code : 'STUDIO_CLIENT_ERROR';
+    throw new CliError(code, { exit: EXIT.ENVIRONMENT, code,
+      details: { httpStatus: Number.isInteger(error?.status) ? error.status : null,
+        effect: error?.effect === 'unknown' ? 'unknown' : 'none', retry: false } });
   }
-  if (!response.ok) throw new CliError(
-    /^[A-Z][A-Z0-9_]{0,79}$/.test(data?.code ?? '') ? data.code : 'STUDIO_HTTP_ERROR',
-    { exit: EXIT.ENVIRONMENT, code: data?.code ?? 'STUDIO_HTTP_ERROR',
-      details: { status: response.status, effect: method === 'POST' ? 'unknown' : 'none', retry: false,
-        ...(data?.fields ? { fields: data.fields } : {}) } });
-  return data;
 }
 function only(ctx, count, usage) {
   if (ctx.args.length !== count) throw usageError('Usage: studio ' + usage);
