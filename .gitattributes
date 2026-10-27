@@ -1,0 +1,26 @@
+# Line-ending normalization: one canonical form in the repository, per-OS checkout handled by git.
+* text=auto eol=lf
+
+# Windows shell entrypoints stay CRLF (PowerShell 5.1 and cmd.exe are most reliable that way).
+*.ps1 text eol=crlf
+*.psm1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary artefacts are never normalized.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.gz binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.mp4 binary
+*.webm binary
+*.db binary
+*.sqlite binary
