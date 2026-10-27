@@ -137,7 +137,10 @@ function keyFor(ch) {
     return { key: ch, code: 'Digit' + ch, vk: ch.charCodeAt(0), text: ch, unmodifiedText: ch, modifiers: 0 };
   }
   if (ch === ' ') return { key: ' ', code: 'Space', vk: 32, text: ' ', unmodifiedText: ' ', modifiers: 0 };
-  if (ch === '\n') return { key: 'Enter', code: 'Enter', vk: 13, text: '\r', unmodifiedText: '\r', modifiers: 0 };
+  // A newline INSIDE a prompt is Shift+Enter, the key a person uses. A bare Enter is "send" on
+  // ChatGPT, Claude and most chat composers: typing one mid-prompt would submit the first line on
+  // its own (an unintended, partial provider send). Not yet measured live on every site.
+  if (ch === '\n') return { key: 'Enter', code: 'Enter', vk: 13, text: '\r', unmodifiedText: '\r', modifiers: 8 };
   const p = PUNCT[ch];
   if (p) return { key: p.key, code: p.code, vk: p.vk, text: ch, unmodifiedText: p.base || ch, modifiers: p.shift ? 8 : 0 };
   return null;
@@ -184,7 +187,8 @@ async function dispatchBackspace(page) {
 export async function humanType(page, text, { pace = DEFAULT_PACE, human = false, beforeInsert } = {}) {
   const startedAt = Date.now();
   const p = paceOf(pace);
-  const s = String(text == null ? '' : text);
+  // CRLF / lone CR become one newline: '\r' has no key mapping and would otherwise be inserted raw.
+  const s = String(text == null ? '' : text).replace(/\r\n?/g, '\n');
   const stats = { chars: s.length, durationMs: 0, pauses: 0, corrections: 0, methodCounts: { key: 0, insertText: 0 } };
   const errors = [];
 
@@ -220,12 +224,16 @@ export async function humanType(page, text, { pace = DEFAULT_PACE, human = false
       reason: ok ? undefined : 'bulk insertion unconfirmed; inspect the composer before trying again' };
   }
 
+  // Whole code points, not UTF-16 units: s[i] splits an emoji (or any astral character) into two
+  // lone surrogates, each inserted on its own, which corrupts the composer text.
+  const chars = [...s];
+
   // One deliberate slip in a longer text: people mistype, notice, and backspace.
-  const typoAt = human && s.length >= 20 ? 6 + jitter([0, Math.max(0, Math.floor(s.length * 0.5) - 6)]) : -1;
+  const typoAt = human && chars.length >= 20 ? 6 + jitter([0, Math.max(0, Math.floor(chars.length * 0.5) - 6)]) : -1;
   let corrected = false;
 
-  for (let i = 0; i < s.length; i++) {
-    const ch = s[i];
+  for (let i = 0; i < chars.length; i++) {
+    const ch = chars[i];
 
     if (human && i === typoAt && !corrected && !'.!?'.includes(ch)) {
       const pool = 'etaoinshrdlucmfwypvbgkjqxz'.split('').filter((c) => c !== ch.toLowerCase());
