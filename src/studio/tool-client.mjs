@@ -39,7 +39,7 @@ export function createStudioToolClient(options = {}) {
     // Only known local recipe/agent/health routes are accepted, never arbitrary URLs.
     async recipeRequest(method, route, body) {
       if (!['GET', 'POST'].includes(method) || typeof route !== 'string'
-        || !/^\/api\/v1\/(?:recipes(?:\/|\?|$)|agent\/capabilities$|health$)/.test(route)
+        || !(/^(?:\/api\/v1\/(?:recipes(?:\/|\?|$)|agent\/capabilities$|health$)|\/api\/status$)/.test(route))
         || /[\r\n#]/.test(route) || route.includes('..') || route.includes('://')
         || (method === 'GET' && body !== undefined) || (method === 'POST' && (!body || typeof body !== 'object' || Array.isArray(body))))
         throw failure('INVALID_RECIPE_REQUEST', 400);
