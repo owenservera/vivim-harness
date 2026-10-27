@@ -1,7 +1,7 @@
 import os from 'node:os';
 import path from 'node:path';
-import { createHash } from 'node:crypto';
-import { readdirSync, readFileSync, writeFileSync, statSync, existsSync, mkdirSync, renameSync } from 'node:fs';
+import { createHash, randomBytes } from 'node:crypto';
+import { readdirSync, readFileSync, writeFileSync, statSync, existsSync, mkdirSync, renameSync, rmSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 export const TOOL_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -12,7 +12,9 @@ export function defaultDataDir(env = process.env, platform = process.platform) {
   if (env.CAPTURE_STUDIO_HOME) return env.CAPTURE_STUDIO_HOME;
   if (platform === 'win32') return path.join(env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local'), 'AION', 'capture-studio');
   if (platform === 'darwin') return path.join(os.homedir(), 'Library', 'Application Support', 'AION', 'capture-studio');
-  return path.join(env.XDG_DATA_HOME || path.join(os.homedir(), '.local', 'share'), 'aion-capture-studio');
+  // XDG_DATA_HOME is required to be absolute; a relative value must never place private evidence in the source checkout.
+  const xdg = env.XDG_DATA_HOME;
+  return path.join(xdg && path.isAbsolute(xdg) ? xdg : path.join(os.homedir(), '.local', 'share'), 'aion-capture-studio');
 }
 
 export function dataPaths(dataDir = defaultDataDir()) {
@@ -107,8 +109,15 @@ export function loadUserConfig(configFile) {
 export function saveUserConfig(configFile, values) {
   mkdirSync(path.dirname(configFile), { recursive: true });
   const body = JSON.stringify(values, null, 2) + '\n';
-  writeFileSync(configFile + '.tmp', body);
-  renameSync(configFile + '.tmp', configFile);
+  // Each process owns its temp file. A fixed config.json.tmp races to ENOENT on
+  // concurrent Windows/Linux writers and can publish another writer's partial data.
+  const temp = `${configFile}.${process.pid}.${randomBytes(8).toString('hex')}.tmp`;
+  try {
+    writeFileSync(temp, body, { encoding: 'utf8', flag: 'wx', mode: 0o600 });
+    renameSync(temp, configFile);
+  } finally {
+    rmSync(temp, { force: true });
+  }
 }
 
 // Returns { settings, sources, problems }; `sources[key]` is 'flag' | 'env' | 'config' | 'default'.
