@@ -23,9 +23,12 @@ export function registerRecipeRoutes({ add, harnessApi, conversationRuntime } = 
   add('GET', '/recipes', 'List versioned available recipe definitions (registration is not live account availability)',
     ({ q }) => { try { return recipes.list(q.family); } catch (e) { return fail(e); } },
     { query: { family: str }, tool: 'recipe_list', annotations: { readOnlyHint: true, openWorldHint: false } });
-  add('GET', '/recipes/choose', 'Suggest compatible recipes from an intent, without execution or authority grants',
-    ({ q }) => { try { return chooseRecipe(q.intent, { ...(q.family ? { family: q.family } : {}) }); } catch (e) { return fail(e); } },
-    { query: { intent: str, family: str }, tool: 'recipe_choose',
+  // Intent text can contain private user context: accept it in a POST body, never a URL
+  // query string (which commonly persists in server access logs).
+  add('POST', '/recipes/choose', 'Suggest compatible recipes from private intent text without executing',
+    ({ body }) => { try { return chooseRecipe(body.intent, { ...(body.family ? { family: body.family } : {}) }); }
+      catch (e) { return fail(e); } },
+    { body: bodySchema({ intent: str, family: str }, ['intent']), tool: 'recipe_choose',
       annotations: { readOnlyHint: true, openWorldHint: false } });
   add('GET', '/recipes/{recipe}', 'Read one supported recipe contract; no browser effects',
     ({ p }) => recipes.show(p.recipe), { pathParameters: idParam, tool: 'recipe_show',
