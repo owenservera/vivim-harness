@@ -21,6 +21,7 @@ export async function runChat(ctx, { factory = defaultConversationRuntime, sleep
     emit({ dryRun: true, site: connect.site, targetId: connect.targetId ?? null, freshTab: connect.freshTab ?? false, promptChars: prompt.length, timeoutSeconds: timeout, action: 'connect-submit-poll-finish', browserAction: false });
     return;
   }
+  if (!flags['accept-sends']) throw usageError('Live sends require --execute --accept-sends. For the 100-scenario campaign, use studio live-100: never dispatch parallel studio chat workers.');
   // A single user command prepares (or verifies) the dedicated browser before any live send.
   await launchChrome({ profileDir: ctx.paths.chromeProfile, port: ctx.port });
   const runtime = await factory({ paths: ctx.paths, profileStore: ctx.profiles(), familyStore: ctx.families(), port: ctx.port });
@@ -56,17 +57,18 @@ export async function runChat(ctx, { factory = defaultConversationRuntime, sleep
 }
 
 define({
-  name: 'chat', section: 'Knowledge', usage: '<site> --prompt TEXT [--execute] [--timeout S]',
+  name: 'chat', section: 'Knowledge', usage: '<site> --prompt TEXT [--execute --accept-sends] [--timeout S]',
   summary: 'Preview, or explicitly send one conversation turn and finish its capture',
-  description: 'Default is an offline dry-run. --execute connects, submits once, polls local snapshots for a bounded time, and finishes recording without closing the tab. No retries or persistent CLI recorder.',
+  description: 'Default is an offline preview. --execute --accept-sends together authorize one real provider turn; use live-100 for campaign scenarios. No retries or persistent CLI recorder.',
   flags: {
     prompt: { type: 'string', valueName: 'TEXT', desc: 'Required prompt, at most 250000 characters' },
     execute: { type: 'boolean', desc: 'Confirm one real website send (may consume account quota)' },
     'dry-run': { type: 'boolean', desc: 'Preview without browser access, even with --execute' },
+    'accept-sends': { type: 'boolean', desc: 'Second explicit acknowledgement for a live provider send' },
     timeout: { type: 'number', default: 120, valueName: 'SECONDS', desc: 'Local polling budget, 1–900 seconds' },
     target: { type: 'string', valueName: 'ID', desc: 'Bind an existing target id' },
     fresh: { type: 'boolean', desc: 'Request a new Studio-owned tab' },
   },
-  examples: ['studio chat chatgpt --prompt "Hello"', 'studio chat chatgpt --prompt "Hello" --execute --json'],
+  examples: ['studio chat chatgpt --prompt "Hello"', 'studio chat chatgpt --prompt "Hello" --execute --accept-sends --json'],
   run: runChat,
 });
