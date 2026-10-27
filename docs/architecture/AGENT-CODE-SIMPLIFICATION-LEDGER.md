@@ -23,6 +23,8 @@
 | R07 | P1 | `GET /api/v1/recipes/choose?intent=...` put potentially private agent/user intent into URL/access-log paths. | Accept `POST /api/v1/recipes/choose` with a typed request body, marked as read-only. CLI `recipe choose` remains a local pure operation. | Confirm API/tool/CLI compatibility and no URL logging. |
 | R08 | P1 | Recipe status/reconcile accepted any generic harness task starting with `recipe:` as a recipe run. | Validate complete recipe task syntax and a registered recipe ID before returning a recipe-run status. | Negative impersonation regression needed. |
 
+| R09 | P0 / regression found and fixed | A run-identity regex introduced by R08 was accidentally over-escaped, causing legitimate `recipe:conversation.ask:operation:key-1` tasks to be rejected as `RECIPE_RUN_NOT_FOUND`. | Correct the regex and re-run real-source V8 behavioral checks: 210 read-only calls create no stored runs; two concurrent same-key submits call the native effect once; unproven success is denied; native exact-turn proof allows explicit completion; mismatched operation key is denied. | **Remote injected-mock checks passed**. Full native Node suite and live provider still unverified. |
+
 ## Still missing / deeper issues ranked by user impact
 
 | ID | Priority | Source-grounded gap and outcome | Minimal recommended change | Evidence gate / scope |
