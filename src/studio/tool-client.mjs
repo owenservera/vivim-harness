@@ -35,6 +35,17 @@ export function createStudioToolClient(options = {}) {
     try { return await Promise.race([run, timeout]); } finally { clearTimeout(timer); }
   }
   return {
+    // Recipe CLI uses this SAME one-attempt HTTP implementation; no second fetch stack.
+    // Only known local recipe/agent/health routes are accepted, never arbitrary URLs.
+    async recipeRequest(method, route, body) {
+      if (!['GET', 'POST'].includes(method) || typeof route !== 'string'
+        || !/^\/api\/v1\/(?:recipes(?:\/|\?|$)|agent\/capabilities$|health$)/.test(route)
+        || /[\r\n#]/.test(route) || route.includes('..') || route.includes('://')
+        || (method === 'GET' && body !== undefined) || (method === 'POST' && (!body || typeof body !== 'object' || Array.isArray(body))))
+        throw failure('INVALID_RECIPE_REQUEST', 400);
+      const readOnly = method === 'GET' || route.endsWith('/plan') || route.endsWith('/reconcile');
+      return once(route, method === 'GET' ? undefined : body, readOnly ? 'none' : 'unknown');
+    },
     async list() {
       const manifest = await once('/api/v1/integrations/tools', undefined, 'none');
       if (!Array.isArray(manifest?.tools)) throw failure('STUDIO_INVALID_RESPONSE', 502);
