@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="350" viewBox="0 0 1200 350" role="img" aria-labelledby="title desc">
+<title id="title">VIVIM — Your AI. Your world.</title><desc id="desc">Dark graphic with mint geometric connected world motif and VIVIM headline.</desc>
+<defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#10191e"/><stop offset="1" stop-color="#172b2b"/></linearGradient><radialGradient id="glow"><stop stop-color="#78e6b0" stop-opacity=".21"/><stop offset="1" stop-color="#78e6b0" stop-opacity="0"/></radialGradient></defs>
+<rect width="1200" height="350" rx="22" fill="url(#bg)"/><circle cx="1010" cy="165" r="245" fill="url(#glow)"/>
+<g fill="none" stroke="#8de8b7" opacity=".5"><circle cx="993" cy="166" r="118"/><circle cx="993" cy="166" r="82"/><circle cx="993" cy="166" r="45"/><path d="M860 165h267M993 33v265M901 76l184 179M901 255l184-179"/></g>
+<g fill="#b7f6d0"><circle cx="993" cy="48" r="6"/><circle cx="1111" cy="166" r="7"/><circle cx="911" cy="166" r="6"/><circle cx="993" cy="166" r="11"/><circle cx="936" cy="108" r="6"/><circle cx="1050" cy="223" r="6"/></g>
+<g font-family="Arial,Helvetica,sans-serif"><text x="80" y="104" fill="#b7f6d0" font-size="19" font-weight="700" letter-spacing="7">PERSONAL AI, REIMAGINED</text><text x="72" y="209" fill="#f4f8f4" font-size="95" font-weight="800" letter-spacing="-5">VIVIM</text><text x="79" y="255" fill="#e6ede9" font-size="29">Your AI. Your world.</text><text x="80" y="298" fill="#a7c9ba" font-size="17" letter-spacing="2">OWN YOUR AI  ·  SHARE YOUR AI  ·  EVOLVE YOUR AI</text></g>
+</svg>
