@@ -10,9 +10,8 @@ as a summary; this document is a faithful reconstruction, not a transcript.
 ("docs(platform): record chrome-cdp.ps1 as an accepted exception, not a refactor target").
 Clean worktree before this file was added.
 
-**Scope of this document:** one new documentation file. No product code, no other document
-was modified, nothing was committed or pushed, and no workspace setup, browser or provider
-effect was performed.
+**Scope when drafted:** this decision record only. No product code or other document was
+modified, and no workspace setup, browser or provider effect was performed.
 
 ---
 
