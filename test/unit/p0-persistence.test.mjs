@@ -742,11 +742,21 @@ test('B4 namespaces stay separate: the factory refuses, skips and never reads I1
 });
 
 // ============================================================================================ reviewer-driven safety corrections
-test('S1 a record must belong to the (name, version) it is stored under; NTFS name case is tolerated', (t) => {
+test('S1 a record must belong to the (name, version) it is stored under; name case follows the host filesystem', (t) => {
   const dir = path.join(tmp(t), 's');
   const s = mk(dir);
+  // Case-insensitive directory lookup is a property of the filesystem (NTFS/APFS), not of the
+  // store: src/store/versioned.mjs resolves a differently-cased name through the OS. Probe the
+  // real temp filesystem so the assertion states the contract that actually applies here.
+  const probe = path.join(path.dirname(dir), 'case-probe');
+  fs.writeFileSync(probe, '');
+  const caseInsensitive = fs.existsSync(path.join(path.dirname(dir), 'CASE-PROBE'));
+  fs.rmSync(probe, { force: true });
   s.compareAndSave('Case', { v: 1 }, { expectedVersion: null });
-  assert.equal(s.load('case').v, 1, 'case-insensitive access to a stored record still works');
+  if (caseInsensitive) assert.equal(s.load('case').v, 1, 'case-insensitive access to a stored record still works');
+  else assert.equal(capture(() => s.load('case'))?.code, 'STORE_NO_SUCH_ITEM',
+    'a case-sensitive filesystem keeps Case and case as distinct stores, and never leaks one into the other');
+  assert.equal(s.load('Case').v, 1, 'the stored name itself always resolves');
   s.compareAndSave('n', { v: 1 }, { expectedVersion: null });
   s.compareAndSave('n', { v: 2 }, { expectedVersion: 1 });
   const v2 = path.join(dir, 'n', 'v0002.json');

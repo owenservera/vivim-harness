@@ -3,7 +3,7 @@
 // Record is exclusive and same-key SAME-intent replay is read-only, not a second effect grant.
 // Existing harness run store is the sole effect-admission authority; this file never sends.
 import { createHash, randomUUID } from 'node:crypto';
-import { mkdirSync, existsSync, openSync, writeFileSync, fsyncSync, closeSync, readFileSync, renameSync, unlinkSync, rmdirSync } from 'node:fs';
+import { mkdirSync, existsSync, openSync, writeFileSync, fsyncSync, closeSync, readFileSync, renameSync, unlinkSync, rmdirSync, linkSync } from 'node:fs';
 import path from 'node:path';
 
 export const INTENT_BINDING_SCHEMA = 'aion.harness-intent-binding/1';
@@ -22,11 +22,14 @@ const shape = r => r && r.schema===INTENT_BINDING_SCHEMA && r.source==='trusted-
   && (r.journalTurnKey===null)===(r.journalPayloadDigest===null);
 const publicRecord = r => Object.fromEntries(Object.entries(r).filter(([k])=>k!=='integrity'));
 const encode = r => JSON.stringify({...r,integrity:digest(r)})+'\n';
+// Filesystems that cannot hard-link (some network/overlay mounts) fall back to exclusive create.
+const LINK_UNSUPPORTED = new Set(['EPERM','ENOTSUP','EOPNOTSUPP','EXDEV','ENOSYS']);
 
 export function createIntentBindingStore({dir}={}) {
   if(typeof dir!=='string'||!dir)throw new TypeError('dir is required');
   mkdirSync(dir,{recursive:true});
   const fileFor=(runId,stepKey)=>path.join(dir,keyFileName(runId,stepKey));
+  let linkable=true; // cleared on the first filesystem that refuses hard links
   const load=file=>{
     let saved;
     try {saved=JSON.parse(readFileSync(file,'utf8'));} catch(e){if(e.code==='ENOENT')return null;throw err('INTENT_BINDING_UNREADABLE');}
@@ -35,10 +38,29 @@ export function createIntentBindingStore({dir}={}) {
     return rec;
   };
   const writeNew=(file,record)=>{
+    const body=encode(record);
+    // A record must never be observable before it is complete. openSync(file,'wx') publishes an
+    // empty target for the whole duration of writeFileSync, so a second process recording the SAME
+    // intent read '' and failed closed with INTENT_BINDING_UNREADABLE instead of converging.
+    // link() is an atomic exclusive create: the name appears only once the record is durable, and
+    // it still refuses to replace an existing record (EEXIST).
+    if(linkable){
+      const temp=`${file}.${randomUUID()}.tmp`;
+      let fd;
+      try {
+        fd=openSync(temp,'wx',0o600);writeFileSync(fd,body);fsyncSync(fd);closeSync(fd);fd=undefined;
+        linkSync(temp,file);
+        return;
+      } catch(e){
+        if(e.code==='EEXIST')throw e;
+        if(!LINK_UNSUPPORTED.has(e.code))throw e;
+        linkable=false; // filesystem without hard links: fall back to exclusive create + write
+      } finally {if(fd!==undefined)closeSync(fd);try{unlinkSync(temp);}catch{}}
+    }
     let fd;
     try {
       fd=openSync(file,'wx',0o600); // atomic exclusive create, even across separate processes
-      writeFileSync(fd,encode(record)); fsyncSync(fd);
+      writeFileSync(fd,body); fsyncSync(fd);
     } finally {if(fd!==undefined)closeSync(fd);}
   };
   const writeReplacement=(file,record)=>{
