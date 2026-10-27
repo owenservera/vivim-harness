@@ -70,6 +70,8 @@ Recorded separately so they are not mistaken for owner decisions.
 | Exact filesystem layout | **UNDECIDED** | User chooses the workspace location at onboarding (D2); internal layout is not agreed. |
 | Identity model | **UNDECIDED** | How observed identity is recorded, what counts as reliable observation, and how unknown states are represented. |
 | Multiple accounts per provider | **MAJOR PARKED** (D9) | Same-world co-existence, switching, browser/profile topology, attribution and conflict handling. |
+| Browser visibility | **TODO — owner requested** | Let the user choose whether VIVIM Chrome is visible, minimized or hidden. Define the behavior and limitations of each mode, including how a user can sign in or recover access; hidden and headless are not assumed to be equivalent. |
+| Active VIVIM browsers | **TODO — owner requested** | Provide a place to see active VIVIM-owned browsers, their status and tabs, with world/profile attribution only when verified. UI and management actions remain to be designed. |
 | Local/remote sync | **PARKED** (D12) | Remote target, scheduling, conflict handling, retention; no background polling policy exists. |
 | `.dev` placement/layout | **OPEN** (D6) | Not mandatory onboarding; per-world/profile scope suggested, final structure undecided. |
 | Isolation enforcement | **OPEN** | Folder separation is not OS security (D5); verified profile attachment is not yet implemented/claimed. |
