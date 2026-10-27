@@ -72,6 +72,9 @@ export function createConversationBrowserAdapter({ paths, profileStore, familySt
   }
   // A bound thread must match from both sources: the DevTools target URL and the page's own location.
   const threadMatches = (url) => !binding.thread || sameThread(parseThread(siteAdapter.id, url), binding.thread);
+  // A target URL Chrome reports can be unparseable (chrome-error://, data:, a crashed page). That is a
+  // changed binding, not an internal TypeError.
+  const originOf = (url) => { try { return new URL(url).origin; } catch { return null; } };
   const livePage = () => recorder?.page ?? idlePage;
   async function pageThreadMatches() {
     if (!binding.thread) return true;
@@ -163,7 +166,7 @@ export function createConversationBrowserAdapter({ paths, profileStore, familySt
     if (!livePage()) throw problem('CAPTURE_NOT_ACTIVE');
     const targets = await d.listTargets({ port });
     const target = targets.find((t) => t.id === binding.targetId);
-    if (!target || new URL(target.url).origin !== binding.origin || !threadMatches(target.url)) throw problem('BINDING_CHANGED');
+    if (!target || originOf(target.url) !== binding.origin || !threadMatches(target.url)) throw problem('BINDING_CHANGED');
     if (await d.evaluate(livePage(), 'location.origin') !== binding.origin) throw problem('BINDING_CHANGED');
     if (!(await pageThreadMatches())) throw problem('BINDING_CHANGED');
     return { ...binding };
@@ -247,7 +250,7 @@ export function createConversationBrowserAdapter({ paths, profileStore, familySt
     } else {
       const target = (await d.listTargets({ port })).find((t) => t.id === targetId);
       aborted();
-      if (!target || new URL(target.url).origin !== binding.origin || !threadMatches(target.url)) throw problem('BINDING_CHANGED');
+      if (!target || originOf(target.url) !== binding.origin || !threadMatches(target.url)) throw problem('BINDING_CHANGED');
       // Never replace/stop an unknown recorder, including an interrupted recorder with no proof
       // of finalization. Only the selected exact target is guarded; unrelated captures continue.
       if (d.listSessions(paths.sessions).some((s) => s.target?.id === targetId && ['recording', 'stopping'].includes(s.status))) throw problem('TARGET_RECORDER_BUSY');

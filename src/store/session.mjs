@@ -269,7 +269,9 @@ export function listSessions(sessionsDir) {
       if (existsSync(raw)) for (const f of readdirSync(raw)) { try { bytes += statSync(path.join(raw, f)).size; } catch { /* ignore */ } }
       return { ...meta, rawBytes: bytes };
     })
-    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+    // Newest first. Unreadable metadata has no createdAt and sorts last; equal keys keep a stable
+    // order (the old `a < b ? 1 : -1` comparator was inconsistent for them).
+    .sort((a, b) => String(b.createdAt ?? '').localeCompare(String(a.createdAt ?? '')));
 }
 
 export function resolveSessionDir(sessionsDir, idOrPrefix) {

@@ -374,16 +374,29 @@ export async function humanPressEnter(page, { pace = DEFAULT_PACE } = {}) {
 // ---------------------------------------------------------------------------------------------
 // Wheel, idle, environment
 // ---------------------------------------------------------------------------------------------
-export async function humanScroll(page, { deltaY = -240, steps = 6 } = {}) {
+// A wheel event scrolls whatever sits under the pointer. At (0,0) that is the page header or the
+// sidebar, never the conversation, so the default point is the middle of the visible viewport.
+async function viewportCenter(page) {
+  try {
+    const m = await page.send('Page.getLayoutMetrics', {});
+    const v = m?.cssVisualViewport ?? m?.layoutViewport;
+    const w = Number(v?.clientWidth), h = Number(v?.clientHeight);
+    if (w > 0 && h > 0) return { x: Math.round(w / 2), y: Math.round(h / 2) };
+  } catch { /* fall through */ }
+  return { x: 400, y: 300 };
+}
+
+export async function humanScroll(page, { deltaY = -240, steps = 6, x, y } = {}) {
   const total = Number(deltaY) || 0;
   const n = Math.max(1, Math.floor(Number(steps) || 1));
   const share = total / n;
+  const at = Number.isFinite(x) && Number.isFinite(y) ? { x, y } : await viewportCenter(page);
   let sent = 0;
   const errors = [];
   for (let i = 0; i < n; i++) {
     const chunk = i === n - 1 ? Math.round(total - share * (n - 1)) : Math.round(share);
     try {
-      await page.send('Input.dispatchMouseEvent', { type: 'mouseWheel', x: 0, y: 0, deltaX: 0, deltaY: chunk, button: 'none', buttons: 0 });
+      await page.send('Input.dispatchMouseEvent', { type: 'mouseWheel', x: at.x, y: at.y, deltaX: 0, deltaY: chunk, button: 'none', buttons: 0 });
       sent += 1;
     } catch (e) {
       errors.push(`mouseWheel failed at step ${i + 1}: ${msg(e)}`);
