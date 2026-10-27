@@ -580,7 +580,9 @@ export function createConversationBrowserAdapter({ paths, profileStore, familySt
     // page's own location is part of the evaluated result, so a thread switch mid-read discards it.
     async readTranscript({ maxMessages = TRANSCRIPT_LIMITS.maxMessages.default, maxChars = TRANSCRIPT_LIMITS.maxChars.default, perMessageCap = TRANSCRIPT_LIMITS.perMessageCap } = {}) {
       await check();
-      const result = await d.evaluate(livePage(), transcriptExpression({ composerSelectors: siteAdapter.composer?.selectors ?? [], perMessageCap: Math.min(perMessageCap, maxChars) }));
+      const result = await d.evaluate(livePage(), transcriptExpression({ composerSelectors: siteAdapter.composer?.selectors ?? [],
+         streamingSelectors: siteAdapter.assistant?.streamingSelectors ?? [], sendSelectors: siteAdapter.send?.buttonSelectors ?? [],
+         perMessageCap: Math.min(perMessageCap, maxChars) }));
       const after = await check();
       if (!result || typeof result !== 'object' || !Array.isArray(result.messages)) throw problem('READ_FAILED');
       if (binding.thread && !threadMatches(`${binding.origin}${String(result?.pathname ?? '')}`)) throw problem('BINDING_CHANGED');
