@@ -19,6 +19,29 @@ These two files are specialized subagent profiles, **not** automatically running
 - User's command convention: `#repo` scopes, `@agent` selects role, `/SITREP` refreshes relevant current status, `/BOOTSTRAP` bootstraps, `+/EXECUTE` means implement. Agent/GitHub messages inform but do not authorize irreversible/local browser effects. Keep SITREP short and grounded in exact SHA/tests.
 - No Slack and no speculative infrastructure. Prefer built-in tools. Propose ChatGPT tasks with Instant/Medium/High effort specified.
 
+## Agent recipe entrypoint (implemented on main)
+
+Before guessing CLI commands or inventing multi-step automation, read
+[`docs/architecture/AGENT-RECIPE-RUNTIME-V1.md`](docs/architecture/AGENT-RECIPE-RUNTIME-V1.md)
+and the source registry `src/recipes/catalog.mjs`.
+
+- Discover: `node bin/studio.mjs agent capabilities --json`, `studio recipe list --json`,
+  `studio recipe choose --intent "your requested outcome" --json`, then `studio recipe show <family.name> --json`.
+- Plan: `studio recipe plan <family.name> --input args.json --json` is offline and non-effectful;
+  it reports missing authorizations, static requirements and the exact native tool.
+- Execute: `studio recipe run <family.name> --input args.json --json` uses the existing running Studio
+  harness owner; mutations require `--execute` and real provider sends ALSO require
+  `--authorize-send` plus the original durable `input.key`.
+- Recover: `studio recipe status <runId>` / `studio recipe reconcile <runId>` inspect the
+  *original* run. Unknown or timed-out sends must never be silently resent; never substitute another operation ID.
+- Read-only recipes execute with one user command. All supported user tasks must fit at most three
+  commands, ideally one; internal guarded tool steps do not count as additional user commands.
+
+Source declarations distinguish available *tools* from actual provider login, permission, tab/thread
+identity, completed replies and capture acceptance. Nine native conversation recipes are currently
+wired; other family names are taxonomy only, not a permission or claim of available implementation.
+There is no parallel browser actor, generic shell recipe evaluator or second journal.
+
 ## Subagent dispatch — explicit and narrow
 - Use the fewest lanes needed; do one isolated, clear, low-risk action directly when delegation would take longer.
 - Every delegation must name one concrete outcome, the exact target and starting point, allowed actions and files, excluded actions, and a proportionate completion check with its owner.
