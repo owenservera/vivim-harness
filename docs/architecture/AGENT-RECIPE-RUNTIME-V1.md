@@ -66,12 +66,18 @@ For effectful recipes other than provider sends, supply a caller-owned stable `-
 
 ## Native API (running same-owner Studio only)
 
-All routes reuse `src/studio/integration-hub.mjs` and the same token/loopback/Host/Origin protections:
+All routes reuse `src/studio/integration-hub.mjs` and the same token/loopback/Host/Origin protections.
+Read-only `recipe run` calls dispatch through the **existing validated native tool**
+without allocating a durable harness-run slot. Effectful runs retain the existing
+harness run store, original operation identity and no-resend journal fence.
+Default read results preserve actionable IDs/states/coverage while redacting private
+prompt, reply and title/body fields. Use `--include-content` deliberately if needed.
 
 | Method | Route | Meaning |
 |---|---|---|
 | GET | `/api/v1/agent/capabilities` | capability contract, no account-probing |
 | GET | `/api/v1/recipes?family=conversation` | catalogue |
+| POST | `/api/v1/recipes/choose` | advisory intent match; text supplied in private body, not URL |
 | GET | `/api/v1/recipes/{recipe}` | single recipe declaration |
 | POST | `/api/v1/recipes/{recipe}/plan` | pure typed validation |
 | POST | `/api/v1/recipes/{recipe}/run` | existing harness run + single native tool step |
@@ -107,7 +113,11 @@ Each declaration is constrained to one tool in the existing nine-tool conversati
 
 ## Durable evidence and uncertainty
 
-Native `harnessApi.create/step/get/finish/reconcileStep` is the only run authority. Recipe command code does not create a new storage scheme. Only metadata and cryptographic argument digests go into the durable harness run ledger. The agent's local JSON input file may contain private prompts; do not commit it. Provider sends should be authorized and performed only against a deliberately selected real native conversation.
+Native `harnessApi.create/step/get/finish/reconcileStep` is the only run authority. Recipe command code does not create a new storage scheme. Only metadata and cryptographic argument digests go into the durable harness run ledger. The agent's local JSON input file may contain private prompts; do not commit it.
+A durable `recipe finish --status succeeded` for an actual provider send now requires
+native proof from its exact turn: observed delivery, ready reply, ready journal,
+non-null capture session and finished capture. An HTTP step receipt alone is insufficient.
+The recipe can still be interrupted or failed without inventing a successful provider result. Provider sends should be authorized and performed only against a deliberately selected real native conversation.
 
 Duplicate-operation check happens synchronously adjacent to native run creation in the same Studio process. This prevents duplicate runs within that single-owner event loop; it does **not** guarantee cross-process deduplication if two independently running Studio servers share a data directory. Such setups remain unsupported. A failed preflight must never be interpreted as proof that an earlier unknown send did not occur.
 
