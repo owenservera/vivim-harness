@@ -4,6 +4,7 @@
 import { CONVERSATION_TOOLS } from '../studio/conversation-tools.mjs';
 
 const toolNames = new Set(CONVERSATION_TOOLS.map((tool) => tool.name));
+const turnInput = CONVERSATION_TOOLS.find((tool) => tool.name === 'submit_conversation_turn').inputSchema;
 export const RECIPE_FAMILIES = Object.freeze([
   'bootstrap', 'provider', 'conversation', 'capture', 'world',
   'knowledge', 'recovery', 'diagnostics', 'verification',
@@ -29,6 +30,14 @@ const definitions = [
   { id: 'conversation.connect-existing', title: 'Attach to an exact ChatGPT thread', family: 'conversation',
     tool: 'connect_conversation', effects: ['local-write'], requires: ['studio.running', 'browser.owner-verified', 'thread.chatgpt-exact'],
     evidence: 'native-thread-binding', description: 'Existing exact ChatGPT UUID thread only; not fresh-tab creation' },
+  { id: 'conversation.ask', title: 'One-command follow-up on a bound conversation', family: 'conversation',
+    tool: 'submit_conversation_turn', effects: ['provider-send', 'local-write'],
+    requires: ['studio.running', 'conversation.live-bound', 'conversation.writable'],
+    evidence: 'send-and-journal', autoRevision: true,
+    inputSchema: { type: 'object', additionalProperties: false,
+      properties: Object.fromEntries(['conversation', 'key', 'prompt'].map((name) => [name, turnInput.properties[name]])),
+      required: ['conversation', 'key', 'prompt'] },
+    description: 'Agent supplies exact conversation, original key and prompt; owner reads revision and supplies confirm:true only after explicit provider-send authorization' },
   { id: 'conversation.continue', title: 'Send exactly one confirmed turn', family: 'conversation',
     tool: 'submit_conversation_turn', effects: ['provider-send', 'local-write'],
     requires: ['studio.running', 'conversation.live-bound', 'conversation.writable', 'turn.expected-revision'],
@@ -54,7 +63,7 @@ function validated(def) {
   if (def.effects.includes('provider-send') && def.tool !== 'submit_conversation_turn')
     throw new Error('INVALID_RECIPE_SEND_TOOL: ' + def.id);
   return Object.freeze({ ...def, version: 1, transport: 'studio-tool',
-    inputSchema: tool.inputSchema, toolReadOnly: tool.annotations.readOnlyHint === true,
+    inputSchema: def.inputSchema ?? tool.inputSchema, toolReadOnly: tool.annotations.readOnlyHint === true,
     executionReady: true, maxUserCommands: 1,
     onUnknownEffect: 'halt-and-reconcile' });
 }
