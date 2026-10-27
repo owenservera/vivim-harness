@@ -1,6 +1,7 @@
 // Expose agent recipes through the already-running Studio integration hub.
 // All work is delegated to its existing conversation runtime + durable harness API.
 import { createRecipeService } from '../recipes/service.mjs';
+import { chooseRecipe } from '../recipes/choose.mjs';
 import { problem } from './http.mjs';
 
 const str = { type: 'string' };
@@ -22,6 +23,10 @@ export function registerRecipeRoutes({ add, harnessApi, conversationRuntime } = 
   add('GET', '/recipes', 'List versioned available recipe definitions (registration is not live account availability)',
     ({ q }) => { try { return recipes.list(q.family); } catch (e) { return fail(e); } },
     { query: { family: str }, tool: 'recipe_list', annotations: { readOnlyHint: true, openWorldHint: false } });
+  add('GET', '/recipes/choose', 'Suggest compatible recipes from an intent, without execution or authority grants',
+    ({ q }) => { try { return chooseRecipe(q.intent, { ...(q.family ? { family: q.family } : {}) }); } catch (e) { return fail(e); } },
+    { query: { intent: str, family: str }, tool: 'recipe_choose',
+      annotations: { readOnlyHint: true, openWorldHint: false } });
   add('GET', '/recipes/{recipe}', 'Read one supported recipe contract; no browser effects',
     ({ p }) => recipes.show(p.recipe), { pathParameters: idParam, tool: 'recipe_show',
       annotations: { readOnlyHint: true, openWorldHint: false } });
