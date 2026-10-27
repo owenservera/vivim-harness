@@ -23,7 +23,7 @@ node bin/studio.mjs agent capabilities --json
 node bin/studio.mjs agent status --studio-port 38703 --json
 node bin/studio.mjs tools list --studio-port 38703 --json
 ```
-These are starting-point examples, not an automatic sequence. **Run only the command needed for your assigned user objective**. If the last-observed port is unavailable, do not assume Studio is down or switch to 7878: ask the operator for the current Studio port, or use read-only process/service inspection through the approved host. Never kill or restart processes in order to probe.
+These are starting-point examples, not an automatic sequence. **Run only the command needed for your assigned user objective**. The updated `agent status` now exposes the **running server's** `dataDir`, `chromeProfile`, `studioPort`, `cdpPort` and `chromeReachable`; it explicitly reports browser profile/account verification as unproven. Compare them with the map above. If the last-observed port is unavailable, do not silently switch to 7878: ask the operator for the current Studio port. Never kill or restart processes in order to probe.
 
 ### Discover native action verbs
 ```powershell
@@ -36,8 +36,8 @@ node bin/studio.mjs help tools call
 The above are *examples of discovery*, not a prescribed workflow. Some capabilities are only exposed by `tools call`, others by recipes, and some not implemented yet. Do not read source or drive Chrome by CDP directly to complete a probe. A capability you cannot discover/use via CLI + these helper files counts as friction or unsupported.
 
 ### Existing Studio vs own CLI process
-- `agent status` checks a local running Studio's health; a healthy HTTP service is **not** proof of the correct data root, Chrome profile, account or thread.
-- The real server's `/api/status` provides its dataDir and CDP port. Compare them to this map using its configured existing port, through the CLI diagnostics where supported; if CLI cannot expose this, report a **CLI capability gap** rather than assuming identity.
+- `agent status` reads **`/api/status` from the existing Studio** and reports its current data root, derived Chrome-profile directory and CDP port through the native CLI. This is a path/port truth check; it is **not** proof that the correct Chrome browser identity, ChatGPT account or thread is attached.
+- A loaded Studio may come from an older checkout without updated `agent status`; if the CLI can't expose the live server's dataDir/profile/port, report **STALE_RUNTIME_OR_CLI_GAP** rather than assuming identity or using an independent HTTP/CDP workaround.
 - `tools list` and `tools call` connect to Studio's existing owner; the CLI does not launch a competing CDP actor.
 - `recipe run` uses the existing native owner. User-approved provider sends require `--execute --authorize-send` and a stable, original send key; `studio chat` one-shot requires `--execute --accept-sends`. A scenario assignment is not a blanket send authorization.
 - The older `live-100` batch runner **was removed**. Do not recreate it, automate these objectives, or route probes through another batch tool.
