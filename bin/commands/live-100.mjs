@@ -2,7 +2,7 @@
 // No Playwright/Puppeteer, stubs, replayed answers, synthetic providers, automatic resends,
 // parallel effects or raw prompt/reply bodies in receipts. Defaults to a zero-effect preview.
 import path from 'node:path';
-import { mkdirSync, existsSync, readFileSync, writeFileSync, renameSync, rmSync } from 'node:fs';
+import { mkdirSync, existsSync, readFileSync, openSync, writeSync, fsyncSync, closeSync, renameSync, rmSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { launchChrome } from '../../src/chrome/launch.mjs';
 import { defaultConversationRuntime } from '../../src/studio/conversation-api.mjs';
@@ -24,10 +24,27 @@ const terminal = (c) => unsafe(c) || ['ready', 'failed'].includes(c?.reply?.stat
 
 function writeReceipt(file, data) {
   const tmp = file + '.' + randomUUID() + '.tmp';
+  let fd = null;
   try {
-    writeFileSync(tmp, JSON.stringify(data, null, 2) + '\n', { flag: 'wx', mode: 0o600 });
+    // The no-resend fence must reach disk BEFORE any provider input. An ordinary buffered
+    // write followed by rename is not enough when the machine crashes or loses power.
+    fd = openSync(tmp, 'wx', 0o600);
+    const bytes = Buffer.from(JSON.stringify(data, null, 2) + '\n');
+    let offset = 0;
+    while (offset < bytes.length) offset += writeSync(fd, bytes, offset, bytes.length - offset);
+    fsyncSync(fd);
+    closeSync(fd); fd = null;
     renameSync(tmp, file);
-  } finally { if (existsSync(tmp)) rmSync(tmp, { force: true }); }
+    // Directory fsync is unavailable on some Windows filesystems; preserve file fsync
+    // and atomic rename there, without pretending the directory durability was proven.
+    try {
+      const dir = openSync(path.dirname(file), 'r');
+      try { fsyncSync(dir); } finally { closeSync(dir); }
+    } catch { /* platform-specific directory sync unsupported */ }
+  } finally {
+    if (fd !== null) closeSync(fd);
+    if (existsSync(tmp)) rmSync(tmp, { force: true });
+  }
 }
 
 function loadReceipt(file, suite, scenarioIds) {
