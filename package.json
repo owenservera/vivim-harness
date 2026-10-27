@@ -41,6 +41,7 @@
     "test:parity": "node --test test/unit/platform-parity.test.mjs",
     "smoke:platform": "node scripts/platform-smoke.mjs",
     "gate": "node scripts/gate.mjs",
-    "gate:fast": "node scripts/gate.mjs --fast"
+    "gate:fast": "node scripts/gate.mjs --fast",
+    "live:100": "node bin/studio.mjs live-100"
   }
 }
