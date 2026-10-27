@@ -3,6 +3,7 @@ import path from 'node:path';
 import { EXIT } from '../../src/config.mjs';
 import { ADAPTER_IDS, getAdapter, listAdapters } from '../../src/profiles/sites/index.mjs';
 import { driveSite } from '../../src/capture/actions.mjs';
+import { parseThread } from '../../src/capture/conversation-thread.mjs';
 import { launchChrome } from '../../src/chrome/launch.mjs';
 import { expectedAnswer, replyMatchesExpectation } from '../../src/capture/campaign.mjs';
 import { define } from '../lib/registry.mjs';
@@ -25,7 +26,7 @@ function adapterFromUrl(raw) {
 define({
   name: 'drive', section: 'Knowledge', usage: '<site|url> [--prompt TEXT] [--timeout S] [--no-record] [--reuse-tab] [--json] [--dry-run]',
   summary: 'Send a prompt to a live AI site, record it and read the reply back',
-  description: 'Reuses the tab already open on that site (or opens one), refuses to type into a login wall, records the exchange unless --no-record, then waits until the reply stops changing and prints it. Works without a site adapter: the generic heuristics in src/capture/actions.mjs find the composer, the send control and the reply.',
+  description: 'Opens its own tab on that site (or, with --reuse-tab, takes the one already open), refuses to type into a login wall, records the exchange unless --no-record, then waits until the reply stops changing and prints it. A ChatGPT /c/<uuid> URL continues that exact thread: the drive refuses to type unless the tab is on that thread with its history rendered, and fails if the tab leaves the thread mid-turn. Works without a site adapter: the generic heuristics in src/capture/actions.mjs find the composer, the send control and the reply.',
   flags: {
     prompt: { type: 'string', valueName: 'TEXT', desc: 'Prompt to send (default: a fixed 12-word fidelity check)' },
     timeout: { type: 'number', valueName: 'SECONDS', default: 120, desc: 'Give up waiting for the reply after this long' },
@@ -37,14 +38,20 @@ define({
     'studio drive chatgpt',
     'studio drive claude --prompt "Summarize this page in one sentence" --timeout 90',
     'studio drive https://example.ai/ --dry-run',
+    'studio drive https://chatgpt.com/c/<uuid> --prompt "Add 3 to that number."',
   ],
   async run(ctx) {
     const { out, flags } = ctx;
     const ref = ctx.args[0];
     if (!ref) throw usageError('Usage: studio drive <site|url> [--prompt TEXT]', 'Example: studio drive chatgpt --dry-run');
 
+    // A full URL on a known site keeps that site's measured selectors AND its own address: a
+    // https://chatgpt.com/c/<uuid> ref must open that thread, not the site's home page. The adapter
+    // object is shared (cached), so the address is overlaid on a copy, never written into it.
+    const fromUrl = adapterFromUrl(ref);
     let adapter = await getAdapter(ref);
-    if (!adapter) adapter = adapterFromUrl(ref);
+    if (adapter && fromUrl && new URL(fromUrl.url).pathname !== '/') adapter = { ...adapter, url: fromUrl.url };
+    if (!adapter) adapter = fromUrl;
     if (!adapter) {
       const known = await listAdapters();
       throw notFound(
@@ -60,8 +67,9 @@ define({
 
     if (flags['dry-run']) {
       const targetUrl = adapter.url ?? (adapter.hosts?.[0] ? `https://${adapter.hosts[0]}/` : null);
+      const thread = targetUrl ? parseThread(adapter.id, targetUrl)?.ref ?? null : null;
       const dry = {
-        site: adapter.id, label: adapter.label ?? adapter.id, hosts: adapter.hosts ?? [], targetUrl,
+        site: adapter.id, label: adapter.label ?? adapter.id, hosts: adapter.hosts ?? [], targetUrl, thread,
         composer: adapter.composer ?? null, send: adapter.send ?? null, assistant: adapter.assistant ?? null,
         preflight: adapter.preflight ?? null, streamHints: adapter.streamHints ?? null,
         prompt, timeoutMs, record,
@@ -69,6 +77,7 @@ define({
       out.emit(dry, (o) => {
         o.result(`${site}`);
         o.line(`  target    ${targetUrl ?? '-'}`);
+        o.line(`  thread    ${thread ?? 'new chat'}`);
         o.line(`  hosts     ${(dry.hosts.length ? dry.hosts : ['-']).join(', ')}`);
         o.line(`  composer  ${dry.composer?.selectors?.length ? dry.composer.selectors.join(', ') : 'generic heuristic only'}`);
         o.line(`  send      ${dry.send?.strategy ?? 'both'}${dry.send?.buttonSelectors?.length ? ` (${dry.send.buttonSelectors.length} button selector(s))` : ' (Enter)'}`);

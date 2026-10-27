@@ -94,7 +94,8 @@ export function acquireDriveLease({ port = 9222, holder, root = defaultLeaseRoot
     // Only a live (or unprovable) pid blocks; missing/corrupt owner files and dead pids are reclaimed.
     if (!reclaimStale(dir, staleGraceMs, port, root)) throw busy();
     try { fs.mkdirSync(dir); } catch (e2) { if (e2.code === 'EEXIST') throw busy(); throw e2; }
-  }  const token = randomUUID(), metadata = { version: 1, token, pid: process.pid, port, holder, createdAt: new Date().toISOString() };
+  }
+  const token = randomUUID(), metadata = { version: 1, token, pid: process.pid, port, holder, createdAt: new Date().toISOString() };
   let fd;
   try {
     fd = fs.openSync(file, 'wx', 0o600); fs.writeFileSync(fd, JSON.stringify(metadata)); fs.fsyncSync(fd); fs.closeSync(fd); fd = undefined;

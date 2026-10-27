@@ -77,7 +77,7 @@ These are the files a send must pass through so the answer is a captured session
 | 011–014 navigation | `connect_conversation` / `chat_index` on the existing Studio owner. Not `drive` opening `https://chatgpt.com/`. |
 | 015–020 search, scroll, archive | No Studio route. `src/capture/human.mjs` `humanScroll` is unused here. |
 | 021 first turn | `submit_conversation_turn` via `src/studio/conversation-tools.mjs` → `src/capture/conversation-runtime.mjs` → `src/capture/conversation-browser-adapter.mjs`, with `src/capture/recorder.mjs` writing `src/store/session.mjs`. The live run used `drive` instead. |
-| 022–023 follow-up | Same conversation id, same `expectedThread`, `src/capture/thread-turn-journal.mjs`. `drive` dropped the `/c/` path, so these files were not in the path. |
+| 022–023 follow-up | Same conversation id, same `expectedThread`, `src/capture/thread-turn-journal.mjs`. `drive` dropped the `/c/` path in the 2026-10-27 run; fixed 2026-10-28. |
 | 024–030 edit, regenerate, stop, rename, archive | No Studio tool. |
 | 031–033 typing and Enter | `src/capture/actions.mjs` only when called from the conversation adapter, plus `src/capture/human.mjs`. |
 | 034–040 model, mic, chips, copy, feedback | No Studio control. |
@@ -103,6 +103,13 @@ These are the files a send must pass through so the answer is a captured session
 
 Cause of the 022 miss: `bin/commands/drive.mjs` calls `getAdapter(ref)` first. A `chatgpt.com` URL matches the site adapter in `src/profiles/sites/chatgpt.mjs`, whose home URL is `https://chatgpt.com/`, so the `/c/<id>` path is dropped before `driveSite` opens a tab.
 
+Fix (2026-10-28, source only, not yet re-run live):
+- `bin/commands/drive.mjs` keeps a full URL's path on a copy of the matched adapter, so `/c/<id>` is the address opened. `--dry-run` prints the thread.
+- `src/capture/actions.mjs` `driveSite` parses the expected thread once with `parseThread`. Before typing it requires the tab to be on exactly that `/c/<id>` with at least one rendered turn (`thread-not-open`, `thread-not-rendered`). After the reply it fails with `thread-changed` if the tab left the thread. The Studio drive API (`src/studio/drive-api.mjs`) already passed the URL and was refused as `not-a-new-chat`; it now takes the same thread path.
+- `--reuse-tab` with a thread URL picks the tab already on that thread, otherwise opens one. A new chat's `threadRef` is polled for up to 10 s after the send, because ChatGPT moves from `/` to `/c/<id>` after the send, not at it.
+
+022 and 023 need a live re-run to count as proven.
+
 ## 001–010 Account and live session
 
 | # | Objective | Source |
@@ -124,10 +131,10 @@ Cause of the 022 miss: `bin/commands/drive.mjs` calls `getAdapter(ref)` first. A
 |---|---|---|
 | 011 | New chat, no send | `src/capture/actions.mjs` `driveSite` with `freshTab` opens `https://chatgpt.com/`. |
 | 012 | Sidebar by title | `src/capture/chatgpt-chat-index.mjs` reads rendered links. It does not click. |
-| 013 | Deep link | `src/capture/conversation-thread.mjs`. `drive.mjs` URL form is broken for ChatGPT hosts; see live evidence. |
+| 013 | Deep link | `src/capture/conversation-thread.mjs`. `drive.mjs` URL form keeps the `/c/` path since 2026-10-28. |
 | 014 | Cross-thread and return | Same as 004 + 013. No return command. |
 | 015 | History search | No source. |
-| 016 | Recent-thread recovery | No source beyond reopening a known `/c/` URL, which `drive` currently does not do. |
+| 016 | Recent-thread recovery | No source beyond reopening a known `/c/` URL with `drive`. |
 | 017 | Long-thread traversal | No source. |
 | 018 | Scroll to latest | `src/capture/human.mjs` `humanScroll` exists. Nothing calls it for this objective. |
 | 019 | Sidebar expansion | No source. |
@@ -138,8 +145,8 @@ Cause of the 022 miss: `bin/commands/drive.mjs` calls `getAdapter(ref)` first. A
 | # | Objective | Source |
 |---|---|---|
 | 021 | First turn | `bin/commands/drive.mjs` → `src/capture/actions.mjs` `driveSite`. Proven live. |
-| 022 | Same-thread follow-up | Intended: drive the `/c/` URL. Actual: `drive.mjs` drops the path. Not proven. |
-| 023 | Long-range continuity | Same gap as 022. No memory code. |
+| 022 | Same-thread follow-up | `drive <https://chatgpt.com/c/id>` → `driveSite` thread path. Fixed in source 2026-10-28; not re-run live. |
+| 023 | Long-range continuity | Same path as 022. Fixed in source; not re-run live. |
 | 024 | Edit and branch | No source. |
 | 025 | Regenerate | No source. |
 | 026 | Interrupt generation | No source. |
@@ -230,6 +237,6 @@ No source. `src/capture/chatgpt-chat-index.mjs` sets `project.state` to `unknown
 
 Real browser code exists for: 003, 004, 006, 011, 012 (read only), 013 (connect tool, not `drive` URL), 014 (discovery only), 021, 031, 032, 033, 041, 042 (plain text), 093, 095, 096, 098, 099, 100.
 
-022 and 023 are blocked by `drive.mjs` discarding the `/c/` path.
+022 and 023 were blocked by `drive.mjs` discarding the `/c/` path. That is fixed in source; a live run is still needed.
 
 The other 64 objectives have no implementation.

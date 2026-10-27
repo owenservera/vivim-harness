@@ -15,6 +15,7 @@ import { ProfileStore } from '../profiles/profiles.mjs';
 import { Recorder } from './recorder.mjs';
 import { humanType, humanPressEnter, humanClick, humanIdle, prepareHumanEnvironment, DEFAULT_PACE } from './human.mjs';
 import { acquireDriveLease } from './drive-lease.mjs';
+import { parseThread } from './conversation-thread.mjs';
 
 // ---------------------------------------------------------------------------------------------
 // Shared in-page helpers. Kept free of template-literal syntax so it can be embedded verbatim.
@@ -1091,50 +1092,51 @@ export async function driveSite({ adapter, prompt, port = 9222, dataDir, record 
     return conn.attach(target.id);
   };
 
+  // The exact native thread this drive must continue, when the caller named one (an adapter whose
+  // url is a /c/<uuid> address). null means a new chat. Parsed once; every later check uses it.
+  const openUrl = adapter?.url ?? (adapter?.hosts?.[0] ? `https://${adapter.hosts[0]}/` : null);
+  const expectedThread = openUrl ? parseThread(adapter?.id, openUrl) : null;
+  if (expectedThread) result.expectedThread = expectedThread.ref;
+  const threadOf = (url) => parseThread(adapter?.id, url);
+
+  // Open `openUrl` in a new tab this drive owns (closed again in cleanup) and make it the active tab.
+  const openOwnTab = async () => {
+    emit({ type: 'tab', opening: openUrl, fresh: true });
+    try {
+      const created = await openTab(port, openUrl);
+      openedTabId = created?.id ?? null;
+      const target = await waitForTargetId(port, openedTabId, { timeoutMs: 30000 });
+      if (!target) { errors.push(`opened ${openUrl} but no page target appeared`); return null; }
+      try { await page_bringToFront(port, target.id); } catch { /* the tab is already active */ }
+      result.openedTab = true;
+      emit({ type: 'target', reused: false, id: target.id, url: target.url });
+      return target;
+    } catch (e) { errors.push(`could not open ${openUrl}: ${String(e?.message ?? e)}`); return null; }
+  };
+
   const run = async () => {
     let targets;
     try { targets = await listTargets({ port }); }
     catch (e) { result.reason = 'no-browser'; errors.push(`DevTools endpoint unreachable on 127.0.0.1:${port}: ${String(e?.message ?? e)}`); return; }
+    if (!openUrl) { errors.push('adapter has no url or hosts to open'); return; }
 
     // A drive happens in its OWN tab. Measured on this machine: a tab that is not the active one
     // reports document.visibilityState === "hidden", and Chrome then drops synthetic key input
     // for it (the composer accepted Input.insertText but no keystroke reached it). A freshly
     // created tab is always visible, so every drive opens one and closes it afterwards.
+    // --reuse-tab takes an existing tab instead: the one already on the expected thread, or, for a
+    // new chat, any tab on the site. A thread with no open tab is opened in a new one.
     let target = null;
-    if (freshTab) {
-      const openUrl = adapter?.url ?? (adapter?.hosts?.[0] ? `https://${adapter.hosts[0]}/` : null);
-      if (!openUrl) { errors.push('adapter has no url or hosts to open'); return; }
-      emit({ type: 'tab', opening: openUrl, fresh: true });
-      try {
-        const created = await openTab(port, openUrl);
-        openedTabId = created?.id ?? null;
-        target = await waitForTargetId(port, openedTabId, { timeoutMs: 30000 });
-        if (!target) { errors.push(`opened ${openUrl} but no page target appeared`); return; }
-        try { await page_bringToFront(port, target.id); } catch { /* the tab is already active */ }
-      } catch (e) { errors.push(`could not open ${openUrl}: ${String(e?.message ?? e)}`); return; }
-      emit({ type: 'target', reused: false, id: target.id, url: target.url });
-      result.openedTab = true;
-    } else {
-      target = targets.find((t) => hostMatches(adapter, t.url)) ?? null;
+    if (!freshTab) {
+      target = targets.find((t) => (expectedThread ? threadOf(t.url)?.ref === expectedThread.ref : hostMatches(adapter, t.url))) ?? null;
       if (target) {
-        // Synthetic key input only reaches a VISIBLE tab (measured: hidden tabs accept
-        // Input.insertText but drop keystrokes), so a reused tab is brought to front first.
+        // Synthetic key input only reaches a VISIBLE tab, so a reused tab is brought to front first.
         try { await page_bringToFront(port, target.id); } catch { /* best effort */ }
         emit({ type: 'target', reused: true, id: target.id, url: target.url });
       }
-      else {
-        const openUrl = adapter?.url ?? (adapter?.hosts?.[0] ? `https://${adapter.hosts[0]}/` : null);
-        if (!openUrl) { errors.push('adapter has no url or hosts to open'); return; }
-        emit({ type: 'tab', opening: openUrl });
-        try {
-          const created = await openTab(port, openUrl);
-          openedTabId = created?.id ?? null;
-          target = await waitForTargetId(port, openedTabId);
-          if (!target) { errors.push(`opened ${openUrl} but no page target appeared`); return; }
-        } catch (e) { errors.push(`could not open ${openUrl}: ${String(e?.message ?? e)}`); return; }
-        emit({ type: 'target', reused: false, id: target.id, url: target.url });
-      }
     }
+    target ??= await openOwnTab();
+    if (!target) return;
     result.target = { id: target.id, url: target.url, title: target.title ?? null };
 
     // Login wall + composer first, on a short-lived connection, so a blocked or still-loading
@@ -1178,10 +1180,32 @@ export async function driveSite({ adapter, prompt, port = 9222, dataDir, record 
 
     // The composer must be located on the connection that will type: the probe holds its own
     // execution context, so its element reference is not usable here.
-    // A fresh tab is not proof of a blank chat: the root URL can restore a recent or pinned
-    // conversation. Refuse before typing when the page is anything but an empty new chat.
-    if (freshTab) {
-      const home = await tryEval(page, `({ path: location.pathname, turns: document.querySelectorAll('[data-message-author-role]').length })`);
+    // Where the page actually is, before anything is typed. Two cases:
+    //  - a named thread: the page must sit on exactly that /c/<uuid> path (a deleted or foreign
+    //    thread redirects home) and its history must have rendered, otherwise the pre-send baseline
+    //    would be empty and an OLD answer could be read back as the new reply;
+    //  - a new chat: a fresh tab is not proof of a blank chat (the root URL can restore a recent or
+    //    pinned conversation), so anything but an empty root page is refused.
+    const where = () => tryEval(page, `({ path: location.pathname, origin: location.origin, turns: document.querySelectorAll('[data-message-author-role]').length })`);
+    if (expectedThread) {
+      let here = await where();
+      for (const deadline = Date.now() + 15000; here.ok && Number(here.value?.turns ?? 0) === 0 && Date.now() < deadline;) {
+        await sleep(400); here = await where();
+      }
+      const onThread = here.ok ? threadOf(`${here.value?.origin}${here.value?.path}`) : null;
+      if (onThread?.ref !== expectedThread.ref) {
+        result.reason = 'thread-not-open';
+        errors.push(`tab is not on ${expectedThread.ref} (path ${here.ok ? here.value?.path : 'unreadable'}); nothing was typed`);
+        return;
+      }
+      if (Number(here.value?.turns ?? 0) === 0) {
+        result.reason = 'thread-not-rendered';
+        errors.push(`${expectedThread.ref} rendered no turns within 15 s; nothing was typed`);
+        return;
+      }
+      result.threadRef = expectedThread.ref;
+    } else if (freshTab) {
+      const home = await where();
       const path = home.ok ? home.value?.path : null;
       const turns = home.ok ? Number(home.value?.turns ?? 0) : 0;
       if (typeof path === 'string' && path && (path !== '/' || turns > 0)) {
@@ -1222,7 +1246,8 @@ export async function driveSite({ adapter, prompt, port = 9222, dataDir, record 
     // Pre-send acceptance-freshness cursor (G1/G2): user/assistant counts from the SAME page-agent
     // full-DOM scan that produces DOM_TURNS at stop. null when unmeasurable — evaluation stays
     // honest rather than guessing an empty page.
-    try {
+    result.baselineTurns = null;
+    if (recorder) try {
       const t0 = await recorder.domTurns();
       result.baselineTurns = { userTurns: t0.filter((x) => x?.role === 'user').length,
         assistantTurns: t0.filter((x) => x?.role === 'assistant').length, sampledAt: new Date().toISOString() };
@@ -1258,15 +1283,32 @@ export async function driveSite({ adapter, prompt, port = 9222, dataDir, record 
     if (!sent.ok) { errors.push(sent.dispatched ? `send did not take (${sent.method})` : `send not attempted (${sent.method})`); result.reason = 'send-failed'; return; }
 
     // The thread a send just created must be identified now: without it the conversation cannot be
-    // continued and the captured page has no durable native identity.
-    const pathProbe = await tryEval(page, 'location.pathname');
-    const threadId = pathProbe.ok ? /^\/c\/([a-f0-9-]{36})$/.exec(String(pathProbe.value ?? ''))?.[1] : null;
-    if (threadId) result.threadRef = `chatgpt-c:${threadId}`;
+    // continued and the captured page has no durable native identity. A new chat moves from / to
+    // /c/<uuid> a moment AFTER the send, so the path is polled briefly instead of read once.
+    const currentThread = async () => {
+      const at = await tryEval(page, 'location.origin + location.pathname');
+      return at.ok ? threadOf(String(at.value ?? '')) : null;
+    };
+    let thread = await currentThread();
+    for (const deadline = Date.now() + 10000; !expectedThread && !thread && Date.now() < deadline;) {
+      await sleep(250); thread = await currentThread();
+    }
+    if (thread) result.threadRef = thread.ref;
 
     const wait = await waitForCompletion(page, adapter, { timeoutMs, baseline, baseCount, exclude: [result.prompt] });
     emit({ type: 'completion', done: wait.done, failed: !!wait.failed, ms: wait.ms, reason: wait.reason });
     result.reply = wait.text ?? '';
     result.done = wait.done;
+
+    // Re-read where the page is now. A follow-up whose tab left its thread mid-turn (a redirect, a
+    // navigation) cannot vouch for the reply it read, so that is reported, never passed off as ok.
+    const after = await currentThread();
+    if (after) result.threadRef = after.ref;
+    if (expectedThread && after?.ref !== expectedThread.ref) {
+      result.reason = 'thread-changed';
+      errors.push(`tab left ${expectedThread.ref} during the turn (now ${after?.ref ?? 'no thread'})`);
+      return;
+    }
     if (wait.failed) { errors.push(wait.reason); result.reason = 'site-failure'; return; }
     if (!wait.done) { errors.push(wait.reason); result.reason = 'timeout'; return; }
 
