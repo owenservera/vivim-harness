@@ -13,16 +13,16 @@ Read repository root `AGENTS.md` first. This file records confirmed user prefere
 - User prefers fast concrete implementation over agent hierarchies. No subagent explosion, ritual handoffs, fake background execution, or unnecessary wrappers.
 
 
-## Mandatory 100-scenario / real-browser agent routing (2026-10-27)
-When the user says 'dry run', 'real browser', 'dedicated VIVIM workspace/profile', '100 scenarios', or 'five parallel', do NOT invent per-provider `studio chat` campaigns, dispatch 5 live-effect workers, rewrite result ledgers, or repeatedly ask for paths discoverable in the repository.
-- Read `node bin/studio.mjs live-100 --help` and `bin/commands/live-100.mjs` before deciding how to run scenarios. `npm run live:100 -- --dry-run --json` is metadata-only: it does not launch Chrome or test a browser. Label it PREVIEW, never 'real browser dry run'.
-- The native `studio live-100` command is authoritative for campaign scenarios, case identity, durability and no-resend fences. Select a scenario with its supported `--case` option if available at current HEAD; otherwise use `--limit 1` with care. Do not replace the campaign with 100 raw `studio chat` calls.
-- Five parallel lanes may only perform read-only, non-effect analysis. Live sends and Chrome/profile mutation go through ONE existing effect owner, sequentially, on the dedicated verified VIVIM profile. Do not infer safety from distinct providers or subagents.
-- Explicit consent to inspect the real browser is NOT consent to send. Both `--execute` and `--accept-sends` are required for live scenario submission. If ambiguity remains, run only the zero-effect preview; never infer permission from 'dry run'.
-- If an effect is uncertain, a provider login is blocked, a browser binding changes or a journal is stale: stop that owner lane, preserve state, investigate read-only, never automatically retry, and never proceed to another live send that might conflict.
-- On Windows PowerShell, use `Get-ChildItem -Force` rather than Unix `ls -la`; do not confuse shell execution failures with Harness bugs. Use native tools and short discriminating checks.
-- Don't reset or overwrite `docs/dry-rub-*.md` or scenario receipts. Current receipts must be read and reconciled before editing. No raw prompts, replies or private browser contents in Git.
-- Keep owner-facing status to confirmed successful real cases, blocked cases, evidence paths and ONE next safe action, not repetitive questionnaires or speculative subagent dispatch.
+## Real-user ChatGPT capability probing — authoritative (2026-10-27)
+
+**Do not run or recreate the retired `live-100` runner.** The owner is evaluating *whether unfamiliar agents can operate ChatGPT naturally using VIVIM's native CLI*. This is NOT 20 generic prompts repeated across five providers; NOT a batch benchmark; NOT a recipe-runner project. User chooses from [100 distinct ChatGPT objectives](../../docs/agents/CHATGPT-100-OBJECTIVES.md), assigns ONE at a time, and sees actual success/failure, elapsed time and CLI friction.
+
+- Launch a `.opencode/agents/chatgpt-probe.md` tester. It reads **only** [environment helper](../../docs/agents/CHATGPT-PROBE-ENVIRONMENT.md) and [objective catalog](../../docs/agents/CHATGPT-100-OBJECTIVES.md), then uses **only native `node bin/studio.mjs` CLI and its help** to try the objective. No shell/HTTP/CDP/browser automation shortcuts, source archaeology or custom scripts to complete a user task. Source inspection is for the separate *developer/debugger after the probe*.
+- The environment helper pins the last-observed checkout `C:\\0-BlackBoxProject-0\\vivim-harness`, VIVIM data root `C:\\VIVIM`, derived dedicated Chrome profile `C:\\VIVIM\\chrome-profile`, last-observed Studio port 38703 and CDP port 38702. **These are candidates**: agent must verify actual running Studio, profile, server and thread before browser activity; never use normal personal Chrome or assume default ports.
+- Five testers may independently reason or use non-conflicting read-only commands. Mutating Chrome interactions require coordination through the ONE current effect owner and original journal. A user objective does not itself authorize live provider sends, upload/share/delete or disruptive navigation. Don't substitute a preview for a real-browser task; label permission and product gaps explicitly.
+- A good test exposes missing CLI affordances. It should NOT be rescued with a script. When the agent cannot discover/perform an action with CLI + helpers, capture that failure and give it to the developer. Do not prescribe command paths in advance.
+- Preserve private transcripts, local profiles, in-flight prompts and existing receipts. On uncertain effects, stop and reconcile; no blind resends. No Playwright/Puppeteer.
+
 
 ## Git and repository operating contract
 - Source repo: `owenservera/vivim-harness`. AION: `owenservera/aion` is original source/coordination repository; source snapshot `671c0b5a8f1e22822524fccc7543067ab89d121d`.
