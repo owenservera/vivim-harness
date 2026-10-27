@@ -24,8 +24,9 @@ export function createRecipeService({ harnessApi, conversationRuntime } = {}) {
   if (!harnessApi || !conversationRuntime) throw fail(503, 'RECIPE_OWNER_UNAVAILABLE');
   const status = (runId) => {
     const run = harnessApi.get(runId).run;
-    if (!run.task?.description?.startsWith('recipe:')) throw fail(404, 'RECIPE_RUN_NOT_FOUND');
-    return { schema: 'vivim.recipe-run/1', recipe: run.task.description.split(':operation:')[0].slice(7), ...toView(run) };
+    const label = /^recipe:([a-z]+\\.[a-z-]+):operation:([a-zA-Z0-9][a-zA-Z0-9_.:-]{0,99})$/.exec(run.task?.description ?? '');
+    if (!label || !recipeDefinition(label[1])) throw fail(404, 'RECIPE_RUN_NOT_FOUND');
+    return { schema: 'vivim.recipe-run/1', recipe: label[1], ...toView(run) };
   };
   return {
     list(family) { return { schema: 'vivim.recipe-catalog/1', recipes: listRecipes(family ? { family } : {}) }; },
@@ -115,7 +116,7 @@ export function createRecipeService({ harnessApi, conversationRuntime } = {}) {
     },
     reconcile(runId, stepKey) {
       const run = harnessApi.get(runId).run;
-      if (!run.task?.description?.startsWith('recipe:')) throw fail(404, 'RECIPE_RUN_NOT_FOUND');
+      status(runId); // Validated recipe run identity, not just a spoofed task prefix.
       const step = run.steps.find((s) => s.key === stepKey);
       if (!step) throw fail(404, 'RECIPE_STEP_NOT_FOUND');
       if (step.tool !== 'submit_conversation_turn')
