@@ -38,7 +38,7 @@ and the source registry `src/recipes/catalog.mjs`.
   commands, ideally one; internal guarded tool steps do not count as additional user commands.
 
 Source declarations distinguish available *tools* from actual provider login, permission, tab/thread
-identity, completed replies and capture acceptance. Nine native conversation recipes are currently
+identity, completed replies and capture acceptance. Ten native conversation recipes are currently
 wired; other family names are taxonomy only, not a permission or claim of available implementation.
 There is no parallel browser actor, generic shell recipe evaluator or second journal.
 
