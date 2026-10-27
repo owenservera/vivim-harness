@@ -12,18 +12,19 @@ import { createStudioToolClient } from '../../src/studio/tool-client.mjs';
 import { runToolsCall, runToolsList } from '../../bin/commands/tools.mjs';
 
 const thread = 'chatgpt-c:11111111-1111-4111-8111-111111111111';
-const names = ['conversation_targets', 'chat_index', 'list_conversations', 'get_conversation', 'create_conversation', 'connect_conversation', 'read_conversation', 'submit_conversation_turn', 'reconcile_conversation', 'finish_conversation'];
+const names = ['conversation_targets', 'chat_index', 'list_conversations', 'get_conversation', 'conversation_capsule', 'create_conversation', 'connect_conversation', 'read_conversation', 'submit_conversation_turn', 'reconcile_conversation', 'finish_conversation'];
 const submission = { conversation: 'conv-1', key: 'durable-key', prompt: 'synthetic prompt', expectedRevision: 3, confirm: true };
 async function fixture(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'conversation-tools-'));
   const paths = dataPaths(root); ensureDataDirs(paths);
   const calls = [], snapshot = { id: 'conv-1', revision: 3, state: 'ready', reply: { text: 'synthetic private reply', completion: 'unknown' } };
   const runtime = { isSessionActive: () => false, close: async () => {}, snapshot };
-  for (const method of ['targets', 'chatIndex', 'list', 'get', 'connect', 'read', 'submit', 'reconcile', 'finish']) runtime[method] = async (...args) => {
+  for (const method of ['targets', 'chatIndex', 'list', 'get', 'capsule', 'connect', 'read', 'submit', 'reconcile', 'finish']) runtime[method] = async (...args) => {
     calls.push([method, ...args]);
     if (method === 'targets') return { sites: [], targets: [] };
     if (method === 'chatIndex') return { targetId: args[0].targetId, index: { candidatesOnly: true, complete: false, entries: [{ title: 'synthetic title', identity: { state: 'candidate' } }] } };
     if (method === 'list') return [snapshot];
+    if (method === 'capsule') return { schema: 'aion.capability-capsule/1', conversationId: args[0], operations: {} };
     if (method === 'read') return { conversationId: args[0], source: 'page-visible-dom', messages: [], coverage: { complete: false } };
     return snapshot;
   };
@@ -49,6 +50,8 @@ test('registered conversation tool manifest/OpenAPI describe real routes, exact 
   assert.equal(tools.chat_index.annotations.readOnlyHint, true);
   assert.match(tools.chat_index.description, /candidate/i); assert.match(tools.chat_index.description, /not.*verified|not.*binding/i);
   assert.equal(tools.read_conversation.annotations.readOnlyHint, true);
+  assert.equal(tools.conversation_capsule.annotations.readOnlyHint, true);
+  assert.equal(tools.conversation_capsule.http.path, '/api/v1/conversations/{conversation}/capsule');
   assert.equal(tools.submit_conversation_turn.annotations.readOnlyHint, false);
   assert.equal(tools.submit_conversation_turn.annotations.idempotentHint, false);
   assert.deepEqual(tools.submit_conversation_turn.inputSchema.required, ['conversation', 'key', 'prompt', 'confirm', 'expectedRevision']);
@@ -75,6 +78,7 @@ test('each registered tool reaches the same injected Studio runtime owner exactl
     ['chat_index', { targetId: 'selected', maxEntries: 5 }, ['chatIndex', { targetId: 'selected', maxEntries: 5 }]],
     ['list_conversations', {}, ['list']],
     ['get_conversation', { conversation: 'conv-1' }, ['get', 'conv-1']],
+    ['conversation_capsule', { conversation: 'conv-1' }, ['capsule', 'conv-1']],
     ['create_conversation', { site: 'chatgpt' }, ['connect', { site: 'chatgpt', freshTab: true }]],
     ['connect_conversation', { site: 'chatgpt', targetId: 'selected', expectedThread: thread, freshTab: false }, ['connect', { site: 'chatgpt', targetId: 'selected', expectedThread: thread, freshTab: false }]],
     ['read_conversation', { conversation: 'conv-1', maxMessages: 5, maxChars: 1000 }, ['read', 'conv-1', { maxMessages: 5, maxChars: 1000 }]],
@@ -95,6 +99,7 @@ test('validation is enforced by executable handlers, not just declared schemas',
     ['chat_index', { targetId: 'selected', scanLimit: 2001 }], ['chat_index', { targetId: 'selected', url: 'https://outside.example' }],
     ['create_conversation', { site: 'claude' }], ['create_conversation', { site: 'chatgpt', targetId: 'selected' }],
     ['connect_conversation', { site: 'chatgpt', targetId: 'selected' }], ['connect_conversation', { site: 'chatgpt', targetId: 'selected', expectedThread: thread, freshTab: true }],
+    ['conversation_capsule', { conversation: '../secret' }],
     ['read_conversation', { conversation: 'conv-1', maxMessages: 201 }], ['read_conversation', { conversation: '../secret' }],
     ['submit_conversation_turn', { ...submission, confirm: false }], ['submit_conversation_turn', { ...submission, expectedRevision: -1 }],
     ['submit_conversation_turn', { ...submission, key: '' }], ['reconcile_conversation', { conversation: 'conv-1', expectedRevision: 3, assertion: true }],
