@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { listRecipes, recipeDefinition } from './catalog.mjs';
 import { planRecipe } from './plan.mjs';
 import { summarizeResult, argsDigestOf } from '../capture/harness-runs.mjs';
+import { executeConversationTool } from '../studio/conversation-tools.mjs';
 
 const fail = (status, code) => Object.assign(new Error(code), { status, code });
 const validOperation = (v) => typeof v === 'string' && /^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,99}$/.test(v);
@@ -37,6 +38,18 @@ export function createRecipeService({ harnessApi, conversationRuntime } = {}) {
       // Only stored run intent + native journal fence authorize effects. No retry of a prior
       // operation even after an HTTP timeout, crash, failed call or unknown browser response.
       const effectful = recipe.effects.some((e) => e !== 'read');
+      // Read-only agent observation is stateless. It must NOT consume scarce durable run
+      // slots (the native harness store is finite) or create pretend effect receipts.
+      // Reuse exactly the native validated dispatcher and current runtime owner.
+      if (!effectful) {
+        const result = await executeConversationTool(conversationRuntime, recipe.tool, input);
+        return {
+          schema: 'vivim.recipe-run/1', recipe: id, status: 'succeeded', runId: null,
+          persisted: false, tool: recipe.tool, retryAllowed: true, nextSafeAction: 'none',
+          effectState: 'none', evidenceTier: 'runtime-read',
+          ...(includeContent ? { result } : { resultSummary: summarizeResult(result) }),
+        };
+      }
       const identity = operationId ?? (recipe.effects.includes('provider-send') ? input.key : null);
       if (recipe.effects.includes('provider-send') && operationId !== undefined && operationId !== input.key)
         throw fail(409, 'RECIPE_SEND_OPERATION_MISMATCH');
