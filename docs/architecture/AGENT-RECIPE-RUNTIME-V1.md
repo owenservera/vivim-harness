@@ -18,6 +18,22 @@ node bin/studio.mjs agent status --json
 
 Read-only discovery/planning do not require a running Studio or open a browser. `agent status` reads the already-running Studio health endpoint and reports account state as unverified.
 
+For the shortest live follow-up workflow, use **`conversation.ask`** instead of manually
+looking up `expectedRevision`. Its private `ask.json` is just:
+
+```json
+{ "conversation": "EXACT_BOUND_CONVERSATION_ID", "key": "unique-agent-turn-001",
+  "prompt": "Summarize the next steps." }
+```
+
+```powershell
+node bin/studio.mjs recipe run conversation.ask --input ask.json --execute --authorize-send --json
+```
+
+This recipe obtains the current revision **from the same Studio runtime owner** and supplies the
+native confirmation only after both effect authorizations. It never bypasses thread identity,
+journal fencing or the one-send policy. The original key must be preserved across timeouts.
+
 For an existing, exact native ChatGPT conversation (not a new tab), `turn.json` contains the **actual** required tool arguments:
 
 ```json
