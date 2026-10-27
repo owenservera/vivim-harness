@@ -57,7 +57,7 @@ The capture capability list remains [UNIVERSAL-CAPTURE-STUDIO-CAPABILITIES.md](.
 5. **Inferences are hypotheses with evidence and confidence** until the user confirms them.
 6. **Universal core, families as priors.** Nothing in the core names a website. `ai-chat`, `data-table` and the other families are reusable semantic guides, not classification gates.
 7. **Zero-dependency Node ≥ 22** for native Windows and Linux parity: one CLI, one UI, one browser-effect owner, and no OS-specific runtime prerequisites. Python or other languages are allowed only as optional sidecars where measured benefit justifies them.
-8. **Platform parity is a release gate.** Every cross-cutting feature must run without source edits on Windows and Linux, with shared code and automated tests on both; see [the parity contract](docs/PLATFORM-PARITY.md).
+8. **Platform parity is a release gate.** Every cross-cutting feature must run without source edits on Windows and Linux, with shared code and automated tests on both; see [the parity contract](docs/PORTABILITY.md).
 
 ## 3. Layered architecture
 

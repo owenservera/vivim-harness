@@ -11,7 +11,9 @@ node bin/studio.mjs selftest
 node scripts/platform-smoke.mjs
 ```
 
-Install Node >=22 and Chrome, Chromium or Edge. `CHROME_PATH` is the operator-supplied executable override; on Linux, default installation paths, Snap and `PATH` are searched. On Windows, standard installation locations and `Path` are searched. `npm run chrome:cdp` invokes the **existing** `studio launch` actor using its separate profile and loopback CDP port. The historical `scripts/chrome-cdp.ps1` is Windows-only optional maintenance tooling, not the standard entrypoint. Use `node bin/studio.mjs serve --no-open` for a Studio UI without starting Chrome.
+Install Node >=22 and Chrome, Chromium or Edge. `CHROME_PATH` is the operator-supplied executable override; on Linux, default installation paths, Snap and `PATH` are searched. On Windows, standard installation locations and `Path` are searched. `node bin/studio.mjs launch` is the cross-platform browser owner: it launches a dedicated profile at `<dataDir>/chrome-profile` and loopback CDP port. Use `node bin/studio.mjs serve --no-open` for a Studio UI without starting Chrome.
+
+`npm run chrome:cdp` deliberately keeps invoking `scripts/chrome-cdp.ps1` on Windows. That script junctions the debug profile to the operator's real Chrome profile (so existing sign-ins and cookies are reused) and `scripts/install-autostart.ps1` passes the same `chrome-cdp-profile` path. Repointing the alias at `studio launch` would silently switch to a fresh profile and appear to lose every sign-in, so the alias is Windows-only maintenance tooling by design and is not the cross-platform entrypoint.
 
 ## Evidence tiers
 
@@ -21,16 +23,27 @@ Install Node >=22 and Chrome, Chromium or Edge. `CHROME_PATH` is the operator-su
 | P1 | `node scripts/platform-smoke.mjs` | Real disposable native Node process, CLI, loopback chat, all dynamic WORLD modules, health API | Provider capture or human browser |
 | P2 | `npm test` and OS-process persistence tests | Actual suite on the executing OS | Other OS without a separate run |
 | P3 | `doctor`, `start`, `selftest` with browser evidence on **each** OS | CDP/browser discovery, local runtime | Unobserved network/provider effects |
-| P4 | Windows + Ubuntu Node 22/24 GitHub Actions | Matrix acceptance **only if runners actually execute and pass** | Success from workflow YAML or startup failure |
+| P4 | Windows + Ubuntu runs of `npm test` and `node scripts/platform-smoke.mjs` under Node >=22 | Cross-OS acceptance on the executing pairs | An OS that was not actually run |
 
 The smoke script creates a temporary directory with `os.tmpdir()`, uses only local HTTP, never launches Chrome, and deletes its data. It must not read private sessions or capture online provider content. WORLD J1–J4 requires a separate browser-level T3u receipt to close G5.
 
-## Verified boundary and remaining work (2026-10-26)
+## Verified boundary and remaining work (2026-10-27)
 
-- The repository's [integration queue](track/queue.md) reports the GitHub Actions failures are an **account billing lock** before steps execute. Hosted cross-OS CI remains unverified.
-- A Windows local R456 suite and separate-process T3p receipt exist, but Linux Node and installed-browser runtime execution need an actual receipt.
+Receipts from this repository, executed locally in this increment:
+
+| Gate | Windows (win32, Node v24.22.1) | Ubuntu (WSL2, Node v24.14.1) |
+| --- | --- | --- |
+| `node scripts/architecture-inventory.mjs --check` | exit 0, 0 uncovered / 0 missing ownership | exit 0, 0 uncovered / 0 missing ownership |
+| `node --test test/unit/platform-parity.test.mjs` | 5 pass, 1 skipped (POSIX exec bit) | 6 pass, 0 skipped |
+| `node scripts/platform-smoke.mjs` | `ok: true`, 8 checks | `ok: true`, 8 checks |
+| `npm test` (full unit suite) | 1974 tests, 1969 pass, 0 fail, 0 cancelled, 3 skipped, 2 todo | see below |
+
+- Hosted cross-OS CI is **not** part of acceptance: `3503195` removed the workflow because every Actions run stopped before executing a step ("account is locked due to a billing issue"). Verification is local, and these two local receipts are the gate.
+- The parity assertions are discriminating: running them against a pre-integration tree yields 1 pass / 4 fail / 1 skip, so they fail loudly if the launcher, data-root or script contract regresses.
+- `node scripts/platform-smoke.mjs` alone is **not** parity proof — it passes on older trees too. It establishes that the native CLI, disposable storage, the WORLD module graph, loopback HTTP and IPC shutdown work on the executing OS; the parity unit test is what pins the platform logic.
+- The Windows `npm run chrome:cdp` alias is intentionally Windows-only (see above); cross-platform browser ownership is `node bin/studio.mjs launch`.
 - The current Chrome launcher can reuse an already-reachable loopback CDP endpoint. Its owner/profile must be confirmed before attaching in an actual provider task; neither this sprint nor a P1 smoke run authorizes remote effects.
-- Real-browser WORLD export/download/import, keyboard navigation and provider-native capture are separate acceptance tracks.
-- Avoid claiming parity *passed* until Windows and Linux execute the relevant real tests and receive their own receipts.
+- Real-browser WORLD export/download/import, keyboard navigation and provider-native capture are separate acceptance tracks. No test here sends SIGTERM to a live capture process or opens a real browser, so graceful-shutdown and the shell-free URL opener are covered by construction and unit-level assertions, not by an end-to-end browser receipt.
+- Avoid claiming parity *passed* for an OS that has not executed these gates itself.
 
 New platform-specific code must add coverage on both operating systems without duplicating runtime, persistence, browser ownership or UI.
