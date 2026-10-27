@@ -77,6 +77,12 @@ try {
   assert.equal(dirs.root, home);
   assert.ok(dirs.sessions.startsWith(home));
   mark('disposable private storage');
+  // Structural gate: a moved or newly owned code path must be reflected in the manifest.
+  const inventory = spawnSync(process.execPath, [path.join(root, 'scripts', 'architecture-inventory.mjs'), '--check'],
+    { cwd: root, encoding: 'utf8', timeout: 25000 });
+  if (inventory.error || inventory.status !== 0)
+    throw new Error(`architecture inventory: ${inventory.error?.message ?? inventory.stderr ?? inventory.status}`);
+  mark('architecture inventory matches components.json');
   const running = await serve();
   child = running.child;
   const read = async (route, type) => {

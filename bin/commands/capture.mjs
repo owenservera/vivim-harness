@@ -13,7 +13,8 @@ import { CliError, usageError, envError, fmtBytes } from '../lib/ui.mjs';
 import { capability } from '../lib/capabilities.mjs';
 
 function openUrl(url) {
-  const cmd = process.platform === 'win32' ? ['cmd', ['/c', 'start', '""', url]] : process.platform === 'darwin' ? ['open', [url]] : ['xdg-open', [url]];
+  // Windows: explorer.exe takes the URL directly, so no cmd.exe shell ever parses it.
+  const cmd = process.platform === 'win32' ? ['explorer.exe', [url]] : process.platform === 'darwin' ? ['open', [url]] : ['xdg-open', [url]];
   try {
     // The URL remains printable even when xdg-open/open/cmd is not installed.
     // Missing helper binaries emit an asynchronous error, not a synchronous throw.

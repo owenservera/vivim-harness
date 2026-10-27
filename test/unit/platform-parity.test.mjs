@@ -52,8 +52,14 @@ test('Windows and Linux default data directories are external to code', () => {
 
 test('the native launcher command uses the existing Studio browser owner', () => {
   const pkg = JSON.parse(readFileSync(path.join(repo, 'package.json'), 'utf8'));
-  assert.equal(pkg.scripts['chrome:cdp'], 'node bin/studio.mjs launch');
+  // `chrome:cdp` deliberately stays bound to scripts/chrome-cdp.ps1: that script keeps the
+  // debug profile as a junction to the operator's real Chrome profile (sign-ins and cookies
+  // survive), and the shipped autostart passes the same profile. Repointing it at
+  // `studio launch` would silently switch to a fresh dedicated profile. The cross-platform
+  // owner is `node bin/studio.mjs launch`, and this asserts that command still exists.
+  assert.equal(pkg.scripts['chrome:cdp'], 'powershell -NoProfile -ExecutionPolicy Bypass -File scripts/chrome-cdp.ps1');
   assert.equal(pkg.scripts['smoke:platform'], 'node scripts/platform-smoke.mjs');
+  assert.equal(pkg.scripts['test:parity'], 'node --test test/unit/platform-parity.test.mjs');
   assert.equal(pkg.engines.node, '>=22');
 });
 

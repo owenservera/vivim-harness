@@ -53,6 +53,9 @@ export async function launchChrome({ profileDir, port = 9222, url = 'about:blank
     const v = await browserVersion({ port });
     return { alreadyRunning: true, port, browser: v.Browser, pid: null };
   }
+  // Chrome 136+ refuses remote debugging on the default profile; a launch without a
+  // dedicated profile directory would silently target the operator's real profile.
+  if (!profileDir || typeof profileDir !== 'string') throw new Error('A dedicated Chrome profileDir is required to launch the capture browser.');
   mkdirSync(profileDir, { recursive: true });
   const exe = findChrome();
   // Local-integrator escape hatch (owner machines and synthetic-https test fixtures): extra,
