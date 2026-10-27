@@ -33,13 +33,16 @@ export async function browserVersion(opts) {
 }
 
 export async function listTargets(opts) {
-  const all = await getJson(`${endpointBase(opts)}/json/list`);
-  return all.filter((t) => t.type === 'page');
+  return (await listAllTargets(opts)).filter((t) => t?.type === 'page');
 }
 
 // Everything DevTools reports, including workers, iframes, service workers and extensions.
+// Something on the port that answers /json/list with a non-array is not a Chrome DevTools
+// endpoint; that is reported as such rather than as a TypeError from .filter/.find.
 export async function listAllTargets(opts) {
-  return getJson(`${endpointBase(opts)}/json/list`);
+  const all = await getJson(`${endpointBase(opts)}/json/list`);
+  if (!Array.isArray(all)) throw new Error('DevTools /json/list did not return a target list');
+  return all;
 }
 
 export async function isReachable(opts) {

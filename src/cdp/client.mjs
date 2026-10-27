@@ -47,10 +47,21 @@ export class CdpConnection extends EventEmitter {
     assertLoopbackUrl(wsUrl);
     const ws = new WebSocket(wsUrl);
     ws.binaryType = 'arraybuffer';
+    // A failed or timed-out connect closes its own socket: otherwise a socket that opens late is a
+    // live DevTools connection nobody owns, and its handle keeps the process alive. A socket that
+    // closes before 'open' fails at once instead of waiting out the whole timeout.
     await new Promise((resolve, reject) => {
-      const t = setTimeout(() => reject(new Error(`CDP connect timeout: ${wsUrl}`)), timeoutMs);
-      ws.addEventListener('open', () => { clearTimeout(t); resolve(); }, { once: true });
-      ws.addEventListener('error', (e) => { clearTimeout(t); reject(new Error(`CDP connect failed: ${e?.message ?? wsUrl}`)); }, { once: true });
+      let settled = false;
+      const fail = (message) => {
+        if (settled) return;
+        settled = true; clearTimeout(t);
+        try { ws.close(); } catch { /* not yet open */ }
+        reject(new Error(message));
+      };
+      const t = setTimeout(() => fail(`CDP connect timeout: ${wsUrl}`), timeoutMs);
+      ws.addEventListener('open', () => { if (settled) { try { ws.close(); } catch { /* ignore */ } return; } settled = true; clearTimeout(t); resolve(); }, { once: true });
+      ws.addEventListener('error', (e) => fail(`CDP connect failed: ${e?.message ?? wsUrl}`), { once: true });
+      ws.addEventListener('close', () => fail(`CDP connect closed before open: ${wsUrl}`), { once: true });
     });
     return new CdpConnection(ws, { requestTimeoutMs, url: wsUrl });
   }

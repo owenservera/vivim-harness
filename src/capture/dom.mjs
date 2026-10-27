@@ -57,7 +57,20 @@ export class DomObserver {
     await this.startInFrame(this.mainFrameId);
   }
 
+  // Page.createIsolatedWorld makes a NEW world on every call, and the agent's own "already running"
+  // guard is per world. So before creating one, reuse the known context when its agent is alive:
+  // otherwise a re-arm after navigation (when the new-document script did run) or a retry after a
+  // transient CDP error starts a second agent on the same document, and every dom.batch and user
+  // action is recorded twice.
   async startInFrame(frameId) {
+    const known = this.contexts.get(frameId);
+    if (known !== undefined) {
+      try {
+        const alive = await this.session.send('Runtime.evaluate', { expression: '!!(globalThis.__aionCapture && globalThis.__aionCapture.version)', contextId: known, returnByValue: true });
+        if (alive?.result?.value === true) return 'already';
+      } catch { /* context gone: create a fresh world below */ }
+      if (this.contexts.get(frameId) === known) this.contexts.delete(frameId);
+    }
     const { executionContextId } = await this.session.send('Page.createIsolatedWorld', { frameId, worldName: this.worldName, grantUniveralAccess: false });
     this.contexts.set(frameId, executionContextId);
     const r = await this.session.send('Runtime.evaluate', { expression: this._script(), contextId: executionContextId, returnByValue: true });
