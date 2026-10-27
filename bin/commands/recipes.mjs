@@ -125,11 +125,11 @@ defineGroup('recipe', { section: 'Knowledge', default: 'list',
   summary: 'Discover, plan, execute and safely reconcile agent recipes using Studio native tools' });
 defineGroup('agent', { section: 'Get started', default: 'capabilities',
   summary: 'Agent capability discovery and running Studio status' });
-define({ name: 'recipe list', section: 'Knowledge', summary: 'List available recipe contracts without opening Chrome',
+define({ name: 'recipe list', noData: true, section: 'Knowledge', summary: 'List available recipe contracts without opening Chrome',
   flags: { family: { type: 'string', valueName: 'NAME', desc: 'Filter by recipe family' } }, run: runRecipeList });
-define({ name: 'recipe show', section: 'Knowledge', usage: 'FAMILY.NAME', summary: 'Read the exact tool, schema, effects and guard rules',
+define({ name: 'recipe show', noData: true, section: 'Knowledge', usage: 'FAMILY.NAME', summary: 'Read the exact tool, schema, effects and guard rules',
   run: runRecipeShow });
-define({ name: 'recipe plan', section: 'Knowledge', usage: 'FAMILY.NAME [--input FILE]', summary: 'Validate typed inputs and effects without side effects',
+define({ name: 'recipe plan', noData: true, section: 'Knowledge', usage: 'FAMILY.NAME [--input FILE]', summary: 'Validate typed inputs and effects without side effects',
   flags: { ...inputFlag, execute: { type: 'boolean' }, 'authorize-send': { type: 'boolean' } }, run: runRecipePlan });
 define({ name: 'recipe run', section: 'Knowledge', usage: 'FAMILY.NAME [--input FILE] [--execute] [--authorize-send]',
   summary: 'Invoke a real native tool through the running Studio harness, with durable effect fencing',
@@ -151,7 +151,7 @@ define({ name: 'recipe reconcile', section: 'Knowledge', usage: 'RUN_ID [--key O
 define({ name: 'recipe finish', section: 'Knowledge', usage: 'RUN_ID --status STATUS',
   summary: 'Finalize durable run status after inspecting actual evidence',
   flags: { ...shared, status: { type: 'string', valueName: 'STATUS' } }, run: runRecipeFinish });
-define({ name: 'agent capabilities', section: 'Get started', summary: 'Read registered agent capabilities without probing accounts',
+define({ name: 'agent capabilities', noData: true, section: 'Get started', summary: 'Read registered agent capabilities without probing accounts',
   run: runAgentCapabilities });
-define({ name: 'agent status', section: 'Get started', summary: 'Read running Studio health without browser effects',
+define({ name: 'agent status', noData: true, section: 'Get started', summary: 'Read running Studio health without browser effects',
   flags: shared, run: runAgentStatus });
