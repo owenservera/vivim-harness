@@ -9,7 +9,8 @@ const samples = Object.freeze({
   'conversation.inspect': ['conversation status', 'inspect conversation', 'last turn status', 'conversation evidence'],
   'conversation.read': ['read conversation', 'read transcript', 'show recent messages', 'current reply'],
   'conversation.connect-existing': ['connect existing thread', 'attach chatgpt thread', 'resume exact thread'],
-  'conversation.continue': ['continue conversation', 'send follow up', 'ask a follow up', 'submit turn'],
+  'conversation.continue': ['continue conversation with revision', 'submit turn with revision'],
+  'conversation.ask': ['ask a follow up', 'send follow up', 'ask this conversation', 'one command follow up', 'send prompt'],
   'conversation.finish': ['finish conversation capture', 'stop recording conversation', 'finalize conversation'],
   'recovery.reconcile-turn': ['uncertain send', 'unknown delivery', 'reconcile turn', 'possible duplicate send'],
 });
