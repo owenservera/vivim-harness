@@ -55,7 +55,7 @@ function validated(def) {
     throw new Error('INVALID_RECIPE_SEND_TOOL: ' + def.id);
   return Object.freeze({ ...def, version: 1, transport: 'studio-tool',
     inputSchema: tool.inputSchema, toolReadOnly: tool.annotations.readOnlyHint === true,
-    executionReady: false, maxUserCommands: 1,
+    executionReady: true, maxUserCommands: 1,
     onUnknownEffect: 'halt-and-reconcile' });
 }
 export const RECIPE_CATALOG = Object.freeze(definitions.map(validated));
