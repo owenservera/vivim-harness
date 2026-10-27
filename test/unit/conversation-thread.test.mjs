@@ -83,6 +83,19 @@ test('boundTranscript: malformed or hostile page entries are dropped and counted
   assert.deepEqual(boundTranscript(null, {}).messages, []); assert.deepEqual(boundTranscript({ draft: { present: 'yes', chars: -3 } }, {}).draft, { present: null, chars: null });
 });
 
+test('boundTranscript: streaming and idle controls require positive UI evidence, never page state alone', () => {
+  const busy = boundTranscript(raw({ controls: { observed: false, state: 'idle', stopPresent: true,
+    idleControlPresent: false, composerEnabled: true } }));
+  assert.deepEqual(busy.controls, { state: 'busy', observed: true, stopPresent: true,
+    idleControlPresent: false, composerEnabled: true });
+  const idle = boundTranscript(raw({ controls: { stopPresent: false, idleControlPresent: true, composerEnabled: true } }));
+  assert.equal(idle.controls.state, 'idle'); assert.equal(idle.controls.observed, true);
+  const missing = boundTranscript(raw({ controls: { observed: true, state: 'idle',
+    stopPresent: false, idleControlPresent: false, composerEnabled: false } }));
+  assert.equal(missing.controls.state, 'unknown'); assert.equal(missing.controls.observed, false);
+  assert.equal(boundTranscript(raw()).controls.state, 'unknown');
+});
+
 // ---------------------------------------------------------------- in-page reader never mutates the page
 function fakePage({ pathname = `/c/${A}`, draft = 'unsent draft text' } = {}) {
   const touched = [];
