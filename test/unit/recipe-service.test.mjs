@@ -50,6 +50,27 @@ test('provider send is fenced by a stable operation key and does not claim reply
   assert.equal(f.calls.submits, 1);
   assert.equal(replay.retryAllowed, false);
 });
+test('one-command ask resolves current revision in native owner and concurrent same-key requests dispatch once', async (t) => {
+  const f = fixture(t);
+  const input = { conversation: 'c1', key: 'automatic-revision-1', prompt: 'One-command follow up' };
+  const [one, two] = await Promise.all([
+    f.service.run('conversation.ask', input, { execute: true, authorizeSend: true }),
+    f.service.run('conversation.ask', input, { execute: true, authorizeSend: true }),
+  ]);
+  assert.equal(f.calls.submits, 1);
+  assert.ok(one.existing === true || two.existing === true);
+  const first = one.existing ? two : one;
+  const ledger = f.harnessApi.get(first.runId).run;
+  assert.equal(ledger.steps.length, 1);
+  assert.equal(ledger.steps[0].status, 'succeeded');
+  assert.match(ledger.context.recipeIntentDigest, /^[a-f0-9]{64}$/);
+  const repeated = await f.service.run('conversation.ask', input, { execute: true, authorizeSend: true });
+  assert.equal(repeated.existing, true);
+  assert.equal(f.calls.submits, 1);
+  await assert.rejects(f.service.run('conversation.ask', { ...input, prompt: 'Changed prompt' },
+    { execute: true, authorizeSend: true }), (e) => e.code === 'RECIPE_OPERATION_CONFLICT');
+});
+
 test('unknown post-send outcome leaves original run ID and never resends on same operation', async (t) => {
   const f = fixture(t, { throwAfterSend: true });
   const result = await f.service.run('conversation.continue', turn, { execute: true, authorizeSend: true });
