@@ -3,7 +3,7 @@
 import { randomUUID } from 'node:crypto';
 import { listRecipes, recipeDefinition } from './catalog.mjs';
 import { planRecipe } from './plan.mjs';
-import { summarizeResult } from '../capture/harness-runs.mjs';
+import { summarizeResult, argsDigestOf } from '../capture/harness-runs.mjs';
 
 const fail = (status, code) => Object.assign(new Error(code), { status, code });
 const validOperation = (v) => typeof v === 'string' && /^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,99}$/.test(v);
@@ -41,9 +41,6 @@ export function createRecipeService({ harnessApi, conversationRuntime } = {}) {
       if (effectful && !validOperation(identity)) throw fail(400, 'RECIPE_OPERATION_REQUIRED');
       const op = identity ?? randomUUID();
       const task = 'recipe:' + id + ':operation:' + op;
-      const existing = harnessApi.list().runs.find((r) => r.taskDescription === task);
-      if (existing) return { ...status(existing.id), existing: true,
-        nextSafeAction: 'inspect-existing-run-no-retry', note: 'Existing operation preserved; no tool call was attempted.' };
       // Precheck source identity for turn effects BEFORE creating a durable run or touching the browser.
       if (recipe.effects.includes('provider-send')) {
         const current = await conversationRuntime.get(input.conversation);
@@ -51,6 +48,16 @@ export function createRecipeService({ harnessApi, conversationRuntime } = {}) {
         if (current.state === 'closed' || current.identity?.state === 'unverified'
           || current.identity?.state === 'unbound' || current.recovery?.pending)
           throw fail(409, 'RECIPE_THREAD_NOT_WRITABLE');
+      }
+      // This lookup and the create below must be adjacent with NO await between them:
+      // two concurrent requests for the same operation cannot both pass this local owner.
+      const existing = harnessApi.list().runs.find((r) => r.taskDescription === task);
+      if (existing) {
+        const saved = harnessApi.get(existing.id).run;
+        const last = saved.steps.at(-1);
+        if (last && last.argsDigest !== argsDigestOf(input)) throw fail(409, 'RECIPE_OPERATION_CONFLICT');
+        return { ...status(existing.id), existing: true,
+          nextSafeAction: 'inspect-existing-run-no-retry', note: 'Existing operation preserved; no tool call was attempted.' };
       }
       const created = harnessApi.create({ task, ...(input.conversation ? { conversationId: input.conversation } : {}) }).run;
       const key = recipe.effects.includes('provider-send') ? input.key : 'recipe-step:' + op;
