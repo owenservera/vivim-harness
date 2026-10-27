@@ -36,7 +36,7 @@ Receipts from this repository, executed locally in this increment:
 | `node scripts/architecture-inventory.mjs --check` | exit 0, 0 uncovered / 0 missing ownership | exit 0, 0 uncovered / 0 missing ownership |
 | `node --test test/unit/platform-parity.test.mjs` | 5 pass, 1 skipped (POSIX exec bit) | 6 pass, 0 skipped |
 | `node scripts/platform-smoke.mjs` | `ok: true`, 8 checks | `ok: true`, 8 checks |
-| `npm test` (full unit suite) | 1974 tests, 1969 pass, 0 fail, 0 cancelled, 3 skipped, 2 todo | see below |
+| `npm test` (full unit suite) | 1974 tests, 1969 pass, 0 fail, 0 cancelled, 3 skipped, 2 todo | 1974 tests, 1972 pass, 0 fail, 0 cancelled, 0 skipped, 2 todo |
 
 - Hosted cross-OS CI is **not** part of acceptance: `3503195` removed the workflow because every Actions run stopped before executing a step ("account is locked due to a billing issue"). Verification is local, and these two local receipts are the gate.
 - The parity assertions are discriminating: running them against a pre-integration tree yields 1 pass / 4 fail / 1 skip, so they fail loudly if the launcher, data-root or script contract regresses.
