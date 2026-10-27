@@ -22,10 +22,15 @@ test('ChatGPT native route mints a verified conversation claim only for exact /c
   // query strings do not change the conversation identity: pathname decides
   const withQuery = chatgptConversationClaim({ url: 'https://chatgpt.com/c/' + UUID + '?model=x', captureRef: 'capture-1', sequence: 5 });
   assert.equal(withQuery.nativeRef, UUID);
+  assert.equal(chatgptConversationClaim({ url: 'https://chat.openai.com/c/' + UUID, captureRef: 'capture-1', sequence: 5 }).nativeRef, UUID);
   // home, share, search and admin routes never mint a conversation identity
   for (const bad of ['https://chatgpt.com/', 'https://chatgpt.com/g/g-123', 'https://chatgpt.com/c/',
     'https://chatgpt.com/c/not-a-uuid', 'https://chatgpt.com/c/' + UUID + '/share',
-    'http://chatgpt.com/c/' + UUID]) {
+    'http://chatgpt.com/c/' + UUID,
+    'https://unrelated.example/c/' + UUID,
+    'https://chatgpt.com.evil.example/c/' + UUID,
+    'https://person:secret@chatgpt.com/c/' + UUID,
+    'https://chatgpt.com:8443/c/' + UUID]) {
     assert.equal(chatgptConversationClaim({ url: bad, captureRef: 'capture-1', sequence: 5 }), null, bad);
   }
   assert.equal(chatgptConversationClaim({ url: PAGE.url, captureRef: 'capture-1', sequence: 5, evidenceClass: 'title' }), null);

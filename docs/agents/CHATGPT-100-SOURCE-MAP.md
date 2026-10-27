@@ -4,6 +4,13 @@ Date: 2026-10-27. Companion to `docs/agents/CHATGPT-100-OBJECTIVES.md`.
 
 This maps each objective to the source that can actually perform it. "No source" means the repo has no reader, control, or command for that interaction. Running those objectives can only report `HARNESS_UNSUPPORTED`.
 
+
+## 2026-10-28 targeted source corrections (not a full 100-scenario verification)
+
+- **003 / identity provenance:** `src/capture/thread-identity.mjs:chatgptConversationClaim` now delegates ChatGPT URL identity to `src/capture/conversation-thread.mjs:parseThread`. The canonical parser rejects user-info and nondefault ports; arbitrary HTTPS hosts can no longer mint a verified ChatGPT route identity. Regression: `test/unit/thread-identity.test.mjs`. **Source-reviewed; no live verification.**
+- **041 / 098 / answer event freshness:** `src/studio/conversation-events.mjs:textKey` now fingerprints complete in-memory reply text, not only the capped SSE snapshot, so a same-length edit beyond the wire cap triggers a fresh `conversation.reply_text` event without transmitting the uncapped body. Regression: `test/unit/conversation-events-text.test.mjs`. **Source-reviewed; no live verification.**
+- These changes do **not** resolve the missing native controls, artifact extraction, uploads, Projects/settings or scenario 022–023 continuity proof. Existing scenario bands remain as described below unless explicitly superseded. Source audit coverage is not claimed complete.
+
 ## Shared path
 
 | Role | File |

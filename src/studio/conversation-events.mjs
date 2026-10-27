@@ -57,8 +57,10 @@ const textProjection = (v, maxChars) => {
       identity: r.evidence?.identity ?? null, evidenceRevision: r.evidence?.revision ?? null },
     at: new Date().toISOString() };
 };
-const textKey = (snap) => snap === null ? null
-  : `${snap.turnId}:${snap.reply.state}:${snap.reply.chars}:${createHash('sha256').update(snap.reply.text).digest('hex').slice(0, 16)}`;
+// The wire snapshot is deliberately head-capped. Hash the COMPLETE in-memory reply,
+// otherwise changes beyond the cap (including same-length edits) never wake consumers.
+const textKey = (snap, fullText) => snap === null ? null
+  : `${snap.turnId}:${snap.reply.state}:${snap.reply.chars}:${createHash('sha256').update(typeof fullText === 'string' ? fullText : snap.reply.text).digest('hex').slice(0, 16)}`;
 
 export function createConversationEvents({ runtime, intervalMs = 200, feedOptions = {}, textFeedOptions = {}, textLimits = {} } = {}) {
   const maxChars = Number.isSafeInteger(textLimits.maxChars) && textLimits.maxChars > 0 && textLimits.maxChars <= 128000
@@ -101,7 +103,7 @@ export function createConversationEvents({ runtime, intervalMs = 200, feedOption
         feed.publish('conversation.changed', payload, id);
         textFeed.publish('conversation.changed', payload, id);
       }
-      const snap = textProjection(view, maxChars), key = textKey(snap);
+      const snap = textProjection(view, maxChars), key = textKey(snap, view.turn?.reply?.text);
       if (key !== state.lastTextKey) {
         state.lastTextKey = key;
         if (snap) textFeed.publish(REPLY_TEXT_EVENT, snap, id);

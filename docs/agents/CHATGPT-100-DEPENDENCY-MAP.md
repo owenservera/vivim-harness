@@ -2,6 +2,13 @@
 
 Generated 2026-10-28 from the repository tree at `c666d3177069f99e1cb39955aec8ad8e2550bae4`. Companion to `CHATGPT-100-SOURCE-MAP.md`.
 
+## Verified direct and adjacent dependencies (2026-10-28 targeted pass)
+
+- `src/capture/thread-identity.mjs:chatgptConversationClaim` → `src/capture/conversation-thread.mjs:parseThread`: **direct dependency** after host-scope consolidation. This fixes a previously unrelated-host identity mint; the native route remains read-only observation, not a send authorization.
+- `src/studio/conversation-events.mjs:createConversationEvents` → `textProjection` / `textKey` → runtime `get`: **direct dependency**. Capped SSE snapshots must be keyed against full reply text to detect behind-cap changes.
+- `test/unit/thread-identity.test.mjs` and `test/unit/conversation-events-text.test.mjs`: source-level regression coverage added, not proof of local execution or live provider behavior.
+- This is a targeted reconciliation, not certification that every referenced file and transitive edge has been reviewed.
+
 ## Purpose
 The first map identifies direct owners for 100 user objectives. This second map identifies **additional existing source files that may influence those owners**, including entrypoints, shared utilities, indirect dependencies, alternate implementations and integration surfaces. **Candidate ≠ verified import dependency**: inspect actual imports/callers before asserting a dependency or changing behavior.
 

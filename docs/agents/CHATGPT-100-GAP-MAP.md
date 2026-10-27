@@ -2,6 +2,12 @@
 
 Generated 2026-10-28. Companion to `CHATGPT-100-SOURCE-MAP.md` and `CHATGPT-100-DEPENDENCY-MAP.md`.
 
+## Partial gap closures (2026-10-28)
+
+- **003 identity provenance:** fixed source-level cross-origin identity claim, using the canonical ChatGPT parser. It does not read signed-in account identity or establish browser availability.
+- **041 / 098 live reply-text events:** fixed same-length edits past the capped SSE text boundary being suppressed. Wire text remains bounded; full page/structured answer extraction and terminal delivery verification are separate gaps.
+- Regression tests added in source but are **not marked executed or live-verified** here. All remaining gaps below are open pending broader read/implementation and actual verification.
+
 ## Why this file exists
 The source map says **where current behavior lives**. The dependency map asks **what other existing code could affect it**. This third map explains the **blank space between a real ChatGPT user action and an exposed, verifiable harness capability**. A missing entry is not proof the functionality is impossible: it may be unimplemented, implemented but unexposed, not discovered, or only partly observable.
 

@@ -15,7 +15,8 @@ export function parseThread(siteId, url) {
   if (siteId !== 'chatgpt') return null;
   let parsed;
   try { parsed = new URL(url); } catch { return null; }
-  if (parsed.protocol !== 'https:' || !['chatgpt.com', 'chat.openai.com'].includes(parsed.hostname)) return null;
+  if (parsed.protocol !== 'https:' || !['chatgpt.com', 'chat.openai.com'].includes(parsed.hostname)
+    || parsed.username || parsed.password || parsed.port) return null;
   const match = CHATGPT_C.exec(parsed.pathname);
   if (!match) return null;
   const id = match[1].toLowerCase();

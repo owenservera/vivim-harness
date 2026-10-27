@@ -175,3 +175,24 @@ test('text events never instruct actions and stay session-scoped; info() reports
   assert.ok(info.text && Array.isArray(info.watched) && info.watched.includes(c.id));
   assert.equal(info.textLimits.maxChars, 16000);
 });
+
+test('text feed detects same-length edits beyond the head cap without exposing the tail', async (t) => {
+  const prefix = 'x'.repeat(101);
+  let text = prefix + 'A';
+  const view = () => ({
+    id: 'c-tail', revision: 1, state: 'ready', site: 'chatgpt', turns: [],
+    turn: { id: 't-tail', reply: { state: 'ready', text, chars: text.length, source: 'page' } },
+  });
+  const events = createConversationEvents({ runtime: { get: async () => view() }, intervalMs: 5, textLimits: { maxChars: 100 } });
+  t.after(() => events.close());
+  const res = sseRes();
+  await events.subscribe({ headers: {} }, res, 'c-tail', { include: 'text' });
+  const snapshots = () => sseEvents(res).filter((e) => e.type === REPLY_TEXT_EVENT).map((e) => e.data.data);
+  await waitFor(() => snapshots().length === 1);
+  text = prefix + 'B'; // same prefix, length, state and durable revision
+  await waitFor(() => snapshots().length === 2);
+  assert.equal(snapshots()[0].reply.text, prefix.slice(0, 100));
+  assert.equal(snapshots()[1].reply.text, prefix.slice(0, 100));
+  assert.ok(!res.writes.join('').includes(prefix + 'A'));
+  assert.ok(!res.writes.join('').includes(prefix + 'B'));
+});

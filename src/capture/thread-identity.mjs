@@ -5,25 +5,25 @@
 // (fail-closed), while ChatGPT's strict `/c/<uuid>` native-route contract stays exactly as
 // strict as the canonical parser. Pure module: no browser, no effects, no storage.
 import { resolveAttachment } from '../studio/core-runtime-bridge.mjs';
+import { parseThread } from './conversation-thread.mjs';
 
 export const THREAD_IDENTITY_SCHEMA = 'aion.thread-identity/1';
 
-const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
 const EVIDENCE_CLASSES = ['saved-real-capture', 'live-browser-observation', 'synthetic-fixture'];
 
 /** ChatGPT native-route claim: only an exact https origin + strict `/c/<uuid>` path binds. */
 export function chatgptConversationClaim({ url, captureRef, sequence, evidenceClass = 'live-browser-observation' } = {}) {
   if (typeof url !== 'string' || !captureRef || !Number.isSafeInteger(sequence) || sequence < 0) return null;
   if (!EVIDENCE_CLASSES.includes(evidenceClass)) return null;
-  let u;
-  try { u = new URL(url); } catch { return null; }
-  if (u.protocol !== 'https:' || !u.hostname) return null;
-  const m = new RegExp(`^/c/(${UUID})/?$`).exec(u.pathname);
-  if (!m) return null; // home, search, share or future routes never mint a conversation claim
+  // Reuse the canonical ChatGPT parser. A generic HTTPS /c/<uuid> path on an
+  // unrelated site is NOT a ChatGPT identity, even if it looks identical.
+  const thread = parseThread('chatgpt', url);
+  if (!thread) return null;
+  const u = new URL(url);
   return {
-    kind: 'conversation', verified: true, nativeRef: m[1],
+    kind: 'conversation', verified: true, nativeRef: thread.id,
     origin: u.origin,
-    source: { kind: 'native-route', captureRef, sequence, reference: `/c/${m[1]}`, evidenceClass },
+    source: { kind: 'native-route', captureRef, sequence, reference: `/c/${thread.id}`, evidenceClass },
   };
 }
 
