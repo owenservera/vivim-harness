@@ -4,6 +4,7 @@ import { define, defineGroup } from '../lib/registry.mjs';
 import { usageError, CliError } from '../lib/ui.mjs';
 import { EXIT } from '../../src/config.mjs';
 import { createStudioToolClient } from '../../src/studio/tool-client.mjs';
+import { metadataOnly } from '../../src/studio/tool-result.mjs';
 
 const clientFlags = {
   'studio-port': { type: 'number', valueName: 'PORT', desc: 'Running loopback Studio port (default: configured studioPort)' },
@@ -26,8 +27,7 @@ async function execute(run) {
         effect: error?.effect === 'unknown' ? 'unknown' : 'none', retry: false } });
   }
 }
-const metadataOnly = (value) => Array.isArray(value) ? value.map(metadataOnly) : value && typeof value === 'object'
-  ? Object.fromEntries(Object.entries(value).filter(([key]) => !['text', 'prompt', 'title', 'content'].includes(key)).map(([key, child]) => [key, metadataOnly(child)])) : value;
+
 
 export async function runToolsList(ctx, dependencies = {}) {
   if (ctx.args.length) throw usageError('Usage: studio tools list');
