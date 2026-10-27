@@ -41,6 +41,7 @@ export function createStudioToolClient(options = {}) {
       if (!['GET', 'POST'].includes(method) || typeof route !== 'string'
         || !(/^(?:\/api\/v1\/(?:recipes(?:\/|\?|$)|agent\/capabilities$|health$)|\/api\/status$)/.test(route))
         || /[\r\n#]/.test(route) || route.includes('..') || route.includes('://')
+        || (route === '/api/status' && method !== 'GET')
         || (method === 'GET' && body !== undefined) || (method === 'POST' && (!body || typeof body !== 'object' || Array.isArray(body))))
         throw failure('INVALID_RECIPE_REQUEST', 400);
       const readOnly = method === 'GET' || route.endsWith('/plan') || route.endsWith('/reconcile');
