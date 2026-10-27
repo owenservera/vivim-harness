@@ -1,0 +1,39 @@
+name: ChatGPT 100 focused source tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/capture/conversation-thread.mjs'
+      - 'src/capture/conversation-browser-adapter.mjs'
+      - 'src/capture/thread-identity.mjs'
+      - 'src/studio/conversation-api.mjs'
+      - 'src/studio/conversation-tools.mjs'
+      - 'test/unit/conversation-thread.test.mjs'
+      - 'test/unit/conversation-api.test.mjs'
+      - 'test/unit/conversation-tools.test.mjs'
+      - 'test/unit/thread-identity.test.mjs'
+      - '.github/workflows/chatgpt-100-focused.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify modified source syntax
+        run: |
+          node --check src/capture/conversation-thread.mjs
+          node --check src/capture/conversation-browser-adapter.mjs
+          node --check src/capture/thread-identity.mjs
+          node --check src/studio/conversation-api.mjs
+          node --check src/studio/conversation-tools.mjs
+      - name: Run focused fixture-based unit tests (no live provider)
+        run: node --test test/unit/conversation-thread.test.mjs test/unit/conversation-api.test.mjs test/unit/conversation-tools.test.mjs test/unit/thread-identity.test.mjs
