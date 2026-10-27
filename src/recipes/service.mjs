@@ -5,6 +5,7 @@ import { listRecipes, recipeDefinition } from './catalog.mjs';
 import { planRecipe } from './plan.mjs';
 import { summarizeResult, argsDigestOf } from '../capture/harness-runs.mjs';
 import { executeConversationTool } from '../studio/conversation-tools.mjs';
+import { metadataOnly } from '../studio/tool-result.mjs';
 
 const fail = (status, code) => Object.assign(new Error(code), { status, code });
 const validOperation = (v) => typeof v === 'string' && /^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,99}$/.test(v);
@@ -47,7 +48,7 @@ export function createRecipeService({ harnessApi, conversationRuntime } = {}) {
           schema: 'vivim.recipe-run/1', recipe: id, status: 'succeeded', runId: null,
           persisted: false, tool: recipe.tool, retryAllowed: true, nextSafeAction: 'none',
           effectState: 'none', evidenceTier: 'runtime-read',
-          ...(includeContent ? { result } : { resultSummary: summarizeResult(result) }),
+          result: includeContent ? result : metadataOnly(result),
         };
       }
       const identity = operationId ?? (recipe.effects.includes('provider-send') ? input.key : null);
