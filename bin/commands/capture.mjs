@@ -2,6 +2,7 @@
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { launchChrome, findChrome } from '../../src/chrome/launch.mjs';
+import { verifyBrowserOwner } from '../../src/chrome/browser-ownership.mjs';
 import { listTargets, isReachable, endpointBase } from '../../src/cdp/discovery.mjs';
 import { Recorder } from '../../src/capture/recorder.mjs';
 import { Session } from '../../src/store/session.mjs';
@@ -44,7 +45,10 @@ define({
   flags: { filter: { type: 'string', alias: 'f', valueName: 'TEXT', desc: 'Only tabs whose title or URL contains TEXT' } },
   async run(ctx) {
     let ts;
-    try { ts = await listTargets({ port: ctx.port }); } catch (e) { throw envError(`No capture browser on port ${ctx.port}: ${e.message}`, 'Run "studio launch".'); }
+    try {
+      await verifyBrowserOwner({ profileDir: ctx.paths.chromeProfile, port: ctx.port });
+      ts = await listTargets({ port: ctx.port });
+    } catch (e) { throw envError(`Capture browser not available or not verified: ${e.message}`, 'Use "studio start" with the dedicated VIVIM profile.'); }
     if (ctx.flags.filter) { const f = ctx.flags.filter.toLowerCase(); ts = ts.filter((t) => t.url.toLowerCase().includes(f) || (t.title ?? '').toLowerCase().includes(f)); }
     const rows = ts.map((t, i) => ({ index: i, id: t.id, title: t.title, url: t.url }));
     ctx.out.emit(rows, (o) => {
@@ -62,9 +66,10 @@ const studioFlags = {
 
 async function runStudio(ctx, { launch }) {
   const { out, flags } = ctx;
-  if (launch && !(await isReachable({ port: ctx.port }))) {
+  if (launch) {
+    // Always validate the ownership marker, even when the CDP port is already listening.
     const r = await launchChrome({ profileDir: ctx.paths.chromeProfile, port: ctx.port, url: flags.url ?? 'about:blank' });
-    out.info(`Capture browser opened (${r.browser}).`);
+    if (!r.alreadyRunning) out.info(`Capture browser opened (${r.browser}).`);
   }
   const st = await startStudio({ paths: ctx.paths, profileStore: ctx.profiles(), familyStore: ctx.families(), cdpPort: ctx.port, port: Number(flags['studio-port'] ?? ctx.settings.studioPort) });
   out.emit({ url: st.url, port: st.port }, (o) => o.result(`Capture Studio is running at\n  ${st.url}\nKeep this window open. Press Ctrl+C to stop (an active recording is saved first).`));
@@ -147,6 +152,7 @@ async function runRecording(ctx, o) {
   const { out } = ctx;
   const maxMb = o.maxMb ?? ctx.settings.maxMb;
   const liveModule = o.live ? await capability('../../src/capture/live-tap.mjs', ['createLiveTap'], 'Live capture decoding') : null;
+  await verifyBrowserOwner({ profileDir: ctx.paths.chromeProfile, port: ctx.port });
   const rec = new Recorder({ sessionsDir: ctx.paths.sessions, profileStore: ctx.profiles(), familyStore: ctx.families(), port: ctx.port, tabs: o.tabs, follow: !!o.follow, allBodies: !!o.allBodies, maxSessionBytes: Number(maxMb) * 1048576, learner: ctx.learner() });
   rec.on('warn', (e) => out.warn(e.message ?? e));
   const tap = liveModule ? await liveModule.createLiveTap(rec, { kinds: o.kinds, decode: true }) : null;
@@ -275,12 +281,11 @@ define({
     if (!ctx.args.length) throw usageError('Usage: studio capture <url...>', 'Example: studio capture https://example.com --export report');
     if (flags.live) await capability('../../src/capture/live-tap.mjs', ['createLiveTap'], 'Live capture decoding');
     const urls = ctx.args.map(normalizeUrl);
-    if (!(await isReachable({ port: ctx.port }))) {
-      if (flags['no-launch']) throw envError(`No capture browser on port ${ctx.port}.`, 'Run "studio launch".');
-      try { findChrome(); } catch (e) { throw envError(e.message, 'Install Chrome or set CHROME_PATH.'); }
-      const r = await launchChrome({ profileDir: ctx.paths.chromeProfile, port: ctx.port, url: 'about:blank' });
-      out.info(`Capture browser opened (${r.browser}).`);
-    }
+    if (flags['no-launch'] && !(await isReachable({ port: ctx.port })))
+      throw envError(`No capture browser on port ${ctx.port}.`, 'Run "studio start".');
+    // One-command capture, but never reuse another browser simply because the port is reachable.
+    const r = await launchChrome({ profileDir: ctx.paths.chromeProfile, port: ctx.port, url: 'about:blank' });
+    if (!r.alreadyRunning) out.info(`Capture browser opened (${r.browser}).`);
     const results = [];
     for (const url of urls) {
       out.info(`Opening ${url}`);
