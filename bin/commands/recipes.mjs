@@ -1,6 +1,7 @@
 // One user-facing recipe command dispatches through the ALREADY-RUNNING Studio HTTP hub.
 // Discovery/plan operate offline. Run/status/reconcile reuse the hub's single effect owner.
 import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { define, defineGroup } from '../lib/registry.mjs';
 import { usageError, CliError } from '../lib/ui.mjs';
 import { EXIT } from '../../src/config.mjs';
@@ -33,7 +34,7 @@ async function callStudio(ctx, method, route, body) {
   try {
     client = createStudioToolClient({ port, timeoutMs: timeout * 1000,
       ...(process.env.CAPTURE_STUDIO_TOKEN ? { token: process.env.CAPTURE_STUDIO_TOKEN } : {}) });
-    return await client.recipeRequest(method, '/api/v1' + route, body);
+    return await client.recipeRequest(method, route === '/status' ? '/api/status' : '/api/v1' + route, body);
   } catch (error) {
     const code = /^[A-Z][A-Z0-9_]{0,79}$/.test(error?.code ?? '') ? error.code : 'STUDIO_CLIENT_ERROR';
     throw new CliError(code, { exit: EXIT.ENVIRONMENT, code,
@@ -113,8 +114,15 @@ export async function runAgentCapabilities(ctx) {
 }
 export async function runAgentStatus(ctx, dependencies = {}) {
   only(ctx, 0, 'agent status');
-  const health = await (dependencies.request ?? callStudio)(ctx, 'GET', '/health');
-  emit(ctx, { studio: 'reachable', version: health.version, time: health.time,
+  // The running server, not the current CLI checkout, is authoritative for the data root.
+  // This call reads the EXISTING owner's status; never launches Chrome or a competing runtime.
+  const status = await (dependencies.request ?? callStudio)(ctx, 'GET', '/status');
+  const dataDir = typeof status.dataDir === 'string' ? status.dataDir : null;
+  emit(ctx, { studio: 'reachable', version: status.version ?? null,
+    studioPort: ctx.flags['studio-port'] ?? ctx.settings.studioPort,
+    dataDir, chromeProfile: dataDir ? path.join(dataDir, 'chrome-profile') : null,
+    cdpPort: status.cdpPort ?? null, chromeReachable: !!status.chrome,
+    browserProfileVerified: 'not-proven-by-status',
     browserAccountState: 'unverified', recipeDiscovery: 'studio recipe list' });
 }
 
