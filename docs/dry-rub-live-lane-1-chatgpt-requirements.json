@@ -1,0 +1,316 @@
+{
+  "conversation": {
+    "id": "53844c8d-95f2-4ace-a182-decdd30ffeb6",
+    "revision": 22,
+    "state": "closed",
+    "site": "chatgpt",
+    "binding": {
+      "targetId": "4D3450A48C41992372028C8C9F4A33E7",
+      "origin": "https://chatgpt.com",
+      "ownedByStudio": true,
+      "thread": {
+        "kind": "chatgpt-c",
+        "id": "6ae1046a-32dc-83ed-a8c7-b121a6082fde",
+        "ref": "chatgpt-c:6ae1046a-32dc-83ed-a8c7-b121a6082fde"
+      }
+    },
+    "sessionId": "20261027-200638-chatgpt-efa16d",
+    "turn": {
+      "id": "db946273-346f-432a-92eb-be5a445c7d95",
+      "key": "6ca29add-d79b-478d-af0e-8875f172e8ae",
+      "conversationId": "53844c8d-95f2-4ace-a182-decdd30ffeb6",
+      "payloadDigest": "fe3b5c773eb77329c350a9dc61a769c7f3da1479633fb2328001ed26057afdac",
+      "phase": "observed",
+      "reason": null,
+      "boundary": {
+        "sequence": 848,
+        "transcriptCount": 0
+      },
+      "baseline": {
+        "userTurns": 0,
+        "assistantTurns": 0,
+        "sampledAt": "2026-10-27T20:07:04.101Z"
+      },
+      "cursor": {
+        "messageCount": 0,
+        "userCount": 0,
+        "assistantCount": 0,
+        "idsDigest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "contentDigest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "streamSequence": 848
+      },
+      "sessionId": "20261027-200638-chatgpt-efa16d",
+      "send": {
+        "state": "observed",
+        "observationSource": "page",
+        "evidence": {
+          "sessionId": "20261027-200638-chatgpt-efa16d",
+          "sequence": 1098,
+          "kind": "new-user-turn",
+          "identity": "00870f68-6039-40da-a4df-c826cbdc9e47"
+        }
+      },
+      "reply": {
+        "state": "interrupted",
+        "source": "page",
+        "text": "ChatGPT said:\nThis response couldnΓÇÖt load",
+        "chars": 41,
+        "evidence": {
+          "turnId": "db946273-346f-432a-92eb-be5a445c7d95",
+          "payloadDigest": "fe3b5c773eb77329c350a9dc61a769c7f3da1479633fb2328001ed26057afdac",
+          "sessionId": "20261027-200638-chatgpt-efa16d",
+          "sequence": 1107,
+          "kind": "assistant-reply",
+          "source": "page",
+          "identity": "e95558cb-7fd4-4e73-846e-7e65dd1aa871",
+          "revision": 1,
+          "contentDigest": "7e82c602e3230afe211b4d4e6982da9e690bd1b7b850d45a487034a2689c9c17",
+          "chars": 41
+        },
+        "completion": "unknown"
+      },
+      "readiness": {
+        "state": "ready",
+        "evidence": {
+          "turnId": "db946273-346f-432a-92eb-be5a445c7d95",
+          "payloadDigest": "fe3b5c773eb77329c350a9dc61a769c7f3da1479633fb2328001ed26057afdac",
+          "sessionId": "20261027-200638-chatgpt-efa16d",
+          "sequence": 1107,
+          "kind": "interactive-ready",
+          "source": "adapter",
+          "identity": "e95558cb-7fd4-4e73-846e-7e65dd1aa871",
+          "revision": 1,
+          "contentDigest": "7e82c602e3230afe211b4d4e6982da9e690bd1b7b850d45a487034a2689c9c17",
+          "chars": 41,
+          "boundarySequence": 848,
+          "threadKey": "[\"thread-turn-journal-v1\",\"local-owner\",\"https://chatgpt.com\",\"chatgpt-c:6ae1046a-32dc-83ed-a8c7-b121a6082fde\"]",
+          "rule": "chatgpt-controls-idle",
+          "ruleVersion": 1,
+          "samples": [
+            {
+              "sequence": 1106,
+              "identity": "e95558cb-7fd4-4e73-846e-7e65dd1aa871",
+              "revision": 1,
+              "contentDigest": "7e82c602e3230afe211b4d4e6982da9e690bd1b7b850d45a487034a2689c9c17",
+              "chars": 41
+            },
+            {
+              "sequence": 1107,
+              "identity": "e95558cb-7fd4-4e73-846e-7e65dd1aa871",
+              "revision": 1,
+              "contentDigest": "7e82c602e3230afe211b4d4e6982da9e690bd1b7b850d45a487034a2689c9c17",
+              "chars": 41
+            }
+          ],
+          "controls": {
+            "observed": true,
+            "state": "idle",
+            "idleControlPresent": true,
+            "stopPresent": false,
+            "composerEnabled": true
+          }
+        }
+      },
+      "completion": {
+        "state": "unknown",
+        "evidence": null
+      }
+    },
+    "turns": [
+      {
+        "id": "db946273-346f-432a-92eb-be5a445c7d95",
+        "key": "6ca29add-d79b-478d-af0e-8875f172e8ae",
+        "conversationId": "53844c8d-95f2-4ace-a182-decdd30ffeb6",
+        "payloadDigest": "fe3b5c773eb77329c350a9dc61a769c7f3da1479633fb2328001ed26057afdac",
+        "phase": "observed",
+        "reason": null,
+        "boundary": {
+          "sequence": 848,
+          "transcriptCount": 0
+        },
+        "baseline": {
+          "userTurns": 0,
+          "assistantTurns": 0,
+          "sampledAt": "2026-10-27T20:07:04.101Z"
+        },
+        "cursor": {
+          "messageCount": 0,
+          "userCount": 0,
+          "assistantCount": 0,
+          "idsDigest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "contentDigest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "streamSequence": 848
+        },
+        "sessionId": "20261027-200638-chatgpt-efa16d",
+        "send": {
+          "state": "observed",
+          "observationSource": "page",
+          "evidence": {
+            "sessionId": "20261027-200638-chatgpt-efa16d",
+            "sequence": 1098,
+            "kind": "new-user-turn",
+            "identity": "00870f68-6039-40da-a4df-c826cbdc9e47"
+          }
+        },
+        "reply": {
+          "state": "interrupted",
+          "source": "page",
+          "text": "ChatGPT said:\nThis response couldnΓÇÖt load",
+          "chars": 41,
+          "evidence": {
+            "turnId": "db946273-346f-432a-92eb-be5a445c7d95",
+            "payloadDigest": "fe3b5c773eb77329c350a9dc61a769c7f3da1479633fb2328001ed26057afdac",
+            "sessionId": "20261027-200638-chatgpt-efa16d",
+            "sequence": 1107,
+            "kind": "assistant-reply",
+            "source": "page",
+            "identity": "e95558cb-7fd4-4e73-846e-7e65dd1aa871",
+            "revision": 1,
+            "contentDigest": "7e82c602e3230afe211b4d4e6982da9e690bd1b7b850d45a487034a2689c9c17",
+            "chars": 41
+          },
+          "completion": "unknown"
+        },
+        "readiness": {
+          "state": "ready",
+          "evidence": {
+            "turnId": "db946273-346f-432a-92eb-be5a445c7d95",
+            "payloadDigest": "fe3b5c773eb77329c350a9dc61a769c7f3da1479633fb2328001ed26057afdac",
+            "sessionId": "20261027-200638-chatgpt-efa16d",
+            "sequence": 1107,
+            "kind": "interactive-ready",
+            "source": "adapter",
+            "identity": "e95558cb-7fd4-4e73-846e-7e65dd1aa871",
+            "revision": 1,
+            "contentDigest": "7e82c602e3230afe211b4d4e6982da9e690bd1b7b850d45a487034a2689c9c17",
+            "chars": 41,
+            "boundarySequence": 848,
+            "threadKey": "[\"thread-turn-journal-v1\",\"local-owner\",\"https://chatgpt.com\",\"chatgpt-c:6ae1046a-32dc-83ed-a8c7-b121a6082fde\"]",
+            "rule": "chatgpt-controls-idle",
+            "ruleVersion": 1,
+            "samples": [
+              {
+                "sequence": 1106,
+                "identity": "e95558cb-7fd4-4e73-846e-7e65dd1aa871",
+                "revision": 1,
+                "contentDigest": "7e82c602e3230afe211b4d4e6982da9e690bd1b7b850d45a487034a2689c9c17",
+                "chars": 41
+              },
+              {
+                "sequence": 1107,
+                "identity": "e95558cb-7fd4-4e73-846e-7e65dd1aa871",
+                "revision": 1,
+                "contentDigest": "7e82c602e3230afe211b4d4e6982da9e690bd1b7b850d45a487034a2689c9c17",
+                "chars": 41
+              }
+            ],
+            "controls": {
+              "observed": true,
+              "state": "idle",
+              "idleControlPresent": true,
+              "stopPresent": false,
+              "composerEnabled": true
+            }
+          }
+        },
+        "completion": {
+          "state": "unknown",
+          "evidence": null
+        }
+      }
+    ],
+    "identity": {
+      "state": "bound",
+      "reason": null
+    },
+    "recovery": {
+      "pending": false
+    },
+    "readiness": {
+      "ready": false,
+      "draft": {
+        "present": null,
+        "chars": null
+      },
+      "reason": "BINDING_CHANGED"
+    },
+    "writer": {
+      "active": false,
+      "releaseError": null
+    },
+    "diagnostic": {
+      "finishPhase": "done",
+      "finishError": null,
+      "uncertainty": null
+    },
+    "evidence": {
+      "state": "preserved",
+      "revision": 2,
+      "at": "2026-10-27T20:07:41.147Z",
+      "trigger": "finish",
+      "file": "C:\\Users\\VIVIM.inc\\AppData\\Local\\AION\\capture-studio\\conversations\\53844c8d-95f2-4ace-a182-decdd30ffeb6.evidence.json",
+      "skipped": false,
+      "turns": 1,
+      "sessions": 1,
+      "gaps": [
+        "REPLY_COMPLETION_UNKNOWN",
+        "READINESS_READY_WITH_COMPLETION_UNKNOWN",
+        "CAPTURE_NOT_IDLE_AT_PRESERVATION"
+      ],
+      "failures": 0
+    },
+    "reply": {
+      "state": "interrupted",
+      "source": "page",
+      "text": "ChatGPT said:\nThis response couldnΓÇÖt load",
+      "chars": 41,
+      "evidence": {
+        "turnId": "db946273-346f-432a-92eb-be5a445c7d95",
+        "payloadDigest": "fe3b5c773eb77329c350a9dc61a769c7f3da1479633fb2328001ed26057afdac",
+        "sessionId": "20261027-200638-chatgpt-efa16d",
+        "sequence": 1107,
+        "kind": "assistant-reply",
+        "source": "page",
+        "identity": "e95558cb-7fd4-4e73-846e-7e65dd1aa871",
+        "revision": 1,
+        "contentDigest": "7e82c602e3230afe211b4d4e6982da9e690bd1b7b850d45a487034a2689c9c17",
+        "chars": 41
+      },
+      "completion": "unknown"
+    },
+    "capture": {
+      "state": "incomplete",
+      "integrity": {
+        "segments": [
+          {
+            "file": "000001.jsonl",
+            "bytes": 9925533,
+            "inManifest": true,
+            "shaMatches": true,
+            "torn": false
+          }
+        ],
+        "ok": true,
+        "seqGaps": [],
+        "gapRecords": 0,
+        "droppedRecords": 0,
+        "records": 1109,
+        "mergedRecords": 0,
+        "compacted": false,
+        "unexplainedSeqGaps": 0
+      },
+      "endsAt": "2026-10-27T20:21:32.552Z",
+      "maxBytes": 268435456,
+      "bytesWritten": 0,
+      "limitReason": null
+    },
+    "limitations": [
+      "Page observations are not network completion or full capture acceptance",
+      "Cancellation is deferred"
+    ]
+  },
+  "timedOut": false,
+  "error": null,
+  "resent": false,
+  "tabCloseRequested": false
+}

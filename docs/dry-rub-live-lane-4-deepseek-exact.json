@@ -1,0 +1,13 @@
+{
+  "taskId": "deepseek-exact",
+  "task": "exact",
+  "prompt": "Respond with exactly this text and nothing else: VIVIM CEDAR READY",
+  "promptTruncated": "Respond with exactly this text and nothing else: VIVIM CEDAR",
+  "liveOk": false,
+  "error": "NOT_EXECUTED_SYSTEMATIC_BLOCKER",
+  "sessionId": null,
+  "outputFile": "docs/dry-rub-live-lane-4-deepseek-exact.json",
+  "command": "bun bin/studio.mjs chat deepseek --prompt \"Respond with exactly this text and nothing else: VIVIM CEDAR READY\" --execute --accept-sends",
+  "gapsIssues": "Not executed: systematic deepseek live-send blocker confirmed by tasks 1-4. No live send attempted. This is the highest-risk task (exact-text constraint) and cannot be verified without a working live send.",
+  "attempted": false
+}

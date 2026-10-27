@@ -1,0 +1,13 @@
+{
+  "taskId": "deepseek-email",
+  "task": "email",
+  "prompt": "Draft a two-sentence email to a teammate asking to meet on Friday. Include the subject line Subject: Friday sync.",
+  "promptTruncated": "Draft a two-sentence email to a teammate asking to meet on F",
+  "liveOk": false,
+  "error": "NOT_EXECUTED_SYSTEMATIC_BLOCKER",
+  "sessionId": null,
+  "outputFile": "docs/dry-rub-live-lane-4-deepseek-email.json",
+  "command": "bun bin/studio.mjs chat deepseek --prompt \"Draft a two-sentence email to a teammate asking to meet on Friday. Include the subject line Subject: Friday sync.\" --execute --accept-sends",
+  "gapsIssues": "Not executed: systematic deepseek live-send blocker confirmed by tasks 1-4. No live send attempted.",
+  "attempted": false
+}

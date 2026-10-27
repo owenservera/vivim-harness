@@ -1,0 +1,13 @@
+{
+  "taskId": "deepseek-comparison",
+  "task": "comparison",
+  "prompt": "Compare offline-first storage and cloud-only storage. Include the words offline and cloud and one tradeoff.",
+  "promptTruncated": "Compare offline-first storage and cloud-only storage. Includ",
+  "liveOk": false,
+  "error": "NOT_EXECUTED_SYSTEMATIC_BLOCKER",
+  "sessionId": null,
+  "outputFile": "docs/dry-rub-live-lane-4-deepseek-comparison.json",
+  "command": "bun bin/studio.mjs chat deepseek --prompt \"Compare offline-first storage and cloud-only storage. Include the words offline and cloud and one tradeoff.\" --execute --accept-sends",
+  "gapsIssues": "Not executed: systematic deepseek live-send blocker confirmed by tasks 1-4. No live send attempted.",
+  "attempted": false
+}

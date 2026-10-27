@@ -1,0 +1,189 @@
+[conv] creation report invalid: {"c":true,"d":true,"same":false}
+{
+  "conversation": {
+    "id": "cd078ba1-02bf-48b8-af8f-0e40d8e4b293",
+    "revision": 12,
+    "state": "closed",
+    "site": "claude",
+    "binding": {
+      "targetId": "6D0E493DDD880799F38C2D7570E9DE40",
+      "origin": "https://claude.ai",
+      "ownedByStudio": true
+    },
+    "sessionId": "20261027-194135-claude-e1f791",
+    "turn": {
+      "id": "8582c35d-e91d-4275-9460-aa7be4c2afd9",
+      "key": "1843ea2b-f77b-48d4-924f-90d9f37282f6",
+      "conversationId": "cd078ba1-02bf-48b8-af8f-0e40d8e4b293",
+      "payloadDigest": "270278363ad34df78eb12439458c8747dec3cf3dfe78220a6f677ef0a17f33ce",
+      "phase": "uncertain",
+      "reason": "CREATION_UNPINNED",
+      "boundary": {
+        "sequence": 112,
+        "transcriptCount": 0
+      },
+      "baseline": {
+        "userTurns": 0,
+        "assistantTurns": 0,
+        "sampledAt": "2026-10-27T19:41:49.690Z"
+      },
+      "cursor": {
+        "messageCount": 0,
+        "userCount": 0,
+        "assistantCount": 0,
+        "idsDigest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "contentDigest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "streamSequence": 112
+      },
+      "sessionId": null,
+      "send": {
+        "state": "uncertain",
+        "observationSource": null
+      },
+      "reply": {
+        "state": "unknown",
+        "source": "page",
+        "text": "",
+        "completion": "unknown"
+      },
+      "readiness": {
+        "state": "unknown",
+        "evidence": null
+      },
+      "completion": {
+        "state": "unknown",
+        "evidence": null
+      }
+    },
+    "turns": [
+      {
+        "id": "8582c35d-e91d-4275-9460-aa7be4c2afd9",
+        "key": "1843ea2b-f77b-48d4-924f-90d9f37282f6",
+        "conversationId": "cd078ba1-02bf-48b8-af8f-0e40d8e4b293",
+        "payloadDigest": "270278363ad34df78eb12439458c8747dec3cf3dfe78220a6f677ef0a17f33ce",
+        "phase": "uncertain",
+        "reason": "CREATION_UNPINNED",
+        "boundary": {
+          "sequence": 112,
+          "transcriptCount": 0
+        },
+        "baseline": {
+          "userTurns": 0,
+          "assistantTurns": 0,
+          "sampledAt": "2026-10-27T19:41:49.690Z"
+        },
+        "cursor": {
+          "messageCount": 0,
+          "userCount": 0,
+          "assistantCount": 0,
+          "idsDigest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "contentDigest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "streamSequence": 112
+        },
+        "sessionId": null,
+        "send": {
+          "state": "uncertain",
+          "observationSource": null
+        },
+        "reply": {
+          "state": "unknown",
+          "source": "page",
+          "text": "",
+          "completion": "unknown"
+        },
+        "readiness": {
+          "state": "unknown",
+          "evidence": null
+        },
+        "completion": {
+          "state": "unknown",
+          "evidence": null
+        }
+      }
+    ],
+    "identity": {
+      "state": "unbound",
+      "reason": "NEW_CHAT"
+    },
+    "recovery": {
+      "pending": false
+    },
+    "readiness": {
+      "ready": false,
+      "draft": {
+        "present": null,
+        "chars": null
+      },
+      "reason": "CREATION_UNPINNED"
+    },
+    "writer": {
+      "active": false,
+      "releaseError": null
+    },
+    "diagnostic": {
+      "finishPhase": "done",
+      "finishError": null,
+      "uncertainty": "CREATION_UNPINNED"
+    },
+    "evidence": {
+      "state": "preserved",
+      "revision": 1,
+      "at": "2026-10-27T19:42:20.356Z",
+      "trigger": "finish",
+      "file": "C:\\Users\\VIVIM.inc\\AppData\\Local\\AION\\capture-studio\\conversations\\cd078ba1-02bf-48b8-af8f-0e40d8e4b293.evidence.json",
+      "skipped": false,
+      "turns": 1,
+      "sessions": 1,
+      "gaps": [
+        "JOURNAL_REFERENCE_UNAVAILABLE",
+        "CAPTURE_NOT_IDLE_AT_PRESERVATION"
+      ],
+      "failures": 2
+    },
+    "reply": {
+      "state": "unknown",
+      "source": "page",
+      "text": "",
+      "completion": "unknown"
+    },
+    "capture": {
+      "state": "incomplete",
+      "integrity": {
+        "segments": [
+          {
+            "file": "000001.jsonl",
+            "bytes": 576193,
+            "inManifest": true,
+            "shaMatches": true,
+            "torn": false
+          }
+        ],
+        "ok": true,
+        "seqGaps": [],
+        "gapRecords": 0,
+        "droppedRecords": 0,
+        "records": 239,
+        "mergedRecords": 0,
+        "compacted": false,
+        "unexplainedSeqGaps": 0
+      },
+      "endsAt": "2026-10-27T19:56:25.724Z",
+      "maxBytes": 268435456,
+      "bytesWritten": 576193,
+      "limitReason": null
+    },
+    "limitations": [
+      "Page observations are not network completion or full capture acceptance",
+      "Cancellation is deferred"
+    ]
+  },
+  "timedOut": false,
+  "error": {
+    "code": "TURN_NOT_CONFIRMED",
+    "state": "needs-reconciliation",
+    "phase": "uncertain",
+    "send": "uncertain"
+  },
+  "resent": false,
+  "tabCloseRequested": false
+}

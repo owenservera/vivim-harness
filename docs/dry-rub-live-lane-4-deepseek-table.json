@@ -1,0 +1,13 @@
+{
+  "taskId": "deepseek-table",
+  "task": "table",
+  "prompt": "Make a Markdown table with headers Feature and Priority and rows Export and Search.",
+  "promptTruncated": "Make a Markdown table with headers Feature and Priority and",
+  "liveOk": false,
+  "error": "NOT_EXECUTED_SYSTEMATIC_BLOCKER",
+  "sessionId": null,
+  "outputFile": "docs/dry-rub-live-lane-4-deepseek-table.json",
+  "command": "bun bin/studio.mjs chat deepseek --prompt \"Make a Markdown table with headers Feature and Priority and rows Export and Search.\" --execute --accept-sends",
+  "gapsIssues": "Not executed: systematic deepseek live-send blocker confirmed by tasks 1-4. No live send attempted.",
+  "attempted": false
+}

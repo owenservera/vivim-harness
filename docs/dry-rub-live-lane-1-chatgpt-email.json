@@ -1,0 +1,2 @@
+error: Cannot reach the capture browser: CDP connect failed: WebSocket connection to 'ws://127.0.0.1:9222/devtools/browser/6f08fc19-6265-40fd-956f-fac7cfa2b9e8' failed: Connection ended
+hint: Run "studio launch" (or "studio doctor") first.

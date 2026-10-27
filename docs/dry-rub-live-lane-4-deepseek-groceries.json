@@ -1,0 +1,13 @@
+{
+  "taskId": "deepseek-groceries",
+  "task": "groceries",
+  "prompt": "I need rice, milk, and eggs. Give me a short checklist with exactly those three items.",
+  "promptTruncated": "I need rice, milk, and eggs. Give me a short checklist with",
+  "liveOk": false,
+  "error": "ATTACHMENT_FAILED",
+  "sessionId": null,
+  "outputFile": "docs/dry-rub-live-lane-4-deepseek-groceries.json",
+  "command": "bun bin/studio.mjs chat deepseek --prompt \"I need rice, milk, and eggs. Give me a short checklist with exactly those three items.\" --execute --accept-sends",
+  "gapsIssues": "Live send blocked: adapter.connect() threw ATTACHMENT_FAILED. Chrome (PID 8504) is running on port 9222 and matches the VIVIM drive-owner marker, but the browser automation cannot attach to / navigate to / reach readiness on chat.deepseek.com (deepseek requires sign-in; no composer available). Command timed out at 180s shell limit.",
+  "attempted": true
+}

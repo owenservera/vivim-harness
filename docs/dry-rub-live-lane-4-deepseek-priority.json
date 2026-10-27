@@ -1,0 +1,13 @@
+{
+  "taskId": "deepseek-priority",
+  "task": "priority",
+  "prompt": "A production app is unavailable for all customers. Classify this incident as HIGH or LOW priority and explain briefly.",
+  "promptTruncated": "A production app is unavailable for all customers. Classify",
+  "liveOk": false,
+  "error": "NOT_EXECUTED_SYSTEMATIC_BLOCKER",
+  "sessionId": null,
+  "outputFile": "docs/dry-rub-live-lane-4-deepseek-priority.json",
+  "command": "bun bin/studio.mjs chat deepseek --prompt \"A production app is unavailable for all customers. Classify this incident as HIGH or LOW priority and explain briefly.\" --execute --accept-sends",
+  "gapsIssues": "Not executed: systematic deepseek live-send blocker confirmed by tasks 1-4. No live send attempted.",
+  "attempted": false
+}

@@ -1,0 +1,13 @@
+{
+  "taskId": "deepseek-math",
+  "task": "math",
+  "prompt": "A supplier quoted 19 units at 23 euros each. What is the total? Give the number 437 in your answer.",
+  "promptTruncated": "A supplier quoted 19 units at 23 euros each. What is the tot",
+  "liveOk": false,
+  "error": "COMPOSER_UNAVAILABLE",
+  "sessionId": null,
+  "outputFile": "docs/dry-rub-live-lane-4-deepseek-math.json",
+  "command": "bun bin/studio.mjs chat deepseek --prompt \"A supplier quoted 19 units at 23 euros each. What is the total? Give the number 437 in your answer.\" --execute --accept-sends --timeout 20",
+  "gapsIssues": "Live send blocked: COMPOSER_UNAVAILABLE. Same root cause as task 2 — no message composer available on chat.deepseek.com (auth wall / sign-in required). Command hung and timed out at 45s shell limit.",
+  "attempted": true
+}

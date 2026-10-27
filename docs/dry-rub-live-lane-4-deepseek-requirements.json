@@ -1,0 +1,13 @@
+{
+  "taskId": "deepseek-requirements",
+  "task": "requirements",
+  "prompt": "From this product request extract the two requirements as separate bullet points: Users must save data locally and export it in JSON.",
+  "promptTruncated": "From this product request extract the two requirements as se",
+  "liveOk": false,
+  "error": "DRIVE_LEASE_BUSY",
+  "sessionId": null,
+  "outputFile": "docs/dry-rub-live-lane-4-deepseek-requirements.json",
+  "command": "bun bin/studio.mjs chat deepseek --prompt \"From this product request extract the two requirements as separate bullet points: Users must save data locally and export it in JSON.\" --execute --accept-sends --timeout 30",
+  "gapsIssues": "Live send blocked: Browser driving lease is held by a live owner (DRIVE_LEASE_BUSY). A previous timed-out chat command's bun process may still hold the drive lease on port 9222. Sequential live runs conflict because leases are not released when commands hang/time out.",
+  "attempted": true
+}

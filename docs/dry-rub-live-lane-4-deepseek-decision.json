@@ -1,0 +1,13 @@
+{
+  "taskId": "deepseek-decision",
+  "task": "decision",
+  "prompt": "Write a short decision record stating that the app uses local-first storage and JSON export. Label the decision Decision.",
+  "promptTruncated": "Write a short decision record stating that the app uses loca",
+  "liveOk": false,
+  "error": "NOT_EXECUTED_SYSTEMATIC_BLOCKER",
+  "sessionId": null,
+  "outputFile": "docs/dry-rub-live-lane-4-deepseek-decision.json",
+  "command": "bun bin/studio.mjs chat deepseek --prompt \"Write a short decision record stating that the app uses local-first storage and JSON export. Label the decision Decision.\" --execute --accept-sends",
+  "gapsIssues": "Not executed: systematic deepseek live-send blocker confirmed by tasks 1-4. No live send attempted.",
+  "attempted": false
+}

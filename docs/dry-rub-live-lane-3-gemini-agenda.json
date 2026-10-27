@@ -1,0 +1,188 @@
+{
+  "conversation": {
+    "id": "3fab6db8-54a9-4942-a594-d5f59bcb2c52",
+    "revision": 12,
+    "state": "closed",
+    "site": "gemini",
+    "binding": {
+      "targetId": "8569CFD81BAB449E4030E872075B8134",
+      "origin": "https://gemini.google.com",
+      "ownedByStudio": true
+    },
+    "sessionId": "20261027-194436-gemini-de4863",
+    "turn": {
+      "id": "39e338e4-45cf-4e27-aa3f-d9597fae8664",
+      "key": "21c5b9e5-a2e0-44db-8a10-528d3b4ecd58",
+      "conversationId": "3fab6db8-54a9-4942-a594-d5f59bcb2c52",
+      "payloadDigest": "d3116c3cb87768e65734df03a64cc59442b5d0fbbd9c1d71c66417060b2b0eca",
+      "phase": "uncertain",
+      "reason": "CREATION_UNPINNED",
+      "boundary": {
+        "sequence": 238,
+        "transcriptCount": 0
+      },
+      "baseline": {
+        "userTurns": 0,
+        "assistantTurns": 0,
+        "sampledAt": "2026-10-27T19:44:41.187Z"
+      },
+      "cursor": {
+        "messageCount": 0,
+        "userCount": 0,
+        "assistantCount": 0,
+        "idsDigest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "contentDigest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "streamSequence": 238
+      },
+      "sessionId": null,
+      "send": {
+        "state": "uncertain",
+        "observationSource": null
+      },
+      "reply": {
+        "state": "unknown",
+        "source": "page",
+        "text": "",
+        "completion": "unknown"
+      },
+      "readiness": {
+        "state": "unknown",
+        "evidence": null
+      },
+      "completion": {
+        "state": "unknown",
+        "evidence": null
+      }
+    },
+    "turns": [
+      {
+        "id": "39e338e4-45cf-4e27-aa3f-d9597fae8664",
+        "key": "21c5b9e5-a2e0-44db-8a10-528d3b4ecd58",
+        "conversationId": "3fab6db8-54a9-4942-a594-d5f59bcb2c52",
+        "payloadDigest": "d3116c3cb87768e65734df03a64cc59442b5d0fbbd9c1d71c66417060b2b0eca",
+        "phase": "uncertain",
+        "reason": "CREATION_UNPINNED",
+        "boundary": {
+          "sequence": 238,
+          "transcriptCount": 0
+        },
+        "baseline": {
+          "userTurns": 0,
+          "assistantTurns": 0,
+          "sampledAt": "2026-10-27T19:44:41.187Z"
+        },
+        "cursor": {
+          "messageCount": 0,
+          "userCount": 0,
+          "assistantCount": 0,
+          "idsDigest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "contentDigest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "streamSequence": 238
+        },
+        "sessionId": null,
+        "send": {
+          "state": "uncertain",
+          "observationSource": null
+        },
+        "reply": {
+          "state": "unknown",
+          "source": "page",
+          "text": "",
+          "completion": "unknown"
+        },
+        "readiness": {
+          "state": "unknown",
+          "evidence": null
+        },
+        "completion": {
+          "state": "unknown",
+          "evidence": null
+        }
+      }
+    ],
+    "identity": {
+      "state": "unbound",
+      "reason": "NEW_CHAT"
+    },
+    "recovery": {
+      "pending": false
+    },
+    "readiness": {
+      "ready": false,
+      "draft": {
+        "present": null,
+        "chars": null
+      },
+      "reason": "CREATION_UNPINNED"
+    },
+    "writer": {
+      "active": false,
+      "releaseError": null
+    },
+    "diagnostic": {
+      "finishPhase": "done",
+      "finishError": null,
+      "uncertainty": "CREATION_UNPINNED"
+    },
+    "evidence": {
+      "state": "preserved",
+      "revision": 1,
+      "at": "2026-10-27T19:44:59.536Z",
+      "trigger": "finish",
+      "file": "C:\\Users\\VIVIM.inc\\AppData\\Local\\AION\\capture-studio\\conversations\\3fab6db8-54a9-4942-a594-d5f59bcb2c52.evidence.json",
+      "skipped": false,
+      "turns": 1,
+      "sessions": 1,
+      "gaps": [
+        "JOURNAL_REFERENCE_UNAVAILABLE",
+        "CAPTURE_NOT_IDLE_AT_PRESERVATION"
+      ],
+      "failures": 2
+    },
+    "reply": {
+      "state": "unknown",
+      "source": "page",
+      "text": "",
+      "completion": "unknown"
+    },
+    "capture": {
+      "state": "incomplete",
+      "integrity": {
+        "segments": [
+          {
+            "file": "000001.jsonl",
+            "bytes": 809732,
+            "inManifest": true,
+            "shaMatches": true,
+            "torn": false
+          }
+        ],
+        "ok": true,
+        "seqGaps": [],
+        "gapRecords": 0,
+        "droppedRecords": 0,
+        "records": 418,
+        "mergedRecords": 0,
+        "compacted": false,
+        "unexplainedSeqGaps": 0
+      },
+      "endsAt": "2026-10-27T19:59:34.234Z",
+      "maxBytes": 268435456,
+      "bytesWritten": 809732,
+      "limitReason": null
+    },
+    "limitations": [
+      "Page observations are not network completion or full capture acceptance",
+      "Cancellation is deferred"
+    ]
+  },
+  "timedOut": false,
+  "error": {
+    "code": "TURN_NOT_CONFIRMED",
+    "state": "needs-reconciliation",
+    "phase": "uncertain",
+    "send": "uncertain"
+  },
+  "resent": false,
+  "tabCloseRequested": false
+}

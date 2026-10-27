@@ -1,0 +1,13 @@
+{
+  "taskId": "deepseek-debugging",
+  "task": "debugging",
+  "prompt": "An export button does nothing. Write a short bug report with Steps, Expected, and Actual headings.",
+  "promptTruncated": "An export button does nothing. Write a short bug report with",
+  "liveOk": false,
+  "error": "NOT_EXECUTED_SYSTEMATIC_BLOCKER",
+  "sessionId": null,
+  "outputFile": "docs/dry-rub-live-lane-4-deepseek-debugging.json",
+  "command": "bun bin/studio.mjs chat deepseek --prompt \"An export button does nothing. Write a short bug report with Steps, Expected, and Actual headings.\" --execute --accept-sends",
+  "gapsIssues": "Not executed: systematic deepseek live-send blocker confirmed by tasks 1-4. No live send attempted.",
+  "attempted": false
+}

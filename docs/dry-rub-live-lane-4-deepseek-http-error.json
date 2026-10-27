@@ -1,0 +1,13 @@
+{
+  "taskId": "deepseek-http-error",
+  "task": "http-error",
+  "prompt": "What does HTTP 401 mean for a signed-in application? Answer with the number 401 and the word authentication.",
+  "promptTruncated": "What does HTTP 401 mean for a signed-in application? Answer",
+  "liveOk": false,
+  "error": "NOT_EXECUTED_SYSTEMATIC_BLOCKER",
+  "sessionId": null,
+  "outputFile": "docs/dry-rub-live-lane-4-deepseek-http-error.json",
+  "command": "bun bin/studio.mjs chat deepseek --prompt \"What does HTTP 401 mean for a signed-in application? Answer with the number 401 and the word authentication.\" --execute --accept-sends",
+  "gapsIssues": "Not executed: systematic deepseek live-send blocker confirmed by tasks 1-4. No live send attempted.",
+  "attempted": false
+}

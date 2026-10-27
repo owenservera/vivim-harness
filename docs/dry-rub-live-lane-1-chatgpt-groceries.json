@@ -1,0 +1,316 @@
+{
+  "conversation": {
+    "id": "4495f39d-fc68-4b3d-9b74-c8af0fa3d0c4",
+    "revision": 21,
+    "state": "closed",
+    "site": "chatgpt",
+    "binding": {
+      "targetId": "ED0A664EA4178CC74D8FF5EC37CB8CD0",
+      "origin": "https://chatgpt.com",
+      "ownedByStudio": true,
+      "thread": {
+        "kind": "chatgpt-c",
+        "id": "6ae0fb61-3570-83ed-ba22-b12438ae133a",
+        "ref": "chatgpt-c:6ae0fb61-3570-83ed-ba22-b12438ae133a"
+      }
+    },
+    "sessionId": "20261027-192828-chatgpt-b53db8",
+    "turn": {
+      "id": "38f5b649-9381-4b1c-a867-9f3afe71245f",
+      "key": "219e84de-731e-4384-a261-ad12920e3bf6",
+      "conversationId": "4495f39d-fc68-4b3d-9b74-c8af0fa3d0c4",
+      "payloadDigest": "23f3182d127979eee5bb12d0004cb1092d7aa7508572274521fe9eda189baaf3",
+      "phase": "observed",
+      "reason": null,
+      "boundary": {
+        "sequence": 2,
+        "transcriptCount": 0
+      },
+      "baseline": {
+        "userTurns": 0,
+        "assistantTurns": 0,
+        "sampledAt": "2026-10-27T19:28:28.842Z"
+      },
+      "cursor": {
+        "messageCount": 0,
+        "userCount": 0,
+        "assistantCount": 0,
+        "idsDigest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "contentDigest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "streamSequence": 2
+      },
+      "sessionId": "20261027-192828-chatgpt-b53db8",
+      "send": {
+        "state": "observed",
+        "observationSource": "page",
+        "evidence": {
+          "sessionId": "20261027-192828-chatgpt-b53db8",
+          "sequence": 448,
+          "kind": "new-user-turn",
+          "identity": "0aeed234-b7a4-4287-819f-0d042397017b"
+        }
+      },
+      "reply": {
+        "state": "interrupted",
+        "source": "page",
+        "text": "ChatGPT said:\nEra 1\nRice\nEra 2\nMilk\nEra 3\nEggs",
+        "chars": 46,
+        "evidence": {
+          "turnId": "38f5b649-9381-4b1c-a867-9f3afe71245f",
+          "payloadDigest": "23f3182d127979eee5bb12d0004cb1092d7aa7508572274521fe9eda189baaf3",
+          "sessionId": "20261027-192828-chatgpt-b53db8",
+          "sequence": 462,
+          "kind": "assistant-reply",
+          "source": "page",
+          "identity": "ab24fc8c-e153-4376-824b-365e06264fa2",
+          "revision": 1,
+          "contentDigest": "4b4dd3a3b42bfcf18f134c58dd340979809caf292bb35e5567ce5681435ba0e2",
+          "chars": 46
+        },
+        "completion": "unknown"
+      },
+      "readiness": {
+        "state": "ready",
+        "evidence": {
+          "turnId": "38f5b649-9381-4b1c-a867-9f3afe71245f",
+          "payloadDigest": "23f3182d127979eee5bb12d0004cb1092d7aa7508572274521fe9eda189baaf3",
+          "sessionId": "20261027-192828-chatgpt-b53db8",
+          "sequence": 462,
+          "kind": "interactive-ready",
+          "source": "adapter",
+          "identity": "ab24fc8c-e153-4376-824b-365e06264fa2",
+          "revision": 1,
+          "contentDigest": "4b4dd3a3b42bfcf18f134c58dd340979809caf292bb35e5567ce5681435ba0e2",
+          "chars": 46,
+          "boundarySequence": 2,
+          "threadKey": "[\"thread-turn-journal-v1\",\"local-owner\",\"https://chatgpt.com\",\"chatgpt-c:6ae0fb61-3570-83ed-ba22-b12438ae133a\"]",
+          "rule": "chatgpt-controls-idle",
+          "ruleVersion": 1,
+          "samples": [
+            {
+              "sequence": 456,
+              "identity": "ab24fc8c-e153-4376-824b-365e06264fa2",
+              "revision": 1,
+              "contentDigest": "4b4dd3a3b42bfcf18f134c58dd340979809caf292bb35e5567ce5681435ba0e2",
+              "chars": 46
+            },
+            {
+              "sequence": 462,
+              "identity": "ab24fc8c-e153-4376-824b-365e06264fa2",
+              "revision": 1,
+              "contentDigest": "4b4dd3a3b42bfcf18f134c58dd340979809caf292bb35e5567ce5681435ba0e2",
+              "chars": 46
+            }
+          ],
+          "controls": {
+            "observed": true,
+            "state": "idle",
+            "idleControlPresent": true,
+            "stopPresent": false,
+            "composerEnabled": true
+          }
+        }
+      },
+      "completion": {
+        "state": "unknown",
+        "evidence": null
+      }
+    },
+    "turns": [
+      {
+        "id": "38f5b649-9381-4b1c-a867-9f3afe71245f",
+        "key": "219e84de-731e-4384-a261-ad12920e3bf6",
+        "conversationId": "4495f39d-fc68-4b3d-9b74-c8af0fa3d0c4",
+        "payloadDigest": "23f3182d127979eee5bb12d0004cb1092d7aa7508572274521fe9eda189baaf3",
+        "phase": "observed",
+        "reason": null,
+        "boundary": {
+          "sequence": 2,
+          "transcriptCount": 0
+        },
+        "baseline": {
+          "userTurns": 0,
+          "assistantTurns": 0,
+          "sampledAt": "2026-10-27T19:28:28.842Z"
+        },
+        "cursor": {
+          "messageCount": 0,
+          "userCount": 0,
+          "assistantCount": 0,
+          "idsDigest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "contentDigest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "streamSequence": 2
+        },
+        "sessionId": "20261027-192828-chatgpt-b53db8",
+        "send": {
+          "state": "observed",
+          "observationSource": "page",
+          "evidence": {
+            "sessionId": "20261027-192828-chatgpt-b53db8",
+            "sequence": 448,
+            "kind": "new-user-turn",
+            "identity": "0aeed234-b7a4-4287-819f-0d042397017b"
+          }
+        },
+        "reply": {
+          "state": "interrupted",
+          "source": "page",
+          "text": "ChatGPT said:\nEra 1\nRice\nEra 2\nMilk\nEra 3\nEggs",
+          "chars": 46,
+          "evidence": {
+            "turnId": "38f5b649-9381-4b1c-a867-9f3afe71245f",
+            "payloadDigest": "23f3182d127979eee5bb12d0004cb1092d7aa7508572274521fe9eda189baaf3",
+            "sessionId": "20261027-192828-chatgpt-b53db8",
+            "sequence": 462,
+            "kind": "assistant-reply",
+            "source": "page",
+            "identity": "ab24fc8c-e153-4376-824b-365e06264fa2",
+            "revision": 1,
+            "contentDigest": "4b4dd3a3b42bfcf18f134c58dd340979809caf292bb35e5567ce5681435ba0e2",
+            "chars": 46
+          },
+          "completion": "unknown"
+        },
+        "readiness": {
+          "state": "ready",
+          "evidence": {
+            "turnId": "38f5b649-9381-4b1c-a867-9f3afe71245f",
+            "payloadDigest": "23f3182d127979eee5bb12d0004cb1092d7aa7508572274521fe9eda189baaf3",
+            "sessionId": "20261027-192828-chatgpt-b53db8",
+            "sequence": 462,
+            "kind": "interactive-ready",
+            "source": "adapter",
+            "identity": "ab24fc8c-e153-4376-824b-365e06264fa2",
+            "revision": 1,
+            "contentDigest": "4b4dd3a3b42bfcf18f134c58dd340979809caf292bb35e5567ce5681435ba0e2",
+            "chars": 46,
+            "boundarySequence": 2,
+            "threadKey": "[\"thread-turn-journal-v1\",\"local-owner\",\"https://chatgpt.com\",\"chatgpt-c:6ae0fb61-3570-83ed-ba22-b12438ae133a\"]",
+            "rule": "chatgpt-controls-idle",
+            "ruleVersion": 1,
+            "samples": [
+              {
+                "sequence": 456,
+                "identity": "ab24fc8c-e153-4376-824b-365e06264fa2",
+                "revision": 1,
+                "contentDigest": "4b4dd3a3b42bfcf18f134c58dd340979809caf292bb35e5567ce5681435ba0e2",
+                "chars": 46
+              },
+              {
+                "sequence": 462,
+                "identity": "ab24fc8c-e153-4376-824b-365e06264fa2",
+                "revision": 1,
+                "contentDigest": "4b4dd3a3b42bfcf18f134c58dd340979809caf292bb35e5567ce5681435ba0e2",
+                "chars": 46
+              }
+            ],
+            "controls": {
+              "observed": true,
+              "state": "idle",
+              "idleControlPresent": true,
+              "stopPresent": false,
+              "composerEnabled": true
+            }
+          }
+        },
+        "completion": {
+          "state": "unknown",
+          "evidence": null
+        }
+      }
+    ],
+    "identity": {
+      "state": "bound",
+      "reason": null
+    },
+    "recovery": {
+      "pending": false
+    },
+    "readiness": {
+      "ready": true,
+      "draft": {
+        "present": false,
+        "chars": 0
+      },
+      "reason": null
+    },
+    "writer": {
+      "active": false,
+      "releaseError": null
+    },
+    "diagnostic": {
+      "finishPhase": "done",
+      "finishError": null,
+      "uncertainty": null
+    },
+    "evidence": {
+      "state": "preserved",
+      "revision": 2,
+      "at": "2026-10-27T19:28:48.259Z",
+      "trigger": "finish",
+      "file": "C:\\Users\\VIVIM.inc\\AppData\\Local\\AION\\capture-studio\\conversations\\4495f39d-fc68-4b3d-9b74-c8af0fa3d0c4.evidence.json",
+      "skipped": false,
+      "turns": 1,
+      "sessions": 1,
+      "gaps": [
+        "REPLY_COMPLETION_UNKNOWN",
+        "READINESS_READY_WITH_COMPLETION_UNKNOWN",
+        "CAPTURE_NOT_IDLE_AT_PRESERVATION"
+      ],
+      "failures": 0
+    },
+    "reply": {
+      "state": "interrupted",
+      "source": "page",
+      "text": "ChatGPT said:\nEra 1\nRice\nEra 2\nMilk\nEra 3\nEggs",
+      "chars": 46,
+      "evidence": {
+        "turnId": "38f5b649-9381-4b1c-a867-9f3afe71245f",
+        "payloadDigest": "23f3182d127979eee5bb12d0004cb1092d7aa7508572274521fe9eda189baaf3",
+        "sessionId": "20261027-192828-chatgpt-b53db8",
+        "sequence": 462,
+        "kind": "assistant-reply",
+        "source": "page",
+        "identity": "ab24fc8c-e153-4376-824b-365e06264fa2",
+        "revision": 1,
+        "contentDigest": "4b4dd3a3b42bfcf18f134c58dd340979809caf292bb35e5567ce5681435ba0e2",
+        "chars": 46
+      },
+      "completion": "unknown"
+    },
+    "capture": {
+      "state": "incomplete",
+      "integrity": {
+        "segments": [
+          {
+            "file": "000001.jsonl",
+            "bytes": 604484,
+            "inManifest": true,
+            "shaMatches": true,
+            "torn": false
+          }
+        ],
+        "ok": true,
+        "seqGaps": [],
+        "gapRecords": 0,
+        "droppedRecords": 0,
+        "records": 465,
+        "mergedRecords": 0,
+        "compacted": false,
+        "unexplainedSeqGaps": 0
+      },
+      "endsAt": "2026-10-27T19:43:06.229Z",
+      "maxBytes": 268435456,
+      "bytesWritten": 0,
+      "limitReason": null
+    },
+    "limitations": [
+      "Page observations are not network completion or full capture acceptance",
+      "Cancellation is deferred"
+    ]
+  },
+  "timedOut": false,
+  "error": null,
+  "resent": false,
+  "tabCloseRequested": false
+}

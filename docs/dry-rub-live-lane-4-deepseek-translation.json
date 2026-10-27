@@ -1,0 +1,13 @@
+{
+  "taskId": "deepseek-translation",
+  "task": "translation",
+  "prompt": "Translate to Spanish: Good morning, the meeting is tomorrow. Include the words buenos and mañana.",
+  "promptTruncated": "Translate to Spanish: Good morning, the meeting is tomorrow.",
+  "liveOk": false,
+  "error": "NOT_EXECUTED_SYSTEMATIC_BLOCKER",
+  "sessionId": null,
+  "outputFile": "docs/dry-rub-live-lane-4-deepseek-translation.json",
+  "command": "bun bin/studio.mjs chat deepseek --prompt \"Translate to Spanish: Good morning, the meeting is tomorrow. Include the words buenos and mañana.\" --execute --accept-sends",
+  "gapsIssues": "Not executed: systematic deepseek live-send blocker confirmed by tasks 1-4 (ATTACHMENT_FAILED, COMPOSER_UNAVAILABLE, DRIVE_LEASE_BUSY, COMPOSER_UNAVAILABLE). Root cause: chat.deepseek.com requires sign-in; the harness cannot drive the page or maintain a stable drive lease across sequential commands. No live send attempted.",
+  "attempted": false
+}

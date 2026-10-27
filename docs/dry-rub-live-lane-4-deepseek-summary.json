@@ -1,0 +1,13 @@
+{
+  "taskId": "deepseek-summary",
+  "task": "summary",
+  "prompt": "Summarize this in one sentence: Cedar is an offline-first personal notebook; exports must be JSON; sign-in is optional.",
+  "promptTruncated": "Summarize this in one sentence: Cedar is an offline-first pe",
+  "liveOk": false,
+  "error": "COMPOSER_UNAVAILABLE",
+  "sessionId": null,
+  "outputFile": "docs/dry-rub-live-lane-4-deepseek-summary.json",
+  "command": "bun bin/studio.mjs chat deepseek --prompt \"Summarize this in one sentence: Cedar is an offline-first personal notebook; exports must be JSON; sign-in is optional.\" --execute --accept-sends",
+  "gapsIssues": "Live send blocked: COMPOSER_UNAVAILABLE. The adapter could not find a message composer on chat.deepseek.com — consistent with an auth wall (deepseek requires sign-in). Command timed out at 90s shell limit.",
+  "attempted": true
+}
