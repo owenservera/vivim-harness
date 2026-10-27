@@ -1,13 +1,11 @@
 // Pure recipe planning and input validation. No network/browser/run-store calls.
 // A recipe executes only a declared production tool, never arbitrary shell/JS instructions.
-import { createHash } from 'node:crypto';
+import { argsDigestOf } from '../capture/harness-runs.mjs';
 import { recipeDefinition } from './catalog.mjs';
 import { validateConversationTool } from '../studio/conversation-tools.mjs';
 
 const fail = (code, message = code) => Object.assign(new Error(message), { code, status: 400 });
 const object = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
-const safeDigest = (obj) => createHash('sha256').update(JSON.stringify(
-  Object.fromEntries(Object.keys(obj).sort().map((k) => [k, obj[k]])))).digest('hex');
 
 function valueIs(value, schema) {
   const type = schema.type;
@@ -59,7 +57,7 @@ export function planRecipe(id, input = {}, { execute = false, authorizeSend = fa
     schema: 'vivim.recipe-plan/1', id: recipe.id, version: recipe.version, tool: recipe.tool,
     family: recipe.family, transport: 'studio-tool', inputFields: Object.keys(input).sort(),
     // Important: no private prompt/body strings are present in the plan or diagnostics.
-    inputDigest: safeDigest(input), effects: recipe.effects, requires: recipe.requires,
+    inputDigest: argsDigestOf(input), effects: recipe.effects, requires: recipe.requires,
     evidence: recipe.evidence, maxUserCommands: recipe.maxUserCommands,
     ready, status: ready ? 'eligible-static' : 'authorization-required',
     missingAuthorization, unverifiedRuntimeRequirements: recipe.requires,
