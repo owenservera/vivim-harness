@@ -106,6 +106,25 @@ export function loadUserConfig(configFile) {
   return { values, problems };
 }
 
+// Blocking sleep for the retry path only. saveUserConfig is synchronous, so a
+// spinner or promise would change the contract; Atomics.wait blocks precisely.
+const sleepSync = (ms) => { Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms); };
+
+// Replace is atomic on POSIX. On Windows a concurrent replace of the same target can
+// fail transiently with EPERM/EBUSY/EACCES while the previous owner still holds the
+// handle; retrying converges instead of surfacing a spurious failure to the caller.
+const REPLACE_RETRY_CODES = new Set(['EPERM', 'EBUSY', 'EACCES', 'ENOTEMPTY']);
+
+function replaceWithRetry(from, to, attempts = 100) {
+  for (let attempt = 1; ; attempt++) {
+    try { renameSync(from, to); return; }
+    catch (e) {
+      if (!REPLACE_RETRY_CODES.has(e.code) || attempt >= attempts) throw e;
+      sleepSync(attempt < 10 ? 2 : 10);
+    }
+  }
+}
+
 export function saveUserConfig(configFile, values) {
   mkdirSync(path.dirname(configFile), { recursive: true });
   const body = JSON.stringify(values, null, 2) + '\n';
@@ -114,7 +133,7 @@ export function saveUserConfig(configFile, values) {
   const temp = `${configFile}.${process.pid}.${randomBytes(8).toString('hex')}.tmp`;
   try {
     writeFileSync(temp, body, { encoding: 'utf8', flag: 'wx', mode: 0o600 });
-    renameSync(temp, configFile);
+    replaceWithRetry(temp, configFile);
   } finally {
     rmSync(temp, { force: true });
   }
