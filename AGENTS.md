@@ -34,5 +34,15 @@ These two files are specialized subagent profiles, **not** automatically running
 ## Git management
 For staging, commits and pushes of verified increments, dispatch [git-manager](.opencode/agents/git-manager.md) (free model). It stages explicit paths only and pushes only when the task says "push authorized".
 
+## Model routing for specialist lanes
+- Look up the exact model id and its variants before use; ids and variant sets differ per model and change without notice.
+- New lane: pass the model at dispatch as `provider/model#variant`. Lane-scoped and preferred — it leaves the parent session untouched.
+- Running lane, variant change: switch it in place. Cancelling and respawning discards the context the lane already built for no gain.
+  - `opencode api session.switchModel --param sessionID=<id> -d '{"model":{"providerID":"opencode","id":"deepseek-v4.1-flash-free","variant":"max"}}'`
+  - The route is `POST /api/session/{sessionID}/model`; the body's `Model.Ref` is `{providerID, id, variant?}` and `variant` is what selects the reasoning tier.
+  - It changes the model used by **subsequent provider turns**; an in-flight step is not interrupted.
+  - Call the server through the `opencode api` CLI, which authenticates. A direct `fetch` to the loopback API port returns `401 Authentication required`.
+- Never report a switch as done without read-back: `opencode api get /api/session/<id>` and confirm `data.model.providerID`, `.id`, `.variant`. The `switchModel` call itself returns `204` with no body, so an empty response is not evidence.
+
 ## Coordination trigger
 When coordinating ongoing integration or resuming queued work, read docs/agents/integration-coordinator.md, docs/agents/ralph-loop.md, docs/track/queue.md and docs/INTEGRATION-PROGRESS.md before dispatch.
