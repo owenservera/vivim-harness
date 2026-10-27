@@ -1,0 +1,102 @@
+// Recipe-facing orchestration over the ONE existing Studio harness API.
+// No independent CDP, provider sender, parser or persistent run store.
+import { randomUUID } from 'node:crypto';
+import { listRecipes, recipeDefinition } from './catalog.mjs';
+import { planRecipe } from './plan.mjs';
+import { summarizeResult } from '../capture/harness-runs.mjs';
+
+const fail = (status, code) => Object.assign(new Error(code), { status, code });
+const validOperation = (v) => typeof v === 'string' && /^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,99}$/.test(v);
+const toView = (r) => {
+  const step = r.steps?.at(-1) ?? null;
+  const open = r.status === 'running';
+  return { runId: r.id, status: r.status, conversationId: r.conversationId ?? null,
+    lastStep: step ? { key: step.key, tool: step.tool, status: step.status, summary: step.summary ?? null } : null,
+    retryAllowed: false,
+    nextSafeAction: !open ? 'none' : step?.status === 'uncertain' || step?.status === 'in_flight'
+      ? 'reconcile-original-step' : step?.status === 'failed' ? 'inspect-failure'
+        : 'inspect-conversation-and-close-run' };
+};
+
+export function createRecipeService({ harnessApi, conversationRuntime } = {}) {
+  if (!harnessApi || !conversationRuntime) throw fail(503, 'RECIPE_OWNER_UNAVAILABLE');
+  const status = (runId) => {
+    const run = harnessApi.get(runId).run;
+    if (!run.task?.description?.startsWith('recipe:')) throw fail(404, 'RECIPE_RUN_NOT_FOUND');
+    return { schema: 'vivim.recipe-run/1', recipe: run.task.description.split(':operation:')[0].slice(7), ...toView(run) };
+  };
+  return {
+    list(family) { return { schema: 'vivim.recipe-catalog/1', recipes: listRecipes(family ? { family } : {}) }; },
+    show(id) { const recipe = recipeDefinition(id); if (!recipe) throw fail(404, 'RECIPE_NOT_FOUND'); return recipe; },
+    plan(id, input, flags = {}) { return planRecipe(id, input, flags); },
+    status,
+    async run(id, input = {}, { execute = false, authorizeSend = false, operationId, includeContent = false } = {}) {
+      const plan = planRecipe(id, input, { execute, authorizeSend });
+      if (!plan.ready) throw fail(428, 'RECIPE_AUTHORIZATION_REQUIRED');
+      const recipe = recipeDefinition(id);
+      // Only stored run intent + native journal fence authorize effects. No retry of a prior
+      // operation even after an HTTP timeout, crash, failed call or unknown browser response.
+      const effectful = recipe.effects.some((e) => e !== 'read');
+      const identity = operationId ?? (recipe.effects.includes('provider-send') ? input.key : null);
+      if (effectful && !validOperation(identity)) throw fail(400, 'RECIPE_OPERATION_REQUIRED');
+      const op = identity ?? randomUUID();
+      const task = 'recipe:' + id + ':operation:' + op;
+      const existing = harnessApi.list().runs.find((r) => r.taskDescription === task);
+      if (existing) return { ...status(existing.id), existing: true,
+        nextSafeAction: 'inspect-existing-run-no-retry', note: 'Existing operation preserved; no tool call was attempted.' };
+      // Precheck source identity for turn effects BEFORE creating a durable run or touching the browser.
+      if (recipe.effects.includes('provider-send')) {
+        const current = await conversationRuntime.get(input.conversation);
+        if (current.revision !== input.expectedRevision) throw fail(409, 'RECIPE_REVISION_CHANGED');
+        if (current.state === 'closed' || current.identity?.state === 'unverified'
+          || current.identity?.state === 'unbound' || current.recovery?.pending)
+          throw fail(409, 'RECIPE_THREAD_NOT_WRITABLE');
+      }
+      const created = harnessApi.create({ task, ...(input.conversation ? { conversationId: input.conversation } : {}) }).run;
+      const key = recipe.effects.includes('provider-send') ? input.key : 'recipe-step:' + op;
+      try {
+        const result = await harnessApi.step(created.id, { key, tool: recipe.tool, arguments: input });
+        if (result.step?.status !== 'succeeded') throw fail(409, 'RECIPE_STEP_NOT_VERIFIED');
+        // The harness step being recorded is not enough to claim a provider reply or local
+        // capture acceptance. Reads can finish immediately; mutations remain inspectable.
+        if (!effectful) harnessApi.finish(created.id, { status: 'succeeded' });
+        const latest = status(created.id);
+        return { ...latest, recipe: id, operationId: op, effectState: effectful ? 'tool-completed-outcome-unverified' : 'none',
+          evidenceTier: effectful ? 'runtime-step-receipt' : 'runtime-read',
+          ...(includeContent ? { result: result.result ?? null } : { resultSummary: summarizeResult(result.result) }) };
+      } catch (error) {
+        // Do not throw away the only known run identifier when a send may have occurred.
+        const current = status(created.id);
+        return { ...current, recipe: id, operationId: op, errorCode: /^[A-Z][A-Z0-9_]{0,79}$/.test(error?.code ?? '')
+          ? error.code : 'RECIPE_EFFECT_UNKNOWN', effectState: 'unknown',
+          evidenceTier: 'unverified', retryAllowed: false,
+          nextSafeAction: 'inspect-existing-run-no-retry' };
+      }
+    },
+    reconcile(runId, stepKey) {
+      const run = harnessApi.get(runId).run;
+      if (!run.task?.description?.startsWith('recipe:')) throw fail(404, 'RECIPE_RUN_NOT_FOUND');
+      const step = run.steps.find((s) => s.key === stepKey);
+      if (!step) throw fail(404, 'RECIPE_STEP_NOT_FOUND');
+      if (step.tool !== 'submit_conversation_turn')
+        return { ...status(runId), reconciliation: { verdict: 'not-applicable', reason: 'Only send steps have journal-effect reconciliation' }, dispatched: false };
+      const result = harnessApi.reconcileStep(runId, stepKey);
+      return { ...status(runId), reconciliation: result.reconciliation, lifecycle: result.lifecycle, dispatched: false,
+        retryAllowed: false, nextSafeAction: 'inspect-reconciliation-evidence' };
+    },
+    finish(runId, state) {
+      if (!['succeeded', 'failed', 'interrupted'].includes(state)) throw fail(400, 'INVALID_RUN_STATUS');
+      const prior = status(runId);
+      const out = harnessApi.finish(runId, { status: state });
+      return { ...prior, ...toView(out.run) };
+    },
+    capabilities() {
+      return { schema: 'vivim.agent-capabilities/1',
+        owner: 'running-studio', recipeTransport: 'studio-tool', recipeCount: listRecipes().length,
+        source: 'registered-tools-not-provider-auth',
+        providerAccounts: 'unknown', browserOwned: 'unverified-by-this-read',
+        effects: ['read', 'local-write', 'provider-send'], sendRequires: ['execute', 'provider-send', 'original-key'],
+        retryPolicy: 'never-auto-retry-unknown-effect' };
+    },
+  };
+}
