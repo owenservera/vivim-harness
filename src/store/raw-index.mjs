@@ -118,8 +118,12 @@ export async function* iterateRaw(rawDir, {
   for (const file of segmentFiles(rawDir)) {
     const m = bySeg.get(file);
     // Whole-segment skip when the manifest proves it is outside the window.
-    if (m && typeof m.lastSeq === 'number' && m.lastSeq <= fromSeq) continue;
-    if (m && typeof m.firstSeq === 'number' && m.firstSeq > toSeq) break;
+    // An active or crash-recovered segment can have grown since manifest close.
+    // Only skip from manifest sequence bounds when its recorded length still matches.
+    const manifestCurrent = m && Number.isSafeInteger(m.bytes)
+      && m.bytes === statSync(path.join(rawDir, file)).size;
+    if (manifestCurrent && typeof m.lastSeq === 'number' && m.lastSeq <= fromSeq) continue;
+    if (manifestCurrent && typeof m.firstSeq === 'number' && m.firstSeq > toSeq) break;
     let start = 0;
     if (useIndex && fromSeq) {
       const entries = readSegmentIndex(rawDir, file);
@@ -158,7 +162,11 @@ export async function* iterateStreamRecords(rawDir, sid, opts = {}) {
   const si = readStreamIndex(rawDir);
   const e = si?.byId?.get(sid);
   const base = { ...opts, sids: [sid] };
-  if (e) { base.fromSeq = Math.max(opts.fromSeq ?? 0, (e.firstSeq ?? 1) - 1); base.toSeq = Math.min(opts.toSeq ?? Infinity, e.lastSeq ?? Infinity); }
+  if (e) {
+    // A locator written before the latest append can have an obsolete lastSeq.
+    // Use the stable firstSeq for a safe lower bound, never truncate the live tail.
+    base.fromSeq = Math.max(opts.fromSeq ?? 0, (e.firstSeq ?? 1) - 1);
+  }
   yield* iterateRaw(rawDir, base);
 }
 

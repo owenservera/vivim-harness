@@ -156,6 +156,7 @@ function gateG2(conv, dom) {
   const replies = turnsOf(dom, 'assistant');
   if (!replies.length) return unknown('no assistant turn captured in DOM_TURNS');
   const words = conv.expectedReplyWords.flatMap((w) => tokens(w));
+  if (!words.length) return notChecked('no nonempty expected reply words supplied');
   const baseline = conv.baseline;
   if (baseline !== undefined && baseline !== null) {
     if (!isBaseline(baseline)) return unknown('conversation.baseline is malformed; freshness cannot be judged', { assistantTurns: replies.length });

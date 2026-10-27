@@ -109,7 +109,7 @@ export class Dataset {
   bytes() { this.flush(); return existsSync(this.file) ? statSync(this.file).size : 0; }
   async *iterate({ from = 0, limit = Infinity, filter = null } = {}) {
     this.flush();
-    if (!existsSync(this.file)) return;
+    if (limit <= 0 || !existsSync(this.file)) return;
     const rl = readline.createInterface({ input: createReadStream(this.file), crlfDelay: Infinity });
     let i = 0, yielded = 0;
     for await (const line of rl) {
@@ -125,6 +125,7 @@ export class Dataset {
   async size() { let n = 0; for await (const _ of this.iterate()) n++; return n; }  // eslint-disable-line no-unused-vars
   // Last n records without loading the whole file into memory.
   async tail(n = 50) {
+    if (n <= 0) return [];
     const ring = new Array(n);
     let i = 0;
     for await (const v of this.iterate()) { ring[i % n] = v; i++; }
