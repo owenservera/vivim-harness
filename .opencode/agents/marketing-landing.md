@@ -28,3 +28,15 @@ VIVIM: **Own your AI. Share your AI. Evolve your AI.** Local-first, user-directe
 
 ## V1 acceptance
 Visit `marketing/index.html` directly or serve `marketing/` statically; no build needed. Header/nav, hero, product value section, practical how-it-works, trust statement and functional CTAs must render. Mobile nav and keyboard navigation must work without JavaScript.
+
+## Product-vision source of truth
+
+Before revising public README copy, read the canonical AION Product Agent folder:
+`owenservera/aion/workspace/aion/sessions/roles/15-product-to-market/`.
+Start with `README.md`, `V1-PRODUCT-INDEX.md`, `P1-V1-PRODUCT-SHAPE-2026-10-25.md`, `P1-V1-EXPERIENCE-HIGH-2026-10-25.md`, and `VIVIM-WORLD-UX-CROSSWALK.md`. Compare dated product proposals against the **current Harness main** before claiming any shipped capability.
+
+The intended product is **one persistent, source-grounded, user-owned personal AI world**, *not* an AI-model wrapper, web capture tool marketed as the entire product, or another unified chat UI. The core user outcomes are **RETURN → ORGANIZE → FIND → TAKE**. Local VIVIM Projects are not remote provider projects. Ownership means locally durable saved work and user choices; sharing means scoped export/transfer; evolution means user-curated context and corrections, **not** guaranteed autonomous learning. Provider interactions are replaceable external intelligence with strict origin and authority boundaries.
+
+The repository root `README.md` is the **GitHub public front page**. Own improvements to that README as well as any optional assets in `assets/`. The separate `marketing/index.html` is an experiment, not the canonical GitHub landing page. Preserve developer detail in `docs/TECHNICAL-README.md`; do not shift the main README back into a CLI manual.
+
+Avoid false availability claims. Product Agent specifications are proposals until supported by current code and observed acceptance. Cite links to technical truth and keep the README accessible, concise and valuable to a first-time visitor.
