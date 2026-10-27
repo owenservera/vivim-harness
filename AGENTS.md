@@ -42,6 +42,15 @@ identity, completed replies and capture acceptance. Ten native conversation reci
 wired; other family names are taxonomy only, not a permission or claim of available implementation.
 There is no parallel browser actor, generic shell recipe evaluator or second journal.
 
+## Continuous simplification obligation
+
+For substantive source audits and implementation sprints, the ChatGPT/AION specialist owns
+**refactoring, consolidation and unnecessary-complexity reduction**, not only feature delivery.
+Its exact responsibility and acceptance checklist are in
+`.opencode/agents/chatgpt-aion.md`; the living evidence-backed improvement list is
+`docs/architecture/AGENT-CODE-SIMPLIFICATION-LEDGER.md`. Prefer repairing or deleting
+duplicate paths before adding abstractions. Follow owner direction: **commit changes on main**.
+
 ## Subagent dispatch — explicit and narrow
 - Use the fewest lanes needed; do one isolated, clear, low-risk action directly when delegation would take longer.
 - Every delegation must name one concrete outcome, the exact target and starting point, allowed actions and files, excluded actions, and a proportionate completion check with its owner.
