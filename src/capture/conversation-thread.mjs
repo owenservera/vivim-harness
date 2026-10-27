@@ -151,9 +151,22 @@ export function boundTranscript(rawResult, { maxMessages = TRANSCRIPT_LIMITS.max
   const scroll = rawResult?.scroll;
   const draft = rawResult?.draft && typeof rawResult.draft.present === 'boolean' && Number.isSafeInteger(rawResult.draft.chars) && rawResult.draft.chars >= 0
     ? { present: rawResult.draft.present, chars: rawResult.draft.chars } : { present: null, chars: null };
+  // Only observed UI affordances establish streaming/idle; an untrusted page's
+  // self-reported state cannot promote an absent control to a verified state.
+  const indicators = rawResult?.controls;
+  const stopPresent = indicators?.stopPresent === true;
+  const idleControlPresent = indicators?.idleControlPresent === true;
+  const composerEnabled = indicators?.composerEnabled === true;
+  const idleProven = idleControlPresent && composerEnabled;
+  const controls = {
+    state: stopPresent ? 'busy' : idleProven ? 'idle' : 'unknown',
+    observed: stopPresent || idleProven,
+    stopPresent, idleControlPresent, composerEnabled,
+  };
   return {
     source: 'page-visible-dom',
     messages: kept,
+    controls,
     coverage: {
       scope: 'currently-rendered-messages', complete: false,
       renderedMessages: renderedTotal, returnedMessages: kept.length, omittedMessages: renderedTotal - kept.length, omittedChars,
