@@ -103,7 +103,21 @@ async function readMemory() {
     if (!data.entries.length) area.append(element('p', 'No entries in this tier yet.'));
     for (const entry of data.entries) {
       const note = element('article');
-      note.append(element('strong', entry.key), element('p', entry.text));
+      const remove = element('button', 'Remove entry', 'secondary');
+      remove.type = 'button';
+      remove.addEventListener('click', async () => {
+        if (!window.confirm(`Remove "${entry.key}" from current ${tier} memory? Previous local versions remain in the history.`)) return;
+        remove.disabled = true;
+        try {
+          const current = await request('/status');
+          await request('/memory/' + encodeURIComponent(tier) + '/' + encodeURIComponent(entry.key) + '/remove', {
+            method: 'POST', body: JSON.stringify({ expectedVersion: current.version }),
+          });
+          message('Entry removed from current local memory.');
+          await refresh(); await readMemory();
+        } catch (e) { message(`Remove: ${e.code} — ${e.message}`, true); remove.disabled = false; }
+      });
+      note.append(element('strong', entry.key), element('p', entry.text), remove);
       area.append(note);
     }
   } catch (e) { area.replaceChildren(element('p', `Memory: ${e.code} — ${e.message}`)); }
