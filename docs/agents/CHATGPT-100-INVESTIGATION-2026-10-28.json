@@ -1207,7 +1207,19 @@
         "Verify new chat root location cannot silently drift during read",
         "Verify completion and no-resend reconciliation against coordinated live probe only"
       ],
-      "sourceClassificationNote": "Repairs are source changes and do not alter observedStatuses or attempt receipts in the live JSON ledger."
+      "sourceClassificationNote": "Repairs are source changes and do not alter observedStatuses or attempt receipts in the live JSON ledger.",
+      "followup": {
+        "sourceCommits": [
+          "07289c83bc93f8cf852995642b8e156aff097aa5",
+          "81fd45edef13dc7cd365a472c6f3d1c03a38e46e",
+          "dbb023ade3a7d3d225d8e6aab452e218a9240f69"
+        ],
+        "fullAdapterFixtureResult": "PASS: isolated V8 execution of actual 627-line latest source, new-chat enabled empty composer with no Send; same-origin target URL drift rejected; evaluated transcript path drift rejected; exactly two synthetic Page.navigate events, no typing, sending, browser/profile access.",
+        "readFence": "Unbound fresh read now verifies target and page root before/after the evaluation AND the evaluated result's pathname, preventing a thread switch confined to one read sample.",
+        "regression": "Added fixture for an evaluated foreign thread with stable pre/post checks; CI focused workflow expanded to run the new files.",
+        "nodeRunner": "Attempted local git fetch for Node suite; cannot resolve github.com from container. Existing GitHub Actions failures had no job steps; no genuine node --test success is claimed.",
+        "liveLedger": "untouched; no live provider probe, no status promotion"
+      }
     }
   ]
 }
