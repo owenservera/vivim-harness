@@ -252,6 +252,43 @@ async function showKnowledge() {
   } catch (e) { area.replaceChildren(element('p', `Self-knowledge: ${e.code} — ${e.message}`)); }
 }
 
+
+async function showSitrep() {
+  const output = $('sitrepOutput');
+  output.textContent = 'Loading private local continuity…';
+  try {
+    const packet = await request('/sitrep');
+    output.textContent = JSON.stringify(packet, null, 2);
+    message('Private SITREP loaded. No provider request was made.');
+  } catch (e) { output.textContent = `SITREP: ${e.code} — ${e.message}`; }
+}
+async function exportAgent() {
+  const button = $('exportAgent');
+  button.disabled = true;
+  try {
+    const query = new URLSearchParams({
+      includeMemory: String($('exportMemory').checked),
+      includeWorkDetails: String($('exportWork').checked),
+    });
+    const bundle = await request('/export?' + query);
+    const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' });
+    const uri = URL.createObjectURL(blob);
+    try {
+      const link = element('a');
+      link.href = uri;
+      link.download = 'vivim-personal-agent-' + new Date().toISOString().slice(0, 10) + '.json';
+      link.hidden = true;
+      document.body.append(link);
+      link.click();
+      link.remove();
+    } finally { URL.revokeObjectURL(uri); }
+    message('Local snapshot exported. Keep the JSON private: it is not encrypted.');
+  } catch (e) { message(`Export: ${e.code} — ${e.message}`, true); }
+  finally { button.disabled = false; }
+}
+
+$('sitrepRefresh').addEventListener('click', showSitrep);
+$('exportAgent').addEventListener('click', exportAgent);
 $('workForm').addEventListener('submit', createWork);
 $('knowledgeRefresh').addEventListener('click', showKnowledge);
 $('memoryForm').addEventListener('submit', saveMemory);
