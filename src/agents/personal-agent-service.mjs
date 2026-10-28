@@ -3,6 +3,7 @@ import path from 'node:path';
 import { existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { TOOL_ROOT } from '../config.mjs';
+import { createWork, transitionWork, workSummary } from './personal-agent-work.mjs';
 import { VersionedStore } from '../store/versioned.mjs';
 import { createAgenticFileLibrary } from '../studio/agentic-files.mjs';
 import { problem, storeProblem } from '../studio/http.mjs';
@@ -44,6 +45,7 @@ export function createPersonalAgentService({ paths, skillsRoot = TOOL_ROOT, getT
       version: state.version, createdAt: state.createdAt, updatedAt: state.updatedAt,
       stages: state.stages, nextStage: nextPersonalAgentBootstrapStage(state),
       observations: state.observations ?? {}, memoryCounts: Object.fromEntries(MEMORY_TIERS.map(tier => [tier, (state.memory?.[tier] ?? []).length])),
+      work: workSummary(state),
       source: 'versioned-local-state; source and execution receipts are distinct' };
   }
   function initialize({ expectedVersion } = {}) {
@@ -52,6 +54,7 @@ export function createPersonalAgentService({ paths, skillsRoot = TOOL_ROOT, getT
     state.identity = { role: 'personal-agent', scope: 'local-single-user', principal: 'local-instance',
       assurance: 'data-directory-scope-only', providerAccountId: null };
     state.memory = memoryBlank();
+    state.work = [];
     state.observations = {};
     return plain(versioned(state, null, 'Initialize local Personal Agent state'));
   }
@@ -187,5 +190,31 @@ export function createPersonalAgentService({ paths, skillsRoot = TOOL_ROOT, getT
     versioned({ ...state, memory, updatedAt: clock() }, state.version, `User memory removal: ${tier}`);
     return status();
   }
-  return { status, initialize, bootstrap, capabilities, memories, remember, forget };
+  // User-owned, durable Work is deliberately not an executor. These methods never send to a provider.
+  function workList() {
+    const state = read();
+    if (!state) throw problem(404, 'Initialize Personal Agent first', 'PERSONAL_AGENT_NOT_INITIALIZED');
+    return { version: state.version, items: structuredClone(state.work ?? []),
+      execution: 'not-dispatched', disclosure: 'Private local Work; no provider action' };
+  }
+  function requireWorkVersion(expectedVersion) {
+    if (!Number.isSafeInteger(expectedVersion) || expectedVersion < 1) throw bad('expectedVersion required', 'PERSONAL_AGENT_EXPECTED_VERSION');
+    const state = read();
+    if (!state) throw problem(404, 'Initialize Personal Agent first', 'PERSONAL_AGENT_NOT_INITIALIZED');
+    if (state.version !== expectedVersion) throw problem(409, 'Work version changed; refresh first', 'PERSONAL_AGENT_VERSION_CONFLICT');
+    return state;
+  }
+  function createWorkItem({ expectedVersion, title, objective, idempotencyKey } = {}) {
+    const state = requireWorkVersion(expectedVersion);
+    const result = createWork(state, { title, objective, idempotencyKey, now: clock() });
+    if (result.changed) versioned(result.state, state.version, 'User-created Work item');
+    return { ...status(), item: result.item, replayed: !result.changed };
+  }
+  function transitionWorkItem({ expectedVersion, id, to, note, evidence } = {}) {
+    const state = requireWorkVersion(expectedVersion);
+    const result = transitionWork(state, { id, to, note, evidence, now: clock() });
+    versioned(result.state, state.version, `User Work transition: ${to}`);
+    return { ...status(), item: result.item };
+  }
+  return { status, initialize, bootstrap, capabilities, memories, remember, forget, workList, createWorkItem, transitionWorkItem };
 }
