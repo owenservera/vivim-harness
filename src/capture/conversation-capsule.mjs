@@ -32,7 +32,7 @@ export function buildCapabilityCapsule({ view, profile = null } = {}) {
   const read = (() => {
     if (state === 'disconnected') return op('read_conversation', 'unavailable', { reason: 'NOT_CONNECTED', evidence: ['conversation state is disconnected'] });
     if (identity.state === 'unverified') return op('read_conversation', 'unavailable', { reason: 'THREAD_IDENTITY_UNVERIFIED', evidence: [`identity reason: ${identity.reason ?? 'unknown'}`] });
-    if (recovered || identity.state === 'unknown') return op('read_conversation', 'unverified', { reason: 'READ_REQUIRES_LIVE_CONVERSATION', evidence: ['snapshot is recovered; no live page is attached'] });
+    if (recovered || view.recovery?.pending === true || identity.state === 'unknown') return op('read_conversation', 'unverified', { reason: 'READ_REQUIRES_LIVE_CONVERSATION', evidence: ['no proven live writable browser attachment'] });
     // A live, verified conversation can be read by the runtime (bounded transcript, zero send).
     // Whether the ADAPTER exposes a transcript reader is effect-time knowledge; unverified beats a guess.
     if (adapter?.assistant?.containerSelectors?.length || adapter?.composer?.selectors?.length) {
@@ -79,6 +79,8 @@ export function buildCapabilityCapsule({ view, profile = null } = {}) {
   const closeTab = (() => {
     const owned = view.binding?.ownedByStudio === true;
     if (!owned) return op('close_tab', 'unavailable', { reason: 'TAB_NOT_STUDIO_OWNED', evidence: ['Studio never closes an owner-selected tab'] });
+    if (finished || recovered || view.recovery?.pending === true)
+      return op('close_tab', 'unavailable', { reason: 'TAB_OWNERSHIP_NOT_LIVE', evidence: ['persisted ownership is not current tab ownership'] });
     if (view.writer?.active === true) return op('close_tab', 'unavailable', { reason: 'WRITER_WINDOW_BUSY', evidence: ['never close a tab while a turn effect is unresolved'] });
     return op('close_tab', 'supported', { evidence: ['Studio-owned tab; ownership-checked at effect time'] });
   })();
