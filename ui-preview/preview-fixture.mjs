@@ -55,7 +55,14 @@ export function previewResponse(path, method = 'GET') {
   // Preview is a read-only gallery — even harmless-looking REST POSTs are refused.
   if (method !== 'GET') return json(405, { code: 'PREVIEW_READ_ONLY',
     error: 'This frontend preview is read-only. No provider actions or local writes are available.' });
-  if (path === '/api/v1/conversation-targets') return json(200, { sites: [], targets: [] });
+  if (path === '/api/v1/conversation-targets') return json(200, {
+    sites: [
+      { id: 'chatgpt', url: 'https://chatgpt.com' },
+      { id: 'claude', url: 'https://claude.ai' },
+      { id: 'gemini', url: 'https://gemini.google.com' },
+    ],
+    targets: [],
+  });
   if (path === '/api/v1/conversations') return json(200, { conversations: [] });
   const pathname = path.split('?')[0];
   if (pathname === '/api/v1/world/namespace') return json(200, { id: 'w-preview', kind: 'namespace', schema: 'vivim.world/1' });

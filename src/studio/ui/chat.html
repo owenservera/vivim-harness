@@ -362,6 +362,16 @@ body.vivim-app {
 }
 
 
+/* VIVIM provider selection — read-only discovery, no login or browser effect */
+.vivim-provider-choices { display: flex; align-items: stretch; flex-wrap: wrap; gap: 9px; margin: 12px 0 7px; }
+.vivim-provider-choices button { padding: 9px 13px; border-radius: 11px; background: #162b49;
+  border: 1px solid #355b89; color: #d7e9ff; font-weight: 650; }
+.vivim-provider-choices button[aria-pressed="true"] { border-color: #89bafb;
+  background: #235494; box-shadow: inset 0 -2px 0 #9ec7ff; }
+.vivim-provider-choices button:hover:not(:disabled) { border-color: #89bafb; background: #22466f; }
+.vivim-provider-disclaimer { color: #9fb2ce; font-size: 12px; margin: 0 0 6px; }
+@media (prefers-reduced-motion: reduce) { .vivim-provider-choices button { transition: none; } }
+
 /* VIVIM World library and detail surface — styles only; existing read/edit logic owns all effects. */
 .vivim-app #worldGrid { gap: 20px; }
 .vivim-app #worldList, .vivim-app #worldDetail {
@@ -438,6 +448,8 @@ body.vivim-app {
         <span class="vivim-eyebrow">WELCOME TO YOUR AI WORLD</span>
         <h2 id="vivimWelcomeTitle">Bring your AI together.</h2>
         <p>Connect an AI website in your own browser session. Read and save what you choose, then explore conversations, projects, notes and relationships in one local place.</p>
+        <div id="vivimProviders" class="vivim-provider-choices" role="group" aria-label="Supported AI websites"></div>
+        <p class="vivim-provider-disclaimer">Supported sites are not verified accounts. You sign in yourself in the dedicated VIVIM browser.</p>
         <div class="vivim-welcome-actions">
           <button type="button" class="primary" id="vivimBegin">Connect your AI</button>
           <button type="button" id="vivimLibrary" disabled title="Available when your saved World is ready">Explore saved conversations</button>

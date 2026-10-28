@@ -62,3 +62,13 @@ test('World library cards use accessible source-preserving styles', () => {
   assert.match(html, /@media \(prefers-reduced-motion: reduce\)/);
   assert.match(script, /import\('\.\/world-view\.mjs'\)/);
 });
+
+test('first-use provider choices are sourced only from existing supported-sites and never trigger effects', () => {
+  assert.match(html, /id="vivimProviders" class="vivim-provider-choices" role="group"/);
+  assert.match(html, /Supported sites are not verified accounts/);
+  assert.match(script, /const sites = Array\.isArray\(S\.targets\?\.sites\)/);
+  assert.match(script, /S\.mode = 'new'; S\.site = site\.id/);
+  assert.match(script, /renderConnect\(\); renderWelcome\(S\.snap\)/);
+  assert.match(script, /renderChrome\(\); renderWelcome\(S\.snap\)/);
+  assert.doesNotMatch(html, /data-logged-in="true"|data-verified-account="true"/);
+});

@@ -1241,7 +1241,7 @@ function boot() {
         else if ((threadRef(t) ?? null) !== S.pickRef) { S.pickNote = 'The tab you chose is now on a different chat. Nothing is selected; choose a tab again.'; S.targetId = ''; S.pickRef = null; }
       }
     } catch (e) { S.targetsState = 'error'; S.targetsError = describe(e); }
-    renderConnect(); renderChrome();
+    renderConnect(); renderChrome(); renderWelcome(S.snap);
   }
   async function loadList() {
     S.listState = 'loading'; renderList();
@@ -1830,6 +1830,33 @@ function boot() {
     panel.setAttribute('aria-busy', view.busy ? 'true' : 'false');
     $('#vivimBegin').disabled = view.busy;
     setText($('#vivimWelcomeStatus'), view.status);
+    const choices = $('#vivimProviders');
+    const sites = Array.isArray(S.targets?.sites) ? S.targets.sites.filter((site) =>
+      typeof site?.id === 'string' && /^[a-z0-9-]{1,60}$/.test(site.id)) : [];
+    const signature = sites.map((site) => site.id).join('|');
+    if (choices.dataset.signature !== signature) {
+      choices.dataset.signature = signature;
+      if (!sites.length) {
+        choices.replaceChildren(el('p', { class: 'note', text: S.targetsState === 'loading'
+          ? 'Looking for supported AI websites…'
+          : 'No supported websites reported by this Studio yet.' }));
+      } else {
+        choices.replaceChildren(...sites.map((site) => el('button', {
+          type: 'button', class: 'vivim-provider-choice', text: siteName(site.id),
+          'data-provider': site.id, 'aria-pressed': site.id === S.site ? 'true' : 'false',
+          onclick: () => {
+            // A provider choice only changes the existing form. Connecting and sending remain separate deliberate actions.
+            S.mode = 'new'; S.site = site.id; $('#modeNew').checked = true;
+            $('#connectBox').open = true;
+            renderConnect(); renderWelcome(S.snap);
+          },
+        })));
+      }
+    }
+    for (const button of choices.querySelectorAll('button[data-provider]')) {
+      button.setAttribute('aria-pressed', button.dataset.provider === S.site ? 'true' : 'false');
+      button.disabled = view.busy || S.targetsState !== 'ok';
+    }
   }
   function render() {
     const snap = S.snap;
