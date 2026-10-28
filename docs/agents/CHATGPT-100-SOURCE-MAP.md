@@ -1,5 +1,14 @@
 # ChatGPT 100 — source map
 
+## 2026-10-28 roadmap/source reconciliation
+
+The [per-scenario source matrix](CHATGPT-100-RECONCILED-STATUS.md) supersedes stale aggregate status counts below. The 134 explicitly referenced code/test files across the three maps were fetched for import/owner inspection; additional transitive source was inspected. **This does not establish all-callers closure, automated-test success or 100 live passes.** Source-level classification: 10 supported, 22 partial, 68 unsupported (supported ≠ live-verified).
+
+- **011** is now exposed through `create_conversation` (existing Studio owner, no provider send): `src/studio/conversation-tools.mjs` → `src/capture/conversation-runtime.mjs:connect`. The previous “no Studio tool for new chat” statements below are superseded.
+- **Capability preflight:** `conversation_capsule` is now a named read-only tool, delegating to the existing `src/capture/conversation-runtime.mjs:capsule` and `src/capture/conversation-capsule.mjs:buildCapabilityCapsule`. `conversation.capabilities` is a one-call recipe, not permission for an effect or a claim about account availability. Regression tests authored but not executed here.
+- The separate [101–200 roadmap objectives](CHATGPT-200-ROADMAP-OBJECTIVES.md) extend Own / Share / Evolve; they are product goals, not passed probes.
+
+
 Date: 2026-10-27. Companion to `docs/agents/CHATGPT-100-OBJECTIVES.md`.
 
 This maps each objective to the source that can actually perform it. "No source" means the repo has no reader, control, or command for that interaction. Running those objectives can only report `HARNESS_UNSUPPORTED`.
