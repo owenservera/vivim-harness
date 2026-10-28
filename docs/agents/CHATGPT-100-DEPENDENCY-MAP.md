@@ -85,3 +85,65 @@ The initial three maps referenced **132 unique source/config paths**; all 132 we
 | Related replay/semantic support | `src/replay/stream-components.mjs`, `src/profiles/stream-map.mjs`, `src/shapes/observation.mjs` | Structured saved evidence, not necessarily a live control |
 
 **Remaining blocking categories:** browser-only UI controls (upload, feedback, projects, settings, research panels), incomplete rendered/offscreen coverage, missing durable send-journal integration in legacy `driveSite`, and unverified real ChatGPT feature availability. No Playwright/Puppeteer or secondary browser controller was added.
+
+## 2026-10-28 — mandatory source-reading and dependency classification checkpoint
+
+**Verified source inventory:** 132 distinct files explicitly referenced across the three maps were fetched in full and inspected for imports/exported functions. The **40 additional** related/imported files below were also opened (172 total). This ledger means source text was retrieved, NOT that 172 modules passed Node tests or that every runtime/dynamic import is reachable; browser calls were not executed. The new concurrent `src/capture/conversation-rich.mjs` and its fixture `test/unit/conversation-rich.test.mjs` were separately inspected.
+
+### Additional files actually read
+
+- `bin/lib/ui.mjs`
+- `src/capture/campaign.mjs`
+- `src/intel/platform.mjs`
+- `src/intel/rank.mjs`
+- `src/intel/correlate.mjs`
+- `src/decode/csv.mjs`
+- `src/decode/protobuf.mjs`
+- `src/decode/proto-features.mjs`
+- `src/export/graph-ranked.mjs`
+- `src/export/capabilities.mjs`
+- `src/intel/history.mjs`
+- `src/intel/similarity.mjs`
+- `src/intel/schema.mjs`
+- `src/intel/corpus.mjs`
+- `src/intel/discover.mjs`
+- `src/intel/learn.mjs`
+- `src/intel/join.mjs`
+- `src/studio/adapter-holdout-gate.mjs`
+- `src/studio/adapter-improvement-pipeline.mjs`
+- `src/studio/adapter-learning-pipeline.mjs`
+- `src/studio/systems-probes.mjs`
+- `src/studio/platform-x.mjs`
+- `src/studio/webhooks.mjs`
+- `src/intel/autodetect.mjs`
+- `src/intel/graph-analytics.mjs`
+- `src/profiles/migrations.mjs`
+- `src/intel/statistics.mjs`
+- `src/mirror/index.mjs`
+- `src/intel/priors.mjs`
+- `src/intel/learner-journal.mjs`
+- `src/studio/adapter-accepted-session.mjs`
+- `src/profiles/sites/claude.mjs`
+- `src/profiles/sites/gemini.mjs`
+- `src/mirror/catalog.mjs`
+- `src/mirror/match.mjs`
+- `src/mirror/template.mjs`
+- `src/mirror/replay.mjs`
+- `src/mirror/synthesize.mjs`
+- `src/mirror/ws.mjs`
+- `src/intel/profile-evidence.mjs`
+
+### Verified dependency roles and first missing edges
+
+| Classification | Files and observed entry/call sites | Effect on objectives |
+|---|---|---|
+| Direct runtime dispatch | `bin/commands/tools.mjs::runToolsCall` → `src/studio/tool-client.mjs::call` → `src/studio/integration-hub.mjs::registerConversationTools` → `src/studio/conversation-tools.mjs::executeConversationTool` → `src/capture/conversation-runtime.mjs` | Same Studio owner, no alternate browser. New `create_conversation` maps to `runtime.connect({site:'chatgpt',freshTab:true})` (011) |
+| Direct native HTTP dispatch | `src/studio/server.mjs` → `src/studio/conversation-api.mjs::createConversationApi` → `runtime.connect/read/submit/reconcile/finish` | Native create route, read and submit share the same runtime owner; request schemas still independently validated |
+| Direct live DOM read | `src/capture/conversation-runtime.mjs::read` → `src/capture/conversation-browser-adapter.mjs::readTranscript` → `src/capture/conversation-thread.mjs::transcriptExpression` → `src/capture/conversation-rich.mjs::richPartReaderSource` → `boundTranscript` | 007, 041–050 are at most bounded page-visible observations; not full content-provenance claims |
+| Direct capture and journal | `src/capture/conversation-browser-adapter.mjs::armCapture` → `src/capture/recorder.mjs::start` → `src/capture/dom.mjs::DomObserver` → `src/capture/page-agent.js::blocks/turns` and `src/store/session.mjs`; `src/capture/conversation-service.mjs` → `src/capture/thread-turn-journal.mjs` | Capture persistence and 093/096 no-resend proof sources; structured block URLs now honor filtered privacy mode |
+| Alternate implementation | `bin/commands/drive.mjs` → `src/capture/actions.mjs::driveSite`; `bin/commands/chat.mjs` creates a one-shot conversation runtime | Useful single-turn or deep-link code, but NOT the persistent existing Studio conversation owner used for 100-scenario continuity |
+| Indirect storage/derived evidence | `src/replay/derive.mjs` → `src/shapes/extract.mjs`, `src/replay/stream-components.mjs`, `src/decode/decoders.mjs`; `src/studio/world-service.mjs` → `src/studio/world-search.mjs` and transfer/relations | Existing offline reconstruction; does not grant a live UI action or prove 099–100 recovery |
+| Related but unused for native ChatGPT action | `src/capture/human.mjs::humanScroll`; `src/profiles/model-ops.mjs::applyModelOp`; `src/studio/agentic-files.mjs::createAgenticFileLibrary`; `src/studio/adapter-probes.mjs` | Scroll exists without named owner tool; local model/profile ops are not ChatGPT model selection; local file library is not a provider upload |
+| Related security/intelligence but not effect authorization | `src/studio/core-runtime-bridge.mjs`, `src/studio/four-lane-gates.mjs`, `src/intel/identity.mjs`, `src/intel/temporal-truth.mjs`, `src/mcp/runtime.mjs` | Useful gates/derivation, but no unseen browser capability can be inferred solely from their imports |
+
+**Unfinished dynamic boundaries (explicitly blocked):** runtime-created CDP pages and origin-specific DOM selectors cannot be source-verified against a live ChatGPT tab from the GitHub connector; implicit dynamic imports and non-JS assets outside the three maps are not certified exhaustive. Test fixture presence does not imply tests executed. No second driver or browser was created.
