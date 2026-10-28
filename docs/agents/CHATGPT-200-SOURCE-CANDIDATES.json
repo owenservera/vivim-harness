@@ -1,0 +1,67 @@
+{
+  "101": {
+    "sourceKeys": [
+      "src/capture/conversation-runtime.mjs#createConversationRuntime",
+      "src/studio/world-service.mjs#createWorldService"
+    ],
+    "gap": "Conversation runtime and saved World reader exist; one-command existing-thread intake with durable local record ID is not demonstrated."
+  },
+  "102": {
+    "sourceKeys": [
+      "src/capture/conversation-thread.mjs#boundTranscript",
+      "src/studio/world-service.mjs#createWorldService"
+    ],
+    "gap": "Bounded transcript and World coverage expose partial observations; full unrendered historical traversal is not established."
+  },
+  "103": {
+    "sourceKeys": [
+      "src/capture/conversation-runtime.mjs#createConversationRuntime",
+      "src/studio/world-service.mjs#createWorldService"
+    ],
+    "gap": "Runtime capture and World records exist; incremental recapture without duplicate earlier turns is not established."
+  },
+  "104": {
+    "sourceKeys": [
+      "src/studio/world-service.mjs#createWorldService"
+    ],
+    "gap": "World project membership is present; distinct-thread two-import outcome is not live-verified."
+  },
+  "105": {
+    "sourceKeys": [
+      "src/capture/conversation-thread.mjs#boundTranscript"
+    ],
+    "gap": "Bounded visible text observations do not identify native edits or retain a verified version history."
+  },
+  "106": {
+    "sourceKeys": [
+      "src/capture/conversation-runtime.mjs#createConversationRuntime"
+    ],
+    "gap": "Reply observation exists; separate durable interim/final version preservation is not established."
+  },
+  "107": {
+    "sourceKeys": [
+      "src/capture/conversation-rich.mjs#richPartReaderSource"
+    ],
+    "gap": "Visible image presence is a bounded candidate; durable attachment references and download limitations are not proven."
+  },
+  "108": {
+    "sourceKeys": [
+      "src/capture/conversation-rich.mjs#richPartReaderSource",
+      "src/capture/conversation-rich.mjs#boundRichParts"
+    ],
+    "gap": "Read-only typed DOM blocks are bounded and may be truncated; selected complete local rich-answer storage is not verified."
+  },
+  "109": {
+    "sourceKeys": [
+      "src/capture/conversation-runtime.mjs#createConversationRuntime"
+    ],
+    "gap": "Recovered snapshots are explicitly read-only; resuming an interrupted live capture is not established and sends must not be repeated."
+  },
+  "110": {
+    "sourceKeys": [
+      "src/capture/conversation-evidence.mjs#captureConversationEvidence",
+      "src/studio/world-service.mjs#createWorldService"
+    ],
+    "gap": "Evidence checkpoint and partial World coverage exist, but full-native-history, truncated blocks and refused assets are not jointly certified."
+  }
+}
