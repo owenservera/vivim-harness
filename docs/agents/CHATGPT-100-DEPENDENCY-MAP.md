@@ -157,3 +157,21 @@ The initial three maps referenced **132 unique source/config paths**; all 132 we
 **Alternate implementations, not interchangeable:** `bin/commands/drive.mjs` → `src/capture/actions.mjs::driveSite` is a one-shot drive, not Studio-owned persistent conversation navigation; `bin/commands/chat.mjs` creates a separate one-shot lifecycle; `src/shapes/extract.mjs`/replay shapes operate on captured/assembled data, not ChatGPT's native control UI; `src/studio/agentic-files.mjs` manages local Studio assets, not a native ChatGPT file picker; `src/profiles/model-ops.mjs` operates profile state, not ChatGPT model selection. Do not promote corresponding objectives.
 
 **Mapped read accounting:** 132 distinct primary references in `src/`, `bin/`, `profiles/` fetched; an additional 12 transitive modules fetched (`bin/lib/ui.mjs`, `src/capture/campaign.mjs`, `src/intel/{similarity,history,learn,correlate,schema,join,discover}.mjs`, `src/studio/{adapter-holdout-gate,adapter-improvement-pipeline,systems-probes}.mjs`). Each was inspected for declared import/export relationships; not every function body and reverse caller has received exhaustive inspection. This is a **partial**, not completed transitive audit. See [scenario-level source ledger](CHATGPT-100-AUDIT-LEDGER-2026-10-28.md).
+
+## 2026-10-28 classified dependencies after full map retrieval
+
+The three companion maps explicitly referenced **132 distinct** `bin/`, `src/` and `profiles/` source/config files at retrieval time; all 132 were fetched in full at pinned ancestors, not inferred from filenames. An additional **24 imports** were fetched outside that reference set. This is **not** an exhaustive transitive closure, fixture test run, or 100-scenario live proof.
+
+| Imported symbol / caller | Dependency classification | Effect on ChatGPT capability truth |
+|---|---|---|
+| `conversation-thread.transcriptExpression` imports `conversation-rich.richPartReaderSource`; `boundTranscript` calls `boundRichParts` | **Direct dependency**, newly integrated | Bounded current-page semantic DOM reader for lists, code, table cells, quote, link, citation candidate, image, math; incomplete/provisional for 043–050 |
+| `conversation-browser-adapter.readTranscript` → `conversation-thread.transcriptExpression` + ChatGPT profile streaming/send selectors → `conversation-runtime.read` → registered `read_conversation` | **Direct executable read path** | Same Studio/CDP owner, no new driver or send; controls are observed busy/idle/unknown, not completion |
+| `integration-hub` `GET /sessions/{session}/observation` → `shapes/observation.observeSession` + `buildObservation` | **Alternate saved-capture read path** | Typed network/DOM carrier observations with source references; no live native UI action |
+| `profiles/model-ops.applyModelOp` → capture profile/model editor | **Related but not ChatGPT capability** | Not the ChatGPT model picker; #035 still unsupported |
+| `studio/agentic-files.createAgenticFileLibrary` / `registerAgenticFileRoutes` | **Related but not ChatGPT capability** | Read-only local AGENTS/CLAUDE/SKILL inventory; no native ChatGPT upload; #061–070 not closed |
+| `studio/ui/universal-chat.renderNativeBlock` | **Read-only local UI presentation** | Displays semantic parts, not ChatGPT artifact edit/open, copy, generated-file download |
+| `export/export.mjs`, `store/session.mjs`, `world-service` | **Indirect persistence/export** | VIVIM-local evidence export/search, not browser-native ChatGPT generated file workflow |
+| `thread-identity.chatgptConversationClaim` → `conversation-thread.parseThread` | **Direct identity dependency** | Restricts verified native route identity to canonical HTTPS ChatGPT hosts; no generic-host false claim |
+| `conversation-events.createConversationEvents` → `textProjection` / `textKey` | **Direct event read-model** | Same-length tail edits behind the SSE wire cap generate a new bounded snapshot; no implied terminal completion |
+
+Known unclosed dependency groups include the dynamic/conditional downstream branches of `src/capture/actions.mjs`, `src/studio/server.mjs`, `src/replay/derive.mjs`, and transitive scoring/decode/plugin plumbing. All 100 *source-availability* classifications are in `CHATGPT-100-GAP-MAP.md`; automated CI jobs failed before recording test steps and no new live run was performed.
