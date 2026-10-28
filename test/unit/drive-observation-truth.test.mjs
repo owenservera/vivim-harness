@@ -36,7 +36,7 @@ test('failed streaming observation remains unknown instead of finished', async (
 });
 
 test('failed or invalid transcript observation remains unknown, never empty-success', async () => {
-  for (const p of [page({ transcriptFailure: true }), page({ transcript: undefined }), page({ transcript: { last: 'a', turns: null } })]) {
+  for (const p of [page({ transcriptFailure: true }), page({ transcript: null }), page({ transcript: { last: 'a', turns: null } })]) {
     const result = await readTranscript(p);
     assert.equal(result.observed, false);
   }
