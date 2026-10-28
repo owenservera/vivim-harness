@@ -742,7 +742,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     custody: 'observed',
     settings: { tab: 'providers', sites: [], loaded: false, loading: false, error: '' },
     agent: { status: null, work: null, loading: false, busy: false, error: '', notice: '', title: '', objective: '', pendingKey: null,
-      tier: 'Immediate', memoryKey: '', memoryText: '' },
+      tier: 'Immediate', memoryKey: '', memoryText: '', memoryEntries: [] },
     relations: { id: '', typed: '', map: null, error: '', status: '', loading: false, recordId: null },
     workspace: { id: '', typed: '', map: null, error: '', status: '', loading: false, item: null, readingId: '', readingNode: null, readingError: '', readingLoading: false },
     transfer: {
@@ -845,14 +845,18 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     const status = await agentCall('/status');
     if (ticket !== agentTicket) return;
     if (status.status !== 200 || typeof status.data?.initialized !== 'boolean') {
-      a.status = null; a.work = null; a.error = agentError(status);
+      a.status = null; a.work = null; a.memoryEntries = []; a.error = agentError(status);
     } else {
-      a.status = status.data; a.work = null;
+      a.status = status.data; a.work = null; a.memoryEntries = [];
       if (status.data.initialized) {
         const work = await agentCall('/work');
         if (ticket !== agentTicket) return;
         if (work.status === 200 && Array.isArray(work.data?.items)) a.work = work.data;
         else a.error = agentError(work);
+        const memory = await agentCall('/memory/' + encodeURIComponent(a.tier));
+        if (ticket !== agentTicket) return;
+        if (memory.status === 200 && Array.isArray(memory.data?.entries)) a.memoryEntries = memory.data.entries;
+        else a.error = agentError(memory);
       }
     }
     a.loading = false;
@@ -1009,7 +1013,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
       const form = el('form', { id: 'worldAgentMemoryForm' });
       const tier = el('select', { 'aria-label': 'Memory tier' });
       for (const value of ['CANON','Immediate','Curated']) tier.append(el('option', { value, text: value }));
-      tier.value = a.tier; on(tier, 'change', () => { a.tier = tier.value; });
+      tier.value = a.tier; on(tier, 'change', () => { a.tier = tier.value; agentRefresh(); });
       const key = el('input', { type: 'text', required: true, maxlength: '64', placeholder: 'Memory key', 'aria-label': 'Memory key' });
       key.value = a.memoryKey; on(key, 'input', () => { a.memoryKey = key.value; });
       const value = el('textarea', { required: true, maxlength: '8000', rows: '3', placeholder: 'What should your agent remember?', 'aria-label': 'Memory text' });
@@ -1024,6 +1028,27 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
           'Memory saved in local version history.', () => { a.memoryKey = ''; a.memoryText = ''; });
       });
       memory.append(form);
+      const existing = el('section', { id: 'worldAgentMemoryEntries' }, [
+        el('h3', { text: 'Saved ' + a.tier + ' memory' }),
+      ]);
+      if (a.loading) existing.append(el('p', { class: 'note', text: 'Reading local memory…' }));
+      else if (!a.memoryEntries.length) existing.append(el('p', { class: 'note', text: 'No entries in this tier.' }));
+      for (const entry of a.memoryEntries.slice().reverse().slice(0, 50)) {
+        const note = el('article', { class: 'vivim-agent-work-row' }, [
+          el('strong', { text: entry.key }),
+          el('p', { class: 'note', text: entry.text }),
+        ]);
+        const remove = el('button', { type: 'button', text: 'Remove from current memory' });
+        remove.disabled = busy;
+        on(remove, 'click', () => agentWrite(
+          '/memory/' + encodeURIComponent(a.tier) + '/' + encodeURIComponent(entry.key) + '/remove',
+          'POST', { expectedVersion: a.status.version },
+          'Removed from current local memory; prior versions remain in history.',
+        ));
+        note.append(remove);
+        existing.append(note);
+      }
+      memory.append(existing);
     } else memory.append(el('p', { class: 'note', text: 'Initialize your agent to save memory.' }));
     listPane.replaceChildren(head, bootstrap, notice, refresh, memory,
       el('a', { href: '/personal-agent', class: 'hit', text: 'Advanced agent inspector' }));
