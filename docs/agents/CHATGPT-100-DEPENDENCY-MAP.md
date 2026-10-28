@@ -52,3 +52,9 @@ The first map identifies direct owners for 100 user objectives. This second map 
 
 ## Scope accounting
 At the tree snapshot, 66 explicitly referenced files and 128 additional `.mjs`/`.js`/`.json` files were identified under `src/`, `bin/`, and `profiles/`. The additional set includes provider-specific modules and unrelated subsystems; do **not** treat all 128 as mandatory reads or as confirmed dependencies.
+
+## 2026-10-28 — verified direct UI observation chain (partial audit)
+
+- `src/profiles/sites/chatgpt.mjs` provides `assistant.streamingSelectors` and `send.buttonSelectors`; these are now passed by `src/capture/conversation-browser-adapter.mjs::readTranscript` to `src/capture/conversation-thread.mjs::transcriptExpression`. `boundTranscript` retains a conservative, source-labelled UI controls summary.
+- Callers: `src/capture/conversation-runtime.mjs::read` → adapter read, `src/studio/conversation-tools.mjs::read_conversation` → same owner runtime; `src/studio/conversation-api.mjs` has the POST /read surface.
+- Focused test source: `test/unit/conversation-thread.test.mjs`. This establishes only these code-level import/call relationships; other P0–P2 candidate classification and complete transitive review remain open.
