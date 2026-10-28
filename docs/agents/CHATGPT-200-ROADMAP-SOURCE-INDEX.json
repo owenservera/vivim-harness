@@ -7,8 +7,8 @@
   "counts": {
     "objectives": 100,
     "sections": 10,
-    "candidateOnly": 10,
-    "unassessed": 90
+    "candidateOnly": 40,
+    "unassessed": 60
   },
   "objectives": [
     {
@@ -142,9 +142,12 @@
       "section": "Source identity, provenance and temporal truth",
       "pillar": "Own",
       "objective": "Trace one locally saved answer back to its exact ChatGPT source thread and native message ID when observable.",
-      "sourceReviewState": "unassessed",
-      "candidateSourceKeys": [],
-      "firstMissingEvidence": null
+      "sourceReviewState": "candidate-only",
+      "candidateSourceKeys": [
+        "src/capture/conversation-thread.mjs#turnObservationExpression",
+        "src/studio/world-service.mjs#createWorldService"
+      ],
+      "firstMissingEvidence": "Native message IDs are only observed when page attributes expose them; an exact local-to-native message-ID guarantee is unverified."
     },
     {
       "id": "112",
@@ -152,9 +155,12 @@
       "section": "Source identity, provenance and temporal truth",
       "pillar": "Own",
       "objective": "Distinguish content the provider rendered from a VIVIM-generated title, summary or annotation.",
-      "sourceReviewState": "unassessed",
-      "candidateSourceKeys": [],
-      "firstMissingEvidence": null
+      "sourceReviewState": "candidate-only",
+      "candidateSourceKeys": [
+        "src/shapes/observation.mjs#buildObservation",
+        "src/studio/world-service.mjs#createWorldService"
+      ],
+      "firstMissingEvidence": "Provider observation and user-authored notes have distinct provenance fields; derived title and summary separation is not end-to-end certified."
     },
     {
       "id": "113",
@@ -162,9 +168,12 @@
       "section": "Source identity, provenance and temporal truth",
       "pillar": "Own",
       "objective": "Reopen an imported record and see which bytes were captured raw, decoded from protocol or extracted from DOM.",
-      "sourceReviewState": "unassessed",
-      "candidateSourceKeys": [],
-      "firstMissingEvidence": null
+      "sourceReviewState": "candidate-only",
+      "candidateSourceKeys": [
+        "src/capture/conversation-evidence.mjs#captureConversationEvidence",
+        "src/shapes/observation.mjs#buildObservation"
+      ],
+      "firstMissingEvidence": "Capture carriers and references exist but a complete user-facing raw/decoded/DOM byte inspection journey is not demonstrated."
     },
     {
       "id": "114",
@@ -172,9 +181,12 @@
       "section": "Source identity, provenance and temporal truth",
       "pillar": "Own",
       "objective": "Keep two same-text answers from different native threads separate instead of merging on content equality.",
-      "sourceReviewState": "unassessed",
-      "candidateSourceKeys": [],
-      "firstMissingEvidence": null
+      "sourceReviewState": "candidate-only",
+      "candidateSourceKeys": [
+        "src/capture/conversation-thread.mjs#parseThread",
+        "src/studio/world-service.mjs#createWorldService"
+      ],
+      "firstMissingEvidence": "Native thread parsing and local IDs exist; preserving distinct same-text answers through two imports is not tested."
     },
     {
       "id": "115",
@@ -182,9 +194,12 @@
       "section": "Source identity, provenance and temporal truth",
       "pillar": "Own",
       "objective": "Identify that a ChatGPT link changed its visible label while its destination remained the same.",
-      "sourceReviewState": "unassessed",
-      "candidateSourceKeys": [],
-      "firstMissingEvidence": null
+      "sourceReviewState": "candidate-only",
+      "candidateSourceKeys": [
+        "src/capture/conversation-rich.mjs#richPartReaderSource",
+        "src/studio/world-url.mjs#sanitizeProviderUrl"
+      ],
+      "firstMissingEvidence": "Read-only link label and sanitized URL candidates exist; change history between observations is not stored and compared."
     },
     {
       "id": "116",
@@ -192,9 +207,12 @@
       "section": "Source identity, provenance and temporal truth",
       "pillar": "Own",
       "objective": "Compare two time-stamped observations of a thread and show what content appeared, disappeared or changed.",
-      "sourceReviewState": "unassessed",
-      "candidateSourceKeys": [],
-      "firstMissingEvidence": null
+      "sourceReviewState": "candidate-only",
+      "candidateSourceKeys": [
+        "src/capture/conversation-evidence.mjs#captureConversationEvidence",
+        "src/studio/world-service.mjs#createWorldService"
+      ],
+      "firstMissingEvidence": "Snapshots and evidence timestamps exist; no verified cross-snapshot semantic diff of appeared/removed/edited content."
     },
     {
       "id": "117",
@@ -202,9 +220,12 @@
       "section": "Source identity, provenance and temporal truth",
       "pillar": "Own",
       "objective": "Explain why a native message cannot be uniquely identified when the page exposes no stable message ID.",
-      "sourceReviewState": "unassessed",
-      "candidateSourceKeys": [],
-      "firstMissingEvidence": null
+      "sourceReviewState": "candidate-only",
+      "candidateSourceKeys": [
+        "src/capture/conversation-thread.mjs#turnObservationExpression",
+        "src/capture/conversation-thread.mjs#boundTranscript"
+      ],
+      "firstMissingEvidence": "Native message ID absence is preserved rather than fabricated; explanatory UI acceptance is still unverified."
     },
     {
       "id": "118",
@@ -212,9 +233,12 @@
       "section": "Source identity, provenance and temporal truth",
       "pillar": "Own",
       "objective": "Follow an answer's cited URL into a local source-reference record without treating that URL as proof the claim is true.",
-      "sourceReviewState": "unassessed",
-      "candidateSourceKeys": [],
-      "firstMissingEvidence": null
+      "sourceReviewState": "candidate-only",
+      "candidateSourceKeys": [
+        "src/capture/conversation-rich.mjs#richPartReaderSource",
+        "src/studio/world-relations.mjs#createWorldRelations"
+      ],
+      "firstMissingEvidence": "A sanitized cited URL and local source-reference primitives exist; citation identity and claim-truth boundaries require proof."
     },
     {
       "id": "119",
@@ -222,9 +246,12 @@
       "section": "Source identity, provenance and temporal truth",
       "pillar": "Own",
       "objective": "Detect a mismatched source thread during recapture and refuse to append evidence to the wrong local record.",
-      "sourceReviewState": "unassessed",
-      "candidateSourceKeys": [],
-      "firstMissingEvidence": null
+      "sourceReviewState": "candidate-only",
+      "candidateSourceKeys": [
+        "src/capture/conversation-thread.mjs#parseThread",
+        "src/capture/conversation-runtime.mjs#createConversationRuntime"
+      ],
+      "firstMissingEvidence": "Native thread parsing and runtime binding exist; wrong-thread recapture rejection and no-corrupt-append proof are outstanding."
     },
     {
       "id": "120",
@@ -232,9 +259,12 @@
       "section": "Source identity, provenance and temporal truth",
       "pillar": "Own",
       "objective": "Display a provenance chain for a saved answer, including site, session, capture timestamp, extraction method and known gaps.",
-      "sourceReviewState": "unassessed",
-      "candidateSourceKeys": [],
-      "firstMissingEvidence": null
+      "sourceReviewState": "candidate-only",
+      "candidateSourceKeys": [
+        "src/capture/conversation-evidence.mjs#captureConversationEvidence",
+        "src/studio/world-url.mjs#sanitizedSource"
+      ],
+      "firstMissingEvidence": "Source pointers and evidence checkpoints exist; a complete displayed provenance chain with gaps is not demonstrated."
     },
     {
       "id": "121",
@@ -242,9 +272,11 @@
       "section": "VIVIM World organization",
       "pillar": "Own",
       "objective": "Create a local VIVIM Project that groups selected saved threads without creating or modifying a remote ChatGPT Project.",
-      "sourceReviewState": "unassessed",
-      "candidateSourceKeys": [],
-      "firstMissingEvidence": null
+      "sourceReviewState": "candidate-only",
+      "candidateSourceKeys": [
+        "src/studio/world-service.mjs#createWorldService"
+      ],
+      "firstMissingEvidence": "World local project create exists; user acceptance of selected saved-thread grouping without remote effects is unverified."
     },
     {
       "id": "122",
@@ -252,9 +284,11 @@
       "section": "VIVIM World organization",
       "pillar": "Own",
       "objective": "Move a locally saved thread between two VIVIM Projects while leaving its remote membership unchanged.",
-      "sourceReviewState": "unassessed",
-      "candidateSourceKeys": [],
-      "firstMissingEvidence": null
+      "sourceReviewState": "candidate-only",
+      "candidateSourceKeys": [
+        "src/studio/world-service.mjs#createWorldService"
+      ],
+      "firstMissingEvidence": "Project membership updates exist but verified two-project move and unchanged remote membership are not demonstrated."
     },
     {
       "id": "123",
@@ -262,9 +296,12 @@
       "section": "VIVIM World organization",
       "pillar": "Own",
       "objective": "Attach a personal note to one assistant message without modifying the source conversation.",
-      "sourceReviewState": "unassessed",
-      "candidateSourceKeys": [],
-      "firstMissingEvidence": null
+      "sourceReviewState": "candidate-only",
+      "candidateSourceKeys": [
+        "src/studio/world-service.mjs#createWorldService",
+        "src/studio/world-relations.mjs#createWorldRelations"
+      ],
+      "firstMissingEvidence": "User-authored notes and message selections exist; the exact user-visible attachment workflow is not live-verified."
     },
     {
       "id": "124",
@@ -272,9 +309,12 @@
       "section": "VIVIM World organization",
       "pillar": "Own",
       "objective": "Tag an answer with a user-defined topic and find the tag on a later visit.",
-      "sourceReviewState": "unassessed",
-      "candidateSourceKeys": [],
-      "firstMissingEvidence": null
+      "sourceReviewState": "candidate-only",
+      "candidateSourceKeys": [
+        "src/studio/world-search.mjs#createWorldSearch",
+        "src/studio/world-service.mjs#createWorldService"
+      ],
+      "firstMissingEvidence": "Saved note search exists; a defined user-tag create/filter contract is not established."
     },
     {
       "id": "125",
@@ -282,9 +322,12 @@
       "section": "VIVIM World organization",
       "pillar": "Own",
       "objective": "Pin a saved passage as a project reference while the rest of the thread remains unchanged.",
-      "sourceReviewState": "unassessed",
-      "candidateSourceKeys": [],
-      "firstMissingEvidence": null
+      "sourceReviewState": "candidate-only",
+      "candidateSourceKeys": [
+        "src/studio/world-relations.mjs#createWorldRelations",
+        "src/studio/world-service.mjs#createWorldService"
+      ],
+      "firstMissingEvidence": "Durable selections and project member associations exist; a pin action and its precise saved-passage behavior are unverified."
     },
     {
       "id": "126",
@@ -292,9 +335,11 @@
       "section": "VIVIM World organization",
       "pillar": "Own",
       "objective": "Relate a ChatGPT answer to a separately saved article with a user-defined relationship label.",
-      "sourceReviewState": "unassessed",
-      "candidateSourceKeys": [],
-      "firstMissingEvidence": null
+      "sourceReviewState": "candidate-only",
+      "candidateSourceKeys": [
+        "src/studio/world-relations.mjs#createWorldRelations"
+      ],
+      "firstMissingEvidence": "Local source references and relation graph exist; associating an imported article with a specific answer is not proven."
     },
     {
       "id": "127",
@@ -302,9 +347,11 @@
       "section": "VIVIM World organization",
       "pillar": "Own",
       "objective": "Split one captured thread into two local collections without changing the underlying message evidence.",
-      "sourceReviewState": "unassessed",
-      "candidateSourceKeys": [],
-      "firstMissingEvidence": null
+      "sourceReviewState": "candidate-only",
+      "candidateSourceKeys": [
+        "src/studio/world-service.mjs#createWorldService"
+      ],
+      "firstMissingEvidence": "Saved conversations and project associations exist; non-destructive local thread splitting is not exposed as a verified operation."
     },
     {
       "id": "128",
@@ -312,9 +359,12 @@
       "section": "VIVIM World organization",
       "pillar": "Own",
       "objective": "Merge duplicate local imports of the same canonical thread while preserving observation history.",
-      "sourceReviewState": "unassessed",
-      "candidateSourceKeys": [],
-      "firstMissingEvidence": null
+      "sourceReviewState": "candidate-only",
+      "candidateSourceKeys": [
+        "src/studio/world-transfer.mjs#createWorldTransfer",
+        "src/studio/world-service.mjs#createWorldService"
+      ],
+      "firstMissingEvidence": "Import and local record primitives exist; canonical duplicate reconciliation with preserved observation history is unverified."
     },
     {
       "id": "129",
@@ -322,9 +372,11 @@
       "section": "VIVIM World organization",
       "pillar": "Own",
       "objective": "Delete a derived summary without deleting its underlying captured evidence.",
-      "sourceReviewState": "unassessed",
-      "candidateSourceKeys": [],
-      "firstMissingEvidence": null
+      "sourceReviewState": "candidate-only",
+      "candidateSourceKeys": [
+        "src/studio/world-service.mjs#createWorldService"
+      ],
+      "firstMissingEvidence": "World record and note mutations exist; safe deletion of a derived summary without raw evidence deletion is not established."
     },
     {
       "id": "130",
@@ -332,9 +384,11 @@
       "section": "VIVIM World organization",
       "pillar": "Own",
       "objective": "Reopen a saved VIVIM Project offline and see the exact previously captured content without an active provider session.",
-      "sourceReviewState": "unassessed",
-      "candidateSourceKeys": [],
-      "firstMissingEvidence": null
+      "sourceReviewState": "candidate-only",
+      "candidateSourceKeys": [
+        "src/studio/world-service.mjs#createWorldService"
+      ],
+      "firstMissingEvidence": "World reads are local-only; offline reopening of exact content across real process/browser disconnection is not verified."
     },
     {
       "id": "131",
@@ -342,9 +396,11 @@
       "section": "Retrieval and contextual discovery",
       "pillar": "Evolve",
       "objective": "Search local ChatGPT captures for an exact phrase and open the matching message, not just the containing thread.",
-      "sourceReviewState": "unassessed",
-      "candidateSourceKeys": [],
-      "firstMissingEvidence": null
+      "sourceReviewState": "candidate-only",
+      "candidateSourceKeys": [
+        "src/studio/world-search.mjs#createWorldSearch"
+      ],
+      "firstMissingEvidence": "Local message search and part attribution exist; exact phrase hit and native message-level open behavior require real acceptance."
     },
     {
       "id": "132",
@@ -352,9 +408,11 @@
       "section": "Retrieval and contextual discovery",
       "pillar": "Evolve",
       "objective": "Find a saved passage using a related concept that does not occur verbatim in its text.",
-      "sourceReviewState": "unassessed",
-      "candidateSourceKeys": [],
-      "firstMissingEvidence": null
+      "sourceReviewState": "candidate-only",
+      "candidateSourceKeys": [
+        "src/studio/world-search.mjs#createWorldSearch"
+      ],
+      "firstMissingEvidence": "Token-based local search exists; semantic retrieval where query terms are absent is not verified."
     },
     {
       "id": "133",
@@ -362,9 +420,11 @@
       "section": "Retrieval and contextual discovery",
       "pillar": "Evolve",
       "objective": "Filter local results to one site, time interval and VIVIM Project simultaneously.",
-      "sourceReviewState": "unassessed",
-      "candidateSourceKeys": [],
-      "firstMissingEvidence": null
+      "sourceReviewState": "candidate-only",
+      "candidateSourceKeys": [
+        "src/studio/world-search.mjs#createWorldSearch"
+      ],
+      "firstMissingEvidence": "Local corpus filters exist; simultaneous site/time/project filtering with correct exclusion evidence is unverified."
     },
     {
       "id": "134",
@@ -372,9 +432,11 @@
       "section": "Retrieval and contextual discovery",
       "pillar": "Evolve",
       "objective": "Search only user-written messages, excluding assistant replies.",
-      "sourceReviewState": "unassessed",
-      "candidateSourceKeys": [],
-      "firstMissingEvidence": null
+      "sourceReviewState": "candidate-only",
+      "candidateSourceKeys": [
+        "src/studio/world-search.mjs#createWorldSearch"
+      ],
+      "firstMissingEvidence": "Saved messages carry roles; user-only filter in the exposed query needs verification."
     },
     {
       "id": "135",
@@ -382,9 +444,12 @@
       "section": "Retrieval and contextual discovery",
       "pillar": "Evolve",
       "objective": "Search only answers containing code blocks of a specified language.",
-      "sourceReviewState": "unassessed",
-      "candidateSourceKeys": [],
-      "firstMissingEvidence": null
+      "sourceReviewState": "candidate-only",
+      "candidateSourceKeys": [
+        "src/studio/world-search.mjs#createWorldSearch",
+        "src/capture/conversation-rich.mjs#boundRichParts"
+      ],
+      "firstMissingEvidence": "Code language can appear in bounded blocks; exact code-language filter and no-text-leak semantics are unverified."
     },
     {
       "id": "136",
@@ -392,9 +457,12 @@
       "section": "Retrieval and contextual discovery",
       "pillar": "Evolve",
       "objective": "Find previously captured tables by a column heading or cell value.",
-      "sourceReviewState": "unassessed",
-      "candidateSourceKeys": [],
-      "firstMissingEvidence": null
+      "sourceReviewState": "candidate-only",
+      "candidateSourceKeys": [
+        "src/studio/world-search.mjs#createWorldSearch",
+        "src/capture/conversation-rich.mjs#boundRichParts"
+      ],
+      "firstMissingEvidence": "Rich block text can be indexed; table-specific heading/cell targeting and structural fidelity are unverified."
     },
     {
       "id": "137",
@@ -402,9 +470,12 @@
       "section": "Retrieval and contextual discovery",
       "pillar": "Evolve",
       "objective": "Locate a saved answer by its cited source domain.",
-      "sourceReviewState": "unassessed",
-      "candidateSourceKeys": [],
-      "firstMissingEvidence": null
+      "sourceReviewState": "candidate-only",
+      "candidateSourceKeys": [
+        "src/studio/world-search.mjs#createWorldSearch",
+        "src/studio/world-url.mjs#sanitizedSource"
+      ],
+      "firstMissingEvidence": "Sanitized source URLs exist; source-domain-only filtering of cited answer URLs is unverified."
     },
     {
       "id": "138",
@@ -412,9 +483,12 @@
       "section": "Retrieval and contextual discovery",
       "pillar": "Evolve",
       "objective": "Show which of two conflicting saved statements was observed later without treating recency as correctness.",
-      "sourceReviewState": "unassessed",
-      "candidateSourceKeys": [],
-      "firstMissingEvidence": null
+      "sourceReviewState": "candidate-only",
+      "candidateSourceKeys": [
+        "src/studio/world-search.mjs#createWorldSearch",
+        "src/shapes/observation.mjs#buildObservation"
+      ],
+      "firstMissingEvidence": "Observation metadata and local search exist; conflict comparison and timestamp semantics without truth claims are unverified."
     },
     {
       "id": "139",
@@ -422,9 +496,12 @@
       "section": "Retrieval and contextual discovery",
       "pillar": "Evolve",
       "objective": "Return search results with source links and freshness/provenance labels rather than unsupported confidence claims.",
-      "sourceReviewState": "unassessed",
-      "candidateSourceKeys": [],
-      "firstMissingEvidence": null
+      "sourceReviewState": "candidate-only",
+      "candidateSourceKeys": [
+        "src/studio/world-search.mjs#createWorldSearch",
+        "src/studio/world-relations.mjs#createWorldRelations"
+      ],
+      "firstMissingEvidence": "Search and source-reference metadata exist; freshness/provenance completeness in returned hit cards is not proven."
     },
     {
       "id": "140",
@@ -432,9 +509,12 @@
       "section": "Retrieval and contextual discovery",
       "pillar": "Evolve",
       "objective": "Reopen a result with sufficient surrounding thread context to understand the quoted passage.",
-      "sourceReviewState": "unassessed",
-      "candidateSourceKeys": [],
-      "firstMissingEvidence": null
+      "sourceReviewState": "candidate-only",
+      "candidateSourceKeys": [
+        "src/studio/world-search.mjs#createWorldSearch",
+        "src/studio/world-service.mjs#createWorldService"
+      ],
+      "firstMissingEvidence": "Search hit and saved conversation readers exist; opening a hit with the correct surrounding turns is unverified."
     },
     {
       "id": "141",
