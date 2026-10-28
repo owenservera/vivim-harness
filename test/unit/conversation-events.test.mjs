@@ -70,7 +70,16 @@ const sseRes = () => {
   res.writeHead = (status, headers) => { res.status = status; res.headers = headers; };
   res.write = (frame) => { res.writes.push(frame); return true; };
   res.end = () => { res.writableEnded = true; };
-  res.on = (ev, fn) => { (res.handlers[ev] ??= []).push(fn); };
+  res.on = (ev, fn) => { (res.handlers[ev] ??= []).push(fn); return res; };
+  res.once = (ev, fn) => {
+    const one = (...args) => {
+      const list = res.handlers[ev] ?? [];
+      const at = list.indexOf(one);
+      if (at >= 0) list.splice(at, 1);
+      fn(...args);
+    };
+    return res.on(ev, one);
+  };
   return res;
 };
 const sseEvents = (res) => res.writes.join('').split('\n\n').filter((b) => b.includes('\nevent: ') || b.startsWith('event: ')).map((b) => {
