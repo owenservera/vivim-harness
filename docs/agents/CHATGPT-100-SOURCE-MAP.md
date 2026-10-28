@@ -136,7 +136,7 @@ Fix (2026-10-28, source only, not yet re-run live):
 
 | # | Objective | Source |
 |---|---|---|
-| 011 | New chat, no send | `src/capture/actions.mjs` `driveSite` with `freshTab` opens `https://chatgpt.com/`. |
+| 011 | New chat, no send | `create_conversation` in `src/studio/conversation-tools.mjs` → existing `src/capture/conversation-runtime.mjs` `connect` (`freshTab: true`), creates Studio-owned blank tab without send. |
 | 012 | Sidebar by title | `src/capture/chatgpt-chat-index.mjs` reads rendered links. It does not click. |
 | 013 | Deep link | `src/capture/conversation-thread.mjs`. `drive.mjs` URL form keeps the `/c/` path since 2026-10-28. |
 | 014 | Cross-thread and return | Same as 004 + 013. No return command. |
@@ -179,19 +179,19 @@ Fix (2026-10-28, source only, not yet re-run live):
 
 ## 041–050 Answer shape
 
-One visible-text read. No structure parsers.
+The current `src/capture/conversation-thread.mjs` now embeds `src/capture/conversation-rich.mjs` (`richPartReaderSource`, `boundRichParts`) in the existing `read_conversation` browser observation. Typed, bounded list/code/table/quote/link/citation-candidate/image/math parts can be emitted without a second controller. Coverage remains limited to rendered DOM and sanitizes URLs; citations are candidates, not paragraph/source identity proof.
 
 | # | Objective | Source |
 |---|---|---|
 | 041–042 | Long answer, user vs assistant | `src/capture/actions.mjs` reply read. `src/capture/conversation-thread.mjs` `transcriptExpression`. `read_conversation` in `src/studio/conversation-tools.mjs`. |
-| 043 | Lists | No source. Text only. |
-| 044 | Code fence | No source. |
-| 045 | Table cells | No source. |
-| 046 | Math | No source. |
-| 047 | Blockquote | No source. |
-| 048 | Link URL vs label | No source. |
-| 049 | Citation anchor | No source. |
-| 050 | Inline image block | No source. |
+| 043 | Lists | Partial: live read returns bounded `list-item` parts and depth via `src/capture/conversation-rich.mjs`; hierarchy may be incomplete. |
+| 044 | Code fence | Partial: live read returns `code` language/text parts; structure clipped. |
+| 045 | Table cells | Partial: live read returns row/cell structures, bounded to 24 rows/16 cells. |
+| 046 | Math | Partial: `math` part, LaTeX only when observed. |
+| 047 | Blockquote | Partial: `blockquote` part; attribution not guaranteed. |
+| 048 | Link URL vs label | Partial: sanitized `href` alongside visible text; query/hash removed. |
+| 049 | Citation anchor | Partial: `citation-candidate` part, not full inline source binding. |
+| 050 | Inline image block | Partial: `image` part with alt/source presence, not downloadable content. |
 
 ## 051–060 Search and thinking
 
@@ -235,8 +235,8 @@ No source. `src/capture/chatgpt-chat-index.mjs` sets `project.state` to `unknown
 | 094 | Snapshot freshness | `src/capture/thread-turn-journal.mjs` boundary. No reload watcher. |
 | 095 | Reconnect Studio | `bin/commands/tools.mjs` uses the existing server. It does not start a second browser. |
 | 096 | No-resend reconciliation | `src/capture/thread-turn-journal.mjs`, `src/capture/conversation-runtime.mjs` uncertain phase, `src/studio/uncertain-step-reconciler.mjs`. |
-| 097 | Rate limit | No source. |
-| 098 | Timeout vs complete | `src/capture/actions.mjs` `waitForCompletion`. |
+| 097 | Rate limit | Partial: `src/capture/actions.mjs` `detectSiteFailure` recognizes some credit/usage errors; no complete banner classifier. |
+| 098 | Timeout vs complete | `src/capture/actions.mjs` `waitForCompletion`, and `driveSite` now retains new tab plus marks `uncertain` for post-dispatch failures; no journal on legacy drive. |
 | 099 | Capture into World | `src/capture/recorder.mjs`, `src/capture/conversation-evidence.mjs`, `src/studio/world-service.mjs`. |
 | 100 | Reopen saved thread | `src/studio/world-service.mjs` plus `src/capture/conversation-thread.mjs`. |
 
@@ -246,7 +246,7 @@ Real browser code exists for: 003, 004, 006, 011, 012 (read only), 013 (connect 
 
 022 and 023 were blocked by `drive.mjs` discarding the `/c/` path. That is fixed in source; a live run is still needed.
 
-The other 64 objectives have no implementation.
+The remaining objectives vary between absent live UI primitives, partial capture-only readers and unexposed controls. Never infer missing functionality without reviewing `src/capture/conversation-rich.mjs` and the adjacent dependency map; scenario-level status is in `CHATGPT-100-GAP-MAP.md`.
 
 ## 2026-10-28 — live-read control observation source correction (partial audit)
 
@@ -254,3 +254,9 @@ The other 64 objectives have no implementation.
 - Existing Studio path: `read_conversation` → `conversation-runtime.read` → `conversation-browser-adapter.readTranscript` → `transcriptExpression` → `boundTranscript`. No new browser controller and no send on read.
 - Regression coverage added in `test/unit/conversation-thread.test.mjs`. Focused GitHub workflow: `.github/workflows/chatgpt-100-focused.yml`, but its first jobs failed without recorded test steps; **automated pass is not established**.
 - This checkpoint is **not a completed 100-scenario audit**. No other scenarios are promoted to supported or live-verified.
+
+## Source audit reconciliation (2026-10-28)
+
+Direct CLI/native path reviewed: `bin/studio.mjs` → `bin/commands/tools.mjs` → `src/studio/tool-client.mjs` → `src/studio/conversation-tools.mjs` / `src/studio/conversation-api.mjs` → `src/capture/conversation-runtime.mjs` → `src/capture/conversation-browser-adapter.mjs` → browser/CDP → `src/capture/recorder.mjs` / `src/store/session.mjs` → World. Newly discovered transitive rich reader: `src/capture/conversation-rich.mjs`. No live campaign was executed during this audit.
+
+Fixed source: `src/capture/actions.mjs` marks legacy drive outcome uncertain and retains the created tab after a possible send without a verified completed response. `src/capture/conversation-thread.mjs` no longer lets a duplicate raw `controls` object overwrite the observed control-state derivation. Focused regression tests were added for drive; GitHub Actions workflow now includes these tests. Verification of all 100 against the live UI remains outstanding.
