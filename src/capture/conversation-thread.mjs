@@ -51,7 +51,21 @@ export const TRANSCRIPT_SELECTORS = Object.freeze({
 // positional turn indexes, text, timestamps and generated IDs are never identity substitutes.
 export function turnObservationExpression(adapter = {}) {
   return `(() => {
-    const visible = el => { const r=el.getBoundingClientRect(); return r.width>1 && r.height>1; };
+    // Only genuinely visible controls/messages may authorize an effect-time preflight.
+    // A rendered child can carry dimensions while an ancestor is ARIA-hidden or inert.
+    const visible = (el) => {
+      try {
+        const rect = el.getBoundingClientRect();
+        if (rect.width <= 1 || rect.height <= 1) return false;
+        for (let node = el; node; node = node.parentElement) {
+          if (node.hidden === true || node.inert === true || node.getAttribute?.('aria-hidden') === 'true') return false;
+          const style = getComputedStyle(node);
+          if (style.display === 'none' || style.visibility === 'hidden' || style.visibility === 'collapse'
+            || style.contentVisibility === 'hidden') return false;
+        }
+        return true;
+      } catch { return false; }
+    };
     const all = sels => { const out=[]; for(const sel of sels) { try { for(const el of document.querySelectorAll(sel)) if(visible(el)&&!out.includes(el)) out.push(el); } catch {} } return out; };
     const users=all(${JSON.stringify(TRANSCRIPT_SELECTORS.user)}), assistants=all(${JSON.stringify(TRANSCRIPT_SELECTORS.assistant)});
     const nodes=[...new Set([...users,...assistants])].filter(el=>!users.includes(el)||!assistants.includes(el));
