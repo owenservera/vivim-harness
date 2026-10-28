@@ -86,7 +86,19 @@ export function transcriptExpression({ userSelectors = TRANSCRIPT_SELECTORS.user
     const CAP = ${Math.trunc(perMessageCap)}, SCAN = ${Math.trunc(scanLimit)};
     const all = (sels) => { const out = []; for (const sel of sels) { let list = []; try { list = Array.from(document.querySelectorAll(sel)); } catch (e) { list = []; } for (const el of list) if (!out.includes(el)) out.push(el); } return out; };
     ${richPartReaderSource()}
-    const visible = (el) => { const r = el.getBoundingClientRect(); return r.width > 1 && r.height > 1; };
+    const visible = (el) => {
+      try {
+        const rect = el.getBoundingClientRect();
+        if (rect.width <= 1 || rect.height <= 1) return false;
+        for (let node = el; node; node = node.parentElement) {
+          if (node.hidden === true || node.inert === true || node.getAttribute?.('aria-hidden') === 'true') return false;
+          const style = getComputedStyle(node);
+          if (style.display === 'none' || style.visibility === 'hidden' || style.visibility === 'collapse'
+            || style.contentVisibility === 'hidden') return false;
+        }
+        return true;
+      } catch { return false; }
+    };
     const users = all(USER), assistants = all(ASSISTANT);
     let hiddenSkipped = 0, nestedDropped = 0, ambiguousSkipped = 0;
     const tagged = [];
