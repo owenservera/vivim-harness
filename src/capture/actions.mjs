@@ -1057,8 +1057,13 @@ export async function driveSite({ adapter, prompt, port = 9222, dataDir, record 
   let page = null;
   let openedTabId = null;
   let captureStopFailed = false;
+  // A post-dispatch failure is not proof that the provider never received the turn.
+  let sendAttempted = false;
 
   const cleanup = async () => {
+    // Retain the browser tab when a sent turn has no definitive answer.
+    // Failure or timeout cannot justify sending the same prompt again.
+    if (sendAttempted && !result.ok) result.uncertain = true;
     if (recorder) {
       try { await recorder.stop({ reason: 'drive_complete' }); }
       catch (e) { captureStopFailed = true; result.ok = false; errors.push(`recorder stop failed: ${String(e?.message ?? e)}`); }
@@ -1278,6 +1283,8 @@ export async function driveSite({ adapter, prompt, port = 9222, dataDir, record 
     else await sleep(150);
 
     let promptError = null;
+    // Arm before dispatch: a thrown acknowledgement may still follow a real send.
+    sendAttempted = true;
     const sent = await sendMessage(page, adapter, {
       verifyDispatch: async () => {
         const actual = await readableComposerText(page);
@@ -1285,6 +1292,7 @@ export async function driveSite({ adapter, prompt, port = 9222, dataDir, record 
       },
       canDispatch: () => promptError === null,
     });
+    sendAttempted = !!sent.dispatched;
     if (promptError) {
       result.reason = promptError;
       errors.push(promptError === 'composer-unreadable' ? 'composer unreadable before submission' : 'composer text does not match the prompt');
