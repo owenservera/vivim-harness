@@ -43,7 +43,7 @@ jobs:
           node --check src/studio/server.mjs
           node --check src/studio/integration-hub.mjs
       - name: Test lifecycle, CAS, recovery, capabilities and API
-        run: node --test test/unit/personal-agent-bootstrap.test.mjs test/unit/personal-agent-service.test.mjs
+        run: node --test test/unit/personal-agent-bootstrap.test.mjs test/unit/personal-agent-service.test.mjs test/unit/personal-agent-http.test.mjs test/unit/studio-ui-route-contract.test.mjs
       - name: CLI first-run and recovery smoke (temporary local data)
         run: |
           DATA_DIR="$(mktemp -d)"
