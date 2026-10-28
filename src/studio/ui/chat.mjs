@@ -1921,10 +1921,12 @@ function boot() {
       const worldModes = document.getElementById('shellModes');
       const worldChat = document.getElementById('chatApp');
       if (!worldRoot || !worldModes || !worldChat || typeof mod.mountWorldView !== 'function') return;
-      mod.mountWorldView({
+      const world = mod.mountWorldView({
         document, root: worldRoot, modes: worldModes, chat: worldChat, rich,
         announce: (m) => { const n = document.getElementById('announce'); if (n) n.textContent = m; },
       });
+      // The shortcut is disabled until the real saved-World handler has mounted.
+      if (world) $('#vivimLibrary').disabled = false;
     }).catch((err) => console.warn('saved world view unavailable', err));
   } catch (err) { console.warn('saved world view unavailable', err); }
 

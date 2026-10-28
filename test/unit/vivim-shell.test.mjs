@@ -27,7 +27,7 @@ test('VIVIM identity and accessible first-use steps are inside the ONE existing 
   assert.match(html, /id="vivimWelcome" aria-labelledby="vivimWelcomeTitle"/);
   assert.match(html, /id="vivimWelcomeStatus" role="status"/);
   assert.match(html, /id="vivimBegin"/);
-  assert.match(html, /id="vivimLibrary"/);
+  assert.match(html, /id="vivimLibrary" disabled/);
   assert.match(html, /<ol class="vivim-welcome-steps"/);
   assert.match(html, /<nav class="modes" id="shellModes"/);
   assert.match(html, /id="worldShell" class="wrap world" hidden/);
@@ -48,6 +48,7 @@ test('first-use buttons only focus/connect through existing controls and open sa
   assert.match(script, /\$\('#vivimLibrary'\)\.addEventListener\('click'/);
   assert.match(script, /const view = \$\('#viewConversations'\)/);
   assert.match(script, /renderWelcome\(snap\)/);
+  assert.match(script, /if \(world\) \$\('#vivimLibrary'\)\.disabled = false/);
   assert.match(script, /import\('\.\/world-view\.mjs'\)/);
   assert.match(script, /\$\('#btnSend'\)\.addEventListener\('click', sendMessage\)/);
   assert.doesNotMatch(html, /<iframe/i);
