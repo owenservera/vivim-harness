@@ -196,3 +196,112 @@ Source-reviewed classification reconciled against `CHATGPT-100-RECONCILED-STATUS
 - **051–090:** crucial ChatGPT-native UI primitives remain mostly absent: search, thinking mode, upload/download, artifact manipulation, Project/settings/share management. Generic local file or profile modules do not close those gaps.
 
 **Verification state:** focused V8 source-contract assertions passed, and `test/unit/conversation-rich.test.mjs` plus GitHub Actions workflow `.github/workflows/chatgpt-source-audit.yml` are committed. Latest observed GitHub Actions runs failed without retrievable job logs; the Node assertions are therefore **unverified**, and no new live scenario was run. No claim that all actionable findings are fixed; this audit is incomplete.
+
+## Source-level 001–100 individual reconciliation — 2026-10-28
+
+**This is not completion of the 100 live scenarios.** Classification is conditional **source availability**, not demonstrated user success. All rows are **source-reviewed only** here: no successful automated test execution and **no live provider run** in this audit. Historical 021 evidence remains historical; 022–023 continuity still needs real proof. CI jobs failed without any executed/recorded steps or retrievable logs; automation verification remains blocked. The explicit source/config file inventory across these three maps was **132/132 fetched in full at a pinned ancestor** plus **24 additional transitive imports** fetched later and the newly added `src/capture/conversation-rich.mjs`. This is file-retrieval coverage, not an exhausted transitive graph or per-scenario execution.
+
+| # | User objective | Source status | Actual source / nearest dependency | First missing link or remaining limitation | Verification |
+|---|---|---|---|---|---|
+| 001 | Account identity | unsupported | `conversation-browser-adapter` + `thread-identity` + browser ownership | No verified account reader | source-reviewed; tests blocked; no new live proof |
+| 002 | Authentication state | partial | `conversation-browser-adapter` + `thread-identity` + browser ownership | Auth wall only, no complete login state | source-reviewed; tests blocked; no new live proof |
+| 003 | Native thread identity | supported | `conversation-thread.parseThread` + `thread-identity.chatgptConversationClaim` | Strict native /c/ parser; host-scoped identity fix | source-reviewed; tests blocked; no new live proof |
+| 004 | Tab discovery | supported | `conversation_targets` + `cdp/discovery.listTargets` | CDP target metadata; authentication not asserted | source-reviewed; tests blocked; no new live proof |
+| 005 | Chrome-profile isolation | partial | `chrome/launch` + `browser-ownership.verifyBrowserOwner` | Browser marker only; no independent profile UI label | source-reviewed; tests blocked; no new live proof |
+| 006 | Page readiness | supported | `conversation-browser-adapter.readiness` | Readiness probe exists; live observation not repeated | source-reviewed; tests blocked; no new live proof |
+| 007 | Streaming state | partial | `conversation-thread.transcriptExpression` + ChatGPT profile selectors | Observed stop/send controls only, not network terminal | source-reviewed; tests blocked; no new live proof |
+| 008 | Ephemeral chat awareness | unsupported | `conversation-browser-adapter` + `thread-identity` + browser ownership | No ephemeral mode selector | source-reviewed; tests blocked; no new live proof |
+| 009 | Duplicate-title identity | partial | `chatgpt-chat-index` (native link ID keys) | Index uses native link IDs but not duplicate-title selection | source-reviewed; tests blocked; no new live proof |
+| 010 | UI obstruction recognition | unsupported | `conversation-browser-adapter` + `thread-identity` + browser ownership | No generalized modal/challenge classifier | source-reviewed; tests blocked; no new live proof |
+| 011 | New-chat navigation | supported | `create_conversation` → `conversation-runtime.connect` | Fresh Studio-owned unbound chat tab supported | source-reviewed; tests blocked; no new live proof |
+| 012 | Sidebar history selection | partial | `chat_index` + `chatgpt-chat-index-reader` | Title candidates; no native click/navigation | source-reviewed; tests blocked; no new live proof |
+| 013 | Deep-link navigation | supported | `drive` URL and `connect_conversation` | Exact URL/deep-link only, no new live proof | source-reviewed; tests blocked; no new live proof |
+| 014 | Cross-thread navigation | partial | `conversation_targets` + `connect_conversation` | Targets can be found but no switch-and-return command | source-reviewed; tests blocked; no new live proof |
+| 015 | Native history search | unsupported | `chat-index` + `conversation_targets` + runtime connect | No history search actuator | source-reviewed; tests blocked; no new live proof |
+| 016 | Recent-thread recovery | partial | `chat-index` + `conversation_targets` + runtime connect | No durable last-thread return shortcut | source-reviewed; tests blocked; no new live proof |
+| 017 | Long-thread traversal | unsupported | `chat-index` + `conversation_targets` + runtime connect | Rendered-tail-only read; no oldest-turn traversal | source-reviewed; tests blocked; no new live proof |
+| 018 | Scroll-to-latest | unsupported | `capture/human.humanScroll` (not exposed) | humanScroll exists but not connected to this user action | source-reviewed; tests blocked; no new live proof |
+| 019 | Sidebar expansion | unsupported | `chat-index` + `conversation_targets` + runtime connect | No sidebar expansion actuator | source-reviewed; tests blocked; no new live proof |
+| 020 | Archived-history navigation | unsupported | `chat-index` + `conversation_targets` + runtime connect | No archive-history navigation | source-reviewed; tests blocked; no new live proof |
+| 021 | First-turn delivery | supported | `create_conversation` + `submit_conversation_turn` + journal | Create/submit path exists; no fresh live acceptance | source-reviewed; tests blocked; no new live proof |
+| 022 | Same-thread follow-up | partial | `connect_conversation` + `submit_conversation_turn` + journal | Original 022 jumped threads; no re-run continuity proof | source-reviewed; tests blocked; no new live proof |
+| 023 | Long-range thread continuity | partial | `thread-turn-journal` + source-bound conversation | Journal continuity exists, not long-range verified | source-reviewed; tests blocked; no new live proof |
+| 024 | Message edit and branch awareness | unsupported | `conversation-runtime` + `thread-turn-journal` + browser adapter | No edit-and-branch UI actuator | source-reviewed; tests blocked; no new live proof |
+| 025 | Response regeneration | unsupported | `conversation-runtime` + `thread-turn-journal` + browser adapter | No regenerate UI actuator | source-reviewed; tests blocked; no new live proof |
+| 026 | Interrupt generation | unsupported | `conversation-thread` stop-selector observation | Stop state observable; no stop button actuator | source-reviewed; tests blocked; no new live proof |
+| 027 | Generation continuation | unsupported | `conversation-runtime` + `thread-turn-journal` + browser adapter | No continuation actuator | source-reviewed; tests blocked; no new live proof |
+| 028 | Conversation branching | unsupported | `conversation-runtime` + `thread-turn-journal` + browser adapter | No branch creation/ref binding | source-reviewed; tests blocked; no new live proof |
+| 029 | Conversation rename | unsupported | `conversation-runtime` + `thread-turn-journal` + browser adapter | No native rename action | source-reviewed; tests blocked; no new live proof |
+| 030 | Archive mutation | unsupported | `conversation-runtime` + `thread-turn-journal` + browser adapter | No native archive action | source-reviewed; tests blocked; no new live proof |
+| 031 | Multiline payload fidelity | supported | `actions.typeText` + site profile | Multiline typing possible; end-to-end fidelity untested | source-reviewed; tests blocked; no new live proof |
+| 032 | Unicode editing | supported | `actions.typeText` + site profile | Unicode typing possible; live script fidelity untested | source-reviewed; tests blocked; no new live proof |
+| 033 | Keyboard send action | supported | `actions.typeText` + site profile | Keyboard send primitive available | source-reviewed; tests blocked; no new live proof |
+| 034 | Keyboard newline action | partial | `actions.typeText` + site profile | No independent newline-without-send operation | source-reviewed; tests blocked; no new live proof |
+| 035 | Model selection | unsupported | `profiles/model-ops.applyModelOp` (unrelated) | Capture profile model ops are NOT ChatGPT model picker | source-reviewed; tests blocked; no new live proof |
+| 036 | Temporary Chat activation | unsupported | `actions.typeText` + site profile | No temporary-chat activation action | source-reviewed; tests blocked; no new live proof |
+| 037 | Speech input | unsupported | `actions.typeText` + site profile | No microphone input command | source-reviewed; tests blocked; no new live proof |
+| 038 | Suggestion-chip interaction | unsupported | `actions.typeText` + site profile | No suggestion chip click | source-reviewed; tests blocked; no new live proof |
+| 039 | Copy action | unsupported | `actions.typeText` + site profile | Text read possible; no native Copy button control | source-reviewed; tests blocked; no new live proof |
+| 040 | Feedback UI discovery | unsupported | `actions.typeText` + site profile | No feedback/reaction UI reader | source-reviewed; tests blocked; no new live proof |
+| 041 | Long-answer extraction | partial | `boundTranscript` + reply SSE text key | Rendered tail capped; no full multi-screen traversal | source-reviewed; tests blocked; no new live proof |
+| 042 | Role attribution | supported | `TRANSCRIPT_SELECTORS` + `boundTranscript` | Role-labelled turn boundaries; hidden history excluded | source-reviewed; tests blocked; no new live proof |
+| 043 | List structure | partial | `conversation-rich` list-item reader | List-item/depth observed; full hierarchy unproven | source-reviewed; tests blocked; no new live proof |
+| 044 | Code block fidelity | partial | `conversation-rich` code reader | Code language/text visible but clipped | source-reviewed; tests blocked; no new live proof |
+| 045 | Table semantics | partial | `conversation-rich` table reader | Table rows/cells bounded 24x16 | source-reviewed; tests blocked; no new live proof |
+| 046 | Math fidelity | partial | `conversation-rich` math reader | LaTeX only if visible in DOM | source-reviewed; tests blocked; no new live proof |
+| 047 | Quotation structure | partial | `conversation-rich` blockquote reader | Blockquote text observed; attribution unknown | source-reviewed; tests blocked; no new live proof |
+| 048 | Hyperlink extraction | partial | `conversation-rich.safeLink` | Href sanitized, query/fragment intentionally removed | source-reviewed; tests blocked; no new live proof |
+| 049 | Citation anchoring | partial | `conversation-rich` citation-candidate | Citation candidates only; no passage/source binding | source-reviewed; tests blocked; no new live proof |
+| 050 | Image-block extraction | partial | `conversation-rich` image part | Image alt and presence, not addressable image content | source-reviewed; tests blocked; no new live proof |
+| 051 | Search-tool activation | unsupported | `chatgpt` seed + `adapter-probes` + `network` | No proof native search actually ran | source-reviewed; tests blocked; no new live proof |
+| 052 | Source card reading | unsupported | `chatgpt` seed + `adapter-probes` + `network` | No source-card provenance classifier | source-reviewed; tests blocked; no new live proof |
+| 053 | Citation-source navigation | unsupported | `chatgpt` seed + `adapter-probes` + `network` | No source-card navigation tool | source-reviewed; tests blocked; no new live proof |
+| 054 | Tool-panel expansion | unsupported | `chatgpt` seed + `adapter-probes` + `network` | No panel-expansion control | source-reviewed; tests blocked; no new live proof |
+| 055 | Evidence presence | partial | `conversation-rich` citation candidates | Citation candidates but no source-vs-assertion guarantee | source-reviewed; tests blocked; no new live proof |
+| 056 | Reasoning mode awareness | unsupported | `chatgpt` seed + `adapter-probes` + `network` | No reasoning model/mode selector | source-reviewed; tests blocked; no new live proof |
+| 057 | Reasoning completion | partial | `conversation-thread` busy/idle controls | Busy/idle UI not proof reasoning terminal | source-reviewed; tests blocked; no new live proof |
+| 058 | Deep Research discovery | unsupported | `chatgpt` seed + `adapter-probes` + `network` | No Deep Research entry point discovery | source-reviewed; tests blocked; no new live proof |
+| 059 | Research job monitoring | unsupported | `chatgpt` seed + `adapter-probes` + `network` | No research-job status or reopen | source-reviewed; tests blocked; no new live proof |
+| 060 | Research report navigation | unsupported | `chatgpt` seed + `adapter-probes` + `network` | No research-report section navigator | source-reviewed; tests blocked; no new live proof |
+| 061 | File-picker input | unsupported | `studio/agentic-files.createAgenticFileLibrary` (unrelated) | No ChatGPT file picker; agentic-files is local inventory | source-reviewed; tests blocked; no new live proof |
+| 062 | Vision-file submission | unsupported | `recorder` + `agentic-files` (unrelated to upload) | No native vision upload actuator | source-reviewed; tests blocked; no new live proof |
+| 063 | PDF interpretation | unsupported | `recorder` + `agentic-files` (unrelated to upload) | No PDF attach/page-proof flow | source-reviewed; tests blocked; no new live proof |
+| 064 | Tabular file analysis | unsupported | `recorder` + `agentic-files` (unrelated to upload) | No CSV upload actuator | source-reviewed; tests blocked; no new live proof |
+| 065 | Spreadsheet rendering | unsupported | `recorder` + `agentic-files` (unrelated to upload) | No spreadsheet upload/chart flow | source-reviewed; tests blocked; no new live proof |
+| 066 | Source-file input | unsupported | `studio/agentic-files` local instruction inventory | No native source-file attachment | source-reviewed; tests blocked; no new live proof |
+| 067 | File download | unsupported | `export/export` VIVIM-local exports | Local export is NOT ChatGPT native file download | source-reviewed; tests blocked; no new live proof |
+| 068 | Attachment preview | unsupported | `recorder` + `agentic-files` (unrelated to upload) | No attachment preview opener | source-reviewed; tests blocked; no new live proof |
+| 069 | Image generation result | partial | `submit_conversation_turn` + `conversation-rich` image part | Image may be observed after prompt, not generation proof | source-reviewed; tests blocked; no new live proof |
+| 070 | Upload failure detection | unsupported | `recorder` + `agentic-files` (unrelated to upload) | No upload progress/failure state reader | source-reviewed; tests blocked; no new live proof |
+| 071 | Generated-document controls | unsupported | `conversation-rich` + `shapes/observation` + UI views | No native generated-document download control | source-reviewed; tests blocked; no new live proof |
+| 072 | Writing-artifact surface | unsupported | `conversation-rich` + `shapes/observation` + UI views | Local UI projection is not ChatGPT writing editor | source-reviewed; tests blocked; no new live proof |
+| 073 | Artifact edit | unsupported | `conversation-rich` + `shapes/observation` + UI views | No artifact edit actuator | source-reviewed; tests blocked; no new live proof |
+| 074 | Data-analysis execution provenance | partial | `capture/network` + `shapes/observation` | Captured network hints, no qualified tool-execution proof | source-reviewed; tests blocked; no new live proof |
+| 075 | Tool failure detection | partial | `capture/actions.detectSiteFailure` | Generic site failure detection, not tool failure state | source-reviewed; tests blocked; no new live proof |
+| 076 | Diagram artifact recognition | unsupported | `conversation-rich` + `shapes/observation` + UI views | No rendered-diagram type proof | source-reviewed; tests blocked; no new live proof |
+| 077 | Chart semantics | unsupported | `conversation-rich` + `shapes/observation` + UI views | Chart type hint, no axes/points extractor | source-reviewed; tests blocked; no new live proof |
+| 078 | Input-output provenance | unsupported | `conversation-rich` + `shapes/observation` + UI views | No upload-to-output provenance join | source-reviewed; tests blocked; no new live proof |
+| 079 | Code copying | partial | `conversation-rich` code-part reader | Code text extractable, native copy button missing | source-reviewed; tests blocked; no new live proof |
+| 080 | Artifact-open navigation | unsupported | `conversation-rich` + `shapes/observation` + UI views | No native attachment-open action | source-reviewed; tests blocked; no new live proof |
+| 081 | Project creation | unsupported | `chatgpt-chat-index` + World indexing | No Project creation actuator | source-reviewed; tests blocked; no new live proof |
+| 082 | Conversation-to-Project move | unsupported | `chatgpt-chat-index` + World indexing | No conversation-to-Project move | source-reviewed; tests blocked; no new live proof |
+| 083 | Project unlink | unsupported | `chatgpt-chat-index` + World indexing | No Project unlink | source-reviewed; tests blocked; no new live proof |
+| 084 | Project instructions read | unsupported | `chatgpt-chat-index` + World indexing | No Project instructions reader | source-reviewed; tests blocked; no new live proof |
+| 085 | Project file attachment | unsupported | `studio/agentic-files` (unrelated) | No Project file attachment | source-reviewed; tests blocked; no new live proof |
+| 086 | Project-specific history | unsupported | `chatgpt-chat-index` + World indexing | Project identity indexed as unknown | source-reviewed; tests blocked; no new live proof |
+| 087 | Sharing control discovery | unsupported | `chatgpt-chat-index` + World indexing | No share-link discovery | source-reviewed; tests blocked; no new live proof |
+| 088 | Share-link revocation | unsupported | `chatgpt-chat-index` + World indexing | No share-link revoke | source-reviewed; tests blocked; no new live proof |
+| 089 | Memory setting inspection | unsupported | `chatgpt-chat-index` + World indexing | No ChatGPT Memory settings reader | source-reviewed; tests blocked; no new live proof |
+| 090 | Personalization settings discovery | unsupported | `chatgpt-chat-index` + World indexing | No native Custom Instructions settings reader | source-reviewed; tests blocked; no new live proof |
+| 091 | Network loss detection | partial | `capture/actions.detectSiteFailure` | General site failures observed; no explicit offline recovery | source-reviewed; tests blocked; no new live proof |
+| 092 | Session expiration | partial | `conversation-browser-adapter.detectAuthWall` | Auth-wall detection, no reauthentication continuity proof | source-reviewed; tests blocked; no new live proof |
+| 093 | Target drift | supported | `conversation-browser-adapter.check` + drive lease | Exact target/thread recheck guards send | source-reviewed; tests blocked; no new live proof |
+| 094 | Snapshot freshness | partial | `thread-turn-journal` + `read_conversation` | Journal freshness, no reload watcher | source-reviewed; tests blocked; no new live proof |
+| 095 | Runtime reconnection | supported | `studio/tool-client` | Existing Studio tool-client reused | source-reviewed; tests blocked; no new live proof |
+| 096 | No-resend reconciliation | supported | `thread-turn-journal` + `uncertain-step-reconciler` | Journal no-resend fence + read-only reconcile | source-reviewed; tests blocked; no new live proof |
+| 097 | Rate-limit detection | partial | `capture/actions.detectSiteFailure` | Rate/usage heuristics incomplete | source-reviewed; tests blocked; no new live proof |
+| 098 | Timeout truthfulness | partial | `capture/actions.driveSite` + `conversation-events.textKey` | Post-dispatch uncertainty and capped SSE; no live terminal proof | source-reviewed; tests blocked; no new live proof |
+| 099 | Capture provenance | partial | `recorder` + `conversation-evidence` + `world-service` | Recorder/session-to-World path exists, acceptance unproven | source-reviewed; tests blocked; no new live proof |
+| 100 | Return-to-source continuity | partial | `world-service` + `world-url` + `conversation-thread` | Saved source pointer exists, native return navigation not verified | source-reviewed; tests blocked; no new live proof |
+
+**Totals:** 13 source-supported, 32 partial, 55 unsupported; **0 live-verified in this audit**. No unverified scenario is promoted by a source signature or fixture alone.
