@@ -197,6 +197,7 @@ export async function clearComposer(page) {
 // used instead of setting value/textContent, because rich composers (ProseMirror, Lexical, Slate)
 // keep their own editor state: a DOM write shows text the app does not believe exists, so Enter
 // silently does nothing. The pacing itself lives in src/capture/human.mjs.
+// @serves 031,032
 export async function typeText(page, text, { human = true, pace = DEFAULT_PACE, beforeInsert, requireEmpty = false } = {}) {
   const s = String(text ?? '');
   if (!s) return { ok: false, typed: '', method: 'none' };
@@ -262,6 +263,7 @@ async function clickStored(page, globalName) {
   return r.dispatched && !r.error;
 }
 
+// @serves 033
 async function pressEnter(page) {
   // keyDown(no text) + char('\r') + keyUp: exactly one submit, and one newline in a multi-line
   // composer. The keyDown{text}+char{text} shape submits twice (ChatGPT received the prompt
@@ -736,6 +738,7 @@ export async function isStreaming(page, adapter = null) {
   return { streaming: r.value.streaming, observed: true, evidence: r.value.evidence ?? 'none' };
 }
 
+// @serves 007,098
 export async function waitForCompletion(page, adapter = null, { timeoutMs = 120000, stableMs = 2500, pollMs = 400, baseline = null, baseCount = null, exclude = [], signal, onUpdate } = {}) {
   const startedAt = Date.now();
   let lastText = '';
@@ -853,6 +856,7 @@ export async function detectSiteFailure(page, adapter = null) {
 // ---------------------------------------------------------------------------------------------
 // Auth wall
 // ---------------------------------------------------------------------------------------------
+// @serves 002
 export async function detectAuthWall(page, adapter = null) {
   const r = await tryEval(page, String.raw`(() => { ${IN_PAGE}
     const composer = live();
@@ -1053,6 +1057,7 @@ async function closeTab(port, targetId) {
 
 // Drive one live site: resolve the tab, check the login wall, record, type, send, wait, read back.
 // Site-level problems are returned, never thrown.
+// @serves 021,022,023
 export async function driveSite({ adapter, prompt, port = 9222, dataDir, record = true, timeoutMs = 120000, humanPace = true, freshTab = true, onEvent = null } = {}) {
   const lease = acquireDriveLease({ port, holder: { kind: 'drive-job', id: `legacy-${process.pid}` } });
   const startedAt = Date.now();

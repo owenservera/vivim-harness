@@ -7,6 +7,7 @@ export const RICH_PART_KINDS = Object.freeze([
 export const RICH_PARTS_MAX = 32;
 export const RICH_PARTS_MAX_CHARS = 8192;
 
+// @serves 043,044,045,046,047,048,049,050
 export function richPartReaderSource() {
   return String.raw`
     const readRichParts = (root) => {

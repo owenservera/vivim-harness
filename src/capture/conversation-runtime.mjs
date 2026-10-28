@@ -495,6 +495,7 @@ export function createConversationRuntime({ paths, profileStore, familyStore, po
         ...(d.openIndexSession ? { openSession: d.openIndexSession } : {}),
         ...(d.evaluateIndex ? { evaluate: d.evaluateIndex } : {}) });
     },
+    // @serves 004,014
     async targets() {
       active();
       const sites = (await Promise.all(ADAPTER_IDS.map(async (id) => { const a = await d.getAdapter(id); return a ? { id, adapter: a.id, url: a.url } : null; }))).filter(Boolean);
@@ -571,6 +572,7 @@ export function createConversationRuntime({ paths, profileStore, familyStore, po
       } catch { return true; }
     },
     async bindObservedPrefix(body = {}) { return bindPrefix(body); },
+    // @serves 003,011,093
     async connect(body = {}) {
       active();
       if (body.prefixSource !== undefined) return connectPrefix(body);
@@ -657,6 +659,7 @@ export function createConversationRuntime({ paths, profileStore, familyStore, po
           ...(leaseReleaseError ? { leaseReleaseError } : {}) });
       }
     },
+    // @serves 021,022,023,098
     async submit(id, body = {}) {
       active();
       if (typeof body.key !== 'string' || !body.key || body.key.length > 200 || typeof body.prompt !== 'string' || !body.prompt.trim() || body.prompt.length > 250000) throw fail(400, 'INVALID_SUBMISSION');

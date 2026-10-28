@@ -12,6 +12,7 @@ const UUID_ONLY = new RegExp(`^${UUID}$`);
 export const THREAD_SITES = Object.freeze(['chatgpt']);
 export const threadSupported = (siteId) => THREAD_SITES.includes(siteId);
 
+// @serves 003,009,013,100
 export function parseThread(siteId, url) {
   if (siteId !== 'chatgpt') return null;
   let parsed;
@@ -93,6 +94,7 @@ export function turnObservationExpression(adapter = {}) {
 // property. Draft handling reports presence and length only, never the draft text. `controls` is the
 // same positive-idle proof the turn reader uses, so an observed-prefix read can refuse a spinner
 // instead of inferring completion from a missing one.
+// @serves 007,042
 export function transcriptExpression({ userSelectors = TRANSCRIPT_SELECTORS.user, assistantSelectors = TRANSCRIPT_SELECTORS.assistant,
   composerSelectors = [], streamingSelectors = [], sendSelectors = [], perMessageCap = TRANSCRIPT_LIMITS.perMessageCap, scanLimit = TRANSCRIPT_LIMITS.scanLimit } = {}) {
   return `(() => {
@@ -156,6 +158,7 @@ export function transcriptExpression({ userSelectors = TRANSCRIPT_SELECTORS.user
 const count = (n) => (Number.isSafeInteger(n) && n >= 0 ? n : 0);
 
 // Applies the caller's bounds to the page result and reports coverage without claiming completeness.
+// @serves 041
 export function boundTranscript(rawResult, { maxMessages = TRANSCRIPT_LIMITS.maxMessages.default, maxChars = TRANSCRIPT_LIMITS.maxChars.default,
   perMessageCap = TRANSCRIPT_LIMITS.perMessageCap } = {}) {
   const source = Array.isArray(rawResult?.messages) ? rawResult.messages : [];

@@ -39,6 +39,7 @@ export function checkBrowserOwner({ profileDir, port, version, marker } = {}) {
   return { verified: true, profilePath, browserIdentity: expected };
 }
 
+// @serves 005
 export async function verifyBrowserOwner({ profileDir, port, version } = {}) {
   const markerPath = browserMarkerPath(profileDir);
   let marker = null;

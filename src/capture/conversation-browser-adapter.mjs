@@ -111,6 +111,7 @@ export function createConversationBrowserAdapter({ paths, profileStore, familySt
   function requireRecording() {
     if (!recorder?.page || recorder.state !== 'recording') throw problem('CAPTURE_NOT_ACTIVE');
   }
+  // @serves 006
   async function readiness(end) {
     const blocked = (reason, draft = { present: null, chars: null }) => ({ ready: false, reason, draft });
     let lastReason = null; // Reset every tick: an earlier sample must never become the timeout verdict.

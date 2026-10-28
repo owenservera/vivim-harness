@@ -159,6 +159,7 @@ export class DomObserver {
 
 // Preserve typed answer blocks with the SAME local privacy setting as turn text.
 // Filtered captures must sanitize link/citation/media URLs at every nesting level.
+// @serves 048
 export function scrubBlocks(blocks, privacy) {
   const scrub = (obj) => {
     for (const key of ['text', 'alt', 'label', 'tex']) if (typeof obj[key] === 'string') obj[key] = privacy.text(obj[key]).text;

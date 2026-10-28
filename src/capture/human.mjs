@@ -184,6 +184,7 @@ async function dispatchBackspace(page) {
 // ---------------------------------------------------------------------------------------------
 // Typing
 // ---------------------------------------------------------------------------------------------
+// @serves 031,032
 export async function humanType(page, text, { pace = DEFAULT_PACE, human = false, beforeInsert } = {}) {
   const startedAt = Date.now();
   const p = paceOf(pace);
@@ -394,6 +395,7 @@ async function viewportCenter(page) {
   return { x: 400, y: 300 };
 }
 
+// @serves 018
 export async function humanScroll(page, { deltaY = -240, steps = 6, x, y } = {}) {
   const total = Number(deltaY) || 0;
   const n = Math.max(1, Math.floor(Number(steps) || 1));

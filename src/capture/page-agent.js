@@ -148,6 +148,7 @@
 
   // ---- structured content blocks ----------------------------------------------------------
   const FILE_EXT = /\.(pdf|zip|csv|xlsx?|docx?|pptx?|txt|json|md|png|jpe?g|gif|mp3|mp4|wav|tar|gz)(\?|#|$)/i;
+  // @serves 049
   function inlines(el) {
     const out = [];
     const walk = (n) => {
@@ -169,6 +170,7 @@
   }
   const texOf = (el) => (el.querySelector('annotation[encoding="application/x-tex"]')?.textContent || el.getAttribute('data-tex') || el.textContent || '').trim();
   const cellText = (c) => (c.innerText || c.textContent || '').trim();
+  // @serves 043,044,045,046,047,050
   function blocks(root, depth = 0) {
     const out = [];
     if (!root || depth > 12) return out;
@@ -217,6 +219,7 @@
   // ---- conversation-like turns (generic: any attribute whose value is a role word) -------
   const ROLE_WORDS = new Set(['user', 'assistant', 'human', 'ai', 'model', 'bot', 'system', 'tool']);
   const SKIP_ATTR = new Set(['class', 'id', 'style', 'href', 'src', 'type', 'name', 'value', 'placeholder', 'aria-label', 'title', 'alt']);
+  // @serves 042
   function turns() {
     const cands = [];
     for (const el of document.querySelectorAll('body *')) {

@@ -4,6 +4,7 @@ import { CONVERSATION_TOOLS, validateConversationTool } from './conversation-too
 
 const failure = (code, status, effect = 'none') => Object.assign(new Error(code), { code, status, effect, retry: false });
 const safeCode = (code) => typeof code === 'string' && /^[A-Z][A-Z0-9_]{0,79}$/.test(code);
+// @serves 095
 export function createStudioToolClient(options = {}) {
   if (!options || typeof options !== 'object' || Array.isArray(options)
     || Object.keys(options).some((key) => !['port', 'token', 'fetch', 'timeoutMs'].includes(key))) throw failure('INVALID_STUDIO_CLIENT', 400);

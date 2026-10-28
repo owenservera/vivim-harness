@@ -35,6 +35,7 @@ const TERMINAL_KINDS = new Set(['done', 'fail', 'ws.close']);
 const round3 = (n) => Math.round(n * 1000) / 1000;
 function newTiming() { return Object.fromEntries(TIMING_SECTIONS.map((k) => [k, { count: 0, lastMs: 0, maxMs: 0, totalMs: 0 }])); }
 
+// @serves 021,091,099
 export class Recorder extends EventEmitter {
   constructor({
     sessionsDir, profileStore, familyStore = null, port = 9222, rawOptions = {}, allBodies = false,

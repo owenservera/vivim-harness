@@ -17,6 +17,7 @@ export function defaultDataDir(env = process.env, platform = process.platform) {
   return path.join(xdg && path.isAbsolute(xdg) ? xdg : path.join(os.homedir(), '.local', 'share'), 'aion-capture-studio');
 }
 
+// @serves 005
 export function dataPaths(dataDir = defaultDataDir()) {
   return {
     root: dataDir,

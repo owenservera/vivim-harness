@@ -237,6 +237,7 @@ function readHistory(file, { io, failures }) {
 /**
  * Build + write one bounded checkpoint. Best-effort by contract: callers catch write failures.
  * Returns a summary (never the private bodies) so a runtime can expose failure state honestly.
+// @serves 099
  */
 export function captureConversationEvidence({ directory, id, view, journal = null, journalError = null, trigger = 'turn',
   paths = {}, timeline = [], limits = {}, io = fs, now = nowIso } = {}) {

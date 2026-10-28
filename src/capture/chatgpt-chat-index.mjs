@@ -147,6 +147,7 @@ function containerState(labels) {
 // Applies the caller's bounds to the raw page result. The page origin is checked before anything else.
 // Deterministic: DOM-first-seen candidate order; identical input always yields identical output.
 // Never throws on hostile page data.
+// @serves 009,012,086
 export function normalizeChatIndex(raw, options = {}) {
   const o = chatIndexOptions(options);
   const skipped = Object.fromEntries(CHAT_INDEX_SKIP_CODES.map((code) => [code, 0]));

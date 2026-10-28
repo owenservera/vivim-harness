@@ -154,6 +154,7 @@ function validSnapshot(s, threadKey) {
   return true;
 }
 
+// @serves 022,023,094,096
 export function createThreadTurnJournal({ dataDir, namespace, origin, thread, admissionMode = 'interactive-ready', io = fs } = {}) {
   const threadKey = canonicalThreadKey({ namespace, origin, thread });
   if (!ADMISSION_MODES.includes(admissionMode)) throw error('INVALID_ADMISSION_MODE');

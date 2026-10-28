@@ -94,6 +94,7 @@ export function createWorldService({ paths, isSessionActive = () => false }) {
       const selected = page(mode === 'imported' ? imported : mode === 'all' ? [...observed, ...imported] : observed, q);
       return { ...selected, metadataEnumerated: rows.length, custody: mode };
     },
+    // @serves 016,099,100
     conversation(id) {
       const imported = importedConversation(id);
       if (imported) return { ...conversationMetadata(id),

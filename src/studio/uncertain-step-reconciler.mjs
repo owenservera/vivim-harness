@@ -21,6 +21,7 @@ const outcome = (verdict, reason, evidence = []) => Object.freeze({
 // Binding MUST have been durably recorded before effect dispatch, not reconstructed afterward.
 // Bindings marked `trusted-pre-effect` are a claimed trust boundary; the caller must verify
 // their provenance from local durable effect-owner records before invoking this function.
+// @serves 096
 export function reconcileUncertainStep({ run, stepKey, journal, intentBinding } = {}) {
   if (run?.schema !== 'capture-studio.harness-run/1' || !Array.isArray(run.steps))
     return outcome('still_unknown', 'RUN_INVALID_OR_UNAVAILABLE');

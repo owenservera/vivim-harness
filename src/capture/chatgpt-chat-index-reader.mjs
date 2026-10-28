@@ -105,6 +105,7 @@ const pathKind = (page) => (page.path === '/' || page.path === '' || /^\/new\/?$
  * Returns { targetId, origin, readAt, index, context }; `index.complete` is always false.
  * Errors (all carry { status, code }, never page text or URLs): 400 INVALID_CHAT_INDEX_REQUEST|OPTIONS,
  * 503 BROWSER_UNAVAILABLE, 404 TARGET_NOT_FOUND, 409 TARGET_SITE_MISMATCH|BINDING_CHANGED|INDEX_EVAL_FAILED|INDEX_READ_FAILED.
+// @serves 012
  */
 export async function readChatIndex(request, deps = {}) {
   const { targetId, port, options, expression } = validate(request, deps);

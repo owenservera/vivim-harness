@@ -32,6 +32,7 @@ export async function browserVersion(opts) {
   return getJson(`${endpointBase(opts)}/json/version`);
 }
 
+// @serves 004
 export async function listTargets(opts) {
   return (await listAllTargets(opts)).filter((t) => t?.type === 'page');
 }

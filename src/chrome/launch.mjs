@@ -96,6 +96,7 @@ export async function launchChrome({ profileDir, port = 9222, url = 'about:blank
 
 // Attach if DevTools is already listening, otherwise launch and wait for it. Retries the launch
 // once, because a profile that was closed uncleanly can refuse the first start.
+// @serves 005
 export async function ensureChrome({ profileDir, port = 9222, url = 'about:blank', headless = false, extraArgs = [], attempts = 2, readyTimeoutMs = 20_000 } = {}) {
   let last;
   for (let i = 1; i <= attempts; i++) {
