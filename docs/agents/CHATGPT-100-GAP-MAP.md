@@ -2,7 +2,9 @@
 
 ## 2026-10-28 gap reconciliation
 
-The [001–100 objective matrix](CHATGPT-100-RECONCILED-STATUS.md) supersedes any blanket “no source” classification that overlooks newly exposed existing controls. Current source-level rollup is **10 supported / 22 partial / 68 unsupported**; no new live or automated execution proof was obtained in this pass. The added [101–200 roadmap objectives](CHATGPT-200-ROADMAP-OBJECTIVES.md) are unverified future user goals.
+**Latest-main correction:** `src/capture/conversation-rich.mjs` is wired into `src/capture/conversation-thread.mjs` for bounded read-only DOM parts. Objectives **043–048 and 050** are now **partial** in the [matrix](CHATGPT-100-RECONCILED-STATUS.md), not unsupported; citation anchoring **049** remains unsupported. This is synthetic/source evidence, **not live provider verification**.
+
+The [001–100 objective matrix](CHATGPT-100-RECONCILED-STATUS.md) supersedes any blanket “no source” classification that overlooks newly exposed existing controls. Current source-level rollup is **10 supported / 29 partial / 61 unsupported**; no new live or automated execution proof was obtained in this pass. The added [101–200 roadmap objectives](CHATGPT-200-ROADMAP-OBJECTIVES.md) are unverified future user goals.
 
 - **Closed: capability visibility through named tools** — `conversation_capsule` delegates read-only to the already implemented runtime capsule. The `conversation.capabilities` recipe is one native command; its result is advisory and never bypasses effect-time gates. Unit-test changes were authored, not run here.
 - **Corrected: blank new conversation** — `create_conversation` exists on updated `main` and delegates to the existing Studio browser owner. Do not recreate this primitive. It does not prove native thread identity until `/c/<uuid>` is observed.
@@ -75,7 +77,7 @@ Do not fabricate completion, selectors or browser evidence. Do not implement a s
 
 ## 001–100 individual reconciliation — 2026-10-28
 
-Source-reviewed classification reconciled against `CHATGPT-100-RECONCILED-STATUS.md` (10 supported / 22 partial / 68 unsupported) after source inspection, including later concurrent additions beyond the initial 132-path tree. **Supported/partial describes code availability, NOT 100 live scenario passes.** `source` means source reviewed, `isolated` is non-browser behavioral testing in this audit, and `historical-live` is a previously recorded probe, not a new live run. Open gaps are blocked on the named missing UI primitives, end-to-end integration, or actual local Chrome access. No simulated browser success is claimed.
+Source-reviewed classification reconciled against `CHATGPT-100-RECONCILED-STATUS.md` (10 supported / 29 partial / 61 unsupported) after source inspection, including later concurrent additions beyond the initial 132-path tree. **Supported/partial describes code availability, NOT 100 live scenario passes.** `source` means source reviewed, `isolated` is non-browser behavioral testing in this audit, and `historical-live` is a previously recorded probe, not a new live run. Open gaps are blocked on the named missing UI primitives, end-to-end integration, or actual local Chrome access. No simulated browser success is claimed.
 
 | # | User objective | Implementation / dependency | Source status | Remaining concrete gap / improvement | Verification |
 |---|---|---|---|---|---|
