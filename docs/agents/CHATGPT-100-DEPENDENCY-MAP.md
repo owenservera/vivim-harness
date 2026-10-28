@@ -179,3 +179,11 @@ Known unclosed dependency groups include the dynamic/conditional downstream bran
 ## Updated mapped-path fetch ledger — 2026-10-28
 
 After concurrent reconciliation commits expanded references in the three source/dependency/gap maps, the combined unique backticked `src/`, `bin/`, `profiles/`, and `test/` `.mjs`/`.js`/`.json` source paths numbered **181**. **181/181 referenced paths were fetched and inspected for source imports, exports, registration surfaces and role in the runtime**: 132 from the original three-map snapshot plus 49 subsequently referenced paths, each fetched from the current GitHub `main`. This is a fetch/source-inspection ledger, **not** 181 live runtime traces, complete reverse-call coverage, or evidence that every transitive dependency in unrelated subsystems was read. Unresolved scenario controls and follow-up test requirements are in `CHATGPT-100-RECONCILED-STATUS.md` and `CHATGPT-100-GAP-MAP.md`.
+
+## 2026-10-28 — hidden-DOM and idle-evidence dependency correction
+
+1. `src/capture/conversation-rich.mjs:richPartReaderSource` → `src/capture/conversation-thread.mjs:transcriptExpression` → `boundTranscript` → `src/capture/conversation-browser-adapter.mjs:readTranscript` → Studio `read_conversation`: direct read-only semantic observation. Nested hidden descendants are dropped with bounded omission accounting; read remains partial/page-visible.
+2. `src/capture/conversation-thread.mjs:turnObservationExpression` → `src/capture/conversation-browser-adapter.mjs:readPrefixPage` / reconciliation → `src/capture/thread-turn-journal.mjs:validReadiness`: presence of an empty draft and absence of Stop are no longer promoted to positive idle evidence. This preserves the journal fence when UI-state evidence is insufficient.
+3. Regression files `test/unit/conversation-rich.test.mjs` and `test/unit/conversation-thread.test.mjs` now probe hidden ancestor and no-false-idle cases. Actual fetched sources passed **10 isolated JS V8 assertions**; Node tests and Chrome have not passed here.
+
+Mechanical coverage against the repository tree: 195/195 `src/bin/profiles` JS/JSON files fetched and import/export scanned. This is broader than the earlier 181-file mapped-path ledger but does not certify exhaustive reverse callers, dynamic imports or real browser behavior.
