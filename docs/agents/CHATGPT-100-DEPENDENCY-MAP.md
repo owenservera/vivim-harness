@@ -175,3 +175,7 @@ The three companion maps explicitly referenced **132 distinct** `bin/`, `src/` a
 | `conversation-events.createConversationEvents` → `textProjection` / `textKey` | **Direct event read-model** | Same-length tail edits behind the SSE wire cap generate a new bounded snapshot; no implied terminal completion |
 
 Known unclosed dependency groups include the dynamic/conditional downstream branches of `src/capture/actions.mjs`, `src/studio/server.mjs`, `src/replay/derive.mjs`, and transitive scoring/decode/plugin plumbing. All 100 *source-availability* classifications are in `CHATGPT-100-GAP-MAP.md`; automated CI jobs failed before recording test steps and no new live run was performed.
+
+## Updated mapped-path fetch ledger — 2026-10-28
+
+After concurrent reconciliation commits expanded references in the three source/dependency/gap maps, the combined unique backticked `src/`, `bin/`, `profiles/`, and `test/` `.mjs`/`.js`/`.json` source paths numbered **181**. **181/181 referenced paths were fetched and inspected for source imports, exports, registration surfaces and role in the runtime**: 132 from the original three-map snapshot plus 49 subsequently referenced paths, each fetched from the current GitHub `main`. This is a fetch/source-inspection ledger, **not** 181 live runtime traces, complete reverse-call coverage, or evidence that every transitive dependency in unrelated subsystems was read. Unresolved scenario controls and follow-up test requirements are in `CHATGPT-100-RECONCILED-STATUS.md` and `CHATGPT-100-GAP-MAP.md`.
