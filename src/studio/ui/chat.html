@@ -548,6 +548,50 @@ body.vivim-app {
   .vivim-app .vivim-welcome-card { padding: 19px; }
 }
 
+
+/* Project gallery inspired by the VIVIM project-board reference. Thumbnails are
+   decorative gradients, not inferred covers or provider-derived media. */
+.vivim-app #worldList:has(.vivim-record-list-projects) { min-width: 0; }
+.vivim-app .vivim-record-list { list-style: none; padding: 0; }
+.vivim-app #worldItems .vivim-record-list-projects {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 13px;
+}
+.vivim-app #worldItems .vivim-record-list-projects li { min-width: 0; }
+.vivim-app #worldItems .vivim-record-list-projects .vivim-project-card {
+  display: flex; flex-direction: column; text-align: left; align-items: stretch; overflow: hidden;
+  height: 100%; min-height: 210px; border-radius: 14px; padding: 0; gap: 0;
+  background: #101c2f; border: 1px solid #34506f;
+  box-shadow: 0 12px 26px #050b19aa;
+}
+.vivim-app #worldItems .vivim-record-list-projects .vivim-project-card:hover {
+  border-color: #70a6fa; transform: translateY(-2px); background: #172944;
+}
+.vivim-app #worldItems .vivim-record-list-projects .vivim-project-card[aria-current="true"] {
+  border-color: #96c4ff; box-shadow: 0 0 0 2px #387cdb55; background: #162b48;
+}
+.vivim-app .vivim-card-art { display: flex; align-items: center; justify-content: center; position: relative;
+  min-height: 108px; width: 100%; overflow: hidden; isolation: isolate; }
+.vivim-app .vivim-card-art::before { content: ""; position: absolute; inset: -10%; z-index: -1;
+  opacity: .85; background: radial-gradient(ellipse at 70% 20%, #ffffff44, transparent 40%); }
+.vivim-app .vivim-card-art::after { content: ""; position: absolute; inset: 40% -10% -45%; z-index: -1;
+  opacity: .75; border-radius: 50%; background: #07132688; transform: rotate(-13deg); }
+.vivim-app .vivim-card-art-mark { font-size: 38px; color: #eff7ff99; text-shadow: 0 0 23px #e9f4ffb9; }
+.vivim-app .vivim-card-art-0 { background: linear-gradient(140deg, #7b99db, #35438c 48%, #202244); }
+.vivim-app .vivim-card-art-1 { background: linear-gradient(145deg, #b99c6c, #574d49 52%, #192a45); }
+.vivim-app .vivim-card-art-2 { background: linear-gradient(135deg, #789ea0, #254a62 52%, #14243d); }
+.vivim-app .vivim-card-art-3 { background: linear-gradient(155deg, #7b53aa, #29377b 55%, #111931); }
+.vivim-app .vivim-card-art-4 { background: linear-gradient(135deg, #598a72, #1e554e 53%, #123c4b); }
+.vivim-app .vivim-card-art-5 { background: linear-gradient(145deg, #c79b76, #5e5b76 50%, #212c4a); }
+.vivim-app .vivim-card-content { display: flex; flex-direction: column; flex: 1; gap: 8px; padding: 14px; }
+.vivim-app .vivim-card-content .conv-title { font-size: 14px; font-weight: 730; }
+.vivim-app .vivim-card-content .note { font-size: 11px; line-height: 1.45; color: #9fb1cd; }
+.vivim-app .vivim-card-footer { margin-top: auto; color: #84ddbe; font-size: 11px; }
+.vivim-app .vivim-record-list-notes .rowbtn { padding: 15px; }
+.vivim-app .vivim-record-list-conversations .rowbtn { padding: 13px 15px; }
+@media (prefers-reduced-motion: reduce) {
+  .vivim-app #worldItems .vivim-record-list-projects .vivim-project-card:hover { transform: none; }
+}
+
 </style>
 </head>
 <body class="vivim-app">

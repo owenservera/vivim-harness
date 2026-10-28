@@ -96,3 +96,13 @@ test('World navigation keeps the visible breadcrumb synchronized', () => {
   assert.match(worldSource, /relations: 'Relations', workspace: 'Workspace'/);
   assert.match(worldSource, /breadcrumb\.textContent = 'Your AI World \/ ' \+/);
 });
+
+test('projects render source-bound cards with decorative, non-invented covers', () => {
+  const worldSource = readFileSync(new URL('../../src/studio/ui/world-view.mjs', import.meta.url), 'utf8');
+  assert.match(worldSource, /vivim-record-list-projects/); // constructed from current real state.view
+  assert.match(worldSource, /vivim-card-art-'/);
+  assert.match(worldSource, /Local project · saved grouping/);
+  assert.match(worldSource, /openItem\(state\.view, item\.id\)/);
+  assert.match(html, /Project gallery inspired by the VIVIM project-board reference/);
+  assert.doesNotMatch(worldSource, /https:\/\/images\.unsplash\.com|randomuser\.me/);
+});

@@ -868,8 +868,8 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
       itemsNode.replaceChildren(el('p', { class: 'empty', text: empty[state.view] }));
       return;
     }
-    const ul = el('ul', { class: 'plain' });
-    for (const item of list.items) {
+    const ul = el('ul', { class: 'plain vivim-record-list vivim-record-list-' + state.view });
+    for (const [index, item] of list.items.entries()) {
       if (!item || typeof item.id !== 'string') continue;
       const current = state.selected[state.view] === item.id;
       const meta = state.view === 'conversations'
@@ -877,9 +877,19 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
         : state.view === 'projects'
           ? `Links ${item.conversationIds?.length ?? 0} saved conversations, ${item.noteIds?.length ?? 0} notes, and ${item.memberIds?.length ?? 0} other records.`
           : `You wrote this${Array.isArray(item.commentsOn) && item.commentsOn.length ? ` · comments on ${item.commentsOn.length}` : ''}${Number.isInteger(item.version) ? ` · version ${item.version}` : ''}.`;
-      const button = el('button', { type: 'button', class: 'rowbtn', 'aria-current': current ? 'true' : null }, [
-        el('span', { class: 'conv-title', text: item.title || item.id }),
-        el('span', { class: 'note', text: meta }),
+      const isProject = state.view === 'projects';
+      const button = el('button', {
+        type: 'button', class: 'rowbtn vivim-record-card' + (isProject ? ' vivim-project-card' : ''),
+        'aria-current': current ? 'true' : null,
+      }, [
+        ...(isProject ? [el('span', {
+          class: 'vivim-card-art vivim-card-art-' + (index % 6), 'aria-hidden': 'true',
+        }, [el('span', { class: 'vivim-card-art-mark', text: '✦' })])] : []),
+        el('span', { class: 'vivim-card-content' }, [
+          el('span', { class: 'conv-title', text: item.title || item.id }),
+          el('span', { class: 'note', text: meta }),
+          ...(isProject ? [el('span', { class: 'vivim-card-footer', text: 'Local project · saved grouping' })] : []),
+        ]),
       ]);
       on(button, 'click', () => openItem(state.view, item.id));
       ul.append(el('li', {}, [button]));
