@@ -4,6 +4,7 @@ import { existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { TOOL_ROOT } from '../config.mjs';
 import { createWork, transitionWork, workSummary } from './personal-agent-work.mjs';
+import { buildSelfKnowledge, SELF_KNOWLEDGE_TOPICS } from './personal-agent-self-knowledge.mjs';
 import { VersionedStore } from '../store/versioned.mjs';
 import { createAgenticFileLibrary } from '../studio/agentic-files.mjs';
 import { problem, storeProblem } from '../studio/http.mjs';
@@ -76,6 +77,36 @@ export function createPersonalAgentService({ paths, skillsRoot = TOOL_ROOT, getT
         availability: 'registered; runtime operation not tested' })),
       limitations: 'Inventory and route registration do not prove authorization, installation or successful live execution.',
     };
+  }
+  function worldInventory() {
+    const dir = path.join(paths.root, 'world');
+    if (!existsSync(dir)) return { state: 'not-initialized', projects: 0, notes: 0, evidence: ['local:world/uninitialized'] };
+    const world = new VersionedStore(dir, { kind: 'world item' });
+    const names = world.names();
+    return {
+      state: 'enumerated', projects: names.filter(name => name.startsWith('p-')).length,
+      notes: names.filter(name => name.startsWith('n-')).length,
+      evidence: [`local:world/index-${sha(names.join('|'))}`],
+    };
+  }
+  function selfKnowledge(topic = 'all') {
+    if (topic !== 'all' && !SELF_KNOWLEDGE_TOPICS.includes(topic)) throw bad('Unknown self-knowledge topic', 'PERSONAL_AGENT_TOPIC_INVALID');
+    const agent = status();
+    let skills = null;
+    if (topic === 'capabilities' || topic === 'all') {
+      const view = capabilities();
+      skills = { skillsDiscovered: view.skills.items.length,
+        toolsRegistered: view.tools.length,
+        sourceCoverageComplete: view.skills.coverage.complete,
+        readOnlyToolsRegistered: view.tools.filter(t => t.readOnly).length,
+        evidence: [`local:agentic-files/index-${sha(view.skills.items.map(item => item.id).join('|'))}`],
+      };
+    }
+    return buildSelfKnowledge({
+      topic, agent,
+      world: topic === 'world' || topic === 'all' ? worldInventory() : { state: 'not-inspected' },
+      skills, at: clock(),
+    });
   }
   function evidenceFor(stage, state) {
     if (stage === BOOTSTRAP_STAGES[0]) return {
@@ -205,8 +236,13 @@ export function createPersonalAgentService({ paths, skillsRoot = TOOL_ROOT, getT
     return state;
   }
   function createWorkItem({ expectedVersion, title, objective, idempotencyKey } = {}) {
-    const state = requireWorkVersion(expectedVersion);
+    // A response lost after commit may be retried with its original stale version.
+    // Return the existing same-key/same-payload item, never create a duplicate.
+    const state = read();
+    if (!state) throw problem(404, 'Initialize Personal Agent first', 'PERSONAL_AGENT_NOT_INITIALIZED');
+    if (!Number.isSafeInteger(expectedVersion) || expectedVersion < 1) throw bad('expectedVersion required', 'PERSONAL_AGENT_EXPECTED_VERSION');
     const result = createWork(state, { title, objective, idempotencyKey, now: clock() });
+    if (state.version !== expectedVersion && result.changed) throw problem(409, 'Work version changed; refresh first', 'PERSONAL_AGENT_VERSION_CONFLICT');
     if (result.changed) versioned(result.state, state.version, 'User-created Work item');
     return { ...status(), item: result.item, replayed: !result.changed };
   }
@@ -216,5 +252,5 @@ export function createPersonalAgentService({ paths, skillsRoot = TOOL_ROOT, getT
     versioned(result.state, state.version, `User Work transition: ${to}`);
     return { ...status(), item: result.item };
   }
-  return { status, initialize, bootstrap, capabilities, memories, remember, forget, workList, createWorkItem, transitionWorkItem };
+  return { status, initialize, bootstrap, capabilities, selfKnowledge, memories, remember, forget, workList, createWorkItem, transitionWorkItem };
 }
