@@ -9,7 +9,7 @@ export const PAGE_LIMIT = 50;
 export const VIEWS = Object.freeze(['conversations', 'projects', 'notes']);
 export const FIND_KINDS = Object.freeze(['message', 'project', 'note', 'source-reference', 'selection']);
 const FIND_LABELS = { message: 'Messages', project: 'Projects', note: 'Notes', 'source-reference': 'Local objects', selection: 'Selections' };
-const SHELL_VIEWS = new Set(['capture', 'find', 'transfer', 'relations', 'workspace', ...VIEWS]);
+const SHELL_VIEWS = new Set(['capture', 'home', 'settings', 'find', 'transfer', 'relations', 'workspace', ...VIEWS]);
 const STANDARD_RELATION_BASIS = 'local association; not native equality';
 const EXPORT_MODE_LABEL = { references: 'References only — no message text', transcript: 'Transcript — saved message text and simple formatting', 'full-saved': 'Full saved — every recorded block' };
 const EXPORT_OMIT_LABEL = { 'reasoning-blocks-excluded': 'Saved reasoning blocks left out', 'tool-activity-blocks-excluded': 'Tool and status activity blocks left out', 'non-transcript-blocks-excluded': 'Blocks Studio does not recognize left out' };
@@ -703,6 +703,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     selectionSave: { projectId: '', newTitle: '', busy: false, notice: '', pending: null, savedKeys: new Set(), lastLinked: null, noteTitle: '', noteBody: '', noteStatus: '' },
     find: { query: '', kind: '', items: [], total: null, nextOffset: null, coverage: null, error: '', status: '', loading: false, recordId: null },
     custody: 'observed',
+    settings: { tab: 'providers', sites: [], loaded: false, loading: false, error: '' },
     relations: { id: '', typed: '', map: null, error: '', status: '', loading: false, recordId: null },
     workspace: { id: '', typed: '', map: null, error: '', status: '', loading: false, item: null, readingId: '', readingNode: null, readingError: '', readingLoading: false },
     transfer: {
@@ -791,7 +792,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     const breadcrumb = doc.getElementById?.('vivimViewBreadcrumb');
     if (breadcrumb) {
       const titles = {
-        capture: 'Chat', conversations: 'Saved conversations', projects: 'Projects',
+        capture: 'Chat', home: 'Home', settings: 'Settings', conversations: 'Saved conversations', projects: 'Projects',
         notes: 'Notes', find: 'Find', transfer: 'Transfer',
         relations: 'Relations', workspace: 'Workspace',
       };
@@ -807,6 +808,159 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     grid.append(listPane, detailPane);
     root.replaceChildren(grid);
   }
+
+  // Home is a read-only projection of the SAME local World lists. No new store or
+  // default project, account identity, provider operation or network actor.
+  function renderHome() {
+    ensureFrame();
+    const heading = el('div', { class: 'vivim-section-head' }, [
+      el('span', { class: 'vivim-eyebrow', text: 'YOUR PERSONAL WORLD' }),
+      el('h2', { text: 'Good to see you. Pick up where you left off.' }),
+      el('p', { class: 'note', text: 'Saved locally in this Harness. Counts only describe loaded local records, not remote provider history.' }),
+    ]);
+    const cards = el('div', { class: 'vivim-overview-grid', id: 'vivimOverview' });
+    for (const [kind, title, detail] of [
+      ['conversations', 'Saved conversations', 'Read recorded and imported snapshots'],
+      ['projects', 'Projects', 'Organize saved material'],
+      ['notes', 'Notes', 'Your authored knowledge'],
+    ]) {
+      const list = state.lists[kind];
+      const count = list.loaded ? String(list.total) : list.loading ? '…' : '—';
+      const card = el('button', { type: 'button', class: 'vivim-overview-card' }, [
+        el('span', { class: 'vivim-overview-icon', 'aria-hidden': 'true', text: kind === 'conversations' ? '▤' : kind === 'projects' ? '▦' : '▧' }),
+        el('span', { class: 'vivim-overview-number', text: count }),
+        el('strong', { text: title }),
+        el('span', { class: 'note', text: detail }),
+      ]);
+      on(card, 'click', () => choose(kind));
+      cards.append(card);
+    }
+    const actions = el('div', { class: 'vivim-home-actions' }, [
+      el('h3', { text: 'Quick actions' }),
+    ]);
+    for (const [view, title] of [
+      ['capture', 'Start a conversation'], ['find', 'Find saved content'],
+      ['workspace', 'Explore workspace'], ['relations', 'Explore relationships'],
+    ]) {
+      const action = el('button', { type: 'button', text: title });
+      on(action, 'click', () => choose(view));
+      actions.append(action);
+    }
+    const recent = el('section', { class: 'vivim-home-recent' }, [el('h3', { text: 'Recent saved conversations' })]);
+    const recents = state.lists.conversations;
+    if (!recents.loaded) recent.append(el('p', { class: 'note', text: 'Checking your saved local conversations…' }));
+    else if (!recents.items.length) recent.append(el('p', { class: 'empty', text: 'No saved conversations here yet. Connect in Chat and choose what to record.' }));
+    else {
+      const list = el('ul', { class: 'plain' });
+      for (const item of recents.items.slice(0, 5)) {
+        if (!ID_RE.conversations.test(item?.id || '')) continue;
+        const button = el('button', { type: 'button', class: 'rowbtn', text: item.title || item.id });
+        on(button, 'click', () => openItem('conversations', item.id));
+        list.append(el('li', {}, [button]));
+      }
+      recent.append(list);
+    }
+    listPane.replaceChildren(heading, cards, recent);
+    detailPane.replaceChildren(actions,
+      el('div', { class: 'vivim-info-card' }, [
+        el('h3', { text: 'Your AI, your data' }),
+        el('p', { class: 'note', text: 'Conversations belong to the providers where they were created. VIVIM keeps observed and imported local records separate and never assumes a verified provider account.' }),
+      ]));
+  }
+
+  function renderSettings() {
+    ensureFrame();
+    const config = state.settings;
+    const head = el('div', { class: 'vivim-section-head' }, [
+      el('span', { class: 'vivim-eyebrow', text: 'YOUR SPACE, YOUR RULES' }),
+      el('h2', { text: 'Settings' }),
+      el('p', { class: 'note', text: 'Provider availability and local World information. No account connection or workspace folder is inferred.' }),
+    ]);
+    const tabs = el('div', { class: 'vivim-settings-tabs', id: 'vivimSettingsTabs', role: 'tablist', 'aria-label': 'Settings sections' });
+    for (const [key, label] of [
+      ['providers', 'Providers'], ['workspace', 'Workspace'], ['appearance', 'Appearance'],
+      ['data', 'Data'], ['transfer', 'Transfer'],
+    ]) {
+      const button = el('button', { type: 'button', role: 'tab',
+        'aria-selected': config.tab === key ? 'true' : 'false', text: label });
+      on(button, 'click', () => { config.tab = key; renderSettings(); });
+      tabs.append(button);
+    }
+    const body = el('div', { class: 'vivim-settings-body' });
+    if (config.tab === 'providers') {
+      body.append(el('h3', { text: 'AI providers' }));
+      body.append(el('p', { class: 'note', text: 'Supported websites are not verified logins or connected accounts. Manage the real browser connection in Chat.' }));
+      if (config.loading && !config.loaded) body.append(el('p', { class: 'note', text: 'Loading supported sites…' }));
+      if (config.error) body.append(el('p', { class: 'err', text: 'Could not read the local provider catalog: ' + config.error }));
+      if (config.loaded && !config.sites.length) body.append(el('p', { class: 'empty', text: 'This Harness reported no supported sites.' }));
+      for (const site of config.sites) {
+        const row = el('div', { class: 'vivim-settings-provider' }, [
+          el('span', { class: 'vivim-provider-emblem', 'aria-hidden': 'true', text: site.id.slice(0, 1).toUpperCase() }),
+          el('span', { class: 'vivim-settings-provider-name' }, [
+            el('strong', { text: site.id }),
+            el('span', { class: 'note', text: 'Supported site · account status not verified' }),
+          ]),
+        ]);
+        const button = el('button', { type: 'button', text: 'Choose in Chat' });
+        on(button, 'click', () => {
+          choose('capture');
+          const box = doc.getElementById?.('connectBox');
+          if (box) box.open = true;
+        });
+        row.append(button);
+        body.append(row);
+      }
+    } else if (config.tab === 'workspace') {
+      body.append(el('h3', { text: 'Personal workspace' }));
+      body.append(el('p', { class: 'note', text: 'Your saved World is a local collection. A user-selected storage folder picker is not available in this build.' }));
+      body.append(el('p', { class: 'vivim-settings-data', text: state.namespace?.id
+        ? 'Local namespace: ' + state.namespace.id
+        : 'Local namespace not yet available.' }));
+      const button = el('button', { type: 'button', text: 'Open Workspace' });
+      on(button, 'click', () => choose('workspace'));
+      body.append(button);
+    } else if (config.tab === 'appearance') {
+      body.append(el('h3', { text: 'Appearance' }));
+      body.append(el('p', { class: 'note', text: 'VIVIM currently uses the dark interface shown here. A persistent theme selector has not been implemented.' }));
+    } else if (config.tab === 'data') {
+      body.append(el('h3', { text: 'Data and privacy' }));
+      body.append(el('p', { class: 'note', text: 'Saved observations, user-authored notes and imported snapshots are distinct. This view never synchronizes or uploads your data.' }));
+    } else if (config.tab === 'transfer') {
+      body.append(el('h3', { text: 'Import and export' }));
+      body.append(el('p', { class: 'note', text: 'Transfers require deliberate user actions. Review source coverage, sensitive material and chosen export parts before using them.' }));
+      const button = el('button', { type: 'button', text: 'Open Transfer' });
+      on(button, 'click', () => choose('transfer'));
+      body.append(button);
+    }
+    listPane.replaceChildren(head, tabs, body);
+    detailPane.replaceChildren(el('section', { class: 'vivim-info-card' }, [
+      el('h3', { text: 'Browser world' }),
+      el('p', { class: 'note', text: 'Use the local Harness to manage its dedicated browser profile. Account identity is not inferred from the list of supported sites.' }),
+      el('p', { class: 'note', text: 'Browser profile separation is not an operating-system security boundary.' }),
+    ]));
+  }
+
+  async function loadSettingsSites() {
+    const config = state.settings;
+    if (config.loaded || config.loading) return;
+    config.loading = true;
+    config.error = '';
+    try {
+      const response = await fetchImpl('/api/v1/conversation-targets', { method: 'GET' });
+      if (response.status !== 200) throw new Error('Studio returned ' + response.status);
+      const data = await response.json();
+      config.sites = Array.isArray(data?.sites) ? data.sites
+        .filter((site) => typeof site?.id === 'string' && /^[a-z0-9-]{1,60}$/.test(site.id))
+        .map((site) => ({ id: site.id })) : [];
+      config.loaded = true;
+    } catch {
+      config.error = 'Provider discovery unavailable. No account status was inferred.';
+    } finally {
+      config.loading = false;
+      if (state.view === 'settings') renderSettings();
+    }
+  }
+
   function titleFor(kind, id) {
     if (kind === 'conversations') return state.lists.conversations.items.find((item) => item.id === id)?.title || state.conversations.get(id)?.title || '';
     const saved = state.editors.get(id)?.saved;
@@ -2760,6 +2914,20 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     if (view !== 'transfer') { exportAbort?.abort(); importAbort?.abort(); exportTicket += 1; importTicket += 1; state.transfer.loading = ''; }
     if (view !== 'relations' && view !== 'workspace') { relationsAbort?.abort(); relationsTicket += 1; state.relations.loading = false; }
     if (view === 'capture') { if (!quiet) announce('Capture.'); return; }
+    if (view === 'home') {
+      renderHome();
+      await Promise.all([loadNamespace(), fetchList('conversations'), fetchList('projects'), fetchList('notes')]);
+      if (state.view === 'home') renderHome();
+      if (!quiet) announce('Home.');
+      return;
+    }
+    if (view === 'settings') {
+      renderSettings();
+      await Promise.all([loadNamespace(), loadSettingsSites()]);
+      if (state.view === 'settings') renderSettings();
+      if (!quiet) announce('Settings.');
+      return;
+    }
     if (view === 'transfer') {
       loadNamespace();
       renderTransfer();

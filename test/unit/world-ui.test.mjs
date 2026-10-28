@@ -51,7 +51,8 @@ test('world module imports without booting a document and does not invent a seco
   assert.match(html, /data-view="projects"/);
   assert.match(html, /data-view="notes"/);
   assert.match(html, /Local edits do not change provider content/);
-  assert.doesNotMatch(html, /data-view="home"/);
+  assert.match(html, /data-view="home"/);
+  assert.match(html, /data-view="settings"/);
 });
 
 test('saved blocks reuse markdown structure and unknown parts do not leak their payload', () => {

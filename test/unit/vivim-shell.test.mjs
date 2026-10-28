@@ -106,3 +106,16 @@ test('projects render source-bound cards with decorative, non-invented covers', 
   assert.match(html, /Project gallery inspired by the VIVIM project-board reference/);
   assert.doesNotMatch(worldSource, /https:\/\/images\.unsplash\.com|randomuser\.me/);
 });
+
+test('native Home and Settings views reuse World and do not impersonate account login', () => {
+  const worldSource = readFileSync(new URL('../../src/studio/ui/world-view.mjs', import.meta.url), 'utf8');
+  assert.match(html, /id="viewHome" data-view="home"/);
+  assert.match(html, /id="viewSettings" data-view="settings"/);
+  assert.match(worldSource, /function renderHome\(\)/);
+  assert.match(worldSource, /function renderSettings\(\)/);
+  assert.match(worldSource, /function loadSettingsSites\(\)/);
+  assert.match(worldSource, /Supported websites are not verified logins or connected accounts/);
+  assert.match(worldSource, /A user-selected storage folder picker is not available in this build/);
+  assert.match(worldSource, /No account connection or workspace folder is inferred/);
+  assert.match(worldSource, /choose\('transfer'\)/);
+});

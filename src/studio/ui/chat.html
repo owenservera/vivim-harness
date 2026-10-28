@@ -592,6 +592,60 @@ body.vivim-app {
   .vivim-app #worldItems .vivim-record-list-projects .vivim-project-card:hover { transform: none; }
 }
 
+
+/* Home and Settings are native views of the existing local World, not a second frontend. */
+.vivim-app #viewHome::before { content: "⌂"; }
+.vivim-app #viewSettings::before { content: "⚙"; }
+.vivim-app .vivim-section-head h2 { font-size: 25px; letter-spacing: -.03em; margin: 2px 0 7px; }
+.vivim-app .vivim-section-head .note { font-size: 12px; line-height: 1.5; }
+.vivim-app .vivim-overview-grid { display: grid; gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 22px 0; }
+.vivim-app .vivim-overview-card {
+  display: flex; flex-direction: column; align-items: flex-start; text-align: left; gap: 7px;
+  min-height: 164px; padding: 19px; border-radius: 14px;
+  border: 1px solid #365780; background: linear-gradient(145deg, #19385e, #122039 64%);
+}
+.vivim-app .vivim-overview-card:hover { border-color: #79adff; background: #1d3b62; }
+.vivim-app .vivim-overview-icon { color: #8ec1ff; font-size: 22px; }
+.vivim-app .vivim-overview-number { color: white; font-size: 26px; font-weight: 760; }
+.vivim-app .vivim-overview-card strong { font-size: 13px; }
+.vivim-app .vivim-overview-card .note { font-size: 11px; }
+.vivim-app .vivim-home-recent { margin-top: 25px; }
+.vivim-app .vivim-home-recent h3, .vivim-app .vivim-home-actions h3 { font-size: 15px; margin: 0 0 11px; }
+.vivim-app .vivim-home-recent ul { display: grid; gap: 8px; }
+.vivim-app .vivim-home-recent .rowbtn { background: #162944; border: 1px solid #304c71; border-radius: 10px; }
+.vivim-app .vivim-home-actions { display: grid; gap: 10px; margin-bottom: 20px; }
+.vivim-app .vivim-home-actions button { padding: 11px; background: #192d4b; text-align: left; border: 1px solid #304e72; }
+.vivim-app .vivim-info-card { border: 1px solid #304966; background: #0e1d33;
+  border-radius: 12px; padding: 17px; }
+.vivim-app .vivim-info-card h3 { font-size: 15px; margin: 0 0 7px; }
+.vivim-app .vivim-info-card p { line-height: 1.55; }
+.vivim-app .vivim-settings-tabs { display: flex; gap: 7px; flex-wrap: wrap; margin: 20px 0; }
+.vivim-app .vivim-settings-tabs button { padding: 9px 15px; border-radius: 9px;
+  background: #13253e; border: 1px solid #304a6c; }
+.vivim-app .vivim-settings-tabs button[aria-selected="true"] {
+  color: #e8f2ff; background: #1a4b8f; border-color: #5c9cf2;
+}
+.vivim-app .vivim-settings-body { min-height: 230px; }
+.vivim-app .vivim-settings-body h3 { font-size: 16px; }
+.vivim-app .vivim-settings-provider { display: flex; gap: 13px; align-items: center;
+  padding: 12px 0; border-bottom: 1px solid #2b3e59; }
+.vivim-app .vivim-provider-emblem { display: grid; place-items: center;
+  width: 38px; height: 38px; border-radius: 11px; flex-shrink: 0;
+  color: #def0ff; background: linear-gradient(155deg, #3764a6, #163e70); font-size: 17px; font-weight: 750; }
+.vivim-app .vivim-settings-provider-name { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 0; }
+.vivim-app .vivim-settings-provider-name strong { text-transform: capitalize; }
+.vivim-app .vivim-settings-provider-name .note { font-size: 11px; }
+.vivim-app .vivim-settings-provider button { font-size: 12px; white-space: nowrap; background: #153a6b; border-color: #2d65a8; }
+.vivim-app .vivim-settings-data { font-family: var(--mono); overflow-wrap: anywhere; font-size: 12px; padding: 10px;
+  border: 1px solid #304966; background: #0b192b; border-radius: 9px; }
+@media (max-width: 1130px) { .vivim-app .vivim-overview-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 670px) {
+  .vivim-app .vivim-overview-grid { grid-template-columns: 1fr; }
+  .vivim-app .vivim-overview-card { min-height: 130px; }
+  .vivim-app .vivim-settings-provider { flex-wrap: wrap; }
+}
+
 </style>
 </head>
 <body class="vivim-app">
@@ -607,6 +661,7 @@ body.vivim-app {
 </header>
 
 <nav class="modes" id="shellModes" aria-label="Views">
+  <button type="button" id="viewHome" data-view="home" aria-pressed="false" aria-controls="worldShell">Home</button>
   <button type="button" id="viewCapture" data-view="capture" aria-pressed="true" aria-controls="chatApp">Capture</button>
   <button type="button" id="viewConversations" data-view="conversations" aria-pressed="false" aria-controls="worldShell">Saved conversations</button>
   <button type="button" id="viewProjects" data-view="projects" aria-pressed="false" aria-controls="worldShell">Projects</button>
@@ -615,6 +670,7 @@ body.vivim-app {
   <button type="button" id="viewTransfer" data-view="transfer" aria-pressed="false" aria-controls="worldShell">Transfer</button>
   <button type="button" id="viewRelations" data-view="relations" aria-pressed="false" aria-controls="worldShell">Relations</button>
   <button type="button" id="viewWorkspace" data-view="workspace" aria-pressed="false" aria-controls="worldShell">Workspace</button>
+  <button type="button" id="viewSettings" data-view="settings" aria-pressed="false" aria-controls="worldShell">Settings</button>
 </nav>
 <p class="note modes-note" id="viewNote">Browse saved conversations, projects, and notes, find text in what is saved here, see local relations, or transfer a JSON bundle. Local edits do not change provider content. Your open view is remembered for this tab.</p>
 
