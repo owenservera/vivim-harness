@@ -197,6 +197,11 @@ test('relations lists neighbours from one record, ignores a stale map, and does 
   await pending;
   assert.match(byId(root, 'worldRelationStatus').textContent, /Showing \d+, more exist/);
   assert.match(root.textContent, /Comments on/);
+  assert.ok(byId(root, 'vivimRelationGraph'), 'the real map also renders a visual projection');
+  assert.ok(all(root, (node) => node.tag === 'button' && String(node.className).includes('vivim-graph-node')).length >= 2,
+    'graph nodes are keyboard-usable buttons, derived only from returned nodes');
+  assert.equal(all(root, (node) => node.tag === 'button' && String(node.className).includes('vivim-graph-node')
+    && node.disabled).length >= 1, true, 'unavailable source reference is not actionable from the graph');
   assert.match(root.textContent, /Yours/);
   assert.match(root.textContent, /SOURCE_MISSING/);
   assert.match(root.textContent, /not the same as deleted/i);
@@ -359,4 +364,31 @@ test('a not-reported scan never claims completeness, even with rows', async () =
   await byId(root, 'worldRelationShow').click();
   assert.match(byId(root, 'worldRelationStatus').textContent, /Whether more exist was not reported/);
   assert.doesNotMatch(byId(root, 'worldRelationStatus').textContent, /Showing 1\.$/);
+});
+
+test('graph projection contains only reported nodes and edges and respects coverage bounds', () => {
+  const map = {
+    nodes: [
+      { id: cid, kind: 'conversation', title: 'Observed' },
+      { id: pid, kind: 'project', title: 'Local project' },
+      { id: unid, kind: 'unresolved-reference', availability: 'unresolved', availabilityReason: 'NOT_SCANNED' },
+    ],
+    edges: [
+      { from: pid, to: cid, kind: 'associates', evidence: { basis: 'local association' } },
+      { from: pid, to: 'n-not-loaded', kind: 'references' },
+    ],
+    complete: false,
+  };
+  const graph = world.graphProjection(pid, map); // argument inversion should never generate an invented relation
+  assert.deepEqual(graph.nodes, []);
+  const actual = world.graphProjection(map, pid, 2);
+  assert.deepEqual(actual.nodes.map(n => n.id), [pid, cid]);
+  assert.equal(actual.nodes[0].isFocus, true);
+  assert.equal(actual.nodes[0].x, 50);
+  assert.equal(actual.nodes[0].y, 50);
+  assert.equal(actual.edges.length, 1);
+  assert.equal(actual.edges[0].from, pid);
+  assert.equal(actual.edges[0].to, cid);
+  assert.equal(actual.truncated, true);
+  assert.equal(world.graphProjection(null, pid).edges.length, 0);
 });

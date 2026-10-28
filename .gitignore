@@ -12,3 +12,6 @@ chrome-profile/
 *.sqlite
 *.sqlite-*
 .DS_Store
+
+# Vercel UI preview build output (derived from canonical frontend)
+ui-preview/dist/

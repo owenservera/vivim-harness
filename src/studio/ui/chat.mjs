@@ -1241,7 +1241,7 @@ function boot() {
         else if ((threadRef(t) ?? null) !== S.pickRef) { S.pickNote = 'The tab you chose is now on a different chat. Nothing is selected; choose a tab again.'; S.targetId = ''; S.pickRef = null; }
       }
     } catch (e) { S.targetsState = 'error'; S.targetsError = describe(e); }
-    renderConnect(); renderChrome();
+    renderConnect(); renderChrome(); renderWelcome(S.snap);
   }
   async function loadList() {
     S.listState = 'loading'; renderList();
@@ -1830,6 +1830,63 @@ function boot() {
     panel.setAttribute('aria-busy', view.busy ? 'true' : 'false');
     $('#vivimBegin').disabled = view.busy;
     setText($('#vivimWelcomeStatus'), view.status);
+    const choices = $('#vivimProviders');
+    const sites = Array.isArray(S.targets?.sites) ? S.targets.sites.filter((site) =>
+      typeof site?.id === 'string' && /^[a-z0-9-]{1,60}$/.test(site.id)) : [];
+    const signature = sites.map((site) => site.id).join('|') + (!sites.length ? ':' + S.targetsState : '');
+    if (choices.dataset.signature !== signature) {
+      choices.dataset.signature = signature;
+      if (!sites.length) {
+        choices.replaceChildren(el('p', { class: 'note', text: S.targetsState === 'loading'
+          ? 'Looking for supported AI websites…'
+          : 'No supported websites reported by this Studio yet.' }));
+      } else {
+        choices.replaceChildren(...sites.map((site) => el('button', {
+          type: 'button', class: 'vivim-provider-choice', text: siteName(site.id),
+          'data-provider': site.id, 'aria-pressed': site.id === S.site && S.mode === 'new' ? 'true' : 'false',
+          onclick: () => {
+            // A provider choice only changes the existing form. Connecting and sending remain separate deliberate actions.
+            S.mode = 'new'; S.site = site.id; $('#modeNew').checked = true;
+            $('#connectBox').open = true;
+            renderConnect(); renderWelcome(S.snap);
+          },
+        })));
+      }
+    }
+    // Real DOM querySelectorAll, with the repository's minimal offline DOM fixture fallback.
+    const providerButtons = typeof choices.querySelectorAll === 'function'
+      ? [...choices.querySelectorAll('button[data-provider]')]
+      : [...(choices.children ?? [])].filter((button) => button?.attrs?.['data-provider']);
+    for (const button of providerButtons) {
+      const provider = button.getAttribute?.('data-provider') ?? button.dataset?.provider ?? button.attrs?.['data-provider'];
+      button.setAttribute('aria-pressed', provider === S.site && S.mode === 'new' ? 'true' : 'false');
+      button.disabled = view.busy || S.targetsState !== 'ok';
+    }
+    const strip = $('#vivimChatProviders');
+    strip.hidden = view.visible;
+    if (strip.dataset.signature !== signature) {
+      strip.dataset.signature = signature;
+      if (!sites.length) strip.replaceChildren(el('p', { class: 'note', text: 'No supported AI websites reported.' }));
+      else strip.replaceChildren(...sites.map((site) => el('button', {
+        type: 'button', 'data-provider': site.id, text: siteName(site.id),
+        'aria-label': 'Choose ' + siteName(site.id) + ' for a new conversation (does not connect)',
+        onclick: () => {
+          if (S.snap && S.snap.state !== 'closed') return;
+          S.mode = 'new'; S.site = site.id; $('#modeNew').checked = true;
+          $('#connectBox').open = true;
+          renderConnect(); renderWelcome(S.snap);
+        },
+      })));
+    }
+    const stripButtons = typeof strip.querySelectorAll === 'function'
+      ? [...strip.querySelectorAll('button[data-provider]')]
+      : [...(strip.children ?? [])].filter((button) => button?.attrs?.['data-provider']);
+    const active = !!snap && snap.state !== 'closed';
+    for (const button of stripButtons) {
+      const provider = button.getAttribute?.('data-provider') ?? button.dataset?.provider ?? button.attrs?.['data-provider'];
+      button.setAttribute('aria-pressed', provider === (active ? snap.site : S.site) ? 'true' : 'false');
+      button.disabled = active || S.targetsState !== 'ok';
+    }
   }
   function render() {
     const snap = S.snap;
@@ -1853,8 +1910,8 @@ function boot() {
     view.click();
     view.focus();
   });
-  document.querySelectorAll('input[name=mode]').forEach((r) => r.addEventListener('change', () => { if (r.checked) { S.mode = r.value; $('#connectError').textContent = ''; renderConnect(); } }));
-  $('#site').addEventListener('change', () => { S.site = $('#site').value; renderConnect(); });
+  document.querySelectorAll('input[name=mode]').forEach((r) => r.addEventListener('change', () => { if (r.checked) { S.mode = r.value; $('#connectError').textContent = ''; renderConnect(); renderWelcome(S.snap); } }));
+  $('#site').addEventListener('change', () => { S.site = $('#site').value; renderConnect(); renderWelcome(S.snap); });
   $('#btnTabs').addEventListener('click', loadTargets);
   $('#btnConnect').addEventListener('click', connect);
   // Enter is a plain newline and there is no keyboard shortcut that sends: Send is one deliberate click.
@@ -1921,10 +1978,12 @@ function boot() {
       const worldModes = document.getElementById('shellModes');
       const worldChat = document.getElementById('chatApp');
       if (!worldRoot || !worldModes || !worldChat || typeof mod.mountWorldView !== 'function') return;
-      mod.mountWorldView({
+      const world = mod.mountWorldView({
         document, root: worldRoot, modes: worldModes, chat: worldChat, rich,
         announce: (m) => { const n = document.getElementById('announce'); if (n) n.textContent = m; },
       });
+      // The shortcut is disabled until the real saved-World handler has mounted.
+      if (world) $('#vivimLibrary').disabled = false;
     }).catch((err) => console.warn('saved world view unavailable', err));
   } catch (err) { console.warn('saved world view unavailable', err); }
 
