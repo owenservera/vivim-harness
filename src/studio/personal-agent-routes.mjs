@@ -17,6 +17,27 @@ export function registerPersonalAgentRoutes({ add, paths, getTools } = {}) {
   add('GET', '/personal-agent/status', 'Read local Personal Agent bootstrap progress without initialization',
     () => agent.status(), { tool: 'personal_agent_status',
       annotations: { readOnlyHint: true, openWorldHint: false, idempotentHint: true } });
+  add('GET', '/personal-agent/self-knowledge', 'Grounded self-knowledge: local claim, basis, freshness and qualification',
+    ({ q }) => agent.selfKnowledge(q?.topic ?? 'all'),
+    { tool: 'personal_agent_self_knowledge', query: { topic: { type: 'string',
+      enum: ['all', 'identity', 'bootstrap', 'memory', 'work', 'world', 'capabilities', 'privacy'] } },
+      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false } });
+  add('GET', '/personal-agent/work', 'Read private local Personal Agent Work records (not in tool manifest)',
+    () => agent.workList());
+  add('POST', '/personal-agent/work', 'Create user-directed local Work; no provider dispatch',
+    ({ body }) => agent.createWorkItem(ensureBody(body, ['expectedVersion', 'title', 'objective', 'idempotencyKey'])),
+    { body: { type: 'object', properties: {
+      expectedVersion: { type: 'integer', minimum: 1 }, title: { type: 'string', maxLength: 160 },
+      objective: { type: 'string', maxLength: 4000 }, idempotencyKey: { type: 'string', minLength: 8, maxLength: 128 },
+    }, required: ['expectedVersion', 'title', 'objective', 'idempotencyKey'], additionalProperties: false } });
+  add('POST', '/personal-agent/work/{id}/transition', 'Explicit local Work status update; completion references are user-attested',
+    ({ p, body }) => agent.transitionWorkItem({ ...ensureBody(body, ['expectedVersion', 'to', 'note', 'evidence']), id: p.id }),
+    { body: { type: 'object', properties: {
+      expectedVersion: { type: 'integer', minimum: 1 },
+      to: { type: 'string', enum: ['queued', 'active', 'blocked', 'completed', 'cancelled'] },
+      note: { type: 'string', maxLength: 2000 },
+      evidence: { type: 'array', maxItems: 20, items: { type: 'string', maxLength: 256 } },
+    }, required: ['expectedVersion', 'to'], additionalProperties: false } });
   add('GET', '/personal-agent/capabilities', 'Inspect bounded skill sources and registered Studio tools (no runtime proof)',
     () => agent.capabilities(), { tool: 'personal_agent_capabilities',
       annotations: { readOnlyHint: true, openWorldHint: false, idempotentHint: true } });
