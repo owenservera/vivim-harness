@@ -187,3 +187,10 @@ After concurrent reconciliation commits expanded references in the three source/
 3. Regression files `test/unit/conversation-rich.test.mjs` and `test/unit/conversation-thread.test.mjs` now probe hidden ancestor and no-false-idle cases. Actual fetched sources passed **10 isolated JS V8 assertions**; Node tests and Chrome have not passed here.
 
 Mechanical coverage against the repository tree: 195/195 `src/bin/profiles` JS/JSON files fetched and import/export scanned. This is broader than the earlier 181-file mapped-path ledger but does not certify exhaustive reverse callers, dynamic imports or real browser behavior.
+
+## 2026-10-28 round 2 — precise repaired call edges
+- `create_conversation` → `createConversationRuntime.connect({freshTab:true})` → `conversation-service.connect` → `conversation-browser-adapter.connectSteps/readiness`: accepts an observed **blank enabled composer and empty transcript** at exact home origin/path, without using a missing Send control as a false block. This read-only admission is **not** send authorization.
+- `read_conversation` → `runtime.read` → `adapter.readTranscript` → `check`/CDP evaluation → `boundTranscript`: the unbound NEW_CHAT result must remain on the home route in both the page sample and pre/post exact-target binding.
+- `conversation_capsule` → `buildCapabilityCapsule`: source capability projection now models guarded first-turn `NEW_CHAT` and prohibits stale recovered/finishing read/send/close without taking effect authority. Every actual action still repeats effect-time gates.
+- `driveSite` → `waitForCompletion` → `isStreaming` + `readTranscript`: both evaluators now return positive-observation flags, never convert failures to idle/empty transcript. A stable answer cannot be finished from missing observations. This does not change the separate `thread-turn-journal` authoritative no-resend admission.
+Regression paths: `test/unit/chatgpt-new-chat-binding-investigation.test.mjs`, `conversation-runtime.test.mjs`, `conversation-capsule.test.mjs`, `drive-observation-truth.test.mjs`; CI configured in `.github/workflows/chatgpt-100-focused.yml`. Full Node/browser pass not established.
