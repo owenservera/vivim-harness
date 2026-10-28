@@ -142,7 +142,7 @@ for (const human of [false, true]) {
     const result = await f.run();
     assert.equal(f.state.sends, 1);
     assert.equal(f.events.find((event) => event.type === 'sent')?.sendStatus, 'observed');
-    assert.notEqual(result.uncertain, true);
+    assert.equal(result.uncertain, true, 'no terminal reply means the send is unresolved');
   });
 
   test(`a cleared draft permits only the intended prompt (human=${human})`, async (t) => {
@@ -178,7 +178,7 @@ for (const fault of ['undefinedAt']) {
     assert.ok(f.state.reads > 1, 'the read is retried');
     assert.equal(f.state.sends, 1);
     assert.equal(f.state.sentText, 'x', 'never the leftover draft');
-    assert.notEqual(result.uncertain, true);
+    assert.equal(result.uncertain, true, 'fixture never produces terminal reply evidence');
   });
 }
 
@@ -275,4 +275,15 @@ test('a lost send acknowledgement stays uncertain and is never resent', async (t
   assert.equal(result.reason, 'send-failed');
   assert.equal(result.uncertain, true);
   assert.equal(f.events.find((event) => event.type === 'sent')?.sendStatus, 'uncertain');
+});
+
+
+test('post-dispatch timeout stays uncertain without resending the prompt', async (t) => {
+  const f = fixture(t);
+  const result = await f.run();
+  assert.equal(f.state.sends, 1);
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'timeout');
+  assert.equal(result.uncertain, true);
+  assert.equal(result.tabClosed, undefined, 'reused tab remains available for reconciliation');
 });
