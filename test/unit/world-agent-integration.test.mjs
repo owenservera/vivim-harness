@@ -91,6 +91,17 @@ function fixture() {
       if (data.expectedVersion !== state.version) return reply(409, { code: 'PERSONAL_AGENT_VERSION_CONFLICT' });
       item.status = data.to; state.version++; return reply(200, { version: state.version, item });
     }
+    if (route.startsWith('/memory/') && method === 'GET') {
+      const tier = route.split('/')[2];
+      return reply(200, { version: state.version,
+        entries: state.memory.filter(row => row.tier === tier).map(({ key, text }) => ({ key, text })) });
+    }
+    if (route.endsWith('/remove') && method === 'POST') {
+      if (data.expectedVersion !== state.version) return reply(409, { code: 'PERSONAL_AGENT_VERSION_CONFLICT' });
+      const [, tier, key] = route.split('/').slice(1);
+      state.memory = state.memory.filter(row => row.tier !== tier || row.key !== key);
+      state.version++; return reply(200, status());
+    }
     if (route.startsWith('/memory/') && method === 'PUT') {
       if (data.expectedVersion !== state.version) return reply(409, { code: 'PERSONAL_AGENT_VERSION_CONFLICT' });
       const [, tier, key] = route.split('/').slice(1);
@@ -169,6 +180,13 @@ test('memory save requires explicit input, uses CAS version, and updates tier co
   assert.match(byId(f.root, 'worldAgentMemory').textContent, /Immediate: 1 entries/);
   assert.equal(inputs(byId(f.root, 'worldAgentMemoryForm'))[0].value, '');
   assert.equal(f.calls.filter(c => c.method === 'PUT').length, 1);
+  assert.match(byId(f.root, 'worldAgentMemoryEntries').textContent, /Review locally only/);
+  const remove = nodes(byId(f.root, 'worldAgentMemoryEntries'), n =>
+    n.tag === 'button' && n.textContent === 'Remove from current memory')[0];
+  await remove.click();
+  assert.equal(f.state.memory.length, 0);
+  assert.match(byId(f.root, 'worldAgentMemory').textContent, /Immediate: 0 entries/);
+  assert.equal(f.calls.filter(c => c.url.endsWith('/remove')).length, 1);
 });
 
 test('Work status transitions are manual and always bound to current local version', async () => {
