@@ -120,3 +120,21 @@ globalThis.fetch = (input, options = {}) => {
   if (url.origin !== location.origin) return Promise.resolve(json(403, { error: 'External requests disabled in UI preview.' }));
   return actualFetch(input, options);
 };
+
+
+// Visually test the real UI without suggesting that demo buttons can operate a provider.
+// Capture-phase interception runs before the canonical click handlers. The API denial
+// above remains a separate fail-closed guard for programmatic or future mutation paths.
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+  document.addEventListener('click', (event) => {
+    const target = event.target?.closest?.(
+      '#btnConnect, #btnSend, #btnSendAgain, #btnRead, #btnReadMore, #btnFinish, #worldCreate, #worldSave'
+    );
+    if (!target) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    const message = 'UI preview only — this action requires your local VIVIM Harness. No data or provider request was sent.';
+    const notice = document.getElementById('vivimWelcomeStatus') ?? document.getElementById('announce');
+    if (notice) notice.textContent = message;
+  }, true);
+}

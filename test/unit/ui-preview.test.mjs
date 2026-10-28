@@ -77,3 +77,29 @@ test('preview server is loopback-only and allowlists immutable static assets', (
   assert.match(server, /default-src 'none'/);
   assert.doesNotMatch(server, /createProxy|http-proxy|forward\(.*api|listen\(raw, '0\.0\.0\.0'/);
 });
+
+
+test('preview captures provider and write buttons before canonical handlers', async () => {
+  let callback = null;
+  const status = { textContent: '' };
+  const context = vm.createContext({
+    URL, URLSearchParams, Response,
+    location: { href: 'https://preview.example/', origin: 'https://preview.example' },
+    fetch: async () => { throw new Error('unexpected network'); },
+    document: {
+      addEventListener(type, fn, capture) { if (type === 'click' && capture === true) callback = fn; },
+      getElementById(id) { return id === 'vivimWelcomeStatus' ? status : null; },
+    },
+  });
+  vm.runInContext(fixture.replace(/^export /gm, ''), context);
+  assert.equal(typeof callback, 'function');
+  let prevented = false, stopped = false;
+  callback({
+    target: { closest: (selector) => selector.includes('#btnConnect') ? { id: 'btnConnect' } : null },
+    preventDefault() { prevented = true; },
+    stopImmediatePropagation() { stopped = true; },
+  });
+  assert.equal(prevented, true);
+  assert.equal(stopped, true);
+  assert.match(status.textContent, /No data or provider request was sent/);
+});
