@@ -54,3 +54,12 @@ Do not fabricate completion, selectors or browser evidence. Do not implement a s
 3. Which missing shared primitive would unlock the most objectives?
 4. Can a user complete the action in three or fewer agent-friendly commands?
 5. Does a result retain thread identity, evidence and recoverability?
+
+## 2026-10-28 — partial gap closure: observed streaming/idle controls
+
+| Scenarios | Classification | Concrete source fix | Evidence level and remaining blocker |
+|---|---|---|---|
+| 007 | Partial | Site-profile stop/send selectors are now supplied to read-only `transcriptExpression`; `boundTranscript` exposes `busy / idle / unknown` from positive UI controls | Source-reviewed, fixture unit assertions committed but not demonstrated passing; no live streaming transition or network-terminal proof |
+| 041–042 | Partial | `read_conversation` now retains both bounded role-labelled visible text and non-mutating UI-control observation | Source-reviewed; transcript remains page-visible/incomplete, not a fully attributed persisted rich reply |
+
+**CI blocker:** the new focused GitHub Actions job reported failure without recorded steps and no downloadable job log. Treat verification as blocked pending a runnable test environment, not as a passing or conclusively failing unit test. All other scenario capability gaps listed above remain unclosed.
