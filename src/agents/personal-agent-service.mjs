@@ -172,5 +172,20 @@ export function createPersonalAgentService({ paths, skillsRoot = TOOL_ROOT, getT
     versioned({ ...state, memory, updatedAt: stamp }, state.version, `User memory update: ${tier}`);
     return status(); // never echo private memory text
   }
-  return { status, initialize, bootstrap, capabilities, memories, remember };
+  // Explicit removal is an append-only versioned change, not a destructive rewrite of prior history.
+  function forget({ tier, key, expectedVersion } = {}) {
+    if (!MEMORY_TIERS.includes(tier)) throw bad('Unknown memory tier');
+    if (!token(key)) throw bad('Invalid memory key');
+    if (!Number.isSafeInteger(expectedVersion) || expectedVersion < 1) throw bad('expectedVersion required');
+    const state = read();
+    if (!state) throw problem(404, 'Initialize Personal Agent first', 'PERSONAL_AGENT_NOT_INITIALIZED');
+    if (state.version !== expectedVersion) throw problem(409, 'Memory version changed; refresh first', 'PERSONAL_AGENT_VERSION_CONFLICT');
+    const memory = structuredClone(state.memory ?? memoryBlank());
+    const old = memory[tier] ?? [];
+    if (!old.some(entry => entry.key === key)) throw problem(404, 'Memory entry not found', 'PERSONAL_AGENT_MEMORY_NOT_FOUND');
+    memory[tier] = old.filter(entry => entry.key !== key);
+    versioned({ ...state, memory, updatedAt: clock() }, state.version, `User memory removal: ${tier}`);
+    return status();
+  }
+  return { status, initialize, bootstrap, capabilities, memories, remember, forget };
 }
