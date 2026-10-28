@@ -15,6 +15,9 @@ on:
       - 'test/unit/conversation-api.test.mjs'
       - 'test/unit/conversation-tools.test.mjs'
       - 'test/unit/thread-identity.test.mjs'
+      - 'src/studio/conversation-events.mjs'
+      - 'test/unit/conversation-events.test.mjs'
+      - 'test/unit/conversation-events-text.test.mjs'
       - '.github/workflows/chatgpt-100-focused.yml'
   workflow_dispatch:
 
@@ -38,5 +41,6 @@ jobs:
           node --check src/capture/thread-identity.mjs
           node --check src/studio/conversation-api.mjs
           node --check src/studio/conversation-tools.mjs
+          node --check src/studio/conversation-events.mjs
       - name: Run focused fixture-based unit tests (no live provider)
-        run: node --test test/unit/drive-draft-safety.test.mjs test/unit/conversation-thread.test.mjs test/unit/conversation-api.test.mjs test/unit/conversation-tools.test.mjs test/unit/thread-identity.test.mjs
+        run: node --test test/unit/drive-draft-safety.test.mjs test/unit/conversation-thread.test.mjs test/unit/conversation-api.test.mjs test/unit/conversation-tools.test.mjs test/unit/thread-identity.test.mjs test/unit/conversation-events.test.mjs test/unit/conversation-events-text.test.mjs
