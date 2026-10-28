@@ -128,3 +128,11 @@ test('Relations graph is a bounded rendering of real map responses, not a fabric
   assert.match(worldSource, /if \(!workspace\) results\.append\(renderRelationGraph\(rel\)\)/);
   assert.match(html, /vivim-graph-panel/);
 });
+
+test('World layout changes by the active native view, without replacing its detail pane', () => {
+  const worldSource = readFileSync(new URL('../../src/studio/ui/world-view.mjs', import.meta.url), 'utf8');
+  assert.match(worldSource, /root\.setAttribute\('data-active-view', state\.view\)/);
+  assert.match(html, /#worldShell\[data-active-view="projects"\] #worldGrid/);
+  assert.match(html, /#worldShell\[data-active-view="settings"\] #worldGrid/);
+  assert.match(html, /#worldShell\[data-active-view="relations"\] #worldGrid/);
+});

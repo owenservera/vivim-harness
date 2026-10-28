@@ -819,6 +819,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     const world = state.view !== 'capture';
     chat.hidden = world;
     root.hidden = !world;
+    if (typeof root.setAttribute === 'function') root.setAttribute('data-active-view', state.view);
     for (const button of buttons) {
       if (typeof button.setAttribute === 'function') button.setAttribute('aria-pressed', viewOf(button) === state.view ? 'true' : 'false');
     }

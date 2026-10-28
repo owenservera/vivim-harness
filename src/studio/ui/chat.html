@@ -687,6 +687,26 @@ body.vivim-app {
   .vivim-app .vivim-graph-node-kind { font-size: 8px; }
 }
 
+
+/* Give visual gallery, graph and settings the width they need; keep the detail
+   pane connected to the same selected saved object and existing fetch/effect owner. */
+@media (min-width: 1000px) {
+  .vivim-app #worldShell[data-active-view="projects"] #worldGrid {
+    grid-template-columns: minmax(0, 1.85fr) minmax(245px, .82fr);
+  }
+  .vivim-app #worldShell[data-active-view="home"] #worldGrid,
+  .vivim-app #worldShell[data-active-view="settings"] #worldGrid,
+  .vivim-app #worldShell[data-active-view="relations"] #worldGrid {
+    grid-template-columns: minmax(0, 1.5fr) minmax(250px, .8fr);
+  }
+}
+@media (min-width: 740px) and (max-width: 999px) {
+  .vivim-app #worldShell[data-active-view="projects"] #worldGrid,
+  .vivim-app #worldShell[data-active-view="relations"] #worldGrid {
+    grid-template-columns: minmax(0, 1.5fr) minmax(225px, 1fr);
+  }
+}
+
 </style>
 </head>
 <body class="vivim-app">
