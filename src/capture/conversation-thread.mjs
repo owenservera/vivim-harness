@@ -185,10 +185,6 @@ export function boundTranscript(rawResult, { maxMessages = TRANSCRIPT_LIMITS.max
       preAttachHistory: 'not-captured-by-this-read',
     },
     draft,
-    controls: ['busy','idle','unknown'].includes(rawResult?.controls?.state)
-      ? { state:rawResult.controls.state, observed:rawResult.controls.observed===true,
-          stopPresent:rawResult.controls.stopPresent===true, idleControlPresent:rawResult.controls.idleControlPresent===true }
-      : { state:'unknown', observed:false, stopPresent:false, idleControlPresent:false },
     limits: { maxMessages, maxChars, perMessageCap },
   };
 }
