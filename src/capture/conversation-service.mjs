@@ -284,6 +284,13 @@ export function createConversationService({ dataDir, id = randomUUID(), adapter,
       snapshot.uncertainty = reason; snapshot.state = 'needs-reconciliation';
       updateAttempt(attempt, 'uncertain', 'uncertain');
     };
+    // Additive diagnostic only: four distinct creation sub-steps all publish the same
+    // CREATION_UNPINNED reason, so each one also records which sub-step failed and the
+    // underlying error's own code/message. No existing field or public reason changes.
+    const creationFailure = (subStep, e, detail) => {
+      attempt.creationFailureDetail = { subStep, code: e?.code ?? null, message: e?.message ?? null,
+        ...(detail === undefined ? {} : { detail }) };
+    };
     await ensureCapture();
     let preflight;
     try { preflight = await adapter.preflight(structuredClone(snapshot.binding), { priorTurns: [] }); }
@@ -323,7 +330,7 @@ export function createConversationService({ dataDir, id = randomUUID(), adapter,
         beforeEffect: () => { if (submissionStopped) throw Object.assign(error('SUBMISSION_STOPPED'), { notTyped: true }); } });
     } catch (e) {
       if ((e?.code === 'PREEXISTING_THREAD' || e?.code === 'SUBMISSION_STOPPED') && e.notTyped === true) { prove(); if (e.code === 'SUBMISSION_STOPPED') attempt.reason = 'SUBMISSION_STOPPED'; return finish(); }
-      console.error('[conv] creation type-step failed:', e?.code, e?.message); uncertain('CREATION_UNPINNED'); return finish();
+      console.error('[conv] creation type-step failed:', e?.code, e?.message); creationFailure('type-step', e); uncertain('CREATION_UNPINNED'); return finish();
     }
     if (stopEarly()) return finish();
     updateAttempt(attempt, 'dispatching', 'submitting'); save();
@@ -333,14 +340,17 @@ export function createConversationService({ dataDir, id = randomUUID(), adapter,
         beforeEffect: () => { if (submissionStopped) throw Object.assign(error('SUBMISSION_STOPPED'), { notDispatched: true }); } });
     } catch (e) {
       if (e?.notDispatched === true && e?.code === 'PREEXISTING_THREAD' && !attempt.typingStartedAt) { prove(); return finish(); }
-      console.error('[conv] creation submit-step failed:', e?.code, e?.message); uncertain('CREATION_UNPINNED'); return finish();
+      console.error('[conv] creation submit-step failed:', e?.code, e?.message); creationFailure('submit-step', e); uncertain('CREATION_UNPINNED'); return finish();
     }
     const target = report?.targetThread, page = report?.pageThread;
     const same = target && page && validThread(target) && target.ref === page.ref && target.id === page.id;
-    if (report?.creation !== true || report?.dispatched !== true || !same || deniedRef(target.ref)) { console.error('[conv] creation report invalid:', JSON.stringify({c:report?.creation,d:report?.dispatched,same:!!same,t:target?.ref,p:page?.ref})); uncertain('CREATION_UNPINNED'); return finish(); }
+    if (report?.creation !== true || report?.dispatched !== true || !same || deniedRef(target.ref)) {
+      const rejection = {c:report?.creation,d:report?.dispatched,same:!!same,t:target?.ref,p:page?.ref};
+      console.error('[conv] creation report invalid:', JSON.stringify(rejection)); creationFailure('report-validation', null, rejection); uncertain('CREATION_UNPINNED'); return finish();
+    }
     try {
       const pinned = typeof adapter.pinThread === 'function' ? await adapter.pinThread(target, snapshot.threadDenylist) : null;
-      if (!pinned?.thread || pinned.thread.ref !== target.ref) { uncertain('CREATION_UNPINNED'); return finish(); }
+      if (!pinned?.thread || pinned.thread.ref !== target.ref) { creationFailure('pin-reconcile', null, { expected: target.ref, actual: pinned?.thread?.ref ?? null }); uncertain('CREATION_UNPINNED'); return finish(); }
       snapshot.binding = { ...snapshot.binding, thread: pinned.thread };
       snapshot.identity = { state: 'bound', reason: null }; save();
       const reservation = threadJournal().reserve({ key, payloadDigest, conversationId: id });
@@ -355,7 +365,7 @@ export function createConversationService({ dataDir, id = randomUUID(), adapter,
       else { unknown(attempt, 'ACK_LOST'); updateAttempt(attempt, 'uncertain', 'uncertain'); snapshot.uncertainty = 'send-acknowledgement-lost'; snapshot.state = 'needs-reconciliation'; }
     } catch (e) {
       if (e?.code === 'PERSISTENCE_FAILED_REOPEN_REQUIRED' || e?.code === 'JOURNAL_PERSISTENCE_FAILED_REOPEN_REQUIRED') throw e;
-      console.error('[conv] creation pin/reconcile failed:', e?.code, e?.message); uncertain('CREATION_UNPINNED');
+      console.error('[conv] creation pin/reconcile failed:', e?.code, e?.message); creationFailure('pin-reconcile', e); uncertain('CREATION_UNPINNED');
     }
     return finish();
   }
