@@ -1,0 +1,1152 @@
+{
+  "schemaVersion": "1.0",
+  "run": {
+    "date": "2026-10-28",
+    "catalog": "docs/agents/CHATGPT-100-OBJECTIVES.md",
+    "environment": "docs/agents/CHATGPT-PROBE-ENVIRONMENT.md",
+    "runtimeObservation": {
+      "source": "parent-reported; historical observation, verify live before use",
+      "studioPort": 38703,
+      "dataDir": "C:\\VIVIM",
+      "chromeProfile": "C:\\VIVIM\\chrome-profile",
+      "cdpPort": 38702,
+      "chromeVersion": "Chrome/156.0.8078.48",
+      "launchVerified": true,
+      "accountVerified": false
+    }
+  },
+  "allowedStatuses": [
+    "PASS",
+    "PARTIAL",
+    "BLOCKED",
+    "UNSUPPORTED",
+    "FEATURE_UNAVAILABLE",
+    "NOT_TESTED"
+  ],
+  "reportingRules": [
+    "One coordinated browser effect owner; concurrent analysis must not mutate the shared browser.",
+    "Objectives are assigned and reported sequentially, one at a time; this ledger is not a browser campaign.",
+    "Effects require scoped authorization; preserve the original operation identity and reconcile uncertainty read-only, with no blind resends.",
+    "Do not record sensitive raw output, credentials, private conversations, or raw captures; use safe evidence references.",
+    "Never invent success: report only observed outcomes and distinguish unavailable account features from unsupported harness capabilities.",
+    "Attempts are append-only; objective status is NOT_TESTED when attempts is empty, otherwise it derives from the latest appended attempt status."
+  ],
+  "attemptFields": {
+    "status": null,
+    "startedAt": null,
+    "finishedAt": null,
+    "elapsedMs": null,
+    "cliInvocationCount": null,
+    "commands": [],
+    "observedOutcome": null,
+    "evidenceRefs": [],
+    "friction": null,
+    "failureClassification": null,
+    "authorizationScope": null,
+    "model": null,
+    "agent": null,
+    "uncertainty": null,
+    "reconciliationKeyRefs": []
+  },
+  "objectives": [
+    {
+      "id": "001",
+      "section": "01 — Account and live-session awareness",
+      "title": "Account identity",
+      "objective": "Identify which ChatGPT account is signed in without exposing personal credentials.",
+      "status": "UNSUPPORTED",
+      "attempts": [
+        {
+          "status": "UNSUPPORTED",
+          "startedAt": null,
+          "finishedAt": null,
+          "elapsedMs": null,
+          "cliInvocationCount": 6,
+          "commands": [
+            "node bin/studio.mjs agent status --studio-port 38703 --json",
+            "'{}' | node bin/studio.mjs tools call conversation_targets --input - --studio-port 38703 --json",
+            "node bin/studio.mjs recipe choose --intent 'Identify which ChatGPT account is signed in without exposing personal credentials' --json",
+            "node bin/studio.mjs tools list --studio-port 38703 --json",
+            "node bin/studio.mjs agent capabilities --json",
+            "node bin/studio.mjs recipe list --json"
+          ],
+          "observedOutcome": "Account identity not determined; status said unverified, target had unverified thread identity, recipe selection no-match, and catalog offered no account identity inspection.",
+          "evidenceRefs": ["docs/agents/CHATGPT-100-LIVE-2026-10-28.md#001--account-identity--unsupported"],
+          "friction": "No native account identity inspection action discovered; target metadata does not establish authentication.",
+          "failureClassification": "HARNESS_UNSUPPORTED",
+          "authorizationScope": "Read-only; no sends, navigation, account changes, or draft modifications.",
+          "model": "openai/gpt-6.1-terra#low",
+          "agent": "chatgpt-probe",
+          "uncertainty": "Authentication state and identity unknown; elapsed time was not measured.",
+          "reconciliationKeyRefs": []
+        }
+      ]
+    },
+    {
+      "id": "002",
+      "section": "01 — Account and live-session awareness",
+      "title": "Authentication state",
+      "objective": "Detect whether ChatGPT is signed out and requires login.",
+      "status": "UNSUPPORTED",
+      "attempts": [
+        {
+          "status": "UNSUPPORTED",
+          "startedAt": "2026-10-28T09:39:37.5129881Z",
+          "finishedAt": "2026-10-28T09:39:39.9333024Z",
+          "elapsedMs": 2420.3143,
+          "cliInvocationCount": 2,
+          "commands": [
+            "node bin/studio.mjs recipe choose --intent 'Detect whether ChatGPT is signed out and requires login' --json",
+            "'{\"targetId\":\"FAADCCF91BD85A1179F30D9111143CF7\",\"maxEntries\":1,\"maxTitleChars\":1}' | node bin/studio.mjs tools call chat_index --input - --studio-port 38703 --json"
+          ],
+          "observedOutcome": "Recipe selection returned no-match. A live read-only chat_index inspection of the ChatGPT root found 18 visible candidate thread links, but did not report authentication or whether login is required. Candidate links alone do not establish authentication.",
+          "evidenceRefs": [],
+          "friction": "No native authentication-state or login-prompt inspection action was discovered; chat_index returns links, not auth state.",
+          "failureClassification": "HARNESS_UNSUPPORTED",
+          "authorizationScope": "Read-only; no sends, navigation, account changes, or draft modifications.",
+          "model": "openai/gpt-6.1-terra#low",
+          "agent": "chatgpt-probe",
+          "uncertainty": "Signed-in versus signed-out and need for human login remain unverified.",
+          "reconciliationKeyRefs": []
+        }
+      ]
+    },
+    {
+      "id": "003",
+      "section": "01 — Account and live-session awareness",
+      "title": "Native thread identity",
+      "objective": "Identify the currently visible native conversation ID, not its title.",
+      "status": "BLOCKED",
+      "attempts": [
+        {
+          "status": "BLOCKED",
+          "startedAt": "2026-10-28T09:40:35.8814369Z",
+          "finishedAt": "2026-10-28T09:40:37.3523712Z",
+          "elapsedMs": 1470.9343,
+          "deadlineAt": "2026-10-28T09:41:35.8814369Z",
+          "timedOut": false,
+          "cliInvocationCount": 1,
+          "commands": ["'{}' | node bin/studio.mjs tools call conversation_targets --input - --studio-port 38703 --json"],
+          "observedOutcome": "The sole reported ChatGPT target is at https://chatgpt.com with thread null, identity unverified and reason UNSUPPORTED_PATH; visibility is unknown. No native conversation ID was identified. The root URL does not establish an active /c/ thread.",
+          "evidenceRefs": [],
+          "friction": "The target is at the root rather than an exact thread path; the read-only scope prohibits navigating to one. The tool reports visibility unknown, so it cannot prove which tab is currently visible.",
+          "failureClassification": "NO_EXACT_THREAD_TARGET",
+          "authorizationScope": "Read-only inspection only; no navigation, sends, account or settings changes, or draft modifications.",
+          "model": "openai/gpt-6.1-terra#low",
+          "agent": "chatgpt-probe",
+          "uncertainty": "Whether a thread is visually active cannot be established from the reported root URL and unknown visibility. The shell had a 15-second timeout but no independently enforced per-process remaining-time kill; the invocation finished well before the deadline.",
+          "reconciliationKeyRefs": []
+        }
+      ]
+    },
+    {
+      "id": "004",
+      "section": "01 — Account and live-session awareness",
+      "title": "Tab discovery",
+      "objective": "Locate the ChatGPT tab among unrelated webapp tabs.",
+      "status": "PARTIAL",
+      "attempts": [
+        {
+          "status": "PARTIAL",
+          "startedAt": "2026-10-28T09:41:23.8236431Z",
+          "finishedAt": "2026-10-28T09:41:31.0486128Z",
+          "elapsedMs": 7224.9697,
+          "deadlineAt": "2026-10-28T09:42:23.8236431Z",
+          "timedOut": false,
+          "cliInvocationCount": 2,
+          "commands": [
+            "'{}' | node bin/studio.mjs tools call conversation_targets --input - --studio-port 38703 --json",
+            "node bin/studio.mjs targets --port 38702 --json"
+          ],
+          "observedOutcome": "The Studio conversation_targets result identified one ChatGPT target, FAADCCF91BD85A1179F30D9111143CF7, and no other targets. The sites list is a provider catalog, not evidence of other open tabs. A broader native targets command returned ENVIRONMENT / BROWSER_PROFILE_UNVERIFIED, so unrelated tabs could not be verified.",
+          "evidenceRefs": [],
+          "friction": "No unrelated webapp target was observed; broader target enumeration refused to attach because browser profile identity was not verified by that command, despite the parent-reported earlier launch verification. No tabs were created or navigated.",
+          "failureClassification": "UNVERIFIED_PRECONDITION_AND_BROWSER_IDENTITY",
+          "authorizationScope": "Read-only inspection only; no navigation, sends, account or settings changes, or draft modifications.",
+          "model": "openai/gpt-6.1-terra#low",
+          "agent": "chatgpt-probe",
+          "uncertainty": "The ChatGPT target was located, but discovery among unrelated open tabs was not demonstrated; other browser tabs may exist. Each CLI call started with at least 15 seconds remaining and the enclosing shell had a 15-second timeout; no independent per-process deadline kill was verified.",
+          "reconciliationKeyRefs": []
+        }
+      ]
+    },
+    {
+      "id": "005",
+      "section": "01 — Account and live-session awareness",
+      "title": "Chrome-profile isolation",
+      "objective": "Recognize which ChatGPT window belongs to the dedicated VIVIM profile.",
+      "status": "PASS",
+      "attempts": [
+        {
+          "status": "PASS",
+          "startedAt": "2026-10-28T09:43:00.9987340Z",
+          "finishedAt": "2026-10-28T09:43:27.0652519Z",
+          "elapsedMs": 26066.5179,
+          "deadlineAt": "2026-10-28T09:44:00.9987340Z",
+          "timedOut": false,
+          "cliInvocationCount": 5,
+          "commands": [
+            "node bin/studio.mjs doctor --port 38702 --json",
+            "node bin/studio.mjs agent status --studio-port 38703 --json",
+            "'{}' | node bin/studio.mjs tools call conversation_targets --input - --studio-port 38703 --json",
+            "node bin/studio.mjs help targets",
+            "node bin/studio.mjs targets --data-dir C:\\VIVIM --port 38702 --json"
+          ],
+          "observedOutcome": "Studio status identified dataDir C:\\VIVIM, intended chromeProfile C:\\VIVIM\\chrome-profile and CDP port 38702 but explicitly said profile not proven by status. The native capture-browser targets command with the explicit data directory succeeded and listed ChatGPT target FAADCCF91BD85A1179F30D9111143CF7, matching Studio conversation_targets. In objective 004 the same command without that data directory failed profile verification. Parent had separately reported a verified launch for this profile.",
+          "evidenceRefs": [],
+          "friction": "Doctor without explicit data-dir used a different default local data directory. The targets command needs --data-dir C:\\VIVIM to use the intended profile context; status alone does not prove identity.",
+          "failureClassification": null,
+          "authorizationScope": "Read-only native CLI inspection only; no browser or server restart, navigation, sends, account or settings changes, or draft modifications.",
+          "model": "openai/gpt-6.1-terra#low",
+          "agent": "chatgpt-probe",
+          "uncertainty": "The successful guarded targets command identifies the ChatGPT target in the dedicated capture browser, not an operating-system window handle or signed-in account. Profile verification is inferred from the command's documented capture-browser behavior and earlier explicit unverified-profile refusal, not an explicit verified flag in this command output. Each invocation began with at least 15 seconds remaining and used a 15-second shell timeout; no independent process-kill enforcement was verified.",
+          "reconciliationKeyRefs": []
+        }
+      ]
+    },
+    {
+      "id": "006",
+      "section": "01 — Account and live-session awareness",
+      "title": "Page readiness",
+      "objective": "Tell me whether ChatGPT is ready to accept input or still loading.",
+      "status": "UNSUPPORTED",
+      "attempts": [
+        {
+          "status": "UNSUPPORTED",
+          "startedAt": "2026-10-28T09:44:08.5103018Z",
+          "finishedAt": "2026-10-28T09:44:20.9305375Z",
+          "elapsedMs": 12420.2357,
+          "deadlineAt": "2026-10-28T09:45:08.5103018Z",
+          "timedOut": false,
+          "cliInvocationCount": 3,
+          "commands": [
+            "node bin/studio.mjs recipe choose --intent 'Tell whether ChatGPT is ready to accept input or still loading' --json",
+            "node bin/studio.mjs help --json",
+            "'{\"targetId\":\"FAADCCF91BD85A1179F30D9111143CF7\",\"maxEntries\":1,\"maxTitleChars\":1}' | node bin/studio.mjs tools call chat_index --input - --studio-port 38703 --json"
+          ],
+          "observedOutcome": "Recipe choice returned no-match. Native CLI help exposed no dedicated read-only page-readiness command. Live chat_index observed rendered links on the ChatGPT root page, but reports no loading, composer, or input-readiness state; rendered links are not proof that input is ready.",
+          "evidenceRefs": [],
+          "friction": "No discoverable read-only readiness inspection for the existing root target; the previously discovered live transcript tool requires an exact-bound conversation and does not establish root composer readiness.",
+          "failureClassification": "HARNESS_UNSUPPORTED",
+          "authorizationScope": "Read-only inspection only; no navigation, sends, composer typing, settings or account changes.",
+          "model": "openai/gpt-6.1-terra#low",
+          "agent": "chatgpt-probe",
+          "uncertainty": "Whether input is ready or the page is still loading remains unknown. Each invocation began with at least 15 seconds remaining and used a 15-second shell timeout; independent process-kill enforcement was not verified.",
+          "reconciliationKeyRefs": []
+        }
+      ]
+    },
+    {
+      "id": "007",
+      "section": "01 — Account and live-session awareness",
+      "title": "Streaming state",
+      "objective": "Tell me whether the assistant is currently generating or finished.",
+      "status": "UNSUPPORTED",
+      "attempts": [
+        {
+          "status": "UNSUPPORTED",
+          "startedAt": "2026-10-28T09:44:57.0809054Z",
+          "finishedAt": "2026-10-28T09:45:07.2095549Z",
+          "elapsedMs": 10128.6495,
+          "deadlineAt": "2026-10-28T09:45:57.0809054Z",
+          "timedOut": false,
+          "cliInvocationCount": 2,
+          "commands": [
+            "node bin/studio.mjs recipe choose --intent 'Tell whether the assistant is currently generating or finished' --json",
+            "'{}' | node bin/studio.mjs tools call conversation_targets --input - --studio-port 38703 --json"
+          ],
+          "observedOutcome": "Recipe selection returned no-match. The live ChatGPT target metadata reports root URL, null thread and unknown visibility, with no generating or finished state. No conclusion about streaming can be drawn from the root or null thread.",
+          "evidenceRefs": [],
+          "friction": "The previously inspected native tool catalog exposes no direct read-only streaming-state inspection for the existing root target; transcript reading requires an exact live-bound conversation.",
+          "failureClassification": "HARNESS_UNSUPPORTED",
+          "authorizationScope": "Read-only native CLI inspection only; no navigation, sends, typing, settings or account changes.",
+          "model": "openai/gpt-6.1-terra#low",
+          "agent": "chatgpt-probe",
+          "uncertainty": "Whether an assistant is generating or finished remains unknown. Each invocation began with at least 15 seconds remaining and used a 15-second shell timeout; independent per-process kill enforcement was not verified.",
+          "reconciliationKeyRefs": []
+        }
+      ]
+    },
+    {
+      "id": "008",
+      "section": "01 — Account and live-session awareness",
+      "title": "Ephemeral chat awareness",
+      "objective": "Recognize when ChatGPT is in Temporary Chat mode.",
+      "status": "UNSUPPORTED",
+      "attempts": [
+        {
+          "status": "UNSUPPORTED",
+          "startedAt": "2026-10-28T09:45:43.6386286Z",
+          "finishedAt": "2026-10-28T09:45:50.2006194Z",
+          "elapsedMs": 6561.9908,
+          "deadlineAt": "2026-10-28T09:46:43.6386286Z",
+          "timedOut": false,
+          "cliInvocationCount": 2,
+          "commands": [
+            "node bin/studio.mjs recipe choose --intent 'Recognize whether the current ChatGPT page is in Temporary Chat mode' --json",
+            "'{\"targetId\":\"FAADCCF91BD85A1179F30D9111143CF7\",\"maxEntries\":1,\"maxTitleChars\":1}' | node bin/studio.mjs tools call chat_index --input - --studio-port 38703 --json"
+          ],
+          "observedOutcome": "Recipe selection suggested provider.chat-index based on vocabulary overlap only. The live read-only chat_index inspected currently rendered links on the ChatGPT root but exposed no Temporary Chat mode field or indication; it did not establish whether the mode is enabled or disabled.",
+          "evidenceRefs": [],
+          "friction": "The suggested chat index is a link index, not a Temporary Chat state inspector; no dedicated native read-only mode inspection was found in the previously examined catalog.",
+          "failureClassification": "HARNESS_UNSUPPORTED",
+          "authorizationScope": "Read-only native CLI inspection only; no navigation, sends, typing, settings or account changes.",
+          "model": "openai/gpt-6.1-terra#low",
+          "agent": "chatgpt-probe",
+          "uncertainty": "Temporary Chat mode remains unknown; absence of a mode field does not mean it is off. Each invocation began with at least 15 seconds remaining and used a 15-second shell timeout; independent process-kill enforcement was not verified.",
+          "reconciliationKeyRefs": []
+        }
+      ]
+    },
+    {
+      "id": "009",
+      "section": "01 — Account and live-session awareness",
+      "title": "Duplicate-title identity",
+      "objective": "Disambiguate two native threads with identical visible titles.",
+      "status": "UNSUPPORTED",
+      "attempts": [
+        {
+          "status": "UNSUPPORTED",
+          "startedAt": "2026-10-28T09:46:29.3249786Z",
+          "finishedAt": "2026-10-28T09:46:30.6423847Z",
+          "elapsedMs": 1317.4061,
+          "deadlineAt": "2026-10-28T09:47:29.3249786Z",
+          "timedOut": false,
+          "cliInvocationCount": 1,
+          "commands": [
+            "'{\"targetId\":\"FAADCCF91BD85A1179F30D9111143CF7\",\"maxEntries\":500,\"maxTitleChars\":300,\"scanLimit\":2000}' | node bin/studio.mjs tools call chat_index --input - --studio-port 38703 --json"
+          ],
+          "observedOutcome": "The live index returned 18 distinct candidate thread paths from 18 visible thread links, none omitted and none title-truncated. Each displayTitle object contained only untrusted and truncated flags, with no title text; a duplicate-title pair therefore could not be identified or ruled out. All entries were candidates, not live-bound threads.",
+          "evidenceRefs": [],
+          "friction": "The native response omitted actual visible title text despite a 300-character limit, preventing title equality comparison. The index is incomplete and does not establish live thread bindings.",
+          "failureClassification": "HARNESS_UNSUPPORTED_TITLE_OBSERVATION",
+          "authorizationScope": "Read-only native CLI inspection only; no creation, renaming, navigation, sends or draft changes.",
+          "model": "openai/gpt-6.1-terra#low",
+          "agent": "chatgpt-probe",
+          "uncertainty": "Presence or absence of duplicate visible titles remains unknown; no duplicate pair was proven. Invocation began with at least 15 seconds remaining and used a 15-second shell timeout; independent process-kill enforcement was not verified.",
+          "reconciliationKeyRefs": []
+        }
+      ]
+    },
+    {
+      "id": "010",
+      "section": "01 — Account and live-session awareness",
+      "title": "UI obstruction recognition",
+      "objective": "Explain why the ChatGPT composer is blocked by a modal or challenge.",
+      "status": "UNSUPPORTED",
+      "attempts": [
+        {
+          "status": "UNSUPPORTED",
+          "startedAt": "2026-10-28T09:47:07.5127221Z",
+          "finishedAt": "2026-10-28T09:47:14.0185390Z",
+          "elapsedMs": 6505.8169,
+          "deadlineAt": "2026-10-28T09:48:07.5127221Z",
+          "timedOut": false,
+          "cliInvocationCount": 2,
+          "commands": [
+            "node bin/studio.mjs recipe choose --intent 'Explain whether the ChatGPT composer is blocked by a modal or challenge' --json",
+            "'{}' | node bin/studio.mjs tools call conversation_targets --input - --studio-port 38703 --json"
+          ],
+          "observedOutcome": "Recipe choice returned no-match. Live target metadata reported the ChatGPT root target with unknown visibility, but no composer, modal or challenge information. No obstruction or absence of obstruction was established.",
+          "evidenceRefs": [],
+          "friction": "No dedicated read-only composer obstruction or challenge inspection action was exposed by the previously examined native catalog; target metadata does not inspect the UI.",
+          "failureClassification": "HARNESS_UNSUPPORTED",
+          "authorizationScope": "Read-only inspection only; no clicks, dismissal, navigation, typing, sends, or account or settings changes.",
+          "model": "openai/gpt-6.1-terra#low",
+          "agent": "chatgpt-probe",
+          "uncertainty": "Whether the composer is blocked, and any cause, remains unknown. Each invocation began with at least 15 seconds remaining and used a 15-second shell timeout; independent process-kill enforcement was not verified.",
+          "reconciliationKeyRefs": []
+        }
+      ]
+    },
+    {
+      "id": "011",
+      "section": "02 — Moving around ChatGPT",
+      "title": "New-chat navigation",
+      "objective": "Open a blank new conversation without sending anything.",
+      "status": "PARTIAL",
+      "attempts": [
+        {
+          "status": "PARTIAL",
+          "startedAt": "2026-10-28T09:47:55.0598892Z",
+          "finishedAt": "2026-10-28T09:48:03.6546011Z",
+          "elapsedMs": 8594.7119,
+          "deadlineAt": "2026-10-28T09:48:55.0598892Z",
+          "timedOut": false,
+          "cliInvocationCount": 2,
+          "commands": [
+            "'{\"site\":\"chatgpt\"}' | node bin/studio.mjs tools call create_conversation --input - --studio-port 38703 --json",
+            "'{}' | node bin/studio.mjs tools call conversation_targets --input - --studio-port 38703 --json"
+          ],
+          "observedOutcome": "create_conversation returned a new ChatGPT target 9A3D0AAE522702601545ED3CCDAE2F5E and local conversation 1c9ab74a-605d-495b-8e1b-048f30765996, identity unbound NEW_CHAT and no recorded turns; it also reported state blocked, readiness false, reason BINDING_CHANGED. A subsequent target listing showed the new root target and the original target still present. No send was made. Blank composer or readiness was not verified.",
+          "evidenceRefs": [],
+          "friction": "Creation returned BINDING_CHANGED and blocked readiness. Creation binding reported ownedByStudio true while subsequent target metadata reported false, so ownership and suitability for subsequent actions require revalidation. Root URL and empty local turns do not prove a blank usable composer.",
+          "failureClassification": "NEW_TAB_CREATED_READINESS_UNVERIFIED",
+          "authorizationScope": "Create a new disposable ChatGPT tab through the existing owner only; no navigation of the original target, sends, typing, settings or account changes.",
+          "model": "openai/gpt-6.1-terra#low",
+          "agent": "chatgpt-probe",
+          "uncertainty": "The original target remains listed but draft preservation was not independently inspected. The new tab's composer and visibility are unknown, and its ownership metadata conflicts. Each invocation began with at least 15 seconds remaining and used a 15-second shell timeout; independent process-kill enforcement was not verified.",
+          "reconciliationKeyRefs": ["conversation:1c9ab74a-605d-495b-8e1b-048f30765996"]
+        }
+      ]
+    },
+    {
+      "id": "012",
+      "section": "02 — Moving around ChatGPT",
+      "title": "Sidebar history selection",
+      "objective": "Locate a particular conversation in the history sidebar by its title.",
+      "status": "UNSUPPORTED",
+      "attempts": [
+        {
+          "status": "UNSUPPORTED",
+          "startedAt": "2026-10-28T09:48:47.2374458Z",
+          "finishedAt": "2026-10-28T09:48:53.4100251Z",
+          "elapsedMs": 6172.5793,
+          "deadlineAt": "2026-10-28T09:49:47.2374458Z",
+          "timedOut": false,
+          "cliInvocationCount": 2,
+          "commands": [
+            "node bin/studio.mjs recipe choose --intent 'Locate a particular conversation in the history sidebar by title' --json",
+            "'{\"targetId\":\"FAADCCF91BD85A1179F30D9111143CF7\",\"maxEntries\":500,\"maxTitleChars\":300,\"scanLimit\":2000}' | node bin/studio.mjs tools call chat_index --input - --studio-port 38703 --json"
+          ],
+          "observedOutcome": "Recipe choice returned no-match. Live chat_index returned 18 candidate thread links with no entries omitted and no reported title truncation, but displayTitle objects contained flags only and no title text. No conversation was located by title.",
+          "evidenceRefs": [],
+          "friction": "Native index did not expose title text or sidebar container identity; no particular approved disposable test title was supplied or established. The title-observation capability gap and missing target precondition are distinct limitations.",
+          "failureClassification": "HARNESS_UNSUPPORTED_TITLE_OBSERVATION",
+          "authorizationScope": "Read-only inspection only; no private thread opening, navigation, sends, typing, renaming or settings changes.",
+          "model": "openai/gpt-6.1-terra#low",
+          "agent": "chatgpt-probe",
+          "uncertainty": "A matching disposable title may or may not be present; the returned title-free, incomplete candidate index cannot establish it. Each invocation began with at least 15 seconds remaining and used a 15-second shell timeout; independent process-kill enforcement was not verified.",
+          "reconciliationKeyRefs": []
+        }
+      ]
+    },
+    {
+      "id": "013",
+      "section": "02 — Moving around ChatGPT",
+      "title": "Deep-link navigation",
+      "objective": "Open a conversation from its exact native /c/ address.",
+      "status": "UNSUPPORTED",
+      "attempts": [
+        {
+          "status": "UNSUPPORTED",
+          "startedAt": "2026-10-28T09:49:49.9430834Z",
+          "finishedAt": "2026-10-28T09:50:18.3205681Z",
+          "elapsedMs": 28377.4847,
+          "deadlineAt": "2026-10-28T09:50:49.9430834Z",
+          "timedOut": false,
+          "cliInvocationCount": 2,
+          "commands": [
+            "node bin/studio.mjs recipe choose --intent 'Open an exact ChatGPT conversation link in a disposable tab without sending' --json",
+            "'{}' | node bin/studio.mjs tools call conversation_targets --input - --studio-port 38703 --json"
+          ],
+          "observedOutcome": "The permitted source-map live-evidence section identifies an exact prior disposable test thread. Recipe discovery returned no-match. Live target discovery showed only two root ChatGPT targets, both with null thread and unverified identity; it did not show the test thread open. No navigation was performed or proven.",
+          "evidenceRefs": ["docs/agents/CHATGPT-100-SOURCE-MAP.md#live-evidence-already-taken"],
+          "friction": "No native existing-owner action was discovered that opens an exact URL without sending or navigating a protected tab. The previously discovered connect tool requires an already-open exact thread. The new disposable target's ownership and binding remain unverified; it was not used for navigation.",
+          "failureClassification": "HARNESS_UNSUPPORTED_SCOPED_DEEP_LINK",
+          "authorizationScope": "Navigation only on a verified disposable tab or fresh owned disposable tab, no sends or private thread exploration; actual actions were read-only.",
+          "model": "openai/gpt-6.1-terra#low",
+          "agent": "chatgpt-probe",
+          "uncertainty": "The historical test thread's current availability is unknown. No current URL or successful navigation to it was observed. Each invocation began with at least 15 seconds remaining and used a 15-second shell timeout; independent process-kill enforcement was not verified.",
+          "reconciliationKeyRefs": []
+        }
+      ]
+    },
+    {
+      "id": "014",
+      "section": "02 — Moving around ChatGPT",
+      "title": "Cross-thread navigation",
+      "objective": "Move between two open conversations and return to the original.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "015",
+      "section": "02 — Moving around ChatGPT",
+      "title": "Native history search",
+      "objective": "Use ChatGPT's own history search to find a specific old test phrase.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "016",
+      "section": "02 — Moving around ChatGPT",
+      "title": "Recent-thread recovery",
+      "objective": "Return to the last conversation after navigating away from it.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "017",
+      "section": "02 — Moving around ChatGPT",
+      "title": "Long-thread traversal",
+      "objective": "Navigate to a user turn near the start of a long thread.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "018",
+      "section": "02 — Moving around ChatGPT",
+      "title": "Scroll-to-latest",
+      "objective": "Jump to the most recent answer from an earlier message.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "019",
+      "section": "02 — Moving around ChatGPT",
+      "title": "Sidebar expansion",
+      "objective": "Expand a collapsed conversation sidebar and find its controls.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "020",
+      "section": "02 — Moving around ChatGPT",
+      "title": "Archived-history navigation",
+      "objective": "Find an archived disposable conversation if the account exposes archive history.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "021",
+      "section": "03 — Native conversation lifecycle",
+      "title": "First-turn delivery",
+      "objective": "Ask one harmless question in a fresh ChatGPT conversation and verify its answer.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "022",
+      "section": "03 — Native conversation lifecycle",
+      "title": "Same-thread follow-up",
+      "objective": "Ask a follow-up that depends on the answer in the immediately previous turn.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "023",
+      "section": "03 — Native conversation lifecycle",
+      "title": "Long-range thread continuity",
+      "objective": "Refer to a fact from an early turn after intervening discussion.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "024",
+      "section": "03 — Native conversation lifecycle",
+      "title": "Message edit and branch awareness",
+      "objective": "Edit a previously submitted disposable user message and identify the current answer branch.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "025",
+      "section": "03 — Native conversation lifecycle",
+      "title": "Response regeneration",
+      "objective": "Regenerate a completed assistant answer through ChatGPT's own control.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "026",
+      "section": "03 — Native conversation lifecycle",
+      "title": "Interrupt generation",
+      "objective": "Stop a message while ChatGPT is visibly generating.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "027",
+      "section": "03 — Native conversation lifecycle",
+      "title": "Generation continuation",
+      "objective": "Continue or resume an interrupted answer only when the site offers that control.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "028",
+      "section": "03 — Native conversation lifecycle",
+      "title": "Conversation branching",
+      "objective": "Create a branch from an earlier turn using ChatGPT's native branching feature if present.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "029",
+      "section": "03 — Native conversation lifecycle",
+      "title": "Conversation rename",
+      "objective": "Rename a disposable conversation using the ChatGPT interface.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "030",
+      "section": "03 — Native conversation lifecycle",
+      "title": "Archive mutation",
+      "objective": "Archive a disposable completed conversation without deleting it.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "031",
+      "section": "04 — Input controls and interaction modes",
+      "title": "Multiline payload fidelity",
+      "objective": "Send a single message containing multiple paragraphs with blank lines preserved.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "032",
+      "section": "04 — Input controls and interaction modes",
+      "title": "Unicode editing",
+      "objective": "Enter mixed Spanish accents, emoji and right-to-left text faithfully.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "033",
+      "section": "04 — Input controls and interaction modes",
+      "title": "Keyboard send action",
+      "objective": "Submit text using the site's supported keyboard shortcut rather than clicking Send.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "034",
+      "section": "04 — Input controls and interaction modes",
+      "title": "Keyboard newline action",
+      "objective": "Insert a newline without accidentally submitting the message.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "035",
+      "section": "04 — Input controls and interaction modes",
+      "title": "Model selection",
+      "objective": "Choose an available ChatGPT model and verify the selected model label.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "036",
+      "section": "04 — Input controls and interaction modes",
+      "title": "Temporary Chat activation",
+      "objective": "Start a Temporary Chat from the app's own controls.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "037",
+      "section": "04 — Input controls and interaction modes",
+      "title": "Speech input",
+      "objective": "Dictate a harmless message using ChatGPT's microphone input if available.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "038",
+      "section": "04 — Input controls and interaction modes",
+      "title": "Suggestion-chip interaction",
+      "objective": "Select a suggested follow-up chip and confirm the intended composer state.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "039",
+      "section": "04 — Input controls and interaction modes",
+      "title": "Copy action",
+      "objective": "Copy a completed assistant answer with ChatGPT's native Copy control.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "040",
+      "section": "04 — Input controls and interaction modes",
+      "title": "Feedback UI discovery",
+      "objective": "Inspect the message reaction or feedback controls without sending feedback.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "041",
+      "section": "05 — Structured answer extraction",
+      "title": "Long-answer extraction",
+      "objective": "Read an assistant answer that spans several screens without losing the end.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "042",
+      "section": "05 — Structured answer extraction",
+      "title": "Role attribution",
+      "objective": "Identify exact user-versus-assistant message boundaries in a mixed thread.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "043",
+      "section": "05 — Structured answer extraction",
+      "title": "List structure",
+      "objective": "Recover ordered and unordered nested list hierarchy from an answer.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "044",
+      "section": "05 — Structured answer extraction",
+      "title": "Code block fidelity",
+      "objective": "Extract a code fence including programming language and indentation.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "045",
+      "section": "05 — Structured answer extraction",
+      "title": "Table semantics",
+      "objective": "Read a table as distinct headers, rows and cells.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "046",
+      "section": "05 — Structured answer extraction",
+      "title": "Math fidelity",
+      "objective": "Extract a displayed math expression in a reusable mathematical form.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "047",
+      "section": "05 — Structured answer extraction",
+      "title": "Quotation structure",
+      "objective": "Preserve the structure and attribution of a blockquote in an answer.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "048",
+      "section": "05 — Structured answer extraction",
+      "title": "Hyperlink extraction",
+      "objective": "Read the destination URL of a link without mistaking its visible label for the address.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "049",
+      "section": "05 — Structured answer extraction",
+      "title": "Citation anchoring",
+      "objective": "Bind an inline citation marker to the answer passage it supports.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "050",
+      "section": "05 — Structured answer extraction",
+      "title": "Image-block extraction",
+      "objective": "Locate an inline response image as an independently addressable content block.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "051",
+      "section": "06 — Search, citations and thinking surfaces",
+      "title": "Search-tool activation",
+      "objective": "Ask ChatGPT to search the public web and determine whether a web-search action really ran.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "052",
+      "section": "06 — Search, citations and thinking surfaces",
+      "title": "Source card reading",
+      "objective": "Inspect the source cards attached to a search-assisted answer.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "053",
+      "section": "06 — Search, citations and thinking surfaces",
+      "title": "Citation-source navigation",
+      "objective": "Open one referenced source through ChatGPT's own source UI.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "054",
+      "section": "06 — Search, citations and thinking surfaces",
+      "title": "Tool-panel expansion",
+      "objective": "Expand a collapsed tool or sources panel and inspect its status.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "055",
+      "section": "06 — Search, citations and thinking surfaces",
+      "title": "Evidence presence",
+      "objective": "Distinguish a sourced answer from an unsourced model assertion.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "056",
+      "section": "06 — Search, citations and thinking surfaces",
+      "title": "Reasoning mode awareness",
+      "objective": "Select an available thinking mode and identify its visible progress state.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "057",
+      "section": "06 — Search, citations and thinking surfaces",
+      "title": "Reasoning completion",
+      "objective": "Tell when a long reasoning response has actually completed instead of showing progress.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "058",
+      "section": "06 — Search, citations and thinking surfaces",
+      "title": "Deep Research discovery",
+      "objective": "Locate the Deep Research entry point if the account offers it without starting research.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "059",
+      "section": "06 — Search, citations and thinking surfaces",
+      "title": "Research job monitoring",
+      "objective": "Reopen an already existing research task and identify whether it is pending or complete.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "060",
+      "section": "06 — Search, citations and thinking surfaces",
+      "title": "Research report navigation",
+      "objective": "Navigate the sections and reference links in a completed research report if available.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "061",
+      "section": "07 — User-provided files and multimodal inputs",
+      "title": "File-picker input",
+      "objective": "Attach a harmless local text file and verify its filename appears before sending.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "062",
+      "section": "07 — User-provided files and multimodal inputs",
+      "title": "Vision-file submission",
+      "objective": "Ask ChatGPT to describe a disposable image the user deliberately provides.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "063",
+      "section": "07 — User-provided files and multimodal inputs",
+      "title": "PDF interpretation",
+      "objective": "Attach a public sample PDF and ask ChatGPT for a fact on a numbered page.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "064",
+      "section": "07 — User-provided files and multimodal inputs",
+      "title": "Tabular file analysis",
+      "objective": "Upload a synthetic CSV and request a grouped summary of its columns.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "065",
+      "section": "07 — User-provided files and multimodal inputs",
+      "title": "Spreadsheet rendering",
+      "objective": "Attach a sample spreadsheet and request a visual chart of values.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "066",
+      "section": "07 — User-provided files and multimodal inputs",
+      "title": "Source-file input",
+      "objective": "Provide a short nonsecret source-code file and ask about one named function.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "067",
+      "section": "07 — User-provided files and multimodal inputs",
+      "title": "File download",
+      "objective": "Use ChatGPT's native UI to download a deliberately generated nonprivate file.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "068",
+      "section": "07 — User-provided files and multimodal inputs",
+      "title": "Attachment preview",
+      "objective": "Open an attachment preview and inspect its type without sending a new message.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "069",
+      "section": "07 — User-provided files and multimodal inputs",
+      "title": "Image generation result",
+      "objective": "Ask ChatGPT to generate a new original image and locate the output artifact.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "070",
+      "section": "07 — User-provided files and multimodal inputs",
+      "title": "Upload failure detection",
+      "objective": "Distinguish a failed attachment upload from a completed attachment without retrying blindly.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "071",
+      "section": "08 — Generated artifacts and richer UI",
+      "title": "Generated-document controls",
+      "objective": "Find the download button and file type for a generated document.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "072",
+      "section": "08 — Generated artifacts and richer UI",
+      "title": "Writing-artifact surface",
+      "objective": "Open a native editable writing artifact in ChatGPT if offered.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "073",
+      "section": "08 — Generated artifacts and richer UI",
+      "title": "Artifact edit",
+      "objective": "Change a small piece of text in a disposable editable ChatGPT artifact when supported.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "074",
+      "section": "08 — Generated artifacts and richer UI",
+      "title": "Data-analysis execution provenance",
+      "objective": "Identify whether ChatGPT's data-analysis tool actually executed rather than merely describing code.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "075",
+      "section": "08 — Generated artifacts and richer UI",
+      "title": "Tool failure detection",
+      "objective": "Recover the visible error state when ChatGPT's tool computation fails.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "076",
+      "section": "08 — Generated artifacts and richer UI",
+      "title": "Diagram artifact recognition",
+      "objective": "Request a supported static diagram and identify its rendered result.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "077",
+      "section": "08 — Generated artifacts and richer UI",
+      "title": "Chart semantics",
+      "objective": "Inspect an in-chat chart's axis labels and data points.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "078",
+      "section": "08 — Generated artifacts and richer UI",
+      "title": "Input-output provenance",
+      "objective": "Compare a generated file with its source upload using the native ChatGPT context.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "079",
+      "section": "08 — Generated artifacts and richer UI",
+      "title": "Code copying",
+      "objective": "Open an existing code block's native copy control and preserve its whitespace.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "080",
+      "section": "08 — Generated artifacts and richer UI",
+      "title": "Artifact-open navigation",
+      "objective": "Find the action to open a generated attachment separately from downloading it.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "081",
+      "section": "09 — Projects, organization and controls",
+      "title": "Project creation",
+      "objective": "Create a disposable ChatGPT Project if the account supports Projects.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "082",
+      "section": "09 — Projects, organization and controls",
+      "title": "Conversation-to-Project move",
+      "objective": "Move a disposable existing conversation into a specified Project.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "083",
+      "section": "09 — Projects, organization and controls",
+      "title": "Project unlink",
+      "objective": "Remove an existing test conversation from its Project without deleting it.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "084",
+      "section": "09 — Projects, organization and controls",
+      "title": "Project instructions read",
+      "objective": "Inspect a Project's custom instructions without modifying them.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "085",
+      "section": "09 — Projects, organization and controls",
+      "title": "Project file attachment",
+      "objective": "Attach an approved reference file to a disposable Project when available.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "086",
+      "section": "09 — Projects, organization and controls",
+      "title": "Project-specific history",
+      "objective": "Locate a conversation within a particular ChatGPT Project.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "087",
+      "section": "09 — Projects, organization and controls",
+      "title": "Sharing control discovery",
+      "objective": "Discover whether a disposable conversation has a shareable link without publishing it.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "088",
+      "section": "09 — Projects, organization and controls",
+      "title": "Share-link revocation",
+      "objective": "Revoke a previously created disposable shared conversation link when authorized.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "089",
+      "section": "09 — Projects, organization and controls",
+      "title": "Memory setting inspection",
+      "objective": "Read the ChatGPT memory controls to determine whether Memory is enabled.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "090",
+      "section": "09 — Projects, organization and controls",
+      "title": "Personalization settings discovery",
+      "objective": "Open Custom Instructions settings and report the controls available without changing them.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "091",
+      "section": "10 — Resilience, capture, and truthful outcomes",
+      "title": "Network loss detection",
+      "objective": "Notice when the ChatGPT page goes offline and report whether the current task can recover.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "092",
+      "section": "10 — Resilience, capture, and truthful outcomes",
+      "title": "Session expiration",
+      "objective": "Detect an expired login while preserving the originally selected thread.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "093",
+      "section": "10 — Resilience, capture, and truthful outcomes",
+      "title": "Target drift",
+      "objective": "Handle the exact ChatGPT tab changing during a pending interaction without sending to the wrong tab.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "094",
+      "section": "10 — Resilience, capture, and truthful outcomes",
+      "title": "Snapshot freshness",
+      "objective": "Recognize that previously captured message content is stale after a page reload.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "095",
+      "section": "10 — Resilience, capture, and truthful outcomes",
+      "title": "Runtime reconnection",
+      "objective": "Reconnect to the existing VIVIM Studio after a dropped CLI request without inventing a fresh browser owner.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "096",
+      "section": "10 — Resilience, capture, and truthful outcomes",
+      "title": "No-resend reconciliation",
+      "objective": "Recover safely from an uncertain send while preserving the original operation identity.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "097",
+      "section": "10 — Resilience, capture, and truthful outcomes",
+      "title": "Rate-limit detection",
+      "objective": "Identify when a ChatGPT quota or rate-limit banner prevents a user action.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "098",
+      "section": "10 — Resilience, capture, and truthful outcomes",
+      "title": "Timeout truthfulness",
+      "objective": "Distinguish a very slow generation from an actually failed or complete answer.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "099",
+      "section": "10 — Resilience, capture, and truthful outcomes",
+      "title": "Capture provenance",
+      "objective": "Capture one completed conversation into the local VIVIM World with original source attribution.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    },
+    {
+      "id": "100",
+      "section": "10 — Resilience, capture, and truthful outcomes",
+      "title": "Return-to-source continuity",
+      "objective": "Reopen that saved conversation from VIVIM's local World and point back to its exact native ChatGPT source.",
+      "status": "NOT_TESTED",
+      "attempts": []
+    }
+  ]
+}
