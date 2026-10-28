@@ -1,6 +1,6 @@
 # ChatGPT native scenarios 001–100 — source-to-outcome reconciliation
 
-Date: 2026-10-28. Baseline: original objectives and the three companion maps. **Status is a source-level estimate, not provider entitlement or a passed live scenario.** Generic code and selectors do not count as full native support.
+Date: 2026-10-28. Baseline: original objectives and the three companion maps. **Status is a source-level estimate, not provider entitlement or a passed live scenario.** Generic code and selectors do not count as full native support. The 2026-10-28 bounded `conversation-rich.mjs` reader offers candidate structure for 043–048/050, but not full-fidelity or live proof.
 
 ## Inspection method and limitations
 
@@ -54,14 +54,14 @@ Date: 2026-10-28. Baseline: original objectives and the three companion maps. **
 | 040 | Feedback UI discovery | `src/capture/actions.mjs` | unsupported | No separately named UI primitive and observed readback | source-reviewed; not live-verified here |
 | 041 | Long-answer extraction | `src/capture/conversation-thread.mjs:boundTranscript`; `read_conversation` | partial | Bounded per-message/total-char caps; not complete long-answer recovery | source-reviewed; regression source present, not run here |
 | 042 | Role attribution | `src/capture/conversation-thread.mjs:transcriptExpression`; `read_conversation` | partial | Role-labelled rendered nodes only; hidden/unrendered turns omitted | source-reviewed; not live-verified here |
-| 043 | List structure | `src/shapes/extract.mjs`; `src/replay/stream-components.mjs` | unsupported | Generic extraction exists; typed ChatGPT answer-block reader is not exposed | source-reviewed; not live-verified here |
-| 044 | Code block fidelity | `src/shapes/extract.mjs`; `src/replay/stream-components.mjs` | unsupported | Generic extraction exists; typed ChatGPT answer-block reader is not exposed | source-reviewed; not live-verified here |
-| 045 | Table semantics | `src/shapes/extract.mjs`; `src/replay/stream-components.mjs` | unsupported | Generic extraction exists; typed ChatGPT answer-block reader is not exposed | source-reviewed; not live-verified here |
-| 046 | Math fidelity | `src/shapes/extract.mjs`; `src/replay/stream-components.mjs` | unsupported | Generic extraction exists; typed ChatGPT answer-block reader is not exposed | source-reviewed; not live-verified here |
-| 047 | Quotation structure | `src/shapes/extract.mjs`; `src/replay/stream-components.mjs` | unsupported | Generic extraction exists; typed ChatGPT answer-block reader is not exposed | source-reviewed; not live-verified here |
-| 048 | Hyperlink extraction | `src/shapes/extract.mjs`; `src/replay/stream-components.mjs` | unsupported | Generic extraction exists; typed ChatGPT answer-block reader is not exposed | source-reviewed; not live-verified here |
+| 043 | List structure | `src/capture/conversation-rich.mjs`; `src/capture/conversation-thread.mjs:transcriptExpression`; `read_conversation` | partial | List items expose ordered/depth metadata, but complete nested hierarchy is not proven | source-reviewed; not live-verified here |
+| 044 | Code block fidelity | `src/capture/conversation-rich.mjs`; `src/capture/conversation-thread.mjs:transcriptExpression`; `read_conversation` | partial | Bounded code text/language; whitespace and oversized code fidelity unverified | source-reviewed; not live-verified here |
+| 045 | Table semantics | `src/capture/conversation-rich.mjs`; `src/capture/conversation-thread.mjs:transcriptExpression`; `read_conversation` | partial | Table row/cell extraction is capped (24 rows, 16 cells) and page-visible only | source-reviewed; not live-verified here |
+| 046 | Math fidelity | `src/capture/conversation-rich.mjs`; `src/capture/conversation-thread.mjs:transcriptExpression`; `read_conversation` | partial | LaTeX only when annotation/data-math exists; otherwise observed text | source-reviewed; not live-verified here |
+| 047 | Quotation structure | `src/capture/conversation-rich.mjs`; `src/capture/conversation-thread.mjs:transcriptExpression`; `read_conversation` | partial | Blockquote text candidate exists; attribution not verified | source-reviewed; not live-verified here |
+| 048 | Hyperlink extraction | `src/capture/conversation-rich.mjs`; `src/capture/conversation-thread.mjs:transcriptExpression`; `read_conversation` | partial | HTTP(S) link sanitized: query/fragment removed; exact original destination omitted | source-reviewed; not live-verified here |
 | 049 | Citation anchoring | `src/shapes/extract.mjs`; `src/replay/stream-components.mjs` | unsupported | Generic extraction exists; typed ChatGPT answer-block reader is not exposed | source-reviewed; not live-verified here |
-| 050 | Image-block extraction | `src/shapes/extract.mjs`; `src/replay/stream-components.mjs` | unsupported | Generic extraction exists; typed ChatGPT answer-block reader is not exposed | source-reviewed; not live-verified here |
+| 050 | Image-block extraction | `src/capture/conversation-rich.mjs`; `src/capture/conversation-thread.mjs:transcriptExpression`; `read_conversation` | partial | Image alt and source-presence only; bytes/source artifact not addressable | source-reviewed; not live-verified here |
 | 051 | Search-tool activation | `src/profiles/sites/chatgpt.mjs` | unsupported | ChatGPT search/research/thinking UI control and observation missing | source-reviewed; not live-verified here |
 | 052 | Source card reading | `src/profiles/sites/chatgpt.mjs` | unsupported | ChatGPT search/research/thinking UI control and observation missing | source-reviewed; not live-verified here |
 | 053 | Citation-source navigation | `src/profiles/sites/chatgpt.mjs` | unsupported | ChatGPT search/research/thinking UI control and observation missing | source-reviewed; not live-verified here |
