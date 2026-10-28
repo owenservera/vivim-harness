@@ -31,4 +31,8 @@ export function registerPersonalAgentRoutes({ add, paths, getTools } = {}) {
   add('PUT', '/personal-agent/memory/{tier}/{key}', 'Save explicit user-authored Personal Agent memory with CAS',
     ({ p, body }) => agent.remember({ ...ensureBody(body, ['text', 'expectedVersion']), tier: p.tier, key: p.key }),
     { body: { type: 'object', properties: { text: stringSchema, expectedVersion: { type: 'integer', minimum: 1 } }, required: ['text', 'expectedVersion'], additionalProperties: false } });
+  add('POST', '/personal-agent/memory/{tier}/{key}/remove', 'Remove explicit local memory with CAS (version history preserved)',
+    ({ p, body }) => agent.forget({ ...ensureBody(body, ['expectedVersion']), tier: p.tier, key: p.key }),
+    { body: { type: 'object', properties: { expectedVersion: { type: 'integer', minimum: 1 } },
+      required: ['expectedVersion'], additionalProperties: false } });
 }
