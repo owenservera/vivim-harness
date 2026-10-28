@@ -361,6 +361,50 @@ body.vivim-app {
   .vivim-app button { transition: none; }
 }
 
+
+/* VIVIM World library and detail surface — styles only; existing read/edit logic owns all effects. */
+.vivim-app #worldGrid { gap: 20px; }
+.vivim-app #worldList, .vivim-app #worldDetail {
+  border: 1px solid #2f4564; border-radius: 16px;
+  background: linear-gradient(145deg, #14253c, #0e1a2c 70%);
+  padding: 20px; box-shadow: 0 14px 38px #02091578;
+}
+.vivim-app #worldList h2, .vivim-app #worldDetail h2 {
+  letter-spacing: -.02em; margin: 2px 0 12px; font-weight: 720;
+}
+.vivim-app #worldItems { margin: 14px 0 0; }
+.vivim-app #worldItems ul { display: grid; gap: 9px; }
+.vivim-app #worldItems li { border-bottom: 0; padding: 0; }
+.vivim-app #worldItems .rowbtn {
+  border: 1px solid #2f4564; border-radius: 11px;
+  background: #12223a; padding: 13px 15px;
+  gap: 5px; transition: border-color .15s, background-color .15s;
+}
+.vivim-app #worldItems .rowbtn:hover { border-color: #5085c9; background: #193555; }
+.vivim-app #worldItems .rowbtn[aria-current="true"] {
+  border-color: #73a6f3; box-shadow: inset 3px 0 0 #76afff; background: #1a3d68;
+}
+.vivim-app #worldItems .conv-title { font-weight: 680; color: #edf5ff; line-height: 1.35; }
+.vivim-app #worldItems .rowbtn .note { font-size: 12px; line-height: 1.45; }
+.vivim-app #worldList .panel, .vivim-app #worldDetail .panel {
+  box-shadow: none; background: #0b1b30; border-color: #2b4261;
+}
+.vivim-app #worldList input, .vivim-app #worldList select,
+.vivim-app #worldDetail input, .vivim-app #worldDetail select {
+  border-radius: 9px; background: #0b1b30; border-color: #3b5578;
+}
+.vivim-app #worldDetail .banner { border-radius: 12px; }
+.vivim-app #worldList .empty, .vivim-app #worldDetail .empty {
+  border: 1px dashed #395370; border-radius: 12px; color: #adc0da;
+}
+@media (max-width: 700px) {
+  .vivim-app #worldGrid { gap: 12px; }
+  .vivim-app #worldList, .vivim-app #worldDetail { padding: 14px; border-radius: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vivim-app #worldItems .rowbtn { transition: none; }
+}
+
 </style>
 </head>
 <body class="vivim-app">

@@ -53,3 +53,12 @@ test('first-use buttons only focus/connect through existing controls and open sa
   assert.match(script, /\$\('#btnSend'\)\.addEventListener\('click', sendMessage\)/);
   assert.doesNotMatch(html, /<iframe/i);
 });
+
+
+test('World library cards use accessible source-preserving styles', () => {
+  assert.match(html, /\/\* VIVIM World library and detail surface \*\//);
+  assert.match(html, /#worldItems \.rowbtn\[aria-current="true"\]/);
+  assert.match(html, /#worldList, \.vivim-app #worldDetail/);
+  assert.match(html, /@media \(prefers-reduced-motion: reduce\)/);
+  assert.match(script, /import\('\.\/world-view\.mjs'\)/);
+});
