@@ -157,10 +157,17 @@ export class DomObserver {
   async clearHighlight() { try { await this.session.send('Overlay.hideHighlight'); } catch { /* ignore */ } }
 }
 
-function scrubBlocks(blocks, privacy) {
+// Preserve typed answer blocks with the SAME local privacy setting as turn text.
+// Filtered captures must sanitize link/citation/media URLs at every nesting level.
+export function scrubBlocks(blocks, privacy) {
+  const scrub = (obj) => {
+    for (const key of ['text', 'alt', 'label', 'tex']) if (typeof obj[key] === 'string') obj[key] = privacy.text(obj[key]).text;
+    for (const key of ['href', 'src']) if (typeof obj[key] === 'string') obj[key] = privacy.url(obj[key]);
+  };
   for (const b of blocks ?? []) {
-    if (typeof b.text === 'string') b.text = privacy.text(b.text).text;
-    for (const i of b.inline ?? []) if (typeof i.text === 'string') i.text = privacy.text(i.text).text;
+    scrub(b);
+    for (const inline of b.inline ?? []) scrub(inline);
+    if (b.headers) b.headers = b.headers.map((header) => privacy.text(header).text);
     if (b.rows) b.rows = b.rows.map((r) => r.map((c) => privacy.text(c).text));
     scrubBlocks(b.blocks, privacy);
     for (const it of b.items ?? []) scrubBlocks(it.blocks, privacy);
