@@ -171,6 +171,13 @@ export function createConversationBrowserAdapter({ paths, profileStore, familySt
     if (!target || originOf(target.url) !== binding.origin || !threadMatches(target.url)) throw problem('BINDING_CHANGED');
     if (await d.evaluate(livePage(), 'location.origin') !== binding.origin) throw problem('BINDING_CHANGED');
     if (!(await pageThreadMatches())) throw problem('BINDING_CHANGED');
+    if (freshTab && !binding.thread) {
+      // Unbound NEW_CHAT is only the exact blank home route. It must never read
+      // (or start an effect on) a different thread/project after same-origin drift.
+      const targetPath = (() => { try { return new URL(target.url).pathname; } catch { return null; } })();
+      const pagePath = await d.evaluate(livePage(), 'location.pathname');
+      if (targetPath !== '/' || pagePath !== '/') throw problem('BINDING_CHANGED');
+    }
     return { ...binding };
   }
   async function pageState() {
