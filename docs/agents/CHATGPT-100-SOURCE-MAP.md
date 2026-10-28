@@ -2,7 +2,9 @@
 
 ## 2026-10-28 roadmap/source reconciliation
 
-The [per-scenario source matrix](CHATGPT-100-RECONCILED-STATUS.md) supersedes stale aggregate status counts below. The 134 explicitly referenced code/test files across the three maps were fetched for import/owner inspection; additional transitive source was inspected. **This does not establish all-callers closure, automated-test success or 100 live passes.** Source-level classification: 10 supported, 22 partial, 68 unsupported (supported ≠ live-verified).
+**Latest-main correction:** `src/capture/conversation-rich.mjs` is wired into `src/capture/conversation-thread.mjs` for bounded read-only DOM parts. Objectives **043–048 and 050** are now **partial** in the [matrix](CHATGPT-100-RECONCILED-STATUS.md), not unsupported; citation anchoring **049** remains unsupported. This is synthetic/source evidence, **not live provider verification**.
+
+The [per-scenario source matrix](CHATGPT-100-RECONCILED-STATUS.md) supersedes stale aggregate status counts below. The 134 explicitly referenced code/test files across the three maps were fetched for import/owner inspection; additional transitive source was inspected. **This does not establish all-callers closure, automated-test success or 100 live passes.** Source-level classification: 10 supported, 29 partial, 61 unsupported (supported ≠ live-verified).
 
 - **011** is now exposed through `create_conversation` (existing Studio owner, no provider send): `src/studio/conversation-tools.mjs` → `src/capture/conversation-runtime.mjs:connect`. The previous “no Studio tool for new chat” statements below are superseded.
 - **Capability preflight:** `conversation_capsule` is now a named read-only tool, delegating to the existing `src/capture/conversation-runtime.mjs:capsule` and `src/capture/conversation-capsule.mjs:buildCapabilityCapsule`. `conversation.capabilities` is a one-call recipe, not permission for an effect or a claim about account availability. Regression tests authored but not executed here.
