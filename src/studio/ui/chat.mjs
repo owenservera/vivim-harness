@@ -990,6 +990,18 @@ export function readFailure(err) {
   return { text, code, link: errorLink(code) };
 }
 
+/* Source-driven first-use presentation only; no login, account inference, storage or effects. */
+export function welcomeView(snapshot, connecting = false) {
+  const active = Boolean(snapshot && !['closed', 'disconnected'].includes(snapshot.state));
+  return {
+    visible: !active,
+    busy: !active && Boolean(connecting),
+    status: connecting && !active
+      ? 'Connecting to the chosen browser tab…'
+      : 'Choose a provider and connection mode below. Connecting does not send a message.',
+  };
+}
+
 /* ---------------- browser app ---------------- */
 function boot() {
   // Set once the U1 panel is mounted (bottom of boot); render() stays safe before that.
@@ -1280,7 +1292,7 @@ function boot() {
     const body = S.mode === 'new' ? { site: S.site, freshTab: true }
       : { site: selectedTarget().site, targetId: S.targetId, ...(S.pickRef ? { expectedThread: S.pickRef } : {}) };
     const known = new Set(S.list.map((c) => c.id));
-    S.connecting = true; $('#connectError').textContent = ''; renderConnect();
+    S.connecting = true; $('#connectError').textContent = ''; renderWelcome(S.snap); renderConnect();
     try {
       const c = unwrapConversation(await api('/conversations', { method: 'POST', body }));
       if (!c) throw unreadable();
@@ -1301,7 +1313,7 @@ function boot() {
       if (created.length === 1) { await openConversation(created[0].id); msg += ' A conversation was left open. Check it or finish it from the notice below.'; }
       else if (created.length > 1) msg += ' Check “Earlier conversations”.';
       $('#connectError').textContent = msg;
-    } finally { S.connecting = false; renderConnect(); renderChrome(); }
+    } finally { S.connecting = false; renderWelcome(S.snap); renderConnect(); renderChrome(); }
   }
 
   /* ---- send ---- */
@@ -1811,8 +1823,17 @@ function boot() {
       if (e.status === 409) refresh(id);
     } finally { if (seq === S.readSeq) S.reading = false; renderRead(); }
   }
+  function renderWelcome(snap) {
+    const view = welcomeView(snap, S.connecting);
+    const panel = $('#vivimWelcome');
+    panel.hidden = !view.visible;
+    panel.setAttribute('aria-busy', view.busy ? 'true' : 'false');
+    $('#vivimBegin').disabled = view.busy;
+    setText($('#vivimWelcomeStatus'), view.status);
+  }
   function render() {
     const snap = S.snap;
+    renderWelcome(snap);
     renderChrome(); renderStage(snap); renderChips(snap); renderThread(snap); renderBanners(snap); renderTranscript(snap); renderRead(); renderComposer(); renderFinish(snap);
     renderDetails(snap); renderList(); renderConnect(); announce(snap);
     $('#btnRetry').hidden = !(snap && S.failures > 0);
@@ -1821,6 +1842,17 @@ function boot() {
   }
 
   /* ---- wiring ---- */
+  // Shortcuts operate ONLY existing local controls. No provider send, navigation or profile change.
+  $('#vivimBegin').addEventListener('click', () => {
+    $('#connectBox').open = true;
+    $('#connectSummary').focus();
+    $('#connectBox').scrollIntoView?.({ block: 'start' });
+  });
+  $('#vivimLibrary').addEventListener('click', () => {
+    const view = $('#viewConversations');
+    view.click();
+    view.focus();
+  });
   document.querySelectorAll('input[name=mode]').forEach((r) => r.addEventListener('change', () => { if (r.checked) { S.mode = r.value; $('#connectError').textContent = ''; renderConnect(); } }));
   $('#site').addEventListener('change', () => { S.site = $('#site').value; renderConnect(); });
   $('#btnTabs').addEventListener('click', loadTargets);

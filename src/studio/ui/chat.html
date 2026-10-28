@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Capture Studio — Chat</title>
+<title>VIVIM — Your AI World</title>
 <script type="module" src="/ui/chat.mjs"></script>
 <style>
 :root {
@@ -235,14 +235,143 @@ ul.convs button { align-items: baseline; }
   .modes-note { margin-left: 12px; margin-right: 12px; }
   .world-grid { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* VIVIM World V1 visual layer: additive to the existing authenticated Chat/World shell.
+   The technical Studio pages and all capture, send and provenance controls remain intact. */
+body.vivim-app {
+  --paper: #081120; --panel: #101d31; --ink: #eaf3ff; --muted: #a3b4cf;
+  --line: #2b3b55; --hover: #203450;
+  --l1: #5d9cff; --l2: #b6a2f5; --l3: #7ee0c3; --act: #efb26c;
+  --gap: #ff8999; --ok: #76dcb5;
+  --chip-ok: #86e5bd; --chip-info: #a4ccff; --chip-warn: #ffd39f;
+  --chip-bad: #ffa1ae; --chip-mute: #bac8de;
+  color-scheme: dark;
+  min-height: 100vh;
+  background: radial-gradient(ellipse at 85% -15%, #193b72 0, transparent 45%),
+    radial-gradient(ellipse at 3% 85%, #132447 0, transparent 38%), var(--paper);
+}
+.vivim-app > header {
+  padding: 12px 24px; border-bottom: 1px solid #314464;
+  background: color-mix(in srgb, var(--paper) 88%, #224779);
+  gap: 12px 20px; min-height: 74px;
+}
+.vivim-brand { display: flex; gap: 12px; align-items: center; margin-right: auto; }
+.vivim-brand-mark { display: grid; place-items: center; width: 38px; height: 38px;
+  border-radius: 12px; background: linear-gradient(145deg, #4383e8, #235bc3);
+  color: white; box-shadow: 0 4px 24px #2461cf55; font-size: 23px; }
+.vivim-brand h1 { font-size: 19px; font-weight: 750; letter-spacing: .1em; line-height: 1.1; }
+.vivim-brand p { color: var(--muted); margin: 4px 0 0; font-size: 11px; letter-spacing: .01em; }
+.vivim-app header .crumb { font-size: 12px; color: #c0d6f5; }
+.vivim-header-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.vivim-header-actions a { color: var(--ink); border: 1px solid var(--line); border-radius: 9px;
+  padding: 0 12px; font-size: 12px; text-decoration: none; background: #182841; }
+.vivim-header-actions a:hover { background: var(--hover); border-color: var(--l1); }
+.vivim-local-label { color: #97e4c5; font-size: 12px; font-weight: 650; }
+.vivim-local-label::before { content: "●"; margin-right: 7px; font-size: 9px; }
+.vivim-app .modes { gap: 8px; }
+.vivim-app .modes button { border: 1px solid transparent; color: #b1c3de;
+  background: transparent; border-radius: 10px; font-weight: 570; text-align: left;
+  padding: 10px 14px; }
+.vivim-app .modes button:hover { background: #1b3152; color: #fff; }
+.vivim-app .modes button[aria-pressed="true"] {
+  background: #1c4a91; color: #fff; border-color: #3979d7;
+  box-shadow: inset 3px 0 0 #8bbdff; }
+.vivim-app #viewCapture::before { content: "◈"; } .vivim-app #viewConversations::before { content: "▤"; }
+.vivim-app #viewProjects::before { content: "▦"; } .vivim-app #viewNotes::before { content: "▧"; }
+.vivim-app #viewFind::before { content: "⌕"; } .vivim-app #viewTransfer::before { content: "⇄"; }
+.vivim-app #viewRelations::before { content: "◎"; } .vivim-app #viewWorkspace::before { content: "◇"; }
+.vivim-app .modes button::before { display: inline-block; width: 23px; color: #8bbdff; font-size: 18px; vertical-align: middle; }
+.vivim-app .modes-note { color: #95a9c5; font-size: 12px; line-height: 1.55; }
+.vivim-app .panel { border: 1px solid var(--line); border-radius: 13px;
+  box-shadow: 0 8px 28px #030a1566; }
+.vivim-app button { border-radius: 9px; transition: background-color .15s, border-color .15s; }
+.vivim-app button.primary { background: #337de9; border-color: #4d95ff; color: white; }
+.vivim-app button.primary:hover:not(:disabled) { background: #458dfa; filter: none; }
+.vivim-app .composer { border-color: #365a91; box-shadow: 0 -8px 26px #02081485; }
+.vivim-app .composer textarea { border-radius: 10px; padding: 12px;
+  background: #0b182b; border-color: #385172; }
+.vivim-app #transcript { background: #0b1729; min-height: 180px; }
+.vivim-app .msg { background: #12233d; border-radius: 12px; }
+.vivim-app .msg.you { background: #193968; }
+.vivim-app .world .rowbtn[aria-current="true"] { background: #1c3b61; }
+.vivim-app a { color: #a5caff; }
+.vivim-app :focus-visible { outline-color: #94c3ff; outline-offset: 3px; }
+.vivim-welcome { position: relative; overflow: hidden; display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 26px;
+  border: 1px solid #36537b; border-radius: 18px; padding: 30px;
+  margin: 0 0 24px;
+  background: radial-gradient(ellipse at 10% 0%, #22487f 0, transparent 65%),
+    linear-gradient(135deg, #10213a, #0c182b 75%);
+  box-shadow: 0 18px 50px #02081194;
+}
+.vivim-welcome::before { content: ""; position: absolute; pointer-events: none;
+  width: 240px; height: 240px; right: -140px; top: -160px;
+  border-radius: 50%; box-shadow: 0 0 105px 32px #2f70c155; }
+.vivim-welcome > * { position: relative; }
+.vivim-eyebrow { display: block; color: #8bbdff; font-size: 11px;
+  font-weight: 750; letter-spacing: .16em; margin-bottom: 10px; }
+.vivim-welcome h2 { font-size: clamp(24px, 3vw, 34px); line-height: 1.13;
+  margin: 0 0 12px; letter-spacing: -.025em; }
+.vivim-welcome-copy > p { color: #c3d5ee; line-height: 1.65; margin: 0 0 18px; max-width: 48ch; }
+.vivim-welcome-actions { display: flex; gap: 10px; flex-wrap: wrap; margin: 18px 0; }
+.vivim-welcome-actions button { padding: 9px 15px; font-weight: 650; }
+.vivim-welcome .vivim-trust { font-size: 12px; color: #97accc; margin: 12px 0 0; }
+.vivim-welcome-steps { list-style: none; padding: 2px 0; margin: 0; display: grid; align-content: center; gap: 15px; }
+.vivim-welcome-steps li { display: grid; grid-template-columns: 34px minmax(0, 1fr);
+  gap: 12px; align-items: start; color: #c4d5ed; }
+.vivim-step-number { display: grid; place-items: center; width: 34px; height: 34px;
+  border: 1px solid #49709e; border-radius: 50%; font-weight: 700; color: #9fcbff; }
+.vivim-welcome-steps li:first-child .vivim-step-number { background: #2765b8; color: white; border-color: #529bff; }
+.vivim-welcome-steps strong { display: block; color: #eef5ff; font-size: 13px; margin: 0 0 3px; }
+.vivim-welcome-steps span.vivim-step-desc { display: block; color: #9aafcc; font-size: 12px; }
+.vivim-welcome-status { margin-top: 10px; color: #a9c1df; font-size: 12px; }
+@media (min-width: 960px) {
+  body.vivim-app { display: grid; grid-template-columns: 224px minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr); }
+  .vivim-app > header { grid-column: 1 / -1; grid-row: 1; position: sticky; top: 0; z-index: 8; }
+  .vivim-app > .modes { grid-column: 1; grid-row: 2 / span 2; flex-direction: column;
+    flex-wrap: nowrap; align-items: stretch; align-self: start; padding: 20px 12px;
+    position: sticky; top: 74px; max-height: calc(100vh - 74px); overflow: auto;
+    border-right: 1px solid #263b59; background: #0c192d; }
+  .vivim-app > .modes-note { grid-column: 2; grid-row: 2; margin: 15px 26px 0; }
+  .vivim-app > #chatApp, .vivim-app > #worldShell { grid-column: 2; grid-row: 3;
+    width: 100%; max-width: none; margin: 0; padding: 22px 26px 30px; }
+}
+@media (max-width: 959px) {
+  .vivim-app > .modes { display: flex; flex-wrap: nowrap; overflow-x: auto;
+    padding: 10px 14px; }
+  .vivim-app .modes button { white-space: nowrap; flex: 0 0 auto; }
+  .vivim-app .modes-note { margin: 8px 14px 0; }
+  .vivim-welcome { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .vivim-welcome-steps { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .vivim-welcome-steps li { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+  .vivim-app > header { padding: 12px 14px; }
+  .vivim-brand { flex-basis: 100%; }
+  .vivim-brand p { font-size: 10px; }
+  .vivim-header-actions { gap: 6px; }
+  .vivim-header-actions a { padding: 0 8px; }
+  .vivim-app > #chatApp, .vivim-app > #worldShell { padding: 12px; }
+  .vivim-welcome { padding: 22px 18px; }
+  .vivim-welcome-steps { grid-template-columns: 1fr; }
+  .vivim-welcome-steps li { grid-template-columns: 34px minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vivim-app button { transition: none; }
+}
+
 </style>
 </head>
-<body>
-<header>
-  <h1>Capture Studio</h1>
-  <span class="crumb"><b>Chat</b></span>
-  <a href="/">← Back to Studio</a>
-  <a href="/drive">Calibrate sites</a>
+<body class="vivim-app">
+<header class="vivim-topbar">
+  <div class="vivim-brand"><span class="vivim-brand-mark" aria-hidden="true">✦</span><div><h1>VIVIM</h1><p>My machine. My data. My AI.</p></div></div>
+  <span class="crumb"><b>Your AI World / Chat</b></span>
+  <div class="vivim-header-actions">
+    <span class="vivim-local-label">Local-first</span>
+    <a href="/">Advanced Studio</a>
+    <a href="/drive">Calibrate sites</a>
+  </div>
   <span id="connectionNote" class="note" role="status"></span>
 </header>
 
@@ -260,6 +389,24 @@ ul.convs button { align-items: baseline; }
 
 <div class="wrap" id="chatApp">
   <main>
+    <section class="vivim-welcome" id="vivimWelcome" aria-labelledby="vivimWelcomeTitle" aria-busy="false">
+      <div class="vivim-welcome-copy">
+        <span class="vivim-eyebrow">WELCOME TO YOUR AI WORLD</span>
+        <h2 id="vivimWelcomeTitle">Bring your AI together.</h2>
+        <p>Connect an AI website in your own browser session. Read and save what you choose, then explore conversations, projects, notes and relationships in one local place.</p>
+        <div class="vivim-welcome-actions">
+          <button type="button" class="primary" id="vivimBegin">Connect your AI</button>
+          <button type="button" id="vivimLibrary">Explore saved conversations</button>
+        </div>
+        <p class="vivim-trust">You sign in directly with each provider. Connecting starts observation, not a message send.</p>
+        <p class="vivim-welcome-status" id="vivimWelcomeStatus" role="status">Choose a provider and connection mode below.</p>
+      </div>
+      <ol class="vivim-welcome-steps" aria-label="Start using VIVIM">
+        <li><span class="vivim-step-number" aria-hidden="true">1</span><div><strong>Choose your AI</strong><span class="vivim-step-desc">Pick a supported provider or an open tab.</span></div></li>
+        <li><span class="vivim-step-number" aria-hidden="true">2</span><div><strong>Connect and read</strong><span class="vivim-step-desc">Observe an exact tab. Sending always requires your action.</span></div></li>
+        <li><span class="vivim-step-number" aria-hidden="true">3</span><div><strong>Build your world</strong><span class="vivim-step-desc">Organize locally saved conversations, projects and notes.</span></div></li>
+      </ol>
+    </section>
     <h2>Chat</h2>
     <p class="lede">Connect to a website you’re logged in to, send a message, and read the reply while Studio records it. You can follow up in the same chat, one turn at a time. Connecting only watches. Nothing is sent until you press Send.</p>
 

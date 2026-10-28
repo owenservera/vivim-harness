@@ -1,0 +1,31 @@
+name: VIVIM UI focused checks
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/studio/ui/chat.html'
+      - 'src/studio/ui/chat.mjs'
+      - 'src/studio/ui/world-view.mjs'
+      - 'test/unit/vivim-shell.test.mjs'
+      - '.github/workflows/vivim-ui.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ui-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Parse UI source
+        run: |
+          node --check src/studio/ui/chat.mjs
+          node --check src/studio/ui/world-view.mjs
+      - name: Run focused UI contracts (offline, no browser/CDP sends)
+        run: node --test test/unit/vivim-shell.test.mjs test/unit/chat-ui.test.mjs test/unit/chat-rich-ui.test.mjs test/unit/world-ui.test.mjs
