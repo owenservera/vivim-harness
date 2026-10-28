@@ -15,3 +15,6 @@ chrome-profile/
 
 # Vercel UI preview build output (derived from canonical frontend)
 ui-preview/dist/
+
+# Local lane scratch: baseline captures, debug probes, gate logs. Never committed.
+.prof/
