@@ -63,5 +63,205 @@
       "src/studio/world-service.mjs#createWorldService"
     ],
     "gap": "Evidence checkpoint and partial World coverage exist, but full-native-history, truncated blocks and refused assets are not jointly certified."
+  },
+  "111": {
+    "sourceKeys": [
+      "src/capture/conversation-thread.mjs#turnObservationExpression",
+      "src/studio/world-service.mjs#createWorldService"
+    ],
+    "gap": "Native message IDs are only observed when page attributes expose them; an exact local-to-native message-ID guarantee is unverified."
+  },
+  "112": {
+    "sourceKeys": [
+      "src/shapes/observation.mjs#buildObservation",
+      "src/studio/world-service.mjs#createWorldService"
+    ],
+    "gap": "Provider observation and user-authored notes have distinct provenance fields; derived title and summary separation is not end-to-end certified."
+  },
+  "113": {
+    "sourceKeys": [
+      "src/capture/conversation-evidence.mjs#captureConversationEvidence",
+      "src/shapes/observation.mjs#buildObservation"
+    ],
+    "gap": "Capture carriers and references exist but a complete user-facing raw/decoded/DOM byte inspection journey is not demonstrated."
+  },
+  "114": {
+    "sourceKeys": [
+      "src/capture/conversation-thread.mjs#parseThread",
+      "src/studio/world-service.mjs#createWorldService"
+    ],
+    "gap": "Native thread parsing and local IDs exist; preserving distinct same-text answers through two imports is not tested."
+  },
+  "115": {
+    "sourceKeys": [
+      "src/capture/conversation-rich.mjs#richPartReaderSource",
+      "src/studio/world-url.mjs#sanitizeProviderUrl"
+    ],
+    "gap": "Read-only link label and sanitized URL candidates exist; change history between observations is not stored and compared."
+  },
+  "116": {
+    "sourceKeys": [
+      "src/capture/conversation-evidence.mjs#captureConversationEvidence",
+      "src/studio/world-service.mjs#createWorldService"
+    ],
+    "gap": "Snapshots and evidence timestamps exist; no verified cross-snapshot semantic diff of appeared/removed/edited content."
+  },
+  "117": {
+    "sourceKeys": [
+      "src/capture/conversation-thread.mjs#turnObservationExpression",
+      "src/capture/conversation-thread.mjs#boundTranscript"
+    ],
+    "gap": "Native message ID absence is preserved rather than fabricated; explanatory UI acceptance is still unverified."
+  },
+  "118": {
+    "sourceKeys": [
+      "src/capture/conversation-rich.mjs#richPartReaderSource",
+      "src/studio/world-relations.mjs#createWorldRelations"
+    ],
+    "gap": "A sanitized cited URL and local source-reference primitives exist; citation identity and claim-truth boundaries require proof."
+  },
+  "119": {
+    "sourceKeys": [
+      "src/capture/conversation-thread.mjs#parseThread",
+      "src/capture/conversation-runtime.mjs#createConversationRuntime"
+    ],
+    "gap": "Native thread parsing and runtime binding exist; wrong-thread recapture rejection and no-corrupt-append proof are outstanding."
+  },
+  "120": {
+    "sourceKeys": [
+      "src/capture/conversation-evidence.mjs#captureConversationEvidence",
+      "src/studio/world-url.mjs#sanitizedSource"
+    ],
+    "gap": "Source pointers and evidence checkpoints exist; a complete displayed provenance chain with gaps is not demonstrated."
+  },
+  "121": {
+    "sourceKeys": [
+      "src/studio/world-service.mjs#createWorldService"
+    ],
+    "gap": "World local project create exists; user acceptance of selected saved-thread grouping without remote effects is unverified."
+  },
+  "122": {
+    "sourceKeys": [
+      "src/studio/world-service.mjs#createWorldService"
+    ],
+    "gap": "Project membership updates exist but verified two-project move and unchanged remote membership are not demonstrated."
+  },
+  "123": {
+    "sourceKeys": [
+      "src/studio/world-service.mjs#createWorldService",
+      "src/studio/world-relations.mjs#createWorldRelations"
+    ],
+    "gap": "User-authored notes and message selections exist; the exact user-visible attachment workflow is not live-verified."
+  },
+  "124": {
+    "sourceKeys": [
+      "src/studio/world-search.mjs#createWorldSearch",
+      "src/studio/world-service.mjs#createWorldService"
+    ],
+    "gap": "Saved note search exists; a defined user-tag create/filter contract is not established."
+  },
+  "125": {
+    "sourceKeys": [
+      "src/studio/world-relations.mjs#createWorldRelations",
+      "src/studio/world-service.mjs#createWorldService"
+    ],
+    "gap": "Durable selections and project member associations exist; a pin action and its precise saved-passage behavior are unverified."
+  },
+  "126": {
+    "sourceKeys": [
+      "src/studio/world-relations.mjs#createWorldRelations"
+    ],
+    "gap": "Local source references and relation graph exist; associating an imported article with a specific answer is not proven."
+  },
+  "127": {
+    "sourceKeys": [
+      "src/studio/world-service.mjs#createWorldService"
+    ],
+    "gap": "Saved conversations and project associations exist; non-destructive local thread splitting is not exposed as a verified operation."
+  },
+  "128": {
+    "sourceKeys": [
+      "src/studio/world-transfer.mjs#createWorldTransfer",
+      "src/studio/world-service.mjs#createWorldService"
+    ],
+    "gap": "Import and local record primitives exist; canonical duplicate reconciliation with preserved observation history is unverified."
+  },
+  "129": {
+    "sourceKeys": [
+      "src/studio/world-service.mjs#createWorldService"
+    ],
+    "gap": "World record and note mutations exist; safe deletion of a derived summary without raw evidence deletion is not established."
+  },
+  "130": {
+    "sourceKeys": [
+      "src/studio/world-service.mjs#createWorldService"
+    ],
+    "gap": "World reads are local-only; offline reopening of exact content across real process/browser disconnection is not verified."
+  },
+  "131": {
+    "sourceKeys": [
+      "src/studio/world-search.mjs#createWorldSearch"
+    ],
+    "gap": "Local message search and part attribution exist; exact phrase hit and native message-level open behavior require real acceptance."
+  },
+  "132": {
+    "sourceKeys": [
+      "src/studio/world-search.mjs#createWorldSearch"
+    ],
+    "gap": "Token-based local search exists; semantic retrieval where query terms are absent is not verified."
+  },
+  "133": {
+    "sourceKeys": [
+      "src/studio/world-search.mjs#createWorldSearch"
+    ],
+    "gap": "Local corpus filters exist; simultaneous site/time/project filtering with correct exclusion evidence is unverified."
+  },
+  "134": {
+    "sourceKeys": [
+      "src/studio/world-search.mjs#createWorldSearch"
+    ],
+    "gap": "Saved messages carry roles; user-only filter in the exposed query needs verification."
+  },
+  "135": {
+    "sourceKeys": [
+      "src/studio/world-search.mjs#createWorldSearch",
+      "src/capture/conversation-rich.mjs#boundRichParts"
+    ],
+    "gap": "Code language can appear in bounded blocks; exact code-language filter and no-text-leak semantics are unverified."
+  },
+  "136": {
+    "sourceKeys": [
+      "src/studio/world-search.mjs#createWorldSearch",
+      "src/capture/conversation-rich.mjs#boundRichParts"
+    ],
+    "gap": "Rich block text can be indexed; table-specific heading/cell targeting and structural fidelity are unverified."
+  },
+  "137": {
+    "sourceKeys": [
+      "src/studio/world-search.mjs#createWorldSearch",
+      "src/studio/world-url.mjs#sanitizedSource"
+    ],
+    "gap": "Sanitized source URLs exist; source-domain-only filtering of cited answer URLs is unverified."
+  },
+  "138": {
+    "sourceKeys": [
+      "src/studio/world-search.mjs#createWorldSearch",
+      "src/shapes/observation.mjs#buildObservation"
+    ],
+    "gap": "Observation metadata and local search exist; conflict comparison and timestamp semantics without truth claims are unverified."
+  },
+  "139": {
+    "sourceKeys": [
+      "src/studio/world-search.mjs#createWorldSearch",
+      "src/studio/world-relations.mjs#createWorldRelations"
+    ],
+    "gap": "Search and source-reference metadata exist; freshness/provenance completeness in returned hit cards is not proven."
+  },
+  "140": {
+    "sourceKeys": [
+      "src/studio/world-search.mjs#createWorldSearch",
+      "src/studio/world-service.mjs#createWorldService"
+    ],
+    "gap": "Search hit and saved conversation readers exist; opening a hit with the correct surrounding turns is unverified."
   }
 }
