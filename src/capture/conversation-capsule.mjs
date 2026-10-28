@@ -43,13 +43,18 @@ export function buildCapabilityCapsule({ view, profile = null } = {}) {
 
   const submit = (() => {
     if (finished) return op('submit_conversation_turn', 'unavailable', { reason: 'CONVERSATION_FINISHED', evidence: [`state ${state}`] });
-    if (identity.state !== 'bound') return op('submit_conversation_turn', 'unavailable', { reason: 'THREAD_IDENTITY_UNVERIFIED', evidence: [`identity ${identity.state}${identity.reason ? ` (${identity.reason})` : ''}`] });
+    if (recovered || view.recovery?.pending === true)
+      return op('submit_conversation_turn', 'unavailable', { reason: 'CONVERSATION_NOT_WRITABLE', evidence: ['no live writable owner; recovery cannot resume a send'] });
+    const fresh = site === 'chatgpt' && identity.state === 'unbound' && identity.reason === 'NEW_CHAT'
+      && view.binding?.ownedByStudio === true && !view.binding?.thread && state === 'ready';
+    if (identity.state !== 'bound' && !fresh) return op('submit_conversation_turn', 'unavailable', { reason: 'THREAD_IDENTITY_UNVERIFIED', evidence: [`identity ${identity.state}${identity.reason ? ` (${identity.reason})` : ''}`] });
     if (!adapter?.composer?.selectors?.length) return op('submit_conversation_turn', 'unavailable', { reason: 'COMPOSER_UNAVAILABLE', evidence: [`no measured composer selectors for ${site}`] });
     if (!adapter?.send) return op('submit_conversation_turn', 'unavailable', { reason: 'SEND_CONTROL_UNAVAILABLE', evidence: [`no measured send strategy for ${site}`] });
     if (view.writer?.active === true) return op('submit_conversation_turn', 'unavailable', { reason: 'WRITER_WINDOW_BUSY', evidence: ['an unresolved turn holds the writer window'] });
     if (readiness?.ready !== true) return op('submit_conversation_turn', 'unverified', { reason: readiness?.reason ?? 'NOT_CHECKED', evidence: ['run an explicit read-only readiness check first'] });
     return op('submit_conversation_turn', 'supported', {
-      evidence: ['exact thread bound', `measured composer selectors: ${adapter.composer.selectors.length}`, 'writer window idle',
+      evidence: [fresh ? 'owned NEW_CHAT ready for first-turn typing; exact /c/ binding must be pinned after delivery' : 'exact thread bound',
+        `measured composer selectors: ${adapter.composer.selectors.length}`, 'writer window idle',
         'effect-time gates still apply: confirm:true, expectedRevision, durable key, per-turn capture'],
     });
   })();
