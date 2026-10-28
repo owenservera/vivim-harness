@@ -2,6 +2,8 @@
 
 ## 2026-10-28 dependency reconciliation
 
+**Latest-main correction:** `src/capture/conversation-rich.mjs` is wired into `src/capture/conversation-thread.mjs` for bounded read-only DOM parts. Objectives **043–048 and 050** are now **partial** in the [matrix](CHATGPT-100-RECONCILED-STATUS.md), not unsupported; citation anchoring **049** remains unsupported. This is synthetic/source evidence, **not live provider verification**.
+
 The [per-scenario status crosswalk](CHATGPT-100-RECONCILED-STATUS.md) records owners and first missing links for 001–100. All **134 distinct source/test paths explicitly referenced across the three maps** were fetched from `main` during this pass; direct imports/exports and additional discovered transitive source were inspected. A full reverse-caller and dynamic-import closure, exhaustive line-by-line certification, and live proof are **not claimed**.
 
 - **Verified existing capability path:** `src/studio/conversation-tools.mjs:conversation_capsule` → `src/capture/conversation-runtime.mjs:capsule` → `src/capture/conversation-capsule.mjs:buildCapabilityCapsule` → measured profile from `src/profiles/sites/index.mjs`. Existing HTTP route: `src/studio/conversation-api.mjs`. Added one-call recipe in `src/recipes/catalog.mjs`; test additions in `test/unit/conversation-tools.test.mjs` / `test/unit/recipe-catalog.test.mjs` are not executed here.
