@@ -786,6 +786,17 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     for (const button of buttons) {
       if (typeof button.setAttribute === 'function') button.setAttribute('aria-pressed', viewOf(button) === state.view ? 'true' : 'false');
     }
+    // The header describes the actual World view instead of remaining on Chat.
+    // It is a label only; no second navigation owner or application state is introduced.
+    const breadcrumb = doc.getElementById?.('vivimViewBreadcrumb');
+    if (breadcrumb) {
+      const titles = {
+        capture: 'Chat', conversations: 'Saved conversations', projects: 'Projects',
+        notes: 'Notes', find: 'Find', transfer: 'Transfer',
+        relations: 'Relations', workspace: 'Workspace',
+      };
+      breadcrumb.textContent = 'Your AI World / ' + (titles[state.view] ?? 'Chat');
+    }
   }
   function ensureFrame() {
     if (framed) return;

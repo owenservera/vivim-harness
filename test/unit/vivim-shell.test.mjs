@@ -87,3 +87,12 @@ test('empty provider states invalidate the chooser cache after discovery failure
   assert.match(script, /No supported websites reported by this Studio yet\./);
   assert.match(script, /Looking for supported AI websites…/);
 });
+
+test('World navigation keeps the visible breadcrumb synchronized', () => {
+  assert.match(html, /id="vivimViewBreadcrumb" aria-live="polite"/);
+  const worldSource = readFileSync(new URL('../../src/studio/ui/world-view.mjs', import.meta.url), 'utf8');
+  assert.match(worldSource, /doc\.getElementById\?\.\('vivimViewBreadcrumb'\)/);
+  assert.match(worldSource, /conversations: 'Saved conversations'/);
+  assert.match(worldSource, /relations: 'Relations', workspace: 'Workspace'/);
+  assert.match(worldSource, /breadcrumb\.textContent = 'Your AI World \/ ' \+/);
+});
