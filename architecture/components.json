@@ -180,6 +180,38 @@
         "acceptance": "not independently reverified in new repository"
       },
       "nextGate": "Exports and CLI implemented; validate live conversation bundles."
+    },
+    {
+      "id": "personal-agent",
+      "name": "Personal Agent",
+      "summary": "Local identity, bootstrap, memory, Work, self-knowledge and continuity",
+      "codePaths": [
+        "src/agents/"
+      ],
+      "trackedFiles": 6,
+      "trackedBytes": 60000,
+      "maturity": {
+        "state": "integrated-offline",
+        "measuredAt": "local-suite-2026-10-28",
+        "acceptance": "offline unit and real same-owner Studio HTTP tests pass locally; no provider or cross-device claim"
+      },
+      "nextGate": "Verify the local lifecycle end to end on a disposable data directory and keep export privacy defaults honest."
+    },
+    {
+      "id": "recipes",
+      "name": "Native recipes",
+      "summary": "Recipe catalog, intent choice and plan assembly for the native CLI",
+      "codePaths": [
+        "src/recipes/"
+      ],
+      "trackedFiles": 4,
+      "trackedBytes": 60000,
+      "maturity": {
+        "state": "integrated-offline",
+        "measuredAt": "local-suite-2026-10-28",
+        "acceptance": "offline unit tests pass locally; live recipe runs remain owner-authorized effects"
+      },
+      "nextGate": "Exercise one authorized recipe run through the existing single effect owner and record the receipt."
     }
   ],
   "adjacent": [
@@ -201,7 +233,7 @@
   ],
   "warnings": [
     "Functional component source paths overlap; never sum all component file counts.",
-    "All maturity states are provisional until standalone CI and actual Windows/browser acceptance.",
+    "All maturity states are provisional until local verification and actual Windows/browser acceptance.",
     "AION original application and local evidence are intentionally untouched."
   ]
 }
