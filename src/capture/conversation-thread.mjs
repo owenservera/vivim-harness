@@ -66,8 +66,9 @@ export function turnObservationExpression(adapter = {}) {
     const text=composer?String(composer.value??composer.innerText??composer.textContent??'').replace(/\\r\\n/g,'\\n'):null;
     const stop=all(${JSON.stringify(adapter.assistant?.streamingSelectors ?? [])}).length>0;
     const sendBtn=all(${JSON.stringify(adapter.send?.buttonSelectors ?? [])}).length>0;
-    const emptyDraft=!!composer&&String(composer.value??composer.innerText??composer.textContent??'').replace(/\\s+/g,'').length===0;
-    const idle=sendBtn||(emptyDraft&&!stop);
+    // A missing Stop control and empty draft do NOT prove the UI is idle. Use positive
+    // send-control evidence only; otherwise leave readiness unknown and preserve the fence.
+    const idle=sendBtn;
     const enabled=!!composer && composer.disabled!==true && composer.getAttribute('aria-disabled')!=='true';
     return {origin:String(location.origin),pathname:String(location.pathname),messages,draft:{text,chars:text===null?null:text.replace(/\\s+/g,' ').trim().length},
       controls:{observed:!!composer&&idle,state:stop?'busy':idle&&enabled?'idle':'unknown',idleControlPresent:idle,stopPresent:stop,composerEnabled:enabled}};
