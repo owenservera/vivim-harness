@@ -29,10 +29,14 @@
       "024",
       "025",
       "026",
-      "027"
+      "027",
+      "028",
+      "029"
     ],
-    "maxId": "027",
-    "scope": "Snapshot of latest attempts 001–027 observed at start of revision; later probes outside this revision. Statuses remain live-owner controlled."
+    "maxId": "029",
+    "scope": "Original first-attempt evidence, indexed per objective; 001–027 retained from original baseline and 028–029 added from local baseline. ERA2 reruns may append newer outcomes; consult live ledger for latest, never promote status from source-only repairs.",
+    "phase": "baseline before ERA2 reruns",
+    "attemptIndexBase": 1
   },
   "policy": {
     "evidence": "Source evidence and fixture tests are not live passes. Remote implementation must not edit observed statuses. Only the coordinated live probe owner may update the live ledger.",
@@ -55,11 +59,12 @@
         "src/capture/conversation-browser-adapter.mjs:114-163 readiness",
         "src/capture/conversation-capsule.mjs:75 capsule ownership"
       ],
-      "evidence": "Registry has no dedicated state inspector; readiness is lifecycle-bound. findComposer writes page-global state, isStreaming returns false on evaluation failure, and detectAuthWall is heuristic and false does not prove authentication.",
+      "evidence": "Registry has no dedicated state inspector; readiness is lifecycle-bound. findComposer writes page-global state; detectAuthWall remains heuristic and false does not prove authentication. Earlier isStreaming false-on-evaluation-failure finding was historical: current source returns unobserved null on failed or malformed evaluation (src/capture/actions.mjs:728-733); see sourceRepairRounds for source-only repairs.",
       "regressionTests": [
         "Synthetic positive, negative, hidden, conflicting and evaluation-failure states yield bounded tri-state results; absence or failure is unknown when not proven.",
         "Assert no page-global writes, focus, typing, navigation, send or sensitive text leakage; account identity disclosure requires explicit approval."
-      ]
+      ],
+      "historicalEvidence": "Registry has no dedicated state inspector; readiness is lifecycle-bound. findComposer writes page-global state, isStreaming returns false on evaluation failure, and detectAuthWall is heuristic and false does not prove authentication."
     },
     "B": {
       "name": "Title evidence pipeline",
@@ -100,12 +105,16 @@
         "src/capture/conversation-browser-adapter.mjs:114-143 readiness",
         "src/capture/conversation-service.mjs:400-412 creation",
         "docs/agents/CHATGPT-NEW-CHAT-BINDING-REPAIR-PLAN-2026-10-28.md:1",
-        "test/unit/chatgpt-new-chat-binding-investigation.test.mjs:1"
+        "test/unit/chatgpt-new-chat-binding-investigation.test.mjs:1",
+        "src/capture/conversation-ownership.mjs:3-25 ownedFreshTargetIds",
+        "src/capture/conversation-runtime.mjs:644-657 freshTargetProvenance",
+        "test/unit/conversation-service.test.mjs:380-429"
       ],
-      "evidence": "Source confirms target listing hardcodes ownedByStudio false while fresh creation binding uses true. Do not set all targets true. Cause of live BINDING_CHANGED remains inconclusive. The linked binding plan documents candidate returned-blocked versus thrown branches; parent reports 9 focused tests passing. This is offline evidence, not a live branch diagnosis or product fix.",
+      "evidence": "Historical pre-ERA2 source hardcoded target ownership false and conflicted with fresh binding; current source now uses ownedFreshTargetIds and records ephemeral exact fresh-target provenance only after successful service connect. A returned blocked readiness can still have provenance: ownership and readiness are separate. Recovered old tabs are not owned by the restarted runtime; that is expected. The live BINDING_CHANGED branch remains unknown and readiness is not established as fixed. Helper revokes on observed disappearance/origin drift, filters recovered/read-only/pure/finishing/finished/mismatched entries and fails closed on competing claims. Unobserved target-ID reuse between observations is an integration coverage gap, not a demonstrated defect.",
       "regressionTests": [
         "Inject target URL, page origin/path and timing cases to isolate readiness branches; genuine drift fails closed.",
-        "Verify provenance-backed owner reporting distinguishes fresh owned, foreign and unknown targets; no send and draft fencing preserved."
+        "Verify provenance-backed owner reporting distinguishes fresh owned, foreign and unknown targets; no send and draft fencing preserved.",
+        "Add full-runtime lifecycle integration coverage including current fresh blocked, recovered/foreign, finish, observed disappearance/origin drift, competing claims, and target-ID reuse between observations; avoid assuming the last scenario is a proven defect."
       ],
       "sourceRepairUpdateRound2": [
         {
@@ -118,7 +127,8 @@
           "implementation": "committed; see sourceRepairRounds",
           "liveStatus": "unchanged"
         }
-      ]
+      ],
+      "historicalEvidence": "Source confirms target listing hardcodes ownedByStudio false while fresh creation binding uses true. Do not set all targets true. Cause of live BINDING_CHANGED remains inconclusive. The linked binding plan documents candidate returned-blocked versus thrown branches; parent reports 9 focused tests passing. This is offline evidence, not a live branch diagnosis or product fix."
     },
     "D": {
       "name": "Profile context and discovery",
@@ -165,9 +175,10 @@
       "codeLocations": [
         "src/capture/conversation-service.mjs:109-111",
         "src/studio/conversation-tools.mjs:29-63",
-        "docs/agents/CHATGPT-100-LIVE-2026-10-28.json:1"
+        "docs/agents/CHATGPT-100-LIVE-2026-10-28.json:1",
+        "test/unit/conversation-service.test.mjs:380-429"
       ],
-      "evidence": "021 observed an actual user turn and assistant answer 21, but reply interrupted, protocol completion unknown and capture incomplete; this is not a missed send. Prior uncertainty and closed local state constrain follow-ups. Native control non-discovery is distinct from provider feature unavailability.",
+      "evidence": "021 observed an actual user turn and assistant answer 21, but reply interrupted, protocol completion unknown and capture incomplete; this is not a missed send. Prior uncertainty and closed local state constrain follow-ups. Native control non-discovery is distinct from provider feature unavailability. Service fixtures assert returned block vs thrown attachment failure and observed send with unknown completion plus original-key reconciliation/replay. The capture-named test does not assert capture completeness, nor model closed/restarted 021.",
       "regressionTests": [
         "Journal preserves observed delivery while completion remains unknown; read-only reconciliation reuses original operation key and never resends.",
         "Inventory native control registrations; test provider offer, ownership, exact-thread and draft/idle preconditions separately."
@@ -216,7 +227,9 @@
       "acceptanceCriteria": [
         "Safely identify the approved account field or explicitly report unknown without credentials."
       ],
-      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner",
+      "observedAttemptIndex": 1,
+      "observedPhase": "baseline before ERA2 reruns"
     },
     {
       "id": "002",
@@ -242,7 +255,9 @@
       "acceptanceCriteria": [
         "Correctly report login required when evidenced, otherwise authenticated only on positive proof or unknown."
       ],
-      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner",
+      "observedAttemptIndex": 1,
+      "observedPhase": "baseline before ERA2 reruns"
     },
     {
       "id": "003",
@@ -269,7 +284,9 @@
       "acceptanceCriteria": [
         "Report the visible native conversation ID with verified exact binding, not its title; otherwise unknown."
       ],
-      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner",
+      "observedAttemptIndex": 1,
+      "observedPhase": "baseline before ERA2 reruns"
     },
     {
       "id": "004",
@@ -297,7 +314,9 @@
       "acceptanceCriteria": [
         "Correctly locate ChatGPT among observed unrelated tabs under verified profile without bypassing ownership guard."
       ],
-      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner",
+      "observedAttemptIndex": 1,
+      "observedPhase": "baseline before ERA2 reruns"
     },
     {
       "id": "005",
@@ -324,7 +343,9 @@
       "acceptanceCriteria": [
         "Identify the ChatGPT target in the guarded dedicated browser; disclose that this does not establish account or OS window handle."
       ],
-      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner",
+      "observedAttemptIndex": 1,
+      "observedPhase": "baseline before ERA2 reruns"
     },
     {
       "id": "006",
@@ -381,12 +402,14 @@
           ],
           "verification": "source-implemented; no new live PASS"
         }
-      ]
+      ],
+      "observedAttemptIndex": 1,
+      "observedPhase": "baseline before ERA2 reruns"
     },
     {
       "id": "007",
       "observedStatus": "UNSUPPORTED",
-      "classification": "Streaming state unobserved; evaluation failure currently collapses to false",
+      "classification": "Baseline streaming state unobserved; current source returns unknown on failed or malformed streaming evaluation, not live validated",
       "confidence": "high",
       "repairGroup": "A",
       "dependencies": [
@@ -418,7 +441,10 @@
           ],
           "verification": "source-implemented; no new live PASS"
         }
-      ]
+      ],
+      "observedAttemptIndex": 1,
+      "observedPhase": "baseline before ERA2 reruns",
+      "historicalClassification": "Streaming state unobserved; evaluation failure currently collapses to false"
     },
     {
       "id": "008",
@@ -444,7 +470,9 @@
       "acceptanceCriteria": [
         "Correctly report evidenced Temporary Chat state or unknown, not infer off from absence."
       ],
-      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner",
+      "observedAttemptIndex": 1,
+      "observedPhase": "baseline before ERA2 reruns"
     },
     {
       "id": "009",
@@ -476,7 +504,9 @@
       "acceptanceCriteria": [
         "Observe same title and distinguish two distinct exact candidate refs; do not assert live binding from index alone."
       ],
-      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner",
+      "observedAttemptIndex": 1,
+      "observedPhase": "baseline before ERA2 reruns"
     },
     {
       "id": "010",
@@ -503,13 +533,15 @@
       "acceptanceCriteria": [
         "Explain an evidenced obstruction category or return unknown without claiming an unobstructed composer from missing signals."
       ],
-      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner",
+      "observedAttemptIndex": 1,
+      "observedPhase": "baseline before ERA2 reruns"
     },
     {
       "id": "011",
       "observedStatus": "PARTIAL",
       "classification": "New target created; readiness and ownership conflict unverified",
-      "confidence": "high for source reporting mismatch; low for binding cause",
+      "confidence": "high for historical mismatch and current source provenance; live readiness failure cause unknown",
       "repairGroup": "C",
       "dependencies": [
         "Provenance-safe owner",
@@ -520,10 +552,13 @@
         "src/capture/conversation-runtime.mjs:583-588",
         "src/capture/conversation-runtime.mjs:630-642",
         "src/capture/conversation-browser-adapter.mjs:114-143",
-        "src/capture/conversation-service.mjs:400-412"
+        "src/capture/conversation-service.mjs:400-412",
+        "src/capture/conversation-ownership.mjs:3-25",
+        "src/capture/conversation-runtime.mjs:644-657",
+        "test/unit/conversation-service.test.mjs:380-413"
       ],
       "nextInvestigationSteps": [
-        "Follow linked binding plan: isolate origin/path/timing branch with sanitized diagnostics; trace current-runtime exact fresh-target ownership provenance without marking foreign or recovered targets owned. No production fix yet."
+        "Follow binding plan for sanitized origin/path/timing diagnosis; separately exercise current-runtime fresh provenance and full lifecycle integration, including unobserved ID reuse as coverage gap. Normal blocked readiness may still be provably owned."
       ],
       "regressionTests": [
         "Group C injected readiness and ownership tests; real drift fails closed."
@@ -572,6 +607,11 @@
           ],
           "verification": "source-implemented; no new live PASS"
         }
+      ],
+      "observedAttemptIndex": 1,
+      "observedPhase": "baseline before ERA2 reruns",
+      "historicalNextInvestigationSteps": [
+        "Follow linked binding plan: isolate origin/path/timing branch with sanitized diagnostics; trace current-runtime exact fresh-target ownership provenance without marking foreign or recovered targets owned. No production fix yet."
       ]
     },
     {
@@ -605,7 +645,9 @@
       "acceptanceCriteria": [
         "Locate the approved title in evidenced sidebar candidates with its distinct native ref; report incomplete coverage and do not claim attachment."
       ],
-      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner",
+      "observedAttemptIndex": 1,
+      "observedPhase": "baseline before ERA2 reruns"
     },
     {
       "id": "013",
@@ -634,7 +676,9 @@
       "acceptanceCriteria": [
         "Navigate without sending and independently verify exact resulting native URL and binding."
       ],
-      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner",
+      "observedAttemptIndex": 1,
+      "observedPhase": "baseline before ERA2 reruns"
     },
     {
       "id": "014",
@@ -662,7 +706,9 @@
       "acceptanceCriteria": [
         "Move to the second thread and return to the original exact native thread without send or draft loss."
       ],
-      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner",
+      "observedAttemptIndex": 1,
+      "observedPhase": "baseline before ERA2 reruns"
     },
     {
       "id": "015",
@@ -690,7 +736,9 @@
       "acceptanceCriteria": [
         "Use ChatGPT's own history search and identify the specific matching disposable result, or report no observed result without claiming success."
       ],
-      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner",
+      "observedAttemptIndex": 1,
+      "observedPhase": "baseline before ERA2 reruns"
     },
     {
       "id": "016",
@@ -718,7 +766,9 @@
       "acceptanceCriteria": [
         "Return to the independently verified exact prior native thread without sending or losing a draft."
       ],
-      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner",
+      "observedAttemptIndex": 1,
+      "observedPhase": "baseline before ERA2 reruns"
     },
     {
       "id": "017",
@@ -746,7 +796,9 @@
       "acceptanceCriteria": [
         "Reach and verify the specified early user turn in that exact thread without sending or modifying drafts."
       ],
-      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner",
+      "observedAttemptIndex": 1,
+      "observedPhase": "baseline before ERA2 reruns"
     },
     {
       "id": "018",
@@ -772,7 +824,9 @@
       "acceptanceCriteria": [
         "Reach and independently verify latest answer without a send or draft modification."
       ],
-      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner",
+      "observedAttemptIndex": 1,
+      "observedPhase": "baseline before ERA2 reruns"
     },
     {
       "id": "019",
@@ -798,7 +852,9 @@
       "acceptanceCriteria": [
         "Observe collapsed state, expand natively, and verify controls and expanded state."
       ],
-      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner",
+      "observedAttemptIndex": 1,
+      "observedPhase": "baseline before ERA2 reruns"
     },
     {
       "id": "020",
@@ -824,7 +880,9 @@
       "acceptanceCriteria": [
         "Open native archive and identify the approved archived thread; report feature unavailable only with evidence."
       ],
-      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner",
+      "observedAttemptIndex": 1,
+      "observedPhase": "baseline before ERA2 reruns"
     },
     {
       "id": "021",
@@ -842,7 +900,8 @@
         "Trace completion and journal semantics, original operation identity and read-only reconciliation; do not interpret as missed send or generate a replacement key."
       ],
       "regressionTests": [
-        "Group F journal and native control safeguards."
+        "Group F journal and native control safeguards.",
+        "Service fixture test/unit/conversation-service.test.mjs:416-429 asserts one observed submit, unknown completion and same-key reconcile/replay; it does not explicitly assert capture incomplete or exercise closed/restarted 021."
       ],
       "liveReprobePreconditions": [
         "Original journal and key available; explicit authorization for read-only reconciliation; no resend."
@@ -889,7 +948,9 @@
           ],
           "verification": "source-implemented; no new live PASS"
         }
-      ]
+      ],
+      "observedAttemptIndex": 1,
+      "observedPhase": "baseline before ERA2 reruns"
     },
     {
       "id": "022",
@@ -915,7 +976,9 @@
       "acceptanceCriteria": [
         "After preconditions, one authorized follow-up in same thread produces and verifies 24; no replacement or blind resend."
       ],
-      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner",
+      "observedAttemptIndex": 1,
+      "observedPhase": "baseline before ERA2 reruns"
     },
     {
       "id": "023",
@@ -951,7 +1014,9 @@
           ],
           "verification": "source-implemented; no new live PASS"
         }
-      ]
+      ],
+      "observedAttemptIndex": 1,
+      "observedPhase": "baseline before ERA2 reruns"
     },
     {
       "id": "024",
@@ -977,7 +1042,9 @@
       "acceptanceCriteria": [
         "Edit the approved turn natively and verify resulting branch identity without unapproved send."
       ],
-      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner",
+      "observedAttemptIndex": 1,
+      "observedPhase": "baseline before ERA2 reruns"
     },
     {
       "id": "025",
@@ -1003,7 +1070,9 @@
       "acceptanceCriteria": [
         "Invoke native regeneration once and independently verify new answer/branch; reconcile uncertainty without blind retry."
       ],
-      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner",
+      "observedAttemptIndex": 1,
+      "observedPhase": "baseline before ERA2 reruns"
     },
     {
       "id": "026",
@@ -1029,7 +1098,9 @@
       "acceptanceCriteria": [
         "Stop the positively observed generation using native control and verify resulting state without claiming completion."
       ],
-      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner",
+      "observedAttemptIndex": 1,
+      "observedPhase": "baseline before ERA2 reruns"
     },
     {
       "id": "027",
@@ -1055,14 +1126,179 @@
       "acceptanceCriteria": [
         "Activate the actually offered native continue control once and observe continuation; do not replace with a new prompt."
       ],
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner",
+      "observedAttemptIndex": 1,
+      "observedPhase": "baseline before ERA2 reruns"
+    },
+    {
+      "id": "028",
+      "observedStatus": "UNSUPPORTED",
+      "observedAttemptIndex": 1,
+      "observedPhase": "baseline before ERA2 reruns",
+      "classification": "Branch creation: no direct registry action discovered; missing safe live preconditions and prior completion uncertain",
+      "confidence": "high for recorded observation and registry; product-wide absence and provider availability unverified",
+      "repairGroup": "F",
+      "dependencies": [
+        "Original 021 uncertainty and same-key no-resend reconciliation",
+        "Inventory all registrations",
+        "Approved disposable fixture and verified effect owner"
+      ],
+      "codeLocations": [
+        "src/studio/conversation-tools.mjs:29-63",
+        "src/capture/conversation-ownership.mjs:3-25"
+      ],
+      "nextInvestigationSteps": [
+        "Inventory all registered native branch controls beyond the conversation registry and distinguish a harness gap from provider unavailability; investigate original 021 completion without resend."
+      ],
+      "regressionTests": [
+        "Test native control registration and provider confirmation; fail closed for recovered/foreign owner, thread drift, active generation and unsafe drafts."
+      ],
+      "liveReprobePreconditions": [
+        "Approved disposable exact-bound thread, completed prior operation, live idle/draft safety, verified effect ownership and explicit branch authorization."
+      ],
+      "acceptanceCriteria": [
+        "Invoke an actual native branch control and independently verify the resulting provider branch and exact identity; local metadata alone is not proof."
+      ],
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+    },
+    {
+      "id": "029",
+      "observedStatus": "UNSUPPORTED",
+      "observedAttemptIndex": 1,
+      "observedPhase": "baseline before ERA2 reruns",
+      "classification": "Native rename: no direct registry action discovered; missing safe live preconditions and prior completion uncertain",
+      "confidence": "high for recorded observation and registry; product-wide absence and provider availability unverified",
+      "repairGroup": "F",
+      "dependencies": [
+        "Original 021 uncertainty and same-key no-resend reconciliation",
+        "Inventory all registrations",
+        "Approved disposable fixture and verified effect owner"
+      ],
+      "codeLocations": [
+        "src/studio/conversation-tools.mjs:29-63",
+        "src/capture/conversation-ownership.mjs:3-25"
+      ],
+      "nextInvestigationSteps": [
+        "Inventory all registered native rename controls beyond the conversation registry; recovered old targets are expected unowned and must not be treated as an ownership bug."
+      ],
+      "regressionTests": [
+        "Test native control registration and provider confirmation; fail closed for recovered/foreign owner, thread drift, active generation and unsafe drafts."
+      ],
+      "liveReprobePreconditions": [
+        "Approved disposable exact-bound thread, resolved prior uncertainty, verified current owner, live idle/draft safety and explicit rename authorization."
+      ],
+      "acceptanceCriteria": [
+        "Execute actual native rename once and verify the approved new provider title; local metadata update is not proof."
+      ],
       "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
     }
   ],
+  "evidenceGapSummary": {
+    "computedAt": "2026-10-28T12:32:10.000Z",
+    "sourceLedger": "docs/agents/CHATGPT-100-LIVE-2026-10-28.json",
+    "scope": "read-only annotation of the live ledger; no status changed, no attempt deleted, no evidence invented",
+    "totals": {
+      "objectives": 100,
+      "objectivesWithAttempts": 32,
+      "attempts": 55
+    },
+    "passWithEmptyEvidenceRefs": {
+      "count": 1,
+      "attempts": [
+        "005#baseline"
+      ]
+    },
+    "partialWithEmptyEvidenceRefs": {
+      "count": 3,
+      "attempts": [
+        "002#ERA2_RETEST",
+        "004#baseline",
+        "011#baseline"
+      ]
+    },
+    "attemptsWithFinishedAtNull": {
+      "count": 3,
+      "attempts": [
+        "001#baseline",
+        "002#ERA2_RETEST",
+        "021#baseline"
+      ]
+    },
+    "attemptsWithTimedOutTrue": {
+      "count": 2,
+      "attempts": [
+        "002#ERA2_RETEST",
+        "021#baseline"
+      ]
+    },
+    "baselineAttemptsMissingRevisionAnchor": {
+      "count": 29,
+      "objectives": [
+        "001",
+        "002",
+        "003",
+        "004",
+        "005",
+        "006",
+        "007",
+        "008",
+        "009",
+        "010",
+        "011",
+        "012",
+        "013",
+        "014",
+        "015",
+        "016",
+        "017",
+        "018",
+        "019",
+        "020",
+        "021",
+        "022",
+        "023",
+        "024",
+        "025",
+        "026",
+        "027",
+        "028",
+        "029"
+      ]
+    },
+    "objectivesMarkedRevisionUnanchored": [
+      "022",
+      "023",
+      "024",
+      "025",
+      "026",
+      "027",
+      "028",
+      "029"
+    ],
+    "attemptsMarkedEvidenceGap": [
+      "002#ERA2_RETEST",
+      "005#baseline"
+    ],
+    "note": "Annotations only. 002 latest attempt and the 005 baseline attempt carry evidenceGap true with a one-line reason; objectives 022-029 still carry objective-level revisionUnanchored true because their latest attempts predate attemptPhase and testedRevision. Objective 021 no longer carries the marker: the post-restart sweep added an anchored ERA2_RETEST attempt, and its status moved to BLOCKED at the readiness gate. Every empty evidenceRefs array is still empty and no attempt was deleted. Statuses were unchanged when this annotation pass ran; the later 011 and 021 movements are recorded in revisionNotes, not here."
+  },
   "revisionNotes": [
     "2026-10-28: Expanded original 001–017 snapshot through 027; earlier analysis retained except corrected title diagnosis.",
     "Group B: source and synthetic end-to-end proof identify default CLI privacy projection; deployed process and live DOM remain unverified.",
     "Group C: confirmed ownership listing mismatch; BINDING_CHANGED live branch remains unknown. Linked focused tests are offline evidence only.",
-    "2026-10-28 round 2: source repairs pushed for blank-chat readiness, exact unbound read fencing, capability capsule recovery/finalization truth and completion observation failure. Test-source added; Node/live verification pending. The live JSON ledger was intentionally NOT modified."
+    "2026-10-28 round 2: source repairs pushed for blank-chat readiness, exact unbound read fencing, capability capsule recovery/finalization truth and completion observation failure. Test-source added; Node verification: see verificationReceipts. The live JSON ledger was intentionally NOT modified.",
+    "ERA2: retained baseline first-attempt status/index per objective through 029; later live reruns may change latest status and only the ledger owner may record them.",
+    "ERA2 current checkout uses fresh target provenance; old hardcoded-false mismatch is historical. 011 live readiness remains unproved.",
+    "User handoff reports focused ownership/service/runtime/create/deferred-readiness and both investigation suites: node --test, 125 PASS 0 FAIL; numeric exit code not supplied. Offline results are not live acceptance.",
+    "2026-10-28 live resumption: the ERA2 sweep restarted at 004, the first objective lacking an attempt at current revision 9560f567b97bc0b00f32f3ee5009a210b54c4925. The first attempt (11:48Z) was BLOCKED by ENVIRONMENT_BROWSER_PROFILE_UNVERIFIED: conversation_targets exited 0 with an empty targets array, the guarded targets command exited 5 and launch exited 1 with the same identity refusal, because an unowned Chrome 156.0.8078.49 held :38702 with the intended C:\\VIVIM\\chrome-profile directory. After a human relaunched the profile (new marker browserIdentity 9625e7a3-dcc3-433c-b967-018fc4423372, launchedPid 13144), 004 through 010 were re-run under the verified marker and are recorded: 004 PARTIAL (NO_CHATGPT_TAB_PRESENT: only about:blank), 005 PARTIAL (profile attribution verified by accept-vs-refuse contrast, but no ChatGPT window present), 006 UNSUPPORTED (no readiness reader in the 11-tool catalog), 007 UNSUPPORTED (no-match, no streaming recipe), 008 UNSUPPORTED (no ephemeral/temporary field in 11 stored conversations), 009 UNSUPPORTED (no title field at all, no duplicate threads), 010 BLOCKED (chat_index TARGET_SITE_MISMATCH effect=none against about:blank). The sweep stopped at 010 because browser navigation was not yet authorized at that point; no provider response had been observed.",
+    "2026-10-28 navigation grant and 011-020: navigation, tab creation and thread opening were authorized (provider send, rename/branch, settings, upload and identity disclosure remained excluded). 011 PASS - create_conversation returned a Studio-owned unbound NEW_CHAT tab at https://chatgpt.com/ with zero turns, though the same response reported readiness false/BINDING_CHANGED. 012 PARTIAL - chat_index read 18 unique rendered thread links but every displayTitle was empty, so a title lookup was impossible. 013 PASS - launch --url declined to navigate the running browser and drive --dry-run only printed a plan, so capture opened the exact /c/6ad2b82b-e9bc-83ed-8a38-09a2bbc5f2be deep link as tab 2FB0E3DCFE1F80BCD226B2D8C12FA0EC, writing local session 20261028-115823-chatgpt-com-04a400 (integrityOk true, 521 raw records, no derive, no export). 014-020 UNSUPPORTED on missing primitives: no tab activation (014), no search input (015), no navigate-and-return (016), no scroll (017, 018), no click (019, 020) - all recorded from zero-candidate recipe choose results plus the observed tool catalog. The sweep stops before 021, which requires a provider send. No provider response was observed in any of these ten objectives, so no model capability was verified live; the only provider-side facts established are that the ChatGPT session is signed in (18 rendered history links) and that a real thread titled TOOLSMITH renders at its /c/ URL.",
+    "2026-10-28 attribution caveat: during this sweep another lane added uncommitted changes to src/capture/actions.mjs, src/capture/conversation-capsule.mjs, src/capture/conversation-service.mjs, src/studio/conversation-tools.mjs and four test files. All attempts above record testedRevision 9560f567b97bc0b00f32f3ee5009a210b54c4925, which is git HEAD and did not change, but the working tree was dirty and no Studio restart was performed, so the serving process may not reflect those edits. Behaviour observed here (notably the 011 readiness BINDING_CHANGED result) therefore cannot be attributed with certainty to HEAD alone or to the concurrent edits; it is attributed to the running process at the time of the call.",
+    "2026-10-28 file-only integrity audit of the live ledger (no browser contact, no provider contact, no scenario execution). Result: 100 objectives, 100 unique ids, order 001-100 intact, zero duplicate JSON keys in either ledger, zero status/attempt mismatches, zero missing required attempt fields, zero invalid testedRevision values, zero duplicate attempts, zero orphan attempts. No mechanical fix was required and none was applied; no status was changed. Three evidence-strength caveats are recorded rather than repaired: (1) the baseline PASS attempt on objective 005 carries an empty evidenceRefs array and is superseded by a PARTIAL retest, so no live status depends on it; (2) objective 002's latest attempt is PARTIAL on an attempt with timedOut true, finishedAt null, empty evidenceRefs, and an observedOutcome that states it cannot be treated as an authentication test; (3) all 29 baseline attempts (001-029) lack attemptPhase and testedRevision, so the current statuses of 021-029 have no revision anchor. Nineteen attempts carry empty evidenceRefs; thirteen of those are baseline-era. A progress matrix derived mechanically from this ledger was written to docs/agents/CHATGPT-100-PROGRESS-2026-10-28.md and cross-checked against it (100 rows, zero status, phase or title mismatches).",
+    "2026-10-28 revision anchor gap: objectives 021-029 each carry a single baseline attempt recorded before attemptPhase and testedRevision existed, so their current statuses (021 PARTIAL; 022 and 023 BLOCKED; 024-029 UNSUPPORTED) cannot be tied to any revision. They are marked revisionUnanchored true at objective level. No attempt was deleted, no status was changed, and no revision value was inferred.",
+    "2026-10-28 post-restart sweep, 011 and 021: the parent restarted the serving Studio (old PID 17544 stopped; start --data-dir C:\\VIVIM --port 38702 --studio-port 38703 --no-open) so the lane-3 working-tree edits were loaded, and agent status reported version 0.1.0, dataDir C:\\VIVIM, chromeProfile C:\\VIVIM\\chrome-profile, cdpPort 38702, chromeReachable true. 011 was re-run at HEAD 9560f567b97bc0b00f32f3ee5009a210b54c4925 plus the uncommitted dirty tree (five modified src files) and downgraded PASS to PARTIAL: the blank conversation bceed07a-ddac-4a95-9040-a4797d350232 was created with zero turns and nothing sent, but readiness.ready stayed false with reason BINDING_CHANGED on two independent reads, so the previous PASS was not inherited. 021 then received exactly one authorized provider send, gated on readiness.ready; the fresh conversation 70f4d715-ea3b-48ac-a47b-4a19526b436e reported readiness.ready false with reason BINDING_CHANGED on both reads, so submit_conversation_turn was never called, key rb-20261028-021 stayed unspent, and the objective moved PARTIAL to BLOCKED without any provider contact. 021 is therefore no longer revisionUnanchored; 022-029 still are.",
+    "2026-10-28 concurrent source change inside the post-restart sweep: src/studio/conversation-tools.mjs was modified when the sweep began (12:30Z) and again matched HEAD by 12:36Z, so another lane reverted it during the window. Both sweep attempts therefore ran against a working tree that no longer exists on disk, which is why their testedRevisionCaveat says so. No source or test file was edited, reverted or committed by this lane; the four remaining modified src files and the four modified test files were left untouched.",
+    "2026-10-28 navigation-only sweep after LIVE-DEFECT-1 was filed: 058, 099 and 100 were run and recorded, 059 and 060 were skipped. 058 captured https://chatgpt.com/ into session 20261028-124456-chatgpt-com-33ca43 (status complete, integrityOk true, 1901 records) and read the rendered sidebar text offline; no Deep Research entry point appears in the captured text in English or Spanish, so it is PARTIAL and the absence is bounded by the fact that the composer tool menu was never opened. 099 captured the completed thread https://chatgpt.com/c/6ad2b82b-e9bc-83ed-8a38-09a2bbc5f2be into session 20261028-125034-chatgpt-com-d2a33c (status complete, integrityOk true, collector.sourceSha 5c006ef6a10ef0ed) and is PASS on the recorded acceptance fields. 100 reopened that session from the local store via export transcript (9 turns, meta.target.url the exact /c/ address) and compared it against the captured native DOM text, where the phrases \"conversation titles can be changed\", \"AION bus\", \"Track B investigation\" and \"Research result\" also appear; it is PASS. 059 and 060 were not run: no research task or completed research report is known to exist, and obtaining one needs either a click primitive the harness lacks or starting research, which is outside the grant. One 058 capture was killed by an outer 45 second shell timeout and left unfinalized session 20261028-124323-chatgpt-com-bd4b36 on disk with status recording, endedAt null and integrityOk null; it is not evidence.",
+    "2026-10-28 discriminator ERA2_RETEST_5 on objective 011 after the parent stopped and restarted Studio onto the current working tree. One create_conversation, two get_conversation reads and one conversation_targets read; zero sends. The pre-restart failure did not reproduce: conversation 83d3fcd2-1b40-48c1-87d9-d550f38d2d8c read state ready with readiness {\"ready\":true,\"draft\":{\"present\":false,\"chars\":0},\"reason\":null} at revision 3 on both reads, bound to target D89CFEC580FAB598328983941B9195D9, 0 turns, identity unbound/NEW_CHAT. The pre-restart shape was state blocked with readiness.ready false, reason BINDING_CHANGED and draft {\"present\":null,\"chars\":null}. Because draft.present is only set by the composer probe that runs after the binding checks pass, the null-to-boolean change proves the refusal path was not taken, so LIVE-DEFECT-1 causeHypothesis is downgraded to not-supported-by-retest rather than confirmed. 011 moved PARTIAL to PASS on that evidence. create_conversation itself exited 5 with STUDIO_REQUEST_UNKNOWN / httpStatus 504 / effect unknown while the conversation was in fact created, and that anomaly is recorded as a hypothesis inside liveDefects[LIVE-DEFECT-1].retestAfterGuardFix, not as a second defect. evidenceGapSummary.totals remains the 12:32:10Z snapshot (attempts 55, objectivesWithAttempts 32); the live ledger now holds 56 attempts, still across 32 objectives. No source or test file was edited, reverted or committed by this lane; the four modified src files and four modified test files were left untouched.",
+    "2026-10-28 authorized single send for objective 021, attempt ERA2_RETEST_2. create_conversation again exited 5 with STUDIO_REQUEST_UNKNOWN / httpStatus 504 / effect unknown while creating conversation 4e6bd859-f916-4fdd-9c66-12a8a4fbfb81, which read state ready with readiness {\"ready\":true,\"draft\":{\"present\":false,\"chars\":0},\"reason\":null} at revision 3, bound to target CEA40A2A85000EE9E24BF59D696ACB34. Both gate conditions held, so exactly one submit_conversation_turn was issued with the reserved key rb-20261028-021 and prompt \"What is 17 plus 4? Reply with only the number.\". It exited 0 in 10.7 seconds with send.state observed as a new user turn at sequence 213, so reconcile_conversation was not called and the key was never resubmitted. The provider reply was observed: assistant message 4bfe2638-272c-4b1c-a980-1ee3fdaad370 with content parts [\"21\"] under model_slug gpt-6-thinking in session 20261028-130805-chatgpt-7460b6, and the page-observed reply text \"ChatGPT dijo:\\n\\n21\" (17 chars) in conversation revision 20. 021 moved BLOCKED to PASS. reply.completion remained unknown, the evidence file records REPLY_COMPLETION_UNKNOWN and READINESS_READY_WITH_COMPLETION_UNKNOWN, and studio export transcript returned NOT_FOUND for that session immediately after the send even though the on-disk session record is complete with integrity ok and 227 records; those gaps are recorded in the attempt and in liveDefects[0].retestAfterGuardFix.objective021. LIVE-DEFECT-1 is now not reproduced across two retests and stays open pending an owner decision or a bisect. evidenceGapSummary.totals remains the 12:32:10Z snapshot (attempts 55, objectivesWithAttempts 32); the live ledger now holds 57 attempts across 33 objectives. No source or test file was edited, reverted or committed by this lane."
   ],
   "sourceRepairRounds": [
     {
@@ -1222,6 +1458,327 @@
         "nodeRunner": "Attempted local git fetch for Node suite; cannot resolve github.com from container. Existing GitHub Actions failures had no job steps; no genuine node --test success is claimed.",
         "liveLedger": "untouched; no live provider probe, no status promotion"
       }
+    }
+  ],
+  "liveDefects": [
+    {
+      "id": "LIVE-DEFECT-1",
+      "title": "BINDING_CHANGED blocks every freshly created ChatGPT conversation",
+      "status": "open",
+      "owner": "lane 3",
+      "capturedAt": "2026-10-28T12:38:00.000Z",
+      "sourceLedger": "docs/agents/CHATGPT-100-LIVE-2026-10-28.json",
+      "reproduction": {
+        "testedRevision": "9560f567b97bc0b00f32f3ee5009a210b54c4925",
+        "testedRevisionCaveat": "Captured against HEAD 9560f567b97bc0b00f32f3ee5009a210b54c4925 plus an uncommitted dirty tree. At capture time src/capture/actions.mjs, src/capture/conversation-browser-adapter.mjs, src/capture/conversation-capsule.mjs, src/capture/conversation-service.mjs were modified and uncommitted; src/studio/conversation-tools.mjs had been reverted back to HEAD by another lane during the sweep.",
+        "conversations": [
+          {
+            "id": "bceed07a-ddac-4a95-9040-a4797d350232",
+            "revision": 3,
+            "state": "blocked",
+            "site": "chatgpt",
+            "binding": {
+              "targetId": "69852571B65289CDF9B64535D2A9F9ED",
+              "origin": "https://chatgpt.com",
+              "ownedByStudio": true
+            },
+            "readiness": {
+              "ready": false,
+              "draft": {
+                "present": null,
+                "chars": null
+              },
+              "reason": "BINDING_CHANGED"
+            },
+            "identity": {
+              "state": "unbound",
+              "reason": "NEW_CHAT"
+            },
+            "turns": 0
+          },
+          {
+            "id": "70f4d715-ea3b-48ac-a47b-4a19526b436e",
+            "revision": 3,
+            "state": "blocked",
+            "site": "chatgpt",
+            "binding": {
+              "targetId": "DC1FA959A4D42CBEE54795441412B105",
+              "origin": "https://chatgpt.com",
+              "ownedByStudio": true
+            },
+            "readiness": {
+              "ready": false,
+              "draft": {
+                "present": null,
+                "chars": null
+              },
+              "reason": "BINDING_CHANGED"
+            },
+            "identity": {
+              "state": "unbound",
+              "reason": "NEW_CHAT"
+            },
+            "turns": 0
+          }
+        ],
+        "shape": "2 conversations x 2 reads, persistent, zero sends",
+        "commands": [
+          "'{\"site\":\"chatgpt\"}' | node bin/studio.mjs tools call create_conversation --input - --studio-port 38703 --json",
+          "'{\"conversation\":\"bceed07a-ddac-4a95-9040-a4797d350232\"}' | node bin/studio.mjs tools call get_conversation --input - --studio-port 38703 --json",
+          "'{\"conversation\":\"70f4d715-ea3b-48ac-a47b-4a19526b436e\"}' | node bin/studio.mjs tools call get_conversation --input - --studio-port 38703 --json",
+          "'{}' | node bin/studio.mjs tools call conversation_targets --input - --studio-port 38703 --json",
+          "node bin/studio.mjs targets --port 38702 --json"
+        ],
+        "sends": 0,
+        "note": "Both conversations were created fresh in the same restarted Studio, each read twice, and both returned readiness.ready false with reason BINDING_CHANGED on both reads. No prompt was typed and submit_conversation_turn was never called."
+      },
+      "impact": {
+        "objectives": [
+          {
+            "id": "011",
+            "before": "PASS",
+            "after": "PARTIAL",
+            "attemptPhase": "ERA2_RETEST_4",
+            "why": "blank conversation opened with zero turns and nothing sent, but readiness.ready stayed false so the tab was never usable"
+          },
+          {
+            "id": "021",
+            "before": "PARTIAL",
+            "after": "BLOCKED",
+            "attemptPhase": "ERA2_RETEST",
+            "why": "the authorized send was gated on readiness.ready, the gate never opened, so zero sends occurred and key rb-20261028-021 stayed unspent",
+            "now": "PASS",
+            "nowAttemptPhase": "ERA2_RETEST_2",
+            "nowWhy": "the readiness gate opened on the current tree, one authorized send under key rb-20261028-021 was observed as a new user turn, and the provider reply containing 21 was observed"
+          }
+        ],
+        "sweep": "The whole 021-100 sweep is gated: every objective that needs a usable ChatGPT conversation requires readiness.ready true, and a freshly created conversation cannot reach it.",
+        "unaffected": "Navigation objectives that bypass the binding gate were in fact unaffected: 058, 099 and 100 all ran through capture and local session inspection on 2026-10-28 and none of them touched the conversation binding path. The separate CLI defect is narrower than first recorded: node bin/studio.mjs targets --port 38702 --json exits 5 with BROWSER_PROFILE_UNVERIFIED, but node bin/studio.mjs capture on the same port opens the same browser and finalizes normally."
+      },
+      "observedFacts": [
+        "Fresh targets DC1FA959A4D42CBEE54795441412B105 and 69852571B65289CDF9B64535D2A9F9ED both report url \"https://chatgpt.com\", thread null, identity {\"state\":\"unverified\",\"reason\":\"UNSUPPORTED_PATH\"}, ownedByStudio true.",
+        "Neither fresh target is at about:blank at read time: both report url \"https://chatgpt.com\". The about:blank state is therefore not what the failing check sees.",
+        "The bound tab 2FB0E3DCFE1F80BCD226B2D8C12FA0EC reports thread {\"kind\":\"chatgpt-c\",\"id\":\"6ad2b82b-e9bc-83ed-8a38-09a2bbc5f2be\",\"ref\":\"chatgpt-c:6ad2b82b-e9bc-83ed-8a38-09a2bbc5f2be\"} and identity {\"state\":\"bound\",\"reason\":null} while its url is still \"https://chatgpt.com\" with no path. The target url field therefore does not carry the page path even for a bound thread.",
+        "readiness.draft is {\"present\":null,\"chars\":null} in both conversations. The composer probe sets present to a boolean, so a null present proves readiness exited before the composer probe ran.",
+        "The conversation identity {\"state\":\"unbound\",\"reason\":\"NEW_CHAT\"} and the target identity {\"state\":\"unverified\",\"reason\":\"UNSUPPORTED_PATH\"} disagree in vocabulary for the same tab.",
+        "node bin/studio.mjs targets --port 38702 --json exits 5 with code ENVIRONMENT and message \"Capture browser not available or not verified: BROWSER_PROFILE_UNVERIFIED: A Chrome endpoint is reachable but its identity is not verified for this VIVIM profile. Do not attach or send; close only the dedicated VIVIM Chrome after saving your work, then relaunch with studio start.\""
+      ],
+      "causeHypothesis": {
+        "status": "not-supported-by-retest",
+        "statement": "The page-level location.origin sample for a freshly created ChatGPT tab never equals \"https://chatgpt.com\", so creationLocation() throws BINDING_CHANGED on every readiness tick and the deadline verdict is BINDING_CHANGED even though the target-level url origin matches.",
+        "codePath": [
+          "src/capture/conversation-browser-adapter.mjs:121-122 computes the target-level origin from target.url and compares it with binding.origin; both are \"https://chatgpt.com\", so the target-level check passes and the about:blank tolerance at :123-127 is never reached.",
+          "src/capture/conversation-browser-adapter.mjs:132 reduces to pageThreadMatches() only, because threadMatches() is defined as !binding.thread || sameThread(...) at :74 and binding.thread is absent for a fresh conversation.",
+          "src/capture/conversation-browser-adapter.mjs:134-140 calls creationLocation() for a fresh threadless tab; :107-108 samples location.pathname and then throws BINDING_CHANGED when location.origin !== binding.origin.",
+          "src/capture/conversation-browser-adapter.mjs:141-157 catches that throw, re-derives the target origin, and because it equals binding.origin it does not escalate; it only records lastReason = BINDING_CHANGED and loops.",
+          "The loop repeats until the deadline and returns blocked(lastReason), which is BINDING_CHANGED with the default draft {present:null,chars:null} from :115. That matches the captured draft exactly."
+        ],
+        "supportingEvidence": [
+          "readiness.draft.present is null, so the composer probe below :160 was never reached on any tick.",
+          "readiness.reason is BINDING_CHANGED while the target-level origin already matches, which points at the page-level sample rather than the target-level url.",
+          "The bound tab 2FB0E3DC shows target.url carrying no path, so the url field is a normalized origin-only value and cannot be used to infer what the page reports for location.origin."
+        ],
+        "notProven": "The captured JSON does not contain the raw value returned by d.evaluate(livePage(), \"location.origin\"), so the exact returned string is not observed. It also does not show whether freshTab was true, whether the tab was mid-navigation for the whole window, or whether the CDP page used for evaluate was the right target. The service-level reason mapping at src/capture/conversation-service.mjs:625 emits BINDING_CHANGED for both a failed exactBinding and an adapter refusal carrying code BINDING_CHANGED, so the reason string alone cannot distinguish the two.",
+        "statusReason": "The retest discriminated and falsified the prediction: readiness.reason changed from BINDING_CHANGED to null and readiness.draft.present changed from null to false, which proves the binding refusal path was not taken. A hypothesis that predicted an unchanged failure and observed a removed failure is not supported.",
+        "retestedBy": "ERA2_RETEST_5",
+        "retestedAt": "2026-10-28T13:02:47.075Z"
+      },
+      "caveat": "The serving Studio process was started before lane 3's about:blank tolerance edit was in the tree, so the running code is NOT the current working tree. A restart is required before any retest can attribute a result to the current source; both recorded attempts are attributable to HEAD plus a dirty tree that no longer matches disk.",
+      "nextStep": "LIVE-DEFECT-1 no longer reproduces on the current working tree and both objectives it blocked are resolved, so the next step is not another rerun. It is either a bisect across the four modified src files with Studio restarts to identify which change removed the refusal, or an owner decision to close the defect as fixed-by-working-tree. The unexplained create_conversation HTTP 504 STUDIO_REQUEST_UNKNOWN remains the only open symptom from these runs.",
+      "retestAfterGuardFix": {
+        "attemptPhase": "ERA2_RETEST_5",
+        "objective": "011",
+        "ranAt": "2026-10-28T13:01:03.243Z",
+        "finishedAt": "2026-10-28T13:02:47.075Z",
+        "testedRevision": "9560f567b97bc0b00f32f3ee5009a210b54c4925",
+        "testedRevisionCaveat": "Run against HEAD 9560f567b97bc0b00f32f3ee5009a210b54c4925 plus an uncommitted dirty tree served by a parent-restarted Studio. Four src files were modified at run time (src/capture/actions.mjs, src/capture/conversation-browser-adapter.mjs, src/capture/conversation-capsule.mjs, src/capture/conversation-service.mjs) and four test files were modified. src/studio/conversation-tools.mjs matched HEAD at run time. The guard fix under test exists only in the working tree, so the result is attributable to HEAD-plus-dirty-tree, not to HEAD alone.",
+        "setup": "Parent stopped the old Studio process and restarted it against the current working tree. agent status reported studio reachable, version 0.1.0, dataDir C:\\VIVIM, chromeProfile C:\\VIVIM\\chrome-profile, cdpPort 38702, chromeReachable true, browserAccountState unverified.",
+        "commands": [
+          "'{\"site\":\"chatgpt\"}' | node bin/studio.mjs tools call create_conversation --input - --studio-port 38703 --json",
+          "'{\"conversation\":\"83d3fcd2-1b40-48c1-87d9-d550f38d2d8c\"}' | node bin/studio.mjs tools call get_conversation --input - --studio-port 38703 --json",
+          "'{\"conversation\":\"83d3fcd2-1b40-48c1-87d9-d550f38d2d8c\"}' | node bin/studio.mjs tools call get_conversation --input - --studio-port 38703 --json",
+          "'{}' | node bin/studio.mjs tools call conversation_targets --input - --studio-port 38703 --json"
+        ],
+        "sends": 0,
+        "observed": {
+          "conversation": "83d3fcd2-1b40-48c1-87d9-d550f38d2d8c",
+          "revision": 3,
+          "reads": 2,
+          "readTimes": [
+            "2026-10-28T13:02:16.763Z",
+            "2026-10-28T13:02:21.299Z"
+          ],
+          "state": "ready",
+          "binding": {
+            "targetId": "D89CFEC580FAB598328983941B9195D9",
+            "origin": "https://chatgpt.com",
+            "ownedByStudio": true
+          },
+          "target": {
+            "id": "D89CFEC580FAB598328983941B9195D9",
+            "url": "https://chatgpt.com",
+            "thread": null,
+            "identity": {
+              "state": "unverified",
+              "reason": "UNSUPPORTED_PATH"
+            },
+            "ownedByStudio": true,
+            "visibility": "unknown"
+          },
+          "identity": {
+            "state": "unbound",
+            "reason": "NEW_CHAT"
+          },
+          "turns": 0,
+          "turn": null,
+          "readiness": {
+            "ready": true,
+            "draft": {
+              "present": false,
+              "chars": 0
+            },
+            "reason": null
+          },
+          "targetCount": 8
+        },
+        "preRestartShape": {
+          "state": "blocked",
+          "readiness": {
+            "ready": false,
+            "draft": {
+              "present": null,
+              "chars": null
+            },
+            "reason": "BINDING_CHANGED"
+          }
+        },
+        "defectReproduced": false,
+        "outcome": "not-reproduced",
+        "discriminatorReasoning": "The retest was designed to discriminate. If the failure came from the page-origin branch at src/capture/conversation-browser-adapter.mjs:129-131 rather than the about:blank tolerance the lane-3 guard touched, an unchanged cause would return the same reason BINDING_CHANGED with the same null draft after the restart. Neither value survived: reason is null and draft.present changed from null to the boolean false. readiness.draft.present is only set by the composer probe that runs after the binding checks pass, so the refusal path that produced the pre-restart shape was not taken on any tick of this run. The prediction was falsified, so the hypothesis is not supported by this retest.",
+        "notSupportedConsequence": "causeHypothesis is downgraded rather than confirmed. The change cannot be credited to the lane-3 about:blank tolerance either: both fresh targets reported url https://chatgpt.com, so that branch never fires on the recorded evidence. The effective change came from somewhere in the four modified src files or from the restart and environment, and this single run does not isolate which.",
+        "incidentalObservation": {
+          "what": "create_conversation exited 5 with {\"error\":{\"message\":\"STUDIO_REQUEST_UNKNOWN\",\"code\":\"STUDIO_REQUEST_UNKNOWN\",\"exit\":5,\"details\":{\"httpStatus\":504,\"effect\":\"unknown\",\"retry\":false}}} and wrote no body, yet the conversation was created and ready.",
+          "status": "hypothesis",
+          "statement": "Creation waits on the readiness loop; now that readiness succeeds instead of refusing immediately, the wait can exceed the Studio HTTP timeout and the response is abandoned while the effect still lands.",
+          "whyNotFiled": "Not proven, single observation, and it is a separate symptom from LIVE-DEFECT-1. Attribution of the conversation id also rests on a list_conversations diff because the create body was lost."
+        },
+        "residualUncertainty": "Concurrent lanes were active in the same profile: the target list grew from 4 to 8 between 12:44Z and 13:01Z and targets DC1FA959A4D42CBEE54795441412B105 and 69852571B65289CDF9B64535D2A9F9ED flipped from ownedByStudio true to false. A second conversation d1bb14a2-b2e6-47ed-b1f7-b1eb1e5bfcf6 was also ready with draft {\"present\":false,\"chars\":0} on a pre-existing bound tab with ownedByStudio false, so readiness also succeeds outside this run own tab.",
+        "ledgerEffect": "Objective 011 moved PARTIAL to PASS with attempt ERA2_RETEST_5. The four conversations recorded in reproduction (bceed07a, 70f4d715) still read blocked with BINDING_CHANGED on disk; they were not re-read in this run, so their stored state is stale evidence rather than a live reproduction.",
+        "objective021": {
+          "attemptPhase": "ERA2_RETEST_2",
+          "ranAt": "2026-10-28T13:07:40.240Z",
+          "finishedAt": "2026-10-28T13:08:28.091Z",
+          "gate": {
+            "conversation": "4e6bd859-f916-4fdd-9c66-12a8a4fbfb81",
+            "revision": 3,
+            "readAt": "2026-10-28T13:07:56.186Z",
+            "state": "ready",
+            "readiness": {
+              "ready": true,
+              "draft": {
+                "present": false,
+                "chars": 0
+              },
+              "reason": null
+            },
+            "binding": {
+              "targetId": "CEA40A2A85000EE9E24BF59D696ACB34",
+              "origin": "https://chatgpt.com",
+              "ownedByStudio": true
+            },
+            "identity": {
+              "state": "unbound",
+              "reason": "NEW_CHAT"
+            },
+            "turns": 0
+          },
+          "send": {
+            "dispatched": true,
+            "key": "rb-20261028-021",
+            "prompt": "What is 17 plus 4? Reply with only the number.",
+            "confirm": true,
+            "expectedRevision": 3,
+            "exit": 0,
+            "elapsedMs": 10747,
+            "timedOut": false,
+            "effect": "observed",
+            "turnPhase": "observed",
+            "sendState": "observed",
+            "observationSource": "page",
+            "evidenceKind": "new-user-turn",
+            "evidenceSequence": 213,
+            "evidenceIdentity": "7ce27291-04a4-452e-bde5-b6bbaa2a2bd4",
+            "thread": "chatgpt-c:6ae1f3b8-52b8-83eb-9e00-4b2c84803b3b",
+            "sessionId": "20261028-130805-chatgpt-7460b6",
+            "conversationRevisionAfterSend": 10
+          },
+          "reconcile": {
+            "used": false,
+            "why": "submit_conversation_turn exited 0 with send.state observed and no effect uncertainty, so no reconcile was required. Key rb-20261028-021 was never resubmitted."
+          },
+          "reply": {
+            "observed": true,
+            "readAt": "2026-10-28T13:08:28.091Z",
+            "conversationRevision": 20,
+            "state": "ready",
+            "source": "page",
+            "chars": 17,
+            "pageText": "ChatGPT dijo:\n\n21",
+            "assistantIdentity": "4bfe2638-272c-4b1c-a980-1ee3fdaad370",
+            "contentDigest": "10fd5db2d283f9ca9470b19e306ebcf7f50ff7251c38e82452cb7b2ecb242882",
+            "providerParts": [
+              "21"
+            ],
+            "providerModelSlug": "gpt-6-thinking",
+            "completion": "unknown"
+          },
+          "objectiveStatus": "PASS",
+          "reasoning": "The gate that blocked 021 in ERA2_RETEST opened: state ready with readiness.ready true on a freshly created conversation. One authorized send went out under the reserved key and the provider answered. The answer 21 is present in the page-observed reply text and independently in the captured session stream as the assistant message content parts, so the objective is satisfied by observation, not by a bare HTTP 200. reply.completion stayed unknown and the evidence file records REPLY_COMPLETION_UNKNOWN, which is why completion is inferred from the conversation-turn-complete websocket event rather than from a completion flag.",
+          "residualGaps": [
+            "reply.completion unknown and gaps REPLY_COMPLETION_UNKNOWN plus READINESS_READY_WITH_COMPLETION_UNKNOWN in conversations/4e6bd859-f916-4fdd-9c66-12a8a4fbfb81.evidence.json",
+            "Page text \"ChatGPT dijo:\\n\\n21\" carries a 15-character localized label prefix the provider did not send; provider parts are [\"21\"]",
+            "studio export transcript returned NOT_FOUND for session 20261028-130805-chatgpt-7460b6 immediately after the send although the on-disk session record is complete with integrity ok and 227 records",
+            "create_conversation again returned HTTP 504 STUDIO_REQUEST_UNKNOWN with effect unknown while the conversation was created, so the id was recovered by a list_conversations diff"
+          ]
+        },
+        "reproductionState": "not-reproduced-twice",
+        "reproductionStateReason": "Two independent retests on the current working tree failed to reproduce the BINDING_CHANGED readiness refusal: ERA2_RETEST_5 on 011 returned ready with a boolean draft, and ERA2_RETEST_2 on 021 sent a turn and received a provider reply from the same kind of freshly created conversation. The defect record stays open because the owner has not closed it and because no bisect has isolated which change removed the failure."
+      }
+    }
+  ],
+  "reconciliationNotes": {
+    "method": "Three-way semantic merge: remote 27-objective document and all remote-only sourceRepairRounds/sourceFixRound2 fields retained; local 028–029, attempt indexes, ERA2 notes, relevant source citations and regression coverage added. Baseline status is first recorded attempt, not latest live status.",
+    "sourceVersions": "Earlier handoff reports 125 passing focused tests, numeric exit not provided, for checkout f79ec5b1130eaaac4086d3828c9573ee6245ebb9; not a test receipt for merged 9560f567b97bc0b00f32f3ee5009a210b54c4925. Current source inspected only; no runtime, browser or tests run in this merge.",
+    "historicalCorrections": "Group C historical hardcoded-false report retained under historicalEvidence; current ownership provenance and remote round-2 source fixes are separate. Group A earlier false-on-failure streaming report retained under historicalEvidence; current source returns unknown. 011 earlier no-production-fix next step retained as historicalNextInvestigationSteps; later remote source fixes do not prove the original live cause or pass.",
+    "uncertainties": [
+      "Live 011 BINDING_CHANGED branch and whether subsequent source changes address it remain unproven.",
+      "Target-ID reuse between observations is an integration coverage gap, not a demonstrated defect.",
+      "Round-2 source repair verification and test claims are preserved as historical receipts from their original environment; no new checkout test is implied.",
+      "The service test named for capture does not explicitly assert capture completeness or model the closed/restarted 021."
+    ],
+    "verification": {
+      "scope": "offline unit tests only",
+      "liveVerified": false,
+      "receiptsRef": "verificationReceipts"
+    }
+  },
+  "verificationReceipts": [
+    {
+      "command": "node --test test/unit/conversation-create.test.mjs",
+      "scope": "focused unit suite: conversation-create",
+      "revision": "9560f567b97bc0b00f32f3ee5009a210b54c4925",
+      "workingTreeDirty": true,
+      "startedAt": "2026-10-28T11:47:16.3532365Z",
+      "finishedAt": "2026-10-28T11:48:07.8003201Z",
+      "durationMs": 51636,
+      "exitCode": 0,
+      "tests": 8,
+      "pass": 8,
+      "fail": 0,
+      "skipped": 0,
+      "notes": "node v24.22.1; runner summary duration_ms 51147.4177, cancelled 0, todo 0. Observed on the current dirty checkout, which carries the uncommitted conversation-create change where the denylisted /c case now expects a rejected BINDING_CHANGED instead of a returned blocked PREEXISTING_THREAD; that case ('navigation to a denylisted /c before send sends nothing and proves pre-effect') passed. All 8 subtests reported pass and the process exit code was 0. This is offline unit evidence only and proves nothing about the live webapp.",
+      "agent": "lane-1-tests",
+      "model": "opencode/deepseek-v4.1-flash-free"
     }
   ]
 }

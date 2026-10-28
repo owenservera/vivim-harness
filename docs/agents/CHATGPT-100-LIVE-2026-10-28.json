@@ -13,6 +13,13 @@
       "chromeVersion": "Chrome/156.0.8078.48",
       "launchVerified": true,
       "accountVerified": false
+    },
+    "verificationPointer": {
+      "scope": "offline unit tests only",
+      "liveVerified": false,
+      "observedAt": "2026-10-28T11:47:16.3532365Z",
+      "receiptsRef": "docs/agents/CHATGPT-100-INVESTIGATION-2026-10-28.json#verificationReceipts",
+      "note": "One focused unit receipt (conversation-create, 8/8 pass, exit 0) was observed on revision 9560f567. No full-suite run and no live browser verification were performed."
     }
   },
   "allowedStatuses": [
@@ -46,7 +53,10 @@
     "model": null,
     "agent": null,
     "uncertainty": null,
-    "reconciliationKeyRefs": []
+    "reconciliationKeyRefs": [],
+    "evidenceGap": null,
+    "evidenceGapReason": null,
+    "testedRevisionCaveat": null
   },
   "objectives": [
     {
@@ -79,6 +89,30 @@
           "agent": "chatgpt-probe",
           "uncertainty": "Authentication state and identity unknown; elapsed time was not measured.",
           "reconciliationKeyRefs": []
+        },
+        {
+          "attemptPhase": "ERA2_RETEST",
+          "testedRevision": "f79ec5b1130eaaac4086d3828c9573ee6245ebb9",
+          "status": "UNSUPPORTED",
+          "startedAt": "2026-10-28T10:22:39.5253842Z",
+          "finishedAt": "2026-10-28T10:22:53.5289965Z",
+          "elapsedMs": 14003.6123,
+          "deadlineAt": "2026-10-28T10:23:39.5253842Z",
+          "timedOut": false,
+          "cliInvocationCount": 2,
+          "commands": [
+            "node bin/studio.mjs tools list --studio-port 38703 --json",
+            "node bin/studio.mjs agent status --studio-port 38703 --json"
+          ],
+          "observedOutcome": "The refreshed Studio reported reachable Chrome and the expected data directory and profile path, but browserAccountState unverified and profile verification not proven by status. Its live native tool list exposed no account-identity reader; conversation_targets explicitly disclaims account availability. No account identity was obtained.",
+          "evidenceRefs": [],
+          "friction": "No discoverable native read-only account identity action; content opt-in was not used because private identity disclosure was not authorized.",
+          "failureClassification": "HARNESS_UNSUPPORTED_ACCOUNT_IDENTITY",
+          "authorizationScope": "Read-only metadata and catalog inspection; no disclosure of credentials or personal identifiers, content opt-in, navigation, sends, or account changes.",
+          "model": "openai/gpt-6.1-terra#low",
+          "agent": "chatgpt-probe",
+          "uncertainty": "Authentication and account identity remain unknown. The tested revision and refreshed owner are parent-reported; status alone does not verify profile identity. Each CLI invocation began with at least 15 seconds remaining and used a 15-second shell timeout; independent per-process kill enforcement was not verified.",
+          "reconciliationKeyRefs": []
         }
       ]
     },
@@ -87,7 +121,7 @@
       "section": "01 — Account and live-session awareness",
       "title": "Authentication state",
       "objective": "Detect whether ChatGPT is signed out and requires login.",
-      "status": "UNSUPPORTED",
+      "status": "PARTIAL",
       "attempts": [
         {
           "status": "UNSUPPORTED",
@@ -108,6 +142,29 @@
           "agent": "chatgpt-probe",
           "uncertainty": "Signed-in versus signed-out and need for human login remain unverified.",
           "reconciliationKeyRefs": []
+        },
+        {
+          "attemptPhase": "ERA2_RETEST",
+          "testedRevision": "f79ec5b1130eaaac4086d3828c9573ee6245ebb9",
+          "status": "PARTIAL",
+          "startedAt": "2026-10-28T10:23:53.4833714Z",
+          "finishedAt": null,
+          "elapsedMs": null,
+          "deadlineAt": "2026-10-28T10:24:53.4833714Z",
+          "timedOut": true,
+          "cliInvocationCount": 1,
+          "commands": ["node bin/studio.mjs recipe choose --intent 'Detect whether the current ChatGPT session is signed out and requires login' --json"],
+          "observedOutcome": "Recipe selection returned no-match. The attempt was interrupted before a live authentication observation. On continuation after the deadline, a remaining-time check skipped the planned CLI invocation.",
+          "evidenceRefs": [],
+          "friction": "The runtime revision changed and the original 60-second deadline expired before continuation; this attempt cannot be attributed to the later refreshed runtime or treated as an authentication test.",
+          "failureClassification": "DEADLINE_EXCEEDED_NO_LIVE_AUTH_OBSERVATION",
+          "authorizationScope": "Read-only discovery; no navigation, sends, settings changes or personal identity disclosure.",
+          "model": "openai/gpt-6.1-terra#low",
+          "agent": "chatgpt-probe",
+          "uncertainty": "Sign-in state and login requirement remain unknown. The only CLI invocation ran under the earlier parent-reported revision; exact attempt finish time is unavailable. A fresh separately assigned attempt is needed for revision 9560f567b97bc0b00f32f3ee5009a210b54c4925.",
+          "reconciliationKeyRefs": [],
+          "evidenceGap": true,
+          "evidenceGapReason": "Status claim exceeds observed evidence: PARTIAL rests on an attempt with timedOut true, finishedAt null, elapsedMs null and an empty evidenceRefs array, whose own text says it cannot be treated as an authentication test. A valid attempt requires one uninterrupted read of the ChatGPT page before the deadline that records either a login wall or a signed-in composer, with a non-null finishedAt and at least one evidenceRef. Status left unchanged."
         }
       ]
     },
@@ -116,7 +173,7 @@
       "section": "01 — Account and live-session awareness",
       "title": "Native thread identity",
       "objective": "Identify the currently visible native conversation ID, not its title.",
-      "status": "BLOCKED",
+      "status": "PARTIAL",
       "attempts": [
         {
           "status": "BLOCKED",
@@ -135,6 +192,27 @@
           "model": "openai/gpt-6.1-terra#low",
           "agent": "chatgpt-probe",
           "uncertainty": "Whether a thread is visually active cannot be established from the reported root URL and unknown visibility. The shell had a 15-second timeout but no independently enforced per-process remaining-time kill; the invocation finished well before the deadline.",
+          "reconciliationKeyRefs": []
+        },
+        {
+          "attemptPhase": "ERA2_RETEST",
+          "testedRevision": "9560f567b97bc0b00f32f3ee5009a210b54c4925",
+          "status": "PARTIAL",
+          "startedAt": "2026-10-28T11:31:05.7557108Z",
+          "finishedAt": "2026-10-28T11:31:07.6736489Z",
+          "elapsedMs": 1917.9381,
+          "deadlineAt": "2026-10-28T11:32:05.7557108Z",
+          "timedOut": false,
+          "cliInvocationCount": 1,
+          "commands": ["'{}' | node bin/studio.mjs tools call conversation_targets --input - --studio-port 38703 --json"],
+          "observedOutcome": "Live target discovery identified the approved disposable target with bound native thread chatgpt-c:6ae1c71a-3ef8-83eb-add3-b83f9e3da271. Two other ChatGPT targets were root pages with null threads. All three reported visibility unknown, so the currently visible thread could not be established.",
+          "evidenceRefs": ["thread:chatgpt-c:6ae1c71a-3ef8-83eb-add3-b83f9e3da271"],
+          "friction": "Native target metadata exposes exact thread identity but not which target is currently visible.",
+          "failureClassification": "VISIBLE_TARGET_UNVERIFIED",
+          "authorizationScope": "Read-only native target metadata; no navigation or sends.",
+          "model": "openai/gpt-6.1-terra#low",
+          "agent": "chatgpt-probe",
+          "uncertainty": "Exact identity of one open target was observed, not proof that it is currently visible. Revision and runtime freshness are parent-reported. Invocation began with at least 15 seconds remaining and had a 15-second shell timeout; independent process-kill enforcement was not verified.",
           "reconciliationKeyRefs": []
         }
       ]
@@ -167,6 +245,64 @@
           "agent": "chatgpt-probe",
           "uncertainty": "The ChatGPT target was located, but discovery among unrelated open tabs was not demonstrated; other browser tabs may exist. Each CLI call started with at least 15 seconds remaining and the enclosing shell had a 15-second timeout; no independent per-process deadline kill was verified.",
           "reconciliationKeyRefs": []
+        },
+        {
+          "attemptPhase": "ERA2_RETEST",
+          "testedRevision": "9560f567b97bc0b00f32f3ee5009a210b54c4925",
+          "status": "BLOCKED",
+          "startedAt": "2026-10-28T11:48:52.2532439Z",
+          "finishedAt": "2026-10-28T11:49:41.782Z",
+          "elapsedMs": 49529,
+          "deadlineAt": "2026-10-28T11:49:52.2532439Z",
+          "timedOut": false,
+          "cliInvocationCount": 7,
+          "commands": [
+            "'{}' | node bin/studio.mjs tools call conversation_targets --input - --studio-port 38703 --json",
+            "node bin/studio.mjs targets --data-dir C:\\VIVIM --port 38702 --json",
+            "node bin/studio.mjs launch --data-dir C:\\VIVIM --port 38702",
+            "node bin/studio.mjs targets --port 38702 --json",
+            "node bin/studio.mjs help launch",
+            "node bin/studio.mjs help start",
+            "node bin/studio.mjs start --help"
+          ],
+          "observedOutcome": "conversation_targets returned exit 0 but reported an empty targets array: only the provider sites catalog (chatgpt, claude, gemini, deepseek, zai, qwen, lmarena, minimax, kimi, duck-ai) and no live targets, so no ChatGPT tab was discoverable. The guarded capture-browser enumeration then refused with exit 5 ENVIRONMENT/BROWSER_PROFILE_UNVERIFIED ('A Chrome endpoint is reachable but its identity is not verified for this VIVIM profile'). Relaunch was refused with the same error and exit 1. A loopback /json/version read reported Browser Chrome/156.0.8078.49, one build newer than the 156.0.8078.48 recorded at the verified 09:43 baseline. Read-only process inspection found PID 11724 holding port 38702 with --user-data-dir=\"C:\\VIVIM\\chrome-profile\", i.e. the intended profile directory but an endpoint the harness will not accept as its own. launch/start expose no adopt or force flag. Tab discovery among unrelated tabs was therefore not performed and no tab enumeration or window handle was obtained.",
+          "evidenceRefs": [
+            "cdp:/json/version Browser=Chrome/156.0.8078.49",
+            "process:chrome.exe pid=11724 --remote-debugging-port=38702 --user-data-dir=C:\\VIVIM\\chrome-profile"
+          ],
+          "friction": "The dedicated-profile Chrome is running but was restarted outside the harness launch path, so its ownership identity no longer matches and every attach-guarded command refuses. launch cannot reclaim port 38702 while that instance lives and offers no adopt/verify/force option; the only documented remedy is for a human to close that Chrome after saving work and relaunch with studio start. Closing it was not authorized here because it may hold the operator's live tabs and unsaved work.",
+          "failureClassification": "ENVIRONMENT_BROWSER_PROFILE_UNVERIFIED",
+          "authorizationScope": "Read-only CLI inspection plus one launch attempt that self-refused before any browser effect. No Chrome process was closed or killed, no tab was opened, navigated, or enumerated, no provider send, no settings or account change, no draft modification.",
+          "uncertainty": "The cause of the identity mismatch is inferred from the Chrome build bump and the absent ownership marker; the harness did not state why verification failed. Whether PID 11724 carries the operator's live unsaved work is unknown, which is why it was left running. No conclusion about unrelated-tab discovery is possible from this attempt.",
+          "agent": "chatgpt-probe",
+          "model": "opencode/deepseek-v4.1-flash-free",
+          "reconciliationKeyRefs": []
+        },
+        {
+          "attemptPhase": "ERA2_RETEST_2",
+          "testedRevision": "9560f567b97bc0b00f32f3ee5009a210b54c4925",
+          "status": "PARTIAL",
+          "startedAt": "2026-10-28T11:52:37.5393756Z",
+          "finishedAt": "2026-10-28T11:52:39.3823756Z",
+          "elapsedMs": 1843,
+          "deadlineAt": "2026-10-28T11:53:37.5393756Z",
+          "timedOut": false,
+          "cliInvocationCount": 2,
+          "commands": [
+            "'{}' | node bin/studio.mjs tools call conversation_targets --input - --studio-port 38703 --json",
+            "node bin/studio.mjs targets --data-dir C:\\VIVIM --port 38702 --json"
+          ],
+          "observedOutcome": "With the relaunched verified marker, the guarded capture-browser enumeration succeeded (exit 0) and returned exactly one target: index 0, id BF32270B8C28F4DC760509217A88E6F5, title 'about:blank', url 'about:blank'. No ChatGPT tab and no unrelated webapp tabs were present, so there was no ChatGPT tab to locate among others. Studio's conversation_targets also exited 0 and again returned an empty targets array with only the provider sites catalog, consistent with no ChatGPT target being open.",
+          "evidenceRefs": [
+            "target:BF32270B8C28F4DC760509217A88E6F5 about:blank"
+          ],
+          "friction": "Enumeration itself works and is now unblocked, but the tab set contains only about:blank. The objective presumes a ChatGPT tab plus unrelated tabs; neither exists, and read-only scope forbids opening or navigating a tab to create them.",
+          "failureClassification": "NO_CHATGPT_TAB_PRESENT",
+          "authorizationScope": "Read-only native CLI enumeration only. No tab opened, navigated, activated or closed; no send, settings or account change; no draft modification.",
+          "uncertainty": "Whether the harness can discriminate a ChatGPT tab from unrelated tabs remains undemonstrated, because the only open target is about:blank. This is an environment-state limitation, not an observed harness defect.",
+          "agent": "chatgpt-probe",
+          "model": "opencode/deepseek-v4.1-flash-free",
+          "reconciliationKeyRefs": []
         }
       ]
     },
@@ -175,7 +311,7 @@
       "section": "01 — Account and live-session awareness",
       "title": "Chrome-profile isolation",
       "objective": "Recognize which ChatGPT window belongs to the dedicated VIVIM profile.",
-      "status": "PASS",
+      "status": "PARTIAL",
       "attempts": [
         {
           "status": "PASS",
@@ -200,6 +336,35 @@
           "model": "openai/gpt-6.1-terra#low",
           "agent": "chatgpt-probe",
           "uncertainty": "The successful guarded targets command identifies the ChatGPT target in the dedicated capture browser, not an operating-system window handle or signed-in account. Profile verification is inferred from the command's documented capture-browser behavior and earlier explicit unverified-profile refusal, not an explicit verified flag in this command output. Each invocation began with at least 15 seconds remaining and used a 15-second shell timeout; no independent process-kill enforcement was verified.",
+          "reconciliationKeyRefs": [],
+          "evidenceGap": true,
+          "evidenceGapReason": "Status claim exceeds observed evidence: PASS with an empty evidenceRefs array. Commands and observedOutcome exist, but nothing in the record anchors the PASS to a profile-identity fact, and the attempt's own text says verification was inferred rather than observed. Superseded by the ERA2_RETEST_2 PARTIAL attempt, so no current objective status depends on it. A valid PASS requires an explicit verified-profile flag or a target-level identity reference. Status left unchanged."
+        },
+        {
+          "attemptPhase": "ERA2_RETEST_2",
+          "testedRevision": "9560f567b97bc0b00f32f3ee5009a210b54c4925",
+          "status": "PARTIAL",
+          "startedAt": "2026-10-28T11:52:55.0245527Z",
+          "finishedAt": "2026-10-28T11:52:56.8895527Z",
+          "elapsedMs": 1865,
+          "deadlineAt": "2026-10-28T11:53:55.0245527Z",
+          "timedOut": false,
+          "cliInvocationCount": 2,
+          "commands": [
+            "node bin/studio.mjs doctor --data-dir C:\\VIVIM --port 38702 --json",
+            "node bin/studio.mjs targets --data-dir C:\\VIVIM --port 38702 --json"
+          ],
+          "observedOutcome": "doctor, given the explicit data directory, reported data-dir C:\\VIVIM and devtools 127.0.0.1:38702 (Chrome/156.0.8078.49) as ok. The guarded targets command then succeeded with exit 0 and returned target BF32270B8C28F4DC760509217A88E6F5. This is the decisive contrast with the pre-relaunch attempt on the same revision: the identical guarded command refused with BROWSER_PROFILE_UNVERIFIED while an unowned Chrome held the port, and now verifies. The capture browser is therefore attributable to the C:\\VIVIM profile. However its only window is about:blank, so no ChatGPT window exists whose profile membership could be demonstrated.",
+          "evidenceRefs": [
+            "doctor:data-dir=C:\\VIVIM devtools=Chrome/156.0.8078.49",
+            "target:BF32270B8C28F4DC760509217A88E6F5 about:blank"
+          ],
+          "friction": "Profile attribution is proven only for the capture browser as a whole. Because no ChatGPT tab is open, the objective's specific claim - which ChatGPT window belongs to the profile - has no live subject to test, and read-only scope forbids opening one.",
+          "failureClassification": "NO_CHATGPT_WINDOW_PRESENT",
+          "authorizationScope": "Read-only native CLI inspection only. No browser or server restart, no navigation, no send, no settings or account change, no draft modification.",
+          "uncertainty": "The profile-to-browser binding is inferred from the guarded command's accept/refuse behavior and the reported data-dir, not from an explicit verified flag or an OS window handle. No signed-in account was confirmed and no ChatGPT window was observed.",
+          "agent": "chatgpt-probe",
+          "model": "opencode/deepseek-v4.1-flash-free",
           "reconciliationKeyRefs": []
         }
       ]
@@ -233,6 +398,31 @@
           "agent": "chatgpt-probe",
           "uncertainty": "Whether input is ready or the page is still loading remains unknown. Each invocation began with at least 15 seconds remaining and used a 15-second shell timeout; independent process-kill enforcement was not verified.",
           "reconciliationKeyRefs": []
+        },
+        {
+          "attemptPhase": "ERA2_RETEST_2",
+          "testedRevision": "9560f567b97bc0b00f32f3ee5009a210b54c4925",
+          "status": "UNSUPPORTED",
+          "startedAt": "2026-10-28T11:53:13.3489191Z",
+          "finishedAt": "2026-10-28T11:53:14.3559191Z",
+          "elapsedMs": 1007,
+          "deadlineAt": "2026-10-28T11:54:13.3489191Z",
+          "timedOut": false,
+          "cliInvocationCount": 1,
+          "commands": [
+            "node bin/studio.mjs tools list --studio-port 38703 --json"
+          ],
+          "observedOutcome": "The live native tool catalog returned exit 0 with 11 tools: conversation_targets, chat_index, list_conversations, get_conversation, conversation_capsule, create_conversation, connect_conversation, read_conversation, submit_conversation_turn, reconcile_conversation, finish_conversation. None reports composer, input, loading or readiness state. chat_index is explicitly a rendered link index whose entries are 'NOT verified live bindings', and read_conversation requires an already exact-bound conversation. Combined with the 004 target enumeration, the only open target is about:blank, so no ChatGPT page exists whose readiness could be read even if a reader existed. Readiness therefore remains undetermined.",
+          "evidenceRefs": [
+            "tools:11 read-only-plus-effect catalog, no readiness reader"
+          ],
+          "friction": "No read-only page-readiness surface exists in the native tool set, and no ChatGPT page is open. Opening one would require navigation, which is outside the authorized scope.",
+          "failureClassification": "HARNESS_UNSUPPORTED_AND_NO_CHATGPT_PAGE",
+          "authorizationScope": "Read-only tool-catalog inspection only. No navigation, no composer typing, no send, no settings or account change.",
+          "uncertainty": "Whether ChatGPT would be ready to accept input is unknown. This attempt proves the absence of a readiness reader in the advertised tool catalog; it does not prove the webapp lacks such state internally.",
+          "agent": "chatgpt-probe",
+          "model": "opencode/deepseek-v4.1-flash-free",
+          "reconciliationKeyRefs": []
         }
       ]
     },
@@ -263,6 +453,33 @@
           "model": "openai/gpt-6.1-terra#low",
           "agent": "chatgpt-probe",
           "uncertainty": "Whether an assistant is generating or finished remains unknown. Each invocation began with at least 15 seconds remaining and used a 15-second shell timeout; independent per-process kill enforcement was not verified.",
+          "reconciliationKeyRefs": []
+        },
+        {
+          "attemptPhase": "ERA2_RETEST_2",
+          "testedRevision": "9560f567b97bc0b00f32f3ee5009a210b54c4925",
+          "status": "UNSUPPORTED",
+          "startedAt": "2026-10-28T11:53:29.1814383Z",
+          "finishedAt": "2026-10-28T11:53:31.2074383Z",
+          "elapsedMs": 2026,
+          "deadlineAt": "2026-10-28T11:54:29.1814383Z",
+          "timedOut": false,
+          "cliInvocationCount": 2,
+          "commands": [
+            "node bin/studio.mjs recipe choose --intent 'Tell me whether the assistant is currently generating or finished' --json",
+            "node bin/studio.mjs recipe list --json"
+          ],
+          "observedOutcome": "recipe choose returned exit 0 with status 'no-match', zero candidates, ambiguous false and selection null (evidence 'deterministic-vocabulary-only'). recipe list exposed 12 recipes across bootstrap/provider/conversation/capture/world/knowledge/recovery/diagnostics/verification families; none reports whether a response is generating or finished. No conversation is live-bound and the only target is about:blank, so no generation state was observable.",
+          "evidenceRefs": [
+            "recipe-choice:no-match",
+            "recipes:12 none for streaming state"
+          ],
+          "friction": "No recipe or tool surfaces generation/streaming state. The nearest evidence surfaces (read_conversation, get_conversation) require a live-bound or stored conversation and describe transcripts, not in-flight generation.",
+          "failureClassification": "HARNESS_UNSUPPORTED_STREAMING_STATE",
+          "authorizationScope": "Read-only recipe discovery only. No navigation, send, or settings change.",
+          "uncertainty": "Whether the assistant was generating at any point is unknown; no ChatGPT page and no bound conversation existed to observe.",
+          "agent": "chatgpt-probe",
+          "model": "opencode/deepseek-v4.1-flash-free",
           "reconciliationKeyRefs": []
         }
       ]
@@ -295,6 +512,33 @@
           "agent": "chatgpt-probe",
           "uncertainty": "Temporary Chat mode remains unknown; absence of a mode field does not mean it is off. Each invocation began with at least 15 seconds remaining and used a 15-second shell timeout; independent process-kill enforcement was not verified.",
           "reconciliationKeyRefs": []
+        },
+        {
+          "attemptPhase": "ERA2_RETEST_2",
+          "testedRevision": "9560f567b97bc0b00f32f3ee5009a210b54c4925",
+          "status": "UNSUPPORTED",
+          "startedAt": "2026-10-28T11:53:41.0250706Z",
+          "finishedAt": "2026-10-28T11:53:43.1910706Z",
+          "elapsedMs": 2166,
+          "deadlineAt": "2026-10-28T11:54:41.0250706Z",
+          "timedOut": false,
+          "cliInvocationCount": 2,
+          "commands": [
+            "node bin/studio.mjs recipe choose --intent 'Recognize when ChatGPT is in Temporary Chat mode' --json",
+            "'{}' | node bin/studio.mjs tools call list_conversations --input - --studio-port 38703 --json"
+          ],
+          "observedOutcome": "recipe choose returned exit 0 with status 'suggested' and a single weak candidate, provider.chat-index (score 67, reason 'vocabulary-overlap:chatgpt chat index'), which is a rendered link index and not a Temporary Chat detector. list_conversations returned 11 stored conversations whose union of keys is id, revision, state, site, binding, sessionId, turn, turns, identity, recovery, readiness, writer, diagnostic, evidence, reply, capture, limitations; no ephemeral, temporary or incognito field appeared anywhere in the payload. No ChatGPT page was open and no tool reports session mode.",
+          "evidenceRefs": [
+            "recipe-choice:suggested provider.chat-index (link index, not mode state)",
+            "list_conversations:11 conversations, zero ephemeral/temporary/incognito mentions"
+          ],
+          "friction": "Temporary Chat is a page-level session mode, but every available surface is either a link index, a stored snapshot or a live-bound transcript reader. None carries mode state, and no ChatGPT page exists to inspect.",
+          "failureClassification": "HARNESS_UNSUPPORTED_EPHEMERAL_MODE",
+          "authorizationScope": "Read-only recipe and stored-snapshot inspection. No navigation, no mode toggle, no send, no settings change.",
+          "uncertainty": "Whether a Temporary Chat session was ever active is unknown. The absence of an ephemeral field in stored metadata does not prove the webapp lacks the concept; it proves the harness does not expose it.",
+          "agent": "chatgpt-probe",
+          "model": "opencode/deepseek-v4.1-flash-free",
+          "reconciliationKeyRefs": []
         }
       ]
     },
@@ -325,6 +569,31 @@
           "agent": "chatgpt-probe",
           "uncertainty": "Presence or absence of duplicate visible titles remains unknown; no duplicate pair was proven. Invocation began with at least 15 seconds remaining and used a 15-second shell timeout; independent process-kill enforcement was not verified.",
           "reconciliationKeyRefs": []
+        },
+        {
+          "attemptPhase": "ERA2_RETEST_2",
+          "testedRevision": "9560f567b97bc0b00f32f3ee5009a210b54c4925",
+          "status": "UNSUPPORTED",
+          "startedAt": "2026-10-28T11:53:55.3400191Z",
+          "finishedAt": "2026-10-28T11:53:56.5130191Z",
+          "elapsedMs": 1173,
+          "deadlineAt": "2026-10-28T11:54:55.3400191Z",
+          "timedOut": false,
+          "cliInvocationCount": 1,
+          "commands": [
+            "'{}' | node bin/studio.mjs tools call list_conversations --input - --studio-port 38703 --json | node -e \"<parse stdin: count, key union, title presence, duplicate titles>\""
+          ],
+          "observedOutcome": "Parsing the live list_conversations payload showed 11 stored conversations whose union of keys contains no title or name field at all (titleFieldPresent 0), therefore 0 duplicate titles assessable. Thread identity is carried only as binding.thread.ref (for example chatgpt-c:6ad2b82b-e9bc-83ed-8a38-09a2bbc5f2be), and the tool's description states titles are not thread identities. No ChatGPT tab was open, so no two visible threads with identical titles existed to disambiguate.",
+          "evidenceRefs": [
+            "list_conversations:11 stored, titleFieldPresent=0, dupTitles=0"
+          ],
+          "friction": "The objective presupposes two visible threads sharing a title. Stored metadata exposes thread refs but no titles, and the live tab set holds only about:blank; creating two threads would require navigation and sends, both unauthorized.",
+          "failureClassification": "NO_TITLE_SURFACE_NO_DUPLICATE_THREADS",
+          "authorizationScope": "Read-only stored-snapshot inspection only. No navigation, no thread creation, no send.",
+          "uncertainty": "Whether the harness could distinguish idless duplicate titles is untested, because no title surface and no duplicate pair existed. This is a coverage gap, not a demonstrated defect.",
+          "agent": "chatgpt-probe",
+          "model": "opencode/deepseek-v4.1-flash-free",
+          "reconciliationKeyRefs": []
         }
       ]
     },
@@ -333,7 +602,7 @@
       "section": "01 — Account and live-session awareness",
       "title": "UI obstruction recognition",
       "objective": "Explain why the ChatGPT composer is blocked by a modal or challenge.",
-      "status": "UNSUPPORTED",
+      "status": "BLOCKED",
       "attempts": [
         {
           "status": "UNSUPPORTED",
@@ -356,6 +625,33 @@
           "agent": "chatgpt-probe",
           "uncertainty": "Whether the composer is blocked, and any cause, remains unknown. Each invocation began with at least 15 seconds remaining and used a 15-second shell timeout; independent process-kill enforcement was not verified.",
           "reconciliationKeyRefs": []
+        },
+        {
+          "attemptPhase": "ERA2_RETEST_2",
+          "testedRevision": "9560f567b97bc0b00f32f3ee5009a210b54c4925",
+          "status": "BLOCKED",
+          "startedAt": "2026-10-28T11:54:13.6671847Z",
+          "finishedAt": "2026-10-28T11:54:16.1081847Z",
+          "elapsedMs": 2441,
+          "deadlineAt": "2026-10-28T11:55:13.6671847Z",
+          "timedOut": false,
+          "cliInvocationCount": 2,
+          "commands": [
+            "node bin/studio.mjs recipe choose --intent 'Explain why the ChatGPT composer is blocked by a modal or challenge' --json",
+            "'{\"targetId\":\"BF32270B8C28F4DC760509217A88E6F5\",\"maxEntries\":3,\"maxTitleChars\":20}' | node bin/studio.mjs tools call chat_index --input - --studio-port 38703 --json"
+          ],
+          "observedOutcome": "recipe choose returned exit 0 status 'no-match' with zero candidates. Applying chat_index to the only open target BF32270B8C28F4DC760509217A88E6F5 (about:blank) was rejected with exit 5 TARGET_SITE_MISMATCH, httpStatus 409, effect 'none', retry false: the target is not a canonical ChatGPT origin, so no rendered surface could be read. With no ChatGPT page there was no composer and no modal or challenge to explain. No browser effect occurred.",
+          "evidenceRefs": [
+            "recipe-choice:no-match",
+            "chat_index:TARGET_SITE_MISMATCH effect=none httpStatus=409"
+          ],
+          "friction": "Diagnosing a blocked composer requires a rendered ChatGPT page and a DOM-level obstruction surface. The installed tool set has no obstruction or modal inspector, and the sole open target is about:blank. Reaching a ChatGPT page requires navigation, which is not authorized.",
+          "failureClassification": "NO_AUTHORIZED_NAVIGATION_NO_CHATGPT_PAGE",
+          "authorizationScope": "Read-only suggestion and index inspection. No navigation, no page open, no send, no settings change, no draft modification.",
+          "uncertainty": "Nothing about real composer obstruction was observed. Whether a modal or challenge would even be detectable through the available surfaces is unknown.",
+          "agent": "chatgpt-probe",
+          "model": "opencode/deepseek-v4.1-flash-free",
+          "reconciliationKeyRefs": []
         }
       ]
     },
@@ -364,7 +660,7 @@
       "section": "02 — Moving around ChatGPT",
       "title": "New-chat navigation",
       "objective": "Open a blank new conversation without sending anything.",
-      "status": "PARTIAL",
+      "status": "PASS",
       "attempts": [
         {
           "status": "PARTIAL",
@@ -387,7 +683,107 @@
           "agent": "chatgpt-probe",
           "uncertainty": "The original target remains listed but draft preservation was not independently inspected. The new tab's composer and visibility are unknown, and its ownership metadata conflicts. Each invocation began with at least 15 seconds remaining and used a 15-second shell timeout; independent process-kill enforcement was not verified.",
           "reconciliationKeyRefs": ["conversation:1c9ab74a-605d-495b-8e1b-048f30765996"]
-        }
+        },
+        {
+          "attemptPhase": "ERA2_RETEST_3",
+          "testedRevision": "9560f567b97bc0b00f32f3ee5009a210b54c4925",
+          "status": "PASS",
+          "startedAt": "2026-10-28T11:56:38.8253256Z",
+          "finishedAt": "2026-10-28T11:56:43.0173256Z",
+          "elapsedMs": 4192,
+          "deadlineAt": "2026-10-28T11:57:38.8253256Z",
+          "timedOut": false,
+          "cliInvocationCount": 2,
+          "commands": [
+            "'{\"site\":\"chatgpt\"}' | node bin/studio.mjs tools call create_conversation --input - --studio-port 38703 --json",
+            "node bin/studio.mjs targets --data-dir C:\\VIVIM --port 38702 --json"
+          ],
+          "observedOutcome": "create_conversation exited 0 and returned a new Studio-owned conversation 8ee32739-c408-49df-ac30-88a1b2afbd46, revision 3, site chatgpt, binding targetId D071EEE2713E903E5677D86E535FA909, origin https://chatgpt.com, ownedByStudio true, identity.state 'unbound' with reason NEW_CHAT, turns empty and turn null - so no turn existed and nothing was submitted. The guarded targets command then listed that tab as index 0, id D071EEE2713E903E5677D86E535FA909, title 'ChatGPT', url https://chatgpt.com/, alongside the pre-existing about:blank target. A blank new conversation was therefore opened without sending. Note the same response reported state 'blocked' with readiness.ready false and readiness.reason BINDING_CHANGED.",
+          "evidenceRefs": [
+            "conversation:8ee32739-c408-49df-ac30-88a1b2afbd46 identity=unbound/NEW_CHAT turns=0",
+            "target:D071EEE2713E903E5677D86E535FA909 https://chatgpt.com/"
+          ],
+          "friction": "The navigation objective succeeded, but the runtime simultaneously reported the conversation state as 'blocked' with readiness reason BINDING_CHANGED even though the tab was freshly Studio-created. That is the same readiness code the round-2 blank-chat repair targeted, so input readiness for this tab is not established by this attempt.",
+          "failureClassification": null,
+          "authorizationScope": "Parent-granted browser navigation and tab creation for the ChatGPT origin only. No provider send or submit, no branch or rename, no settings change, no file upload, no account identity disclosure.",
+          "uncertainty": "Whether the tab is signed in, and whether it could actually accept input, is unknown: readiness said false/BINDING_CHANGED. The 15-minute capture window recorded by the tool (endsAt 2026-10-28T12:11:39.883Z) bounds how long this tab remains useful for later objectives.",
+          "agent": "chatgpt-probe",
+          "model": "opencode/deepseek-v4.1-flash-free",
+          "reconciliationKeyRefs": []
+        },
+        {
+            "attemptPhase": "ERA2_RETEST_4",
+            "testedRevision": "9560f567b97bc0b00f32f3ee5009a210b54c4925",
+            "testedRevisionCaveat": "Run against HEAD 9560f567b97bc0b00f32f3ee5009a210b54c4925 plus an uncommitted dirty source tree. Five src files were modified and not committed at run time: src/capture/actions.mjs, src/capture/conversation-browser-adapter.mjs, src/capture/conversation-capsule.mjs, src/capture/conversation-service.mjs, src/studio/conversation-tools.mjs. Four test files were also modified: test/unit/chatgpt-new-chat-binding-investigation.test.mjs, test/unit/conversation-capsule.test.mjs, test/unit/conversation-create.test.mjs, test/unit/drive-observation-truth.test.mjs. The binding fix under test exists only in the working tree, so this result is attributable to HEAD-plus-dirty-tree, not to HEAD alone. Concurrent change during the sweep: src/studio/conversation-tools.mjs was modified at the start of the sweep and again matched HEAD by the end of it, so another lane reverted that file inside the sweep window and this attempt ran against a tree state that no longer exists on disk. The other four src files and four test files were still modified after the sweep.",
+            "status": "PARTIAL",
+            "startedAt": "2026-10-28T12:30:18.256Z",
+            "finishedAt": "2026-10-28T12:31:05.575Z",
+            "elapsedMs": 47293,
+            "deadlineAt": "2026-10-28T12:31:18.256Z",
+            "timedOut": false,
+            "cliInvocationCount": 2,
+            "commands": [
+              "'{\"site\":\"chatgpt\"}' | node bin/studio.mjs tools call create_conversation --input - --studio-port 38703 --json --include-content",
+              "'{\"conversation\":\"bceed07a-ddac-4a95-9040-a4797d350232\"}' | node bin/studio.mjs tools call get_conversation --input - --studio-port 38703 --json"
+            ],
+            "observedOutcome": "Ran against the parent-restarted Studio (old PID 17544 stopped; new process started with start --data-dir C:\\VIVIM --port 38702 --studio-port 38703 --no-open; agent status reported studio reachable, version 0.1.0, dataDir C:\\VIVIM, chromeProfile C:\\VIVIM\\chrome-profile, cdpPort 38702, chromeReachable true). create_conversation exited 0 and returned a new Studio-owned conversation bceed07a-ddac-4a95-9040-a4797d350232, revision 3, site chatgpt, binding targetId 69852571B65289CDF9B64535D2A9F9ED, origin https://chatgpt.com, ownedByStudio true, identity.state unbound with reason NEW_CHAT, turn null and turns empty, so no turn existed and nothing was submitted. Those facts satisfy the navigation half of the objective: a blank new conversation was opened without sending. The same response nevertheless reported state blocked, readiness.ready false and readiness.reason BINDING_CHANGED, with the tab unable to accept input. A second independent read (get_conversation) returned the identical result at revision 3 with readiness.ready false and reason BINDING_CHANGED, so the readiness failure is reproducible after the restart and is not a transient of tab creation. The objective is therefore downgraded from PASS to PARTIAL: navigation observed, usable blank conversation not established.",
+            "evidenceRefs": [
+              "conversation:bceed07a-ddac-4a95-9040-a4797d350232 revision=3 state=blocked readiness.ready=false reason=BINDING_CHANGED identity=unbound/NEW_CHAT turns=0",
+              "target:69852571B65289CDF9B64535D2A9F9ED https://chatgpt.com/ ownedByStudio=true",
+              "studio:agent status version=0.1.0 dataDir=C:\\\\VIVIM chromeProfile=C:\\\\VIVIM\\\\chrome-profile cdpPort=38702 chromeReachable=true browserAccountState=unverified"
+            ],
+            "friction": "The parent-restarted fixed source reproduced the exact readiness failure the round-2 repair targeted: a freshly Studio-created ChatGPT tab is bound to a target, owned by Studio, and simultaneously reported blocked with BINDING_CHANGED. Two reads agree, so a PASS on navigation alone would overstate what the system can do with that tab.",
+            "failureClassification": "BINDING_CHANGED",
+            "authorizationScope": "Parent-granted browser navigation and tab creation for the ChatGPT origin only. No provider send or submit, no typing, no branch or rename, no settings change, no file upload, no account identity disclosure.",
+            "uncertainty": "The tab association is real but its input readiness is false, so whether the composer is present, signed in, or usable cannot be concluded. browserAccountState is unverified in agent status, so sign-in state is unknown. The capture window ends at 2026-10-28T12:45:18.256Z, bounding how long this tab stays useful.",
+            "agent": "chatgpt-probe",
+            "model": "opencode/deepseek-v4.1-flash-free",
+            "reconciliationKeyRefs": [
+              "conversation:bceed07a-ddac-4a95-9040-a4797d350232"
+            ]
+          },
+        {
+            "attemptPhase": "ERA2_RETEST_5",
+            "testedRevision": "9560f567b97bc0b00f32f3ee5009a210b54c4925",
+            "testedRevisionCaveat": "Run against HEAD 9560f567b97bc0b00f32f3ee5009a210b54c4925 plus an uncommitted dirty source tree, served by a parent-restarted Studio. Four src files were modified and uncommitted at run time: src/capture/actions.mjs, src/capture/conversation-browser-adapter.mjs, src/capture/conversation-capsule.mjs, src/capture/conversation-service.mjs. Four test files were also modified: test/unit/chatgpt-new-chat-binding-investigation.test.mjs, test/unit/conversation-capsule.test.mjs, test/unit/conversation-create.test.mjs, test/unit/drive-observation-truth.test.mjs. src/studio/conversation-tools.mjs matched HEAD at run time, so the lane-3 guard fix under test lives only in the working tree and this result is attributable to HEAD-plus-dirty-tree, not to HEAD alone. The run was a discriminator, not a repair: the purpose was to test whether the failure shape recorded in LIVE-DEFECT-1 survived a Studio restart onto that tree.",
+            "status": "PASS",
+            "startedAt": "2026-10-28T13:01:03.243Z",
+            "finishedAt": "2026-10-28T13:02:47.075Z",
+            "elapsedMs": 103832,
+            "deadlineAt": "2026-10-28T13:02:03.243Z",
+            "timedOut": false,
+            "cliInvocationCount": 6,
+            "commands": [
+              "node bin/studio.mjs agent status --studio-port 38703 --json",
+              "'{\"site\":\"chatgpt\"}' | node bin/studio.mjs tools call create_conversation --input - --studio-port 38703 --json",
+              "'{\"conversation\":\"83d3fcd2-1b40-48c1-87d9-d550f38d2d8c\"}' | node bin/studio.mjs tools call get_conversation --input - --studio-port 38703 --json",
+              "'{\"conversation\":\"83d3fcd2-1b40-48c1-87d9-d550f38d2d8c\"}' | node bin/studio.mjs tools call get_conversation --input - --studio-port 38703 --json",
+              "'{}' | node bin/studio.mjs tools call conversation_targets --input - --studio-port 38703 --json",
+              "'{}' | node bin/studio.mjs tools call list_conversations --input - --studio-port 38703 --json"
+            ],
+            "observedOutcome": "agent status reported studio reachable, version 0.1.0, dataDir C:\\VIVIM, chromeProfile C:\\VIVIM\\chrome-profile, cdpPort 38702, chromeReachable true, so the Studio serving these calls was the parent-restarted process on the current tree. create_conversation exited 5 with {\"error\":{\"message\":\"STUDIO_REQUEST_UNKNOWN\",\"code\":\"STUDIO_REQUEST_UNKNOWN\",\"exit\":5,\"details\":{\"httpStatus\":504,\"effect\":\"unknown\",\"retry\":false}}} and wrote no body, so the new conversation id had to be recovered by diffing list_conversations before and after the call. The recovered conversation 83d3fcd2-1b40-48c1-87d9-d550f38d2d8c read identically at 13:02:16.763Z and 13:02:21.299Z: revision 3, state ready, site chatgpt, binding targetId D89CFEC580FAB598328983941B9195D9 with origin https://chatgpt.com and ownedByStudio true, identity {\"state\":\"unbound\",\"reason\":\"NEW_CHAT\"}, turns empty and turn null, and readiness {\"ready\":true,\"draft\":{\"present\":false,\"chars\":0},\"reason\":null}. conversation_targets at 13:02:47.075Z listed 8 targets and returned D89CFEC580FAB598328983941B9195D9 with url https://chatgpt.com, thread null, identity {\"state\":\"unverified\",\"reason\":\"UNSUPPORTED_PATH\"}, ownedByStudio true, visibility unknown. A blank new conversation therefore exists, holds zero turns, received no prompt, and its composer probe returned a real boolean with zero characters, so the tab was ready to accept input. Nothing was sent.",
+            "evidenceRefs": [
+              "conversation:83d3fcd2-1b40-48c1-87d9-d550f38d2d8c revision=3 state=ready readiness.ready=true reason=null draft={\"present\":false,\"chars\":0} identity=unbound/NEW_CHAT turns=0",
+              "target:D89CFEC580FAB598328983941B9195D9 https://chatgpt.com ownedByStudio=true thread=null visibility=unknown",
+              "studio:agent status version=0.1.0 dataDir=C:\\\\VIVIM chromeProfile=C:\\\\VIVIM\\\\chrome-profile cdpPort=38702 chromeReachable=true"
+            ],
+            "discriminatorVerdict": {
+              "matchesPreRestartShape": false,
+              "preRestartShape": "state \"blocked\", readiness.ready false, readiness.reason \"BINDING_CHANGED\", readiness.draft {\"present\":null,\"chars\":null}",
+              "observedShape": "state \"ready\", readiness.ready true, readiness.reason null, readiness.draft {\"present\":false,\"chars\":0}",
+              "why": "The discriminator predicted that an unchanged failure would return the same reason BINDING_CHANGED with the same null draft. Neither held. The draft value changed from null to a boolean false, and readiness.draft.present is only ever set by the composer probe that runs after the binding checks pass, so the refusal path that produced the pre-restart shape was not taken on this run. The failure was not reproduced, so the prediction was falsified and the page-origin branch hypothesis is not supported by this retest.",
+              "causeAttributionLimit": "This run does not isolate which change removed the failure. Four src files were modified in the same tree and the Studio process was also restarted, so the removal cannot be credited to the lane-3 guard at src/capture/conversation-browser-adapter.mjs:121-127 in particular. The guard addresses about:blank tolerance while both fresh targets reported url https://chatgpt.com, so on the recorded evidence that branch never fires and cannot be the cause of the change either."
+            },
+            "friction": "create_conversation returned HTTP 504 STUDIO_REQUEST_UNKNOWN with details.effect \"unknown\" and exit 5 while the conversation was in fact created and ready, so the caller gets a failure signal for a successful effect. Working hypothesis only, not proven: creation waits on the readiness loop, the readiness loop now runs long enough to exceed the Studio HTTP timeout, and the effect still lands after the response is abandoned. No second defect was filed for it. Second friction: the conversation record carries no createdAt or updatedAt, so timing is only bounded by capture.endsAt 2026-10-28T13:16:13.478Z. Third: attribution of 83d3fcd2 to this run is inferred from a list_conversations diff, not proven by a create response body.",
+            "failureClassification": null,
+    "authorizationScope": "Parent-granted creation of one disposable ChatGPT tab on the existing owner and read-only inspection of conversations and targets. No provider send or submit, no typing, no branch or rename, no settings change, no file upload, no account identity disclosure.",
+            "uncertainty": "The create response body was lost to the 504, so the new conversation id is attributed by diff rather than by direct return. Concurrent lanes were active during the run: the target list grew from 4 to 8 between 12:44Z and 13:01Z, and targets DC1FA959A4D42CBEE54795441412B105 and 69852571B65289CDF9B64535D2A9F9ED flipped from ownedByStudio true to false, so another process is creating tabs in the same profile. A second conversation d1bb14a2-b2e6-47ed-b1f7-b1eb1e5bfcf6 was also ready with draft {\"present\":false,\"chars\":0} on a pre-existing bound tab with ownedByStudio false, which shows readiness also succeeds outside this run's own tab. browserAccountState remains unverified, so sign-in state is not proven by status.",
+            "agent": "chatgpt-probe",
+            "model": "opencode/deepseek-v4.1-flash-free",
+            "reconciliationKeyRefs": [
+              "conversation:83d3fcd2-1b40-48c1-87d9-d550f38d2d8c"
+            ]
+          }
       ]
     },
     {
@@ -395,7 +791,7 @@
       "section": "02 — Moving around ChatGPT",
       "title": "Sidebar history selection",
       "objective": "Locate a particular conversation in the history sidebar by its title.",
-      "status": "UNSUPPORTED",
+      "status": "PARTIAL",
       "attempts": [
         {
           "status": "UNSUPPORTED",
@@ -418,6 +814,32 @@
           "agent": "chatgpt-probe",
           "uncertainty": "A matching disposable title may or may not be present; the returned title-free, incomplete candidate index cannot establish it. Each invocation began with at least 15 seconds remaining and used a 15-second shell timeout; independent process-kill enforcement was not verified.",
           "reconciliationKeyRefs": []
+        },
+        {
+          "attemptPhase": "ERA2_RETEST_3",
+          "testedRevision": "9560f567b97bc0b00f32f3ee5009a210b54c4925",
+          "status": "PARTIAL",
+          "startedAt": "2026-10-28T11:57:01.5356976Z",
+          "finishedAt": "2026-10-28T11:57:02.5646976Z",
+          "elapsedMs": 1029,
+          "deadlineAt": "2026-10-28T11:58:01.5356976Z",
+          "timedOut": false,
+          "cliInvocationCount": 1,
+          "commands": [
+            "'{\"targetId\":\"D071EEE2713E903E5677D86E535FA909\",\"maxEntries\":40,\"maxTitleChars\":60}' | node bin/studio.mjs tools call chat_index --input - --studio-port 38703 --json"
+          ],
+          "observedOutcome": "chat_index exited 0 against the Studio-owned ChatGPT tab and read 23 rendered links, yielding 18 unique visible thread links (duplicatesMerged 0, omittedEntries 0, truncatedScan false). The sidebar is therefore signed in and populated. However every entry's displayTitle object contained only {untrusted:true, truncated:false} with no title text at all, so no conversation could be located by its visible title. Entries carry only identity: threadRef chatgpt-c:<uuid>, path /c/<uuid>, identity.state 'candidate' with reason RENDERED_LINK_NOT_LIVE_BOUND and liveBinding NO_M1_BINDING. The page context reported pathKind 'root', threadRef null, guards all true, sideEffects 'none'.",
+          "evidenceRefs": [
+            "chat_index:18 unique threads, 23 rendered links, zero title text",
+            "thread:chatgpt-c:6ad2b82b-e9bc-83ed-8a38-09a2bbc5f2be (first entry, path /c/6ad2b82b-e9bc-83ed-8a38-09a2bbc5f2be)"
+          ],
+          "friction": "The index exposes thread identity but not display text, so a title-based lookup cannot be performed even though the history sidebar is visibly populated. Resolving a title would need either a working title extraction or a container selector guess, and guessing selectors is not justified by this evidence.",
+          "failureClassification": "SIDEBAR_ENUMERATED_TITLE_TEXT_UNAVAILABLE",
+          "authorizationScope": "Read-only rendered-DOM index of the authorized ChatGPT tab. No clicks, no navigation, no send, no rename or branch.",
+          "uncertainty": "Whether the 18 links are the complete history is unknown by design (complete is always false, pagination and virtualization unobserved). Whether titles are absent from the DOM or merely not extracted by this reader is not distinguishable from this output.",
+          "agent": "chatgpt-probe",
+          "model": "opencode/deepseek-v4.1-flash-free",
+          "reconciliationKeyRefs": []
         }
       ]
     },
@@ -426,7 +848,7 @@
       "section": "02 — Moving around ChatGPT",
       "title": "Deep-link navigation",
       "objective": "Open a conversation from its exact native /c/ address.",
-      "status": "UNSUPPORTED",
+      "status": "PASS",
       "attempts": [
         {
           "status": "UNSUPPORTED",
@@ -449,6 +871,37 @@
           "agent": "chatgpt-probe",
           "uncertainty": "The historical test thread's current availability is unknown. No current URL or successful navigation to it was observed. Each invocation began with at least 15 seconds remaining and used a 15-second shell timeout; independent process-kill enforcement was not verified.",
           "reconciliationKeyRefs": []
+        },
+        {
+          "attemptPhase": "ERA2_RETEST_3",
+          "testedRevision": "9560f567b97bc0b00f32f3ee5009a210b54c4925",
+          "status": "PASS",
+          "startedAt": "2026-10-28T11:58:17.0458705Z",
+          "finishedAt": "2026-10-28T11:58:37.5658705Z",
+          "elapsedMs": 20520,
+          "deadlineAt": "2026-10-28T11:59:17.0458705Z",
+          "timedOut": false,
+          "cliInvocationCount": 5,
+          "commands": [
+            "node bin/studio.mjs launch --url \"https://chatgpt.com/c/6ad2b82b-e9bc-83ed-8a38-09a2bbc5f2be\" --data-dir C:\\VIVIM --port 38702",
+            "node bin/studio.mjs help capture",
+            "node bin/studio.mjs help drive",
+            "node bin/studio.mjs drive \"https://chatgpt.com/c/6ad2b82b-e9bc-83ed-8a38-09a2bbc5f2be\" --dry-run --data-dir C:\\VIVIM --port 38702 --json",
+            "node bin/studio.mjs capture \"https://chatgpt.com/c/6ad2b82b-e9bc-83ed-8a38-09a2bbc5f2be\" --data-dir C:\\VIVIM --port 38702 --duration 6 --no-derive --no-reload --json"
+          ],
+          "observedOutcome": "Two navigation routes declined: launch --url exited 0 with 'Capture browser already running (Chrome/156.0.8078.49) on port 38702' and left the URL unchanged, and drive --dry-run exited 0 after printing only the resolved adapter plan (site chatgpt, targetUrl the exact /c/ UUID, thread chatgpt-c:6ad2b82b-e9bc-83ed-8a38-09a2bbc5f2be, composer/assistant selector sets, requiresAuth true) without opening a tab. capture then opened the exact deep link: exit 0, session 20261028-115823-chatgpt-com-04a400 written under C:\\VIVIM\\sessions, endReason duration, integrityOk true, 521 raw records, 0 gap records, 0 dropped, derived false, exports none. The subsequent targets read listed a new tab at index 0, id 2FB0E3DCFE1F80BCD226B2D8C12FA0EC, title 'TOOLSMITH', url https://chatgpt.com/c/6ad2b82b-e9bc-83ed-8a38-09a2bbc5f2be, proving the conversation was opened from its exact native address.",
+          "evidenceRefs": [
+            "target:2FB0E3DCFE1F80BCD226B2D8C12FA0EC https://chatgpt.com/c/6ad2b82b-e9bc-83ed-8a38-09a2bbc5f2be",
+            "capture-session:20261028-115823-chatgpt-com-04a400 integrityOk=true rawRecords=521",
+            "thread:chatgpt-c:6ad2b82b-e9bc-83ed-8a38-09a2bbc5f2be"
+          ],
+          "friction": "There is no tab-only navigation primitive. launch cannot navigate an already-running browser, and drive --dry-run resolves the plan but opens nothing, so the only command that actually opens a URL also starts a capture recording. That recording is an unrequested local write (session directory, 521 raw records), used here only because it was the sole authorized route to the URL.",
+          "failureClassification": null,
+          "authorizationScope": "Parent-granted navigation, tab creation and thread opening. No provider send, no typing into the composer, no rename or branch, no settings change, no file upload. The capture session wrote locally only; no provider effect occurred.",
+          "uncertainty": "The tab title 'TOOLSMITH' is untrusted display text; identity rests on the exact /c/ UUID in the URL. Whether the thread history fully rendered is not established by this attempt. drive --dry-run's printed plan was not verified against the live page.",
+          "agent": "chatgpt-probe",
+          "model": "opencode/deepseek-v4.1-flash-free",
+          "reconciliationKeyRefs": []
         }
       ]
     },
@@ -457,7 +910,7 @@
       "section": "02 — Moving around ChatGPT",
       "title": "Cross-thread navigation",
       "objective": "Move between two open conversations and return to the original.",
-      "status": "BLOCKED",
+      "status": "UNSUPPORTED",
       "attempts": [
         {
           "status": "BLOCKED",
@@ -479,6 +932,33 @@
           "model": "openai/gpt-6.1-terra#low",
           "agent": "chatgpt-probe",
           "uncertainty": "Root tabs are not proof of open native conversations; visibility, bindings and draft safety remain unknown. Each invocation began with at least 15 seconds remaining and used a 15-second shell timeout; independent process-kill enforcement was not verified.",
+          "reconciliationKeyRefs": []
+        },
+        {
+          "attemptPhase": "ERA2_RETEST_3",
+          "testedRevision": "9560f567b97bc0b00f32f3ee5009a210b54c4925",
+          "status": "UNSUPPORTED",
+          "startedAt": "2026-10-28T11:58:59.8825689Z",
+          "finishedAt": "2026-10-28T11:59:02.6025689Z",
+          "elapsedMs": 2720,
+          "deadlineAt": "2026-10-28T11:59:59.8825689Z",
+          "timedOut": false,
+          "cliInvocationCount": 2,
+          "commands": [
+            "node bin/studio.mjs recipe choose --intent 'Move between two open conversations and return to the original' --json",
+            "node bin/studio.mjs targets --data-dir C:\\VIVIM --port 38702 --json"
+          ],
+          "observedOutcome": "Two ChatGPT conversations were simultaneously open and enumerated by targets: index 0 TOOLSMITH at https://chatgpt.com/c/6ad2b82b-e9bc-83ed-8a38-09a2bbc5f2be, index 1 ChatGPT at https://chatgpt.com/, plus about:blank at index 2. recipe choose returned exit 0 status 'no-match' with zero candidates, and no installed tool activates, focuses or switches a tab. Moving between the two conversations and proving a return to the original was therefore not performed.",
+          "evidenceRefs": [
+            "targets:3 tabs, 2 distinct ChatGPT conversation URLs",
+            "recipe-choice:no-match"
+          ],
+          "friction": "Coexistence of two conversations is observable, but switching between them is a focus/activation action that no CLI command or Studio tool exposes. capture opens a URL in a new tab but never activates an existing one, and drive --reuse-tab is a send path, not a switcher.",
+          "failureClassification": "NO_TAB_ACTIVATION_PRIMITIVE",
+          "authorizationScope": "Read-only recipe discovery and tab enumeration. No tab activation, no additional navigation, no send.",
+          "uncertainty": "Whether the harness could observe which tab is foregrounded is unknown; targets reports no visibility field at all, so a return-to-original could not be evidenced even if a human performed it.",
+          "agent": "chatgpt-probe",
+          "model": "opencode/deepseek-v4.1-flash-free",
           "reconciliationKeyRefs": []
         }
       ]
@@ -511,6 +991,33 @@
           "agent": "chatgpt-probe",
           "uncertainty": "Whether the historical test phrase is searchable or present in the account was not tested. Each invocation began with at least 15 seconds remaining and used a 15-second shell timeout; independent process-kill enforcement was not verified.",
           "reconciliationKeyRefs": []
+        },
+        {
+          "attemptPhase": "ERA2_RETEST_3",
+          "testedRevision": "9560f567b97bc0b00f32f3ee5009a210b54c4925",
+          "status": "UNSUPPORTED",
+          "startedAt": "2026-10-28T11:59:14.1663606Z",
+          "finishedAt": "2026-10-28T11:59:15.5813606Z",
+          "elapsedMs": 1415,
+          "deadlineAt": "2026-10-28T12:00:14.1663606Z",
+          "timedOut": false,
+          "cliInvocationCount": 2,
+          "commands": [
+            "node bin/studio.mjs recipe choose --intent \"Use ChatGPT's own history search to find a specific old test phrase\" --json",
+            "node bin/studio.mjs recipe choose --intent \"Use ChatGPT's own history search to find a specific old test phrase\" --json (re-read to capture candidate detail)"
+          ],
+          "observedOutcome": "recipe choose returned exit 0 status 'suggested' with one candidate, provider.chat-index (score 67, reason 'vocabulary-overlap:find chatgpt threads'), whose effect is read over rendered links only. chat_index is documented as candidatesOnly with complete always false and 'No search, pagination, creation or click'. No ChatGPT history-search input was typed and no search was executed.",
+          "evidenceRefs": [
+            "recipe-choice:suggested provider.chat-index score=67 reason='vocabulary-overlap:find chatgpt threads'",
+            "tools:chat_index description 'No search, pagination, creation or click'"
+          ],
+          "friction": "Native history search is a typing-plus-submit interaction inside ChatGPT's own UI. The only read surface enumerates already-rendered links and explicitly excludes search; typing into that field has no primitive outside the composer send path, which is not authorized.",
+          "failureClassification": "NO_SEARCH_INPUT_PRIMITIVE",
+          "authorizationScope": "Read-only recipe discovery. No typing into any input, no search execution, no click, no send.",
+          "uncertainty": "Whether a rendered history search field exists on the page is unobserved; the objective was not attempted beyond recipe discovery and this attempt proves only that the harness advertises no search action.",
+          "agent": "chatgpt-probe",
+          "model": "opencode/deepseek-v4.1-flash-free",
+          "reconciliationKeyRefs": []
         }
       ]
     },
@@ -519,7 +1026,7 @@
       "section": "02 — Moving around ChatGPT",
       "title": "Recent-thread recovery",
       "objective": "Return to the last conversation after navigating away from it.",
-      "status": "BLOCKED",
+      "status": "UNSUPPORTED",
       "attempts": [
         {
           "status": "BLOCKED",
@@ -542,6 +1049,32 @@
           "agent": "chatgpt-probe",
           "uncertainty": "The actual last native conversation and target ownership cannot be inferred from root tabs or a local conversation ID. Each invocation began with at least 15 seconds remaining and used a 15-second shell timeout; independent process-kill enforcement was not verified.",
           "reconciliationKeyRefs": []
+        },
+        {
+          "attemptPhase": "ERA2_RETEST_3",
+          "testedRevision": "9560f567b97bc0b00f32f3ee5009a210b54c4925",
+          "status": "UNSUPPORTED",
+          "startedAt": "2026-10-28T11:59:15.7270205Z",
+          "finishedAt": "2026-10-28T11:59:17.1230205Z",
+          "elapsedMs": 1396,
+          "deadlineAt": "2026-10-28T12:00:15.7270205Z",
+          "timedOut": false,
+          "cliInvocationCount": 1,
+          "commands": [
+            "node bin/studio.mjs recipe choose --intent 'Return to the last conversation after navigating away from it' --json"
+          ],
+          "observedOutcome": "recipe choose returned exit 0 status 'no-match' with zero candidates. No command or tool records, ranks or returns to a most-recently-used conversation: targets exposes only index, id, title and url with no recency or focus field, and capture opens URLs in new tabs rather than navigating the current tab away and back.",
+          "evidenceRefs": [
+            "recipe-choice:no-match",
+            "targets:fields index,id,title,url only"
+          ],
+          "friction": "The objective needs a navigate-away then return-in-place cycle plus a notion of 'last conversation'. Neither exists: every navigation primitive opens a new tab, and no surface reports which conversation was most recently active.",
+          "failureClassification": "NO_NAVIGATE_AND_RETURN_PRIMITIVE",
+          "authorizationScope": "Read-only recipe discovery. No navigation performed for this objective, no send.",
+          "uncertainty": "Whether the destination tab still held its conversation could not be tested because leaving a tab is impossible without closing it, and closing owned tabs is not in the granted scope.",
+          "agent": "chatgpt-probe",
+          "model": "opencode/deepseek-v4.1-flash-free",
+          "reconciliationKeyRefs": []
         }
       ]
     },
@@ -550,7 +1083,7 @@
       "section": "02 — Moving around ChatGPT",
       "title": "Long-thread traversal",
       "objective": "Navigate to a user turn near the start of a long thread.",
-      "status": "BLOCKED",
+      "status": "UNSUPPORTED",
       "attempts": [
         {
           "status": "BLOCKED",
@@ -573,6 +1106,32 @@
           "agent": "chatgpt-probe",
           "uncertainty": "Neither thread length nor availability of a qualifying disposable thread was established. Each invocation began with at least 15 seconds remaining and used a 15-second shell timeout; independent process-kill enforcement was not verified.",
           "reconciliationKeyRefs": []
+        },
+        {
+          "attemptPhase": "ERA2_RETEST_3",
+          "testedRevision": "9560f567b97bc0b00f32f3ee5009a210b54c4925",
+          "status": "UNSUPPORTED",
+          "startedAt": "2026-10-28T11:59:17.1351904Z",
+          "finishedAt": "2026-10-28T11:59:18.4261904Z",
+          "elapsedMs": 1291,
+          "deadlineAt": "2026-10-28T12:00:17.1351904Z",
+          "timedOut": false,
+          "cliInvocationCount": 1,
+          "commands": [
+            "node bin/studio.mjs recipe choose --intent 'Navigate to a user turn near the start of a long thread' --json"
+          ],
+          "observedOutcome": "recipe choose returned exit 0 status 'no-match' with zero candidates. Long-thread traversal requires scrolling or a message-jump control inside a conversation; the installed tool set has no scroll, jump or per-message navigation action, and read_conversation documents itself as bounded currently-rendered transcript only ('no focus, scrolling, insertion or send').",
+          "evidenceRefs": [
+            "recipe-choice:no-match",
+            "tools:read_conversation 'no focus, scrolling'"
+          ],
+          "friction": "Virtualized long threads require scroll-driven materialisation, which no primitive exposes. read_conversation can only return what is already rendered, so an early turn is unreachable without scrolling.",
+          "failureClassification": "NO_SCROLL_PRIMITIVE",
+          "authorizationScope": "Read-only recipe discovery. No navigation, no scroll, no send.",
+          "uncertainty": "Whether the opened TOOLSMITH thread is even long enough to require traversal is unmeasured; read_conversation was not called because the conversation is not bound to a Studio conversation record.",
+          "agent": "chatgpt-probe",
+          "model": "opencode/deepseek-v4.1-flash-free",
+          "reconciliationKeyRefs": []
         }
       ]
     },
@@ -581,7 +1140,7 @@
       "section": "02 — Moving around ChatGPT",
       "title": "Scroll-to-latest",
       "objective": "Jump to the most recent answer from an earlier message.",
-      "status": "BLOCKED",
+      "status": "UNSUPPORTED",
       "attempts": [
         {
           "status": "BLOCKED",
@@ -603,6 +1162,31 @@
           "model": "openai/gpt-6.1-terra#low",
           "agent": "chatgpt-probe",
           "uncertainty": "The presence of a latest answer and current scroll position are unknown. Each invocation began with at least 15 seconds remaining and used a 15-second shell timeout; independent process-kill enforcement was not verified.",
+          "reconciliationKeyRefs": []
+        },
+        {
+          "attemptPhase": "ERA2_RETEST_3",
+          "testedRevision": "9560f567b97bc0b00f32f3ee5009a210b54c4925",
+          "status": "UNSUPPORTED",
+          "startedAt": "2026-10-28T11:59:18.4350315Z",
+          "finishedAt": "2026-10-28T11:59:19.7900315Z",
+          "elapsedMs": 1355,
+          "deadlineAt": "2026-10-28T12:00:18.4350315Z",
+          "timedOut": false,
+          "cliInvocationCount": 1,
+          "commands": [
+            "node bin/studio.mjs recipe choose --intent 'Jump to the most recent answer from an earlier message' --json"
+          ],
+          "observedOutcome": "recipe choose returned exit 0 status 'no-match' with zero candidates. Reaching the latest answer from an earlier position is a scroll-to-bottom interaction; no tool or command provides scrolling, and read_conversation returns only currently rendered content without focus or movement.",
+          "evidenceRefs": [
+            "recipe-choice:no-match"
+          ],
+          "friction": "Same scroll gap as 017, in the opposite direction. Nothing in the CLI or tool catalog can move a conversation viewport, so neither position nor arrival at the latest answer can be observed.",
+          "failureClassification": "NO_SCROLL_PRIMITIVE",
+          "authorizationScope": "Read-only recipe discovery. No navigation, no scroll, no send.",
+          "uncertainty": "No viewport state was observed at all; whether the thread was already at the latest answer is unknown.",
+          "agent": "chatgpt-probe",
+          "model": "opencode/deepseek-v4.1-flash-free",
           "reconciliationKeyRefs": []
         }
       ]
@@ -635,6 +1219,32 @@
           "agent": "chatgpt-probe",
           "uncertainty": "Sidebar state, controls, and safe effect binding remain unverified; visible links do not prove expansion. Each invocation began with at least 15 seconds remaining and used a 15-second shell timeout; independent process-kill enforcement was not verified.",
           "reconciliationKeyRefs": []
+        },
+        {
+          "attemptPhase": "ERA2_RETEST_3",
+          "testedRevision": "9560f567b97bc0b00f32f3ee5009a210b54c4925",
+          "status": "UNSUPPORTED",
+          "startedAt": "2026-10-28T11:59:19.7968014Z",
+          "finishedAt": "2026-10-28T11:59:21.6868014Z",
+          "elapsedMs": 1890,
+          "deadlineAt": "2026-10-28T12:00:19.7968014Z",
+          "timedOut": false,
+          "cliInvocationCount": 1,
+          "commands": [
+            "node bin/studio.mjs recipe choose --intent 'Expand a collapsed conversation sidebar and find its controls' --json"
+          ],
+          "observedOutcome": "recipe choose returned exit 0 status 'no-match' with zero candidates. Expanding a collapsed sidebar and inspecting its controls are click-and-read interactions; the tool catalog contains no click, hover, key or element-enumeration action, and chat_index reads link containers without exposing them as controllable elements (all 18 entries reported container 'unknown' in the 012 read).",
+          "evidenceRefs": [
+            "recipe-choice:no-match",
+            "chat_index:all entries container=unknown"
+          ],
+          "friction": "Sidebar controls are UI affordances requiring synthetic input. The harness reads rendered links but cannot expand, collapse or inspect control elements, so the objective cannot be attempted.",
+          "failureClassification": "NO_CLICK_INPUT_PRIMITIVE",
+          "authorizationScope": "Read-only recipe discovery. No click, no navigation, no send.",
+          "uncertainty": "Whether the sidebar was collapsed in the observed session is unknown; the 012 read already returned 18 rendered thread links, which suggests it was expanded, but no control inventory was obtainable either way.",
+          "agent": "chatgpt-probe",
+          "model": "opencode/deepseek-v4.1-flash-free",
+          "reconciliationKeyRefs": []
         }
       ]
     },
@@ -666,6 +1276,32 @@
           "agent": "chatgpt-probe",
           "uncertainty": "Whether the account exposes archived history and whether an approved archived fixture exists remain unknown; missing native exposure does not establish feature unavailability. Each invocation began with at least 15 seconds remaining and used a 15-second shell timeout; independent process-kill enforcement was not verified.",
           "reconciliationKeyRefs": []
+        },
+        {
+          "attemptPhase": "ERA2_RETEST_3",
+          "testedRevision": "9560f567b97bc0b00f32f3ee5009a210b54c4925",
+          "status": "UNSUPPORTED",
+          "startedAt": "2026-10-28T11:59:21.7136692Z",
+          "finishedAt": "2026-10-28T11:59:23.5736692Z",
+          "elapsedMs": 1860,
+          "deadlineAt": "2026-10-28T12:00:21.7136692Z",
+          "timedOut": false,
+          "cliInvocationCount": 1,
+          "commands": [
+            "node bin/studio.mjs recipe choose --intent 'Find an archived disposable conversation if the account exposes archive history' --json"
+          ],
+          "observedOutcome": "recipe choose returned exit 0 status 'no-match' with zero candidates. No command exposes account settings or an archive route, and the 012 chat_index read of the rendered sidebar returned 18 candidate threads with no archive or settings container identified (container 'unknown' for every entry; PROJECT_PAGE_UNSUPPORTED 1, PROJECT_THREAD_UNSUPPORTED 1, ROOT_OR_HOME 1 skipped).",
+          "evidenceRefs": [
+            "recipe-choice:no-match",
+            "chat_index:18 threads, no archive container observed"
+          ],
+          "friction": "Archived history sits behind account settings navigation and clicks. The granted scope excludes settings changes, and no click primitive exists, so archive availability could not be probed.",
+          "failureClassification": "NO_CLICK_INPUT_PRIMITIVE_AND_SETTINGS_EXCLUDED",
+          "authorizationScope": "Read-only recipe discovery. No settings navigation or change, no click, no send.",
+          "uncertainty": "Whether the account exposes archive history at all is unknown; this result is HARNESS_UNSUPPORTED on the read path, not evidence of FEATURE_UNAVAILABLE.",
+          "agent": "chatgpt-probe",
+          "model": "opencode/deepseek-v4.1-flash-free",
+          "reconciliationKeyRefs": []
         }
       ]
     },
@@ -674,7 +1310,7 @@
       "section": "03 — Native conversation lifecycle",
       "title": "First-turn delivery",
       "objective": "Ask one harmless question in a fresh ChatGPT conversation and verify its answer.",
-      "status": "PARTIAL",
+      "status": "PASS",
       "attempts": [
         {
           "status": "PARTIAL",
@@ -697,7 +1333,77 @@
           "agent": "chatgpt-probe",
           "uncertainty": "Page evidence proves an observed user turn and answer text, not completed reply or accepted complete capture. Local conversation state is closed, but tabCloseRequested was false; continued availability or safe binding for objective 022 is not proven. Exact process finish time is unknown. Objective deadline was exceeded when output was reviewed; native output separately reports timedOut false.",
           "reconciliationKeyRefs": ["conversation:104349df-1f44-43da-8eef-4dbf56fa7a78", "turn:cc8bb115-349f-4cea-aba3-3873ca64f031", "key:645629b2-c37f-4eb1-ba1c-37cd24f0d00d"]
-        }
+        },
+        {
+            "attemptPhase": "ERA2_RETEST",
+            "testedRevision": "9560f567b97bc0b00f32f3ee5009a210b54c4925",
+            "testedRevisionCaveat": "Run against HEAD 9560f567b97bc0b00f32f3ee5009a210b54c4925 plus an uncommitted dirty source tree. Five src files were modified and not committed at run time: src/capture/actions.mjs, src/capture/conversation-browser-adapter.mjs, src/capture/conversation-capsule.mjs, src/capture/conversation-service.mjs, src/studio/conversation-tools.mjs. Four test files were also modified: test/unit/chatgpt-new-chat-binding-investigation.test.mjs, test/unit/conversation-capsule.test.mjs, test/unit/conversation-create.test.mjs, test/unit/drive-observation-truth.test.mjs. The binding fix under test exists only in the working tree, so this result is attributable to HEAD-plus-dirty-tree, not to HEAD alone. Concurrent change during the sweep: src/studio/conversation-tools.mjs was modified at the start of the sweep and again matched HEAD by the end of it, so another lane reverted that file inside the sweep window and this attempt ran against a tree state that no longer exists on disk. The other four src files and four test files were still modified after the sweep.",
+            "status": "BLOCKED",
+            "startedAt": "2026-10-28T12:31:33.035Z",
+            "finishedAt": "2026-10-28T12:31:45.953Z",
+            "elapsedMs": 12918,
+            "deadlineAt": "2026-10-28T12:32:33.035Z",
+            "timedOut": false,
+            "cliInvocationCount": 2,
+            "commands": [
+              "'{\"site\":\"chatgpt\"}' | node bin/studio.mjs tools call create_conversation --input - --studio-port 38703 --json",
+              "'{\"conversation\":\"70f4d715-ea3b-48ac-a47b-4a19526b436e\"}' | node bin/studio.mjs tools call get_conversation --input - --studio-port 38703 --json"
+            ],
+            "observedOutcome": "One provider send was authorized for this objective. The send gate was readiness.ready, checked before submitting. create_conversation exited 0 and returned Studio-owned conversation 70f4d715-ea3b-48ac-a47b-4a19526b436e, revision 3, site chatgpt, binding targetId DC1FA959A4D42CBEE54795441412B105, origin https://chatgpt.com, ownedByStudio true, identity.state unbound with reason NEW_CHAT, turn null and turns empty. The same response reported state blocked, readiness.ready false and readiness.reason BINDING_CHANGED. A second independent read (get_conversation) returned the identical result at revision 3 with readiness.ready false and reason BINDING_CHANGED. Because readiness was never ready, submit_conversation_turn was NOT called: no prompt was typed, no turn was submitted, no assistant text was observed and no evidenceRef was produced for this attempt. Durable key rb-20261028-021 was reserved but never spent, so the objective stays blocked before any provider interaction.",
+            "evidenceRefs": [
+              "conversation:70f4d715-ea3b-48ac-a47b-4a19526b436e revision=3 state=blocked readiness.ready=false reason=BINDING_CHANGED identity=unbound/NEW_CHAT turns=0",
+              "target:DC1FA959A4D42CBEE54795441412B105 https://chatgpt.com/ ownedByStudio=true"
+            ],
+            "friction": "The send authorization could not be exercised: the freshly created ChatGPT tab never reached readiness.ready true and repeated the BINDING_CHANGED reason that objective 011 recorded against the same restarted build. Sending into a blocked binding would have violated the runbook stop conditions, so the attempt stopped at the gate.",
+            "failureClassification": "BINDING_CHANGED",
+            "authorizationScope": "Parent-relayed user grant for exactly one provider send on the ChatGPT origin, conditional on readiness.ready. The condition failed, so no send, no typing, no submit and no retry occurred.",
+            "uncertainty": "The prior baseline attempt on this objective observed a real assistant reply containing 21 but never established completion; that evidence is unchanged and still does not justify PASS. Whether the blocked binding is specific to freshly created tabs or affects every ChatGPT binding is not established by two reads of one conversation. browserAccountState is unverified, so sign-in state is unknown. Key rb-20261028-021 remains unspent and must not be replaced by a new key.",
+            "agent": "chatgpt-probe",
+            "model": "opencode/deepseek-v4.1-flash-free",
+            "reconciliationKeyRefs": [
+              "conversation:70f4d715-ea3b-48ac-a47b-4a19526b436e",
+              "key:rb-20261028-021 (reserved, never submitted)"
+            ]
+          },
+        {
+            "attemptPhase": "ERA2_RETEST_2",
+            "testedRevision": "9560f567b97bc0b00f32f3ee5009a210b54c4925",
+            "testedRevisionCaveat": "Run against HEAD 9560f567b97bc0b00f32f3ee5009a210b54c4925 plus an uncommitted dirty source tree, served by the parent-restarted Studio. Four src files were modified and uncommitted at run time: src/capture/actions.mjs, src/capture/conversation-browser-adapter.mjs, src/capture/conversation-capsule.mjs, src/capture/conversation-service.mjs. Four test files were also modified: test/unit/chatgpt-new-chat-binding-investigation.test.mjs, test/unit/conversation-capsule.test.mjs, test/unit/conversation-create.test.mjs, test/unit/drive-observation-truth.test.mjs. src/studio/conversation-tools.mjs matched HEAD at run time. The readiness behaviour that opened the send gate exists only in the working tree, so this result is attributable to HEAD-plus-dirty-tree, not to HEAD alone.",
+            "status": "PASS",
+            "startedAt": "2026-10-28T13:07:40.240Z",
+            "finishedAt": "2026-10-28T13:08:28.091Z",
+            "elapsedMs": 47851,
+            "deadlineAt": "2026-10-28T13:08:40.240Z",
+            "timedOut": false,
+            "cliInvocationCount": 5,
+            "commands": [
+              "'{\"site\":\"chatgpt\"}' | node bin/studio.mjs tools call create_conversation --input - --studio-port 38703 --json",
+              "'{}' | node bin/studio.mjs tools call list_conversations --input - --studio-port 38703 --json",
+              "'{\"conversation\":\"4e6bd859-f916-4fdd-9c66-12a8a4fbfb81\"}' | node bin/studio.mjs tools call get_conversation --input - --studio-port 38703 --json",
+              "'{\"conversation\":\"4e6bd859-f916-4fdd-9c66-12a8a4fbfb81\",\"key\":\"rb-20261028-021\",\"prompt\":\"What is 17 plus 4? Reply with only the number.\",\"confirm\":true,\"expectedRevision\":3}' | node bin/studio.mjs tools call submit_conversation_turn --input - --studio-port 38703 --json",
+              "'{\"conversation\":\"4e6bd859-f916-4fdd-9c66-12a8a4fbfb81\"}' | node bin/studio.mjs tools call get_conversation --input - --studio-port 38703 --json"
+            ],
+            "observedOutcome": "create_conversation exited 5 with {\"error\":{\"message\":\"STUDIO_REQUEST_UNKNOWN\",\"code\":\"STUDIO_REQUEST_UNKNOWN\",\"exit\":5,\"details\":{\"httpStatus\":504,\"effect\":\"unknown\",\"retry\":false}}} and wrote no body, so the new conversation was identified by diffing list_conversations against the 15 conversations already on disk: 4e6bd859-f916-4fdd-9c66-12a8a4fbfb81 was the only new record and carried a fresh capture window ending 2026-10-28T13:22:29.439Z. get_conversation at 13:07:56.186Z returned revision 3, state ready, site chatgpt, binding targetId CEA40A2A85000EE9E24BF59D696ACB34 origin https://chatgpt.com ownedByStudio true, identity unbound/NEW_CHAT, turns empty, and readiness {\"ready\":true,\"draft\":{\"present\":false,\"chars\":0},\"reason\":null}. Both gate conditions held (state ready, readiness.ready true), so exactly one submit_conversation_turn was dispatched with the reserved key rb-20261028-021, prompt \"What is 17 plus 4? Reply with only the number.\", confirm true and expectedRevision 3. The call exited 0 in 10.7 seconds with no timeout and no effect uncertainty, so reconcile_conversation was not needed and was not called. It returned conversation revision 10, identity bound to thread chatgpt-c:6ae1f3b8-52b8-83eb-9e00-4b2c84803b3b, session 20261028-130805-chatgpt-7460b6, turn phase observed with send.state observed, observationSource page, kind new-user-turn, sequence 213, identity 7ce27291-04a4-452e-bde5-b6bbaa2a2bd4, and at that moment reply.state unknown with completion unknown. A second read at 13:08:28.091Z returned revision 20 with reply.state ready, source page, chars 17, kind assistant-reply, identity 4bfe2638-272c-4b1c-a980-1ee3fdaad370, contentDigest 10fd5db2d283f9ca9470b19e306ebcf7f50ff7251c38e82452cb7b2ecb242882. The page-observed reply text, stored verbatim in the conversation record, is \"ChatGPT dijo:\\n\\n21\". The same assistant message in the captured session stream carries content.parts [\"21\"] with model_slug gpt-6-thinking, and the websocket carried a conversation-turn-complete event naming that message id. A harmless question was asked in a fresh conversation and its answer 21 was observed, so the objective is met.",
+            "evidenceRefs": [
+              "conversation:4e6bd859-f916-4fdd-9c66-12a8a4fbfb81 revision=3 state=ready readiness.ready=true reason=null draft={\"present\":false,\"chars\":0} identity=unbound/NEW_CHAT turns=0 (gate check, 13:07:56.186Z)",
+              "target:CEA40A2A85000EE9E24BF59D696ACB34 https://chatgpt.com ownedByStudio=true",
+              "send:key=rb-20261028-021 exit=0 phase=observed send.state=observed observationSource=page kind=new-user-turn sequence=213 identity=7ce27291-04a4-452e-bde5-b6bbaa2a2bd4",
+              "thread:chatgpt-c:6ae1f3b8-52b8-83eb-9e00-4b2c84803b3b session:20261028-130805-chatgpt-7460b6",
+              "reply:assistant identity=4bfe2638-272c-4b1c-a980-1ee3fdaad370 sequence=220 chars=17 text=\"ChatGPT dijo:\\n\\n21\"",
+              "provider-stream:session 20261028-130805-chatgpt-7460b6 events.jsonl message 4bfe2638-272c-4b1c-a980-1ee3fdaad370 author.role=assistant content.parts=[\"21\"] model_slug=gpt-6-thinking; ws conversation-turn-complete current_message_id=4bfe2638-272c-4b1c-a980-1ee3fdaad370"
+            ],
+            "friction": "create_conversation again returned HTTP 504 STUDIO_REQUEST_UNKNOWN with details.effect unknown and no body while the conversation was in fact created and ready, so the caller gets a failure signal for a successful effect and the id has to be recovered by diffing the conversation list. Second: the reply text stored by the page observation is \"ChatGPT dijo:\\n\\n21\" rather than the bare \"21\" the provider sent, so the 17-char page string includes a localized screen-reader label prefix; the provider parts [\"21\"] are the cleaner record. Third: reply.completion and turn.completion stayed unknown, and the evidence file lists gaps REPLY_COMPLETION_UNKNOWN and READINESS_READY_WITH_COMPLETION_UNKNOWN, so completion is inferred from the turn-complete websocket event and the stable reply text rather than from a completion flag.",
+            "failureClassification": null,
+            "authorizationScope": "User-authorized single provider send for objective 021 on the ChatGPT origin, conditional on state ready and readiness.ready true. Exactly one submit_conversation_turn was issued with the pre-reserved key rb-20261028-021; no retry, no resubmit, no second conversation, no typing, no settings change, no upload.",
+            "uncertainty": "Attribution of 4e6bd859 to this run rests on a list_conversations diff because the create body was lost to the 504, though the fresh capture window and the single new record make it near-certain. Concurrent lanes were active in the same profile earlier in the hour. reply.completion is unknown, so \"the answer arrived\" is proven while \"the turn finished cleanly in every layer\" is not. The page string differs from the provider parts by a 15-character label prefix. The session was not visible to studio export transcript immediately after the send, which returned NOT_FOUND for session 20261028-130805-chatgpt-7460b6 even though the session record on disk reports status complete, integrity ok, 227 records, endedAt 2026-10-28T13:08:17.509Z.",
+            "agent": "chatgpt-probe",
+            "model": "opencode/deepseek-v4.1-flash-free",
+            "reconciliationKeyRefs": [
+              "conversation:4e6bd859-f916-4fdd-9c66-12a8a4fbfb81",
+              "key:rb-20261028-021 (spent, observed)",
+              "thread:chatgpt-c:6ae1f3b8-52b8-83eb-9e00-4b2c84803b3b"
+            ]
+          }
       ]
     },
     {
@@ -706,6 +1412,7 @@
       "title": "Same-thread follow-up",
       "objective": "Ask a follow-up that depends on the answer in the immediately previous turn.",
       "status": "BLOCKED",
+      "revisionUnanchored": true,
       "attempts": [
         {
           "status": "BLOCKED",
@@ -737,6 +1444,7 @@
       "title": "Long-range thread continuity",
       "objective": "Refer to a fact from an early turn after intervening discussion.",
       "status": "BLOCKED",
+      "revisionUnanchored": true,
       "attempts": [
         {
           "status": "BLOCKED",
@@ -765,6 +1473,7 @@
       "title": "Message edit and branch awareness",
       "objective": "Edit a previously submitted disposable user message and identify the current answer branch.",
       "status": "UNSUPPORTED",
+      "revisionUnanchored": true,
       "attempts": [
         {
           "status": "UNSUPPORTED",
@@ -796,6 +1505,7 @@
       "title": "Response regeneration",
       "objective": "Regenerate a completed assistant answer through ChatGPT's own control.",
       "status": "UNSUPPORTED",
+      "revisionUnanchored": true,
       "attempts": [
         {
           "status": "UNSUPPORTED",
@@ -827,6 +1537,7 @@
       "title": "Interrupt generation",
       "objective": "Stop a message while ChatGPT is visibly generating.",
       "status": "UNSUPPORTED",
+      "revisionUnanchored": true,
       "attempts": [
         {
           "status": "UNSUPPORTED",
@@ -858,6 +1569,7 @@
       "title": "Generation continuation",
       "objective": "Continue or resume an interrupted answer only when the site offers that control.",
       "status": "UNSUPPORTED",
+      "revisionUnanchored": true,
       "attempts": [
         {
           "status": "UNSUPPORTED",
@@ -889,6 +1601,7 @@
       "title": "Conversation branching",
       "objective": "Create a branch from an earlier turn using ChatGPT's native branching feature if present.",
       "status": "UNSUPPORTED",
+      "revisionUnanchored": true,
       "attempts": [
         {
           "status": "UNSUPPORTED",
@@ -920,6 +1633,7 @@
       "title": "Conversation rename",
       "objective": "Rename a disposable conversation using the ChatGPT interface.",
       "status": "UNSUPPORTED",
+      "revisionUnanchored": true,
       "attempts": [
         {
           "status": "UNSUPPORTED",
@@ -1174,8 +1888,43 @@
       "section": "06 — Search, citations and thinking surfaces",
       "title": "Deep Research discovery",
       "objective": "Locate the Deep Research entry point if the account offers it without starting research.",
-      "status": "NOT_TESTED",
-      "attempts": []
+      "status": "PARTIAL",
+      "attempts": [
+        {
+            "attemptPhase": "ERA3_NAV",
+            "testedRevision": "9560f567b97bc0b00f32f3ee5009a210b54c4925",
+            "testedRevisionCaveat": "Run against HEAD 9560f567b97bc0b00f32f3ee5009a210b54c4925 plus an uncommitted dirty tree. Four src files were modified and not committed at run time: src/capture/actions.mjs, src/capture/conversation-browser-adapter.mjs, src/capture/conversation-capsule.mjs, src/capture/conversation-service.mjs; src/studio/conversation-tools.mjs had been reverted back to HEAD by another lane earlier in the day. The capture collector reports its own sourceSha 5c006ef6a10ef0ed, which is the value that actually identifies the running capture code. This attempt did not exercise the conversation binding path, so the dirty conversation-service and adapter edits are not on its execution path.",
+            "status": "PARTIAL",
+            "startedAt": "2026-10-28T12:44:56.078Z",
+            "finishedAt": "2026-10-28T12:47:27.434Z",
+            "elapsedMs": 151356,
+            "deadlineAt": "2026-10-28T12:47:56.078Z",
+            "timedOut": false,
+            "cliInvocationCount": 3,
+            "commands": [
+              "node bin/studio.mjs capture https://chatgpt.com/ --data-dir C:\\VIVIM --port 38702 --json --idle 5 --timeout 120",
+              "node bin/studio.mjs session show latest --data-dir C:\\VIVIM --counts --json",
+              "node bin/studio.mjs session show 20261028-124456-chatgpt-com-33ca43 --data-dir C:\\VIVIM --json"
+            ],
+            "observedOutcome": "Capture of https://chatgpt.com/ completed and finalized: session 20261028-124456-chatgpt-com-33ca43, status complete, endReason timeout, integrityOk true, 1901 records (1900 raw), 24830968 raw bytes, 11 dom.batch records, 1 nav record, site chatgpt.com, title ChatGPT, profile chatgpt@v1, browser Chrome/156.0.8078.49, collector aion-capture-studio 0.1.0 sourceSha 5c006ef6a10ef0ed. The captured DOM navigation subtree was then read offline out of the session's raw segment files with a literal text search. It contains the rendered sidebar in Spanish: 'FijadosTOOLSMITHINTAKERESEARCHSystemsCOREINTELLIGENCEChiefPRODUCT AGENTUI Archaeology AuditProyectos001.PROJECTS.PMMariano diabetesENTERTAINMENTTelepathy ResearchMATHMostrar másRecientesCreate LinkedIn BannerSource Audit FixesCalculate sumRepository audit fixesAnalyze X LinkAuditoría y correcciones parcialesSource Audit Progress'. Literal search counts over the same raw files: 'Deep Research' 0, 'Deep research' 0, 'deep research' 0, 'Investigaci' 0, 'profunda' 0, 'Herramientas' 0, 'Research' 1 (the pinned thread name 'INTAKERESEARCH' / 'Telepathy Research'), 'Voz' 9 (composer voice control), 'Upgrade' 17. The page was therefore rendered and signed in, but no Deep Research entry point appears in the captured text in either English or Spanish, so the entry point could not be located. No research run was started and no provider send occurred.",
+            "evidenceRefs": [
+              "session:20261028-124456-chatgpt-com-33ca43 status=complete endReason=timeout integrityOk=true records=1901 rawBytes=24830968 domBatch=11 nav=1",
+              "session:20261028-124456-chatgpt-com-33ca43 collector.sourceSha=5c006ef6a10ef0ed collector.version=0.1.0 browser=Chrome/156.0.8078.49",
+              "session:20261028-124456-chatgpt-com-33ca43 url=https://chatgpt.com/ title=ChatGPT site=chatgpt.com profile=chatgpt@v1",
+              "raw-search:20261028-124456-chatgpt-com-33ca43 'Deep Research'=0 'Deep research'=0 'deep research'=0 'Investigaci'=0 'profunda'=0 'Herramientas'=0 'Research'=1 'Voz'=9 'Upgrade'=17",
+              "dom.batch text: FijadosTOOLSMITHINTAKERESEARCHSystemsCOREINTELLIGENCEChiefPRODUCT AGENTUI Archaeology AuditProyectos001.PROJECTS.PMMariano diabetesENTERTAINMENTTelepathy ResearchMATHMostrar másRecientes"
+            ],
+            "friction": "A first capture of the same URL was started at 12:43:23Z and terminated by a 45 second outer shell timeout before the CLI finished, leaving an unfinalized session 20261028-124323-chatgpt-com-bd4b36 with status recording, endedAt null and integrityOk null on disk. That run is not usable as evidence. The recorded attempt is the second, background run, which was allowed to reach its own --timeout 120 and finalized cleanly. The CLI target listing route remains unusable independently of this objective: node bin/studio.mjs targets --port 38702 --json exits 5 with BROWSER_PROFILE_UNVERIFIED, while capture itself opened the same browser without that error.",
+            "failureClassification": "ENTRY_POINT_NOT_PRESENT_IN_CAPTURE",
+            "authorizationScope": "Parent-granted navigation-only authorization: one page capture of https://chatgpt.com/ plus read-only session inspection and offline reads of the written session files. No provider send, no typing, no research run, no settings change.",
+            "uncertainty": "The captured DOM is a navigation subtree snapshot, not a full page dump, and the composer's tool menu was never opened because there is no click primitive in this harness. A Deep Research entry point that only exists inside an unopened menu would not appear in this capture, so the absence proves 'not present in the captured text', not 'not offered by the account'. The account is signed in (sidebar populated with pinned and recent threads) but the account plan is unknown, and 'Upgrade' appears 17 times, so the offer may be plan-gated.",
+            "agent": "chatgpt-probe",
+            "model": "opencode/deepseek-v4.1-flash-free",
+            "reconciliationKeyRefs": [
+              "session:20261028-124456-chatgpt-com-33ca43"
+            ]
+          }
+      ]
     },
     {
       "id": "059",
@@ -1502,16 +2251,88 @@
       "section": "10 — Resilience, capture, and truthful outcomes",
       "title": "Capture provenance",
       "objective": "Capture one completed conversation into the local VIVIM World with original source attribution.",
-      "status": "NOT_TESTED",
-      "attempts": []
+      "status": "PASS",
+      "attempts": [
+        {
+            "attemptPhase": "ERA3_NAV",
+            "testedRevision": "9560f567b97bc0b00f32f3ee5009a210b54c4925",
+            "testedRevisionCaveat": "Run against HEAD 9560f567b97bc0b00f32f3ee5009a210b54c4925 plus an uncommitted dirty tree. Four src files were modified and not committed at run time: src/capture/actions.mjs, src/capture/conversation-browser-adapter.mjs, src/capture/conversation-capsule.mjs, src/capture/conversation-service.mjs; src/studio/conversation-tools.mjs had been reverted back to HEAD by another lane earlier in the day. The capture collector reports its own sourceSha 5c006ef6a10ef0ed, which is the value that actually identifies the running capture code. This attempt used the capture and export routes only and never entered the conversation binding path.",
+            "status": "PASS",
+            "startedAt": "2026-10-28T12:50:35.003Z",
+            "finishedAt": "2026-10-28T12:52:40.231Z",
+            "elapsedMs": 125228,
+            "deadlineAt": "2026-10-28T12:53:35.003Z",
+            "timedOut": false,
+            "cliInvocationCount": 3,
+            "commands": [
+              "node bin/studio.mjs capture https://chatgpt.com/c/6ad2b82b-e9bc-83ed-8a38-09a2bbc5f2be --data-dir C:\\VIVIM --port 38702 --json --idle 5 --timeout 120",
+              "node bin/studio.mjs session show latest --data-dir C:\\VIVIM --json",
+              "node bin/studio.mjs export transcript latest --data-dir C:\\VIVIM --format json --out C:\\Users\\VIVIM.inc\\AppData\\Local\\Temp\\opencode\\transcript-099.json"
+            ],
+            "observedOutcome": "One completed conversation was captured into the local VIVIM World with its original source attribution. Session 20261028-125034-chatgpt-com-d2a33c finalized as status complete with endReason timeout, integrityOk true, 1155 records, 18 dom.batch records and 1 nav record, site chatgpt.com, profile chatgpt@v1, browser Chrome/156.0.8078.49, collector aion-capture-studio 0.1.0 sourceSha 5c006ef6a10ef0ed. The session url is the exact native address https://chatgpt.com/c/6ad2b82b-e9bc-83ed-8a38-09a2bbc5f2be, so provenance points at the original ChatGPT thread rather than a generic origin. The export route then reopened that saved conversation from the local store and produced a 1.4 MB transcript whose meta records the same id and the same target url, and whose turns array holds 9 rendered turns with real message text: 4 user turns and 5 assistant turns, including 'AION bus - consolidated release published', 'Track B investigation - first findings' and 'Research result: ChatGPT conversation titles can be changed through the native UI'. Both acceptance fields are present: the collector source hash as collector.sourceSha and integrityOk true.",
+            "evidenceRefs": [
+              "session:20261028-125034-chatgpt-com-d2a33c status=complete endReason=timeout integrityOk=true records=1155 domBatch=18 nav=1",
+              "session:20261028-125034-chatgpt-com-d2a33c collector.name=aion-capture-studio collector.version=0.1.0 collector.sourceSha=5c006ef6a10ef0ed",
+              "session:20261028-125034-chatgpt-com-d2a33c url=https://chatgpt.com/c/6ad2b82b-e9bc-83ed-8a38-09a2bbc5f2be site=chatgpt.com profile=chatgpt@v1",
+              "transcript:transcript-099.json meta.id=20261028-125034-chatgpt-com-d2a33c meta.target.url=https://chatgpt.com/c/6ad2b82b-e9bc-83ed-8a38-09a2bbc5f2be turns=9 (4 user, 5 assistant)",
+              "raw-search:20261028-125034-chatgpt-com-d2a33c '6ad2b82b-e9bc-83ed-8a38-09a2bbc5f2be'=33 'TOOLSMITH'=2 'Calculate sum'=1 'Source Audit'=1"
+            ],
+            "friction": "The acceptance wording names the field collectorSourceSha, but the session record exposes it as collector.sourceSha; the value is present and was read directly. Nothing else blocked the route: capture, session inspection and transcript export all exited 0, and no conversation binding was involved, so the LIVE-DEFECT-1 binding gate did not apply.",
+            "failureClassification": null,
+            "authorizationScope": "Parent-granted navigation-only authorization: one page capture of the existing thread URL, read-only session inspection and one local transcript export. No provider send, no typing, no thread modification, no deletion.",
+            "uncertainty": "The captured thread is a pre-existing conversation written by someone else, so its content is quoted as evidence of provenance, not of provider behaviour under test. endReason is timeout because the capture ran to its own 120 second bound; that is a normal completion for this route, not a failure. The collector sourceSha 5c006ef6a10ef0ed identifies the running capture code and is not the git revision.",
+            "agent": "chatgpt-probe",
+            "model": "opencode/deepseek-v4.1-flash-free",
+            "reconciliationKeyRefs": [
+              "session:20261028-125034-chatgpt-com-d2a33c",
+              "thread:chatgpt-c:6ad2b82b-e9bc-83ed-8a38-09a2bbc5f2be"
+            ]
+          }
+      ]
     },
     {
       "id": "100",
       "section": "10 — Resilience, capture, and truthful outcomes",
       "title": "Return-to-source continuity",
       "objective": "Reopen that saved conversation from VIVIM's local World and point back to its exact native ChatGPT source.",
-      "status": "NOT_TESTED",
-      "attempts": []
+      "status": "PASS",
+      "attempts": [
+        {
+            "attemptPhase": "ERA3_NAV",
+            "testedRevision": "9560f567b97bc0b00f32f3ee5009a210b54c4925",
+            "testedRevisionCaveat": "Run against HEAD 9560f567b97bc0b00f32f3ee5009a210b54c4925 plus an uncommitted dirty tree. Four src files were modified and not committed at run time: src/capture/actions.mjs, src/capture/conversation-browser-adapter.mjs, src/capture/conversation-capsule.mjs, src/capture/conversation-service.mjs; src/studio/conversation-tools.mjs had been reverted back to HEAD by another lane earlier in the day. The capture collector that produced the compared sessions reports sourceSha 5c006ef6a10ef0ed for the new session and e675797af1599270 for the older one, so the two captures were taken by different collector builds.",
+            "status": "PASS",
+            "startedAt": "2026-10-28T12:52:41.000Z",
+            "finishedAt": "2026-10-28T12:54:59.335Z",
+            "elapsedMs": 138335,
+            "deadlineAt": "2026-10-28T12:55:41.000Z",
+            "timedOut": false,
+            "cliInvocationCount": 3,
+            "commands": [
+              "node bin/studio.mjs export transcript latest --data-dir C:\\VIVIM --format json --out C:\\Users\\VIVIM.inc\\AppData\\Local\\Temp\\opencode\\transcript-099.json",
+              "node bin/studio.mjs session show 20261028-115823-chatgpt-com-04a400 --data-dir C:\\VIVIM --json",
+              "node bin/studio.mjs session show 20261028-125034-chatgpt-com-d2a33c --data-dir C:\\VIVIM --json"
+            ],
+            "observedOutcome": "The saved conversation was reopened from VIVIM's local World and it points back to its exact native source. The local reopen route was the transcript export, which reads the saved session out of C:\\VIVIM\\sessions and not out of the browser: meta.id 20261028-125034-chatgpt-com-d2a33c, meta.target.url https://chatgpt.com/c/6ad2b82b-e9bc-83ed-8a38-09a2bbc5f2be, meta.status complete, 9 rendered turns. The native side of the comparison is the captured thread itself. Literal text search over that session's raw segment files returns 1 match for 'conversation titles can be changed', 3 for 'AION bus', 1 for 'Track B investigation' and 1 for 'Research result', and all four phrases are also present in the exported transcript, so the local transcript text and the native DOM text agree rather than merely sharing an id. The earlier independent capture 20261028-115823-chatgpt-com-04a400, taken by an older collector build (sourceSha e675797af1599270), independently reports the same url https://chatgpt.com/c/6ad2b82b-e9bc-83ed-8a38-09a2bbc5f2be with integrityOk true, which corroborates that the address is the thread's native location and not a value invented by the newer capture. Both ends of the chain are therefore observed: local World record and exact native /c/ address.",
+            "evidenceRefs": [
+              "transcript:transcript-099.json meta.id=20261028-125034-chatgpt-com-d2a33c meta.target.url=https://chatgpt.com/c/6ad2b82b-e9bc-83ed-8a38-09a2bbc5f2be meta.status=complete turns=9",
+              "raw-search:20261028-125034-chatgpt-com-d2a33c 'conversation titles can be changed'=1 'AION bus'=3 'Track B investigation'=1 'Research result'=1",
+              "session:20261028-115823-chatgpt-com-04a400 status=complete integrityOk=true records=521 url=https://chatgpt.com/c/6ad2b82b-e9bc-83ed-8a38-09a2bbc5f2be collector.sourceSha=e675797af1599270",
+              "session:20261028-125034-chatgpt-com-d2a33c status=complete integrityOk=true records=1155 url=https://chatgpt.com/c/6ad2b82b-e9bc-83ed-8a38-09a2bbc5f2be collector.sourceSha=5c006ef6a10ef0ed"
+            ],
+            "friction": "The runbook route for this objective is T12 then T11 on the native /c/ URL, which would mean a second capture of the same address. No second capture was taken in this attempt: the T11 leg is the capture recorded under objective 099, and the comparison instead cross-checks it against the older independent capture 20261028-115823-chatgpt-com-04a400. Re-capturing the same URL twice is objective 094's route, and repeating it here would have spent another two minutes without adding evidence.",
+            "failureClassification": null,
+            "authorizationScope": "Parent-granted navigation-only authorization: local transcript export, read-only session inspection and offline reads of already written session files. No page load, no provider send, no typing, no thread modification.",
+            "uncertainty": "Both sides of the comparison are capture-derived rather than live-read in this attempt, so the check proves that the stored record and the captured native thread agree, not that ChatGPT still serves that thread today. The exact native address is asserted from two independent captures of the same URL taken by two different collector builds, which is stronger than a single capture but is still not a live provider response.",
+            "agent": "chatgpt-probe",
+            "model": "opencode/deepseek-v4.1-flash-free",
+            "reconciliationKeyRefs": [
+              "session:20261028-125034-chatgpt-com-d2a33c",
+              "session:20261028-115823-chatgpt-com-04a400",
+              "thread:chatgpt-c:6ad2b82b-e9bc-83ed-8a38-09a2bbc5f2be"
+            ]
+          }
+      ]
     }
   ]
 }
