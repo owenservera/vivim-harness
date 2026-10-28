@@ -1,3 +1,4 @@
+import { richPartReaderSource, boundRichParts } from './conversation-rich.mjs';
 // Thread identity and bounded, read-only transcript shaping for the conversation lifecycle.
 // No browser access here: the adapter evaluates `transcriptExpression` and passes the raw result to
 // `boundTranscript`. Only the observed ChatGPT `/c/<uuid>` form is a thread; any other path (home,
@@ -84,6 +85,7 @@ export function transcriptExpression({ userSelectors = TRANSCRIPT_SELECTORS.user
     const STREAMING = ${JSON.stringify(streamingSelectors)}, SEND = ${JSON.stringify(sendSelectors)};
     const CAP = ${Math.trunc(perMessageCap)}, SCAN = ${Math.trunc(scanLimit)};
     const all = (sels) => { const out = []; for (const sel of sels) { let list = []; try { list = Array.from(document.querySelectorAll(sel)); } catch (e) { list = []; } for (const el of list) if (!out.includes(el)) out.push(el); } return out; };
+    ${richPartReaderSource()}
     const visible = (el) => { const r = el.getBoundingClientRect(); return r.width > 1 && r.height > 1; };
     const users = all(USER), assistants = all(ASSISTANT);
     let hiddenSkipped = 0, nestedDropped = 0, ambiguousSkipped = 0;
@@ -96,7 +98,7 @@ export function transcriptExpression({ userSelectors = TRANSCRIPT_SELECTORS.user
     const kept = tagged.filter((x) => { const nested = tagged.some((o) => o.el !== x.el && o.el.contains(x.el)); if (nested) nestedDropped++; return !nested; });
     kept.sort((a, b) => (a.el === b.el ? 0 : (a.el.compareDocumentPosition(b.el) & 4) ? -1 : 1));
     const total = kept.length, slice = kept.slice(-SCAN);
-    const messages = slice.map((x) => { const text = String(x.el.innerText ?? x.el.textContent ?? '').replace(/\\r\\n/g, '\\n'); const native = x.el.closest?.('[data-message-id]')?.getAttribute?.('data-message-id') || null; return { role: x.role, text: text.length > CAP ? text.slice(0, CAP) : text, chars: text.length, ...(native ? { id: native, idSource: 'data-message-id' } : {}) }; });
+    const messages = slice.map((x) => { const text = String(x.el.innerText ?? x.el.textContent ?? '').replace(/\\r\\n/g, '\\n'); const native = x.el.closest?.('[data-message-id]')?.getAttribute?.('data-message-id') || null; return { role: x.role, text: text.length > CAP ? text.slice(0, CAP) : text, chars: text.length, ...(native ? { id: native, idSource: 'data-message-id' } : {}), ...(() => { const rich=readRichParts(x.el); return {parts:rich.parts,partsOmitted:rich.omitted}; })() }; });
     let scroll = { found: false, topReached: null, bottomReached: null };
     if (slice.length) {
       for (let node = slice[0].el.parentElement; node; node = node.parentElement) {
@@ -136,13 +138,18 @@ export function boundTranscript(rawResult, { maxMessages = TRANSCRIPT_LIMITS.max
   source.forEach((m, i) => {
     const ok = m && (m.role === 'user' || m.role === 'assistant') && typeof m.text === 'string' && Number.isSafeInteger(m.chars) && m.chars >= m.text.length;
     if (ok) valid.push({ index: offset + i, role: m.role, text: m.text, chars: m.chars,
-      id: m.idSource === 'data-message-id' && typeof m.id === 'string' && m.id.trim() && m.id.length <= 256 ? m.id : null }); else invalid++;
+      id: m.idSource === 'data-message-id' && typeof m.id === 'string' && m.id.trim() && m.id.length <= 256 ? m.id : null, parts:m.parts, partsOmitted:m.partsOmitted }); else invalid++;
   });
-  const kept = []; let budget = maxChars, tails = 0;
+  const kept = []; let budget = maxChars, tails = 0, richBudget = Math.min(16000, maxChars);
   for (let i = valid.length - 1; i >= 0 && kept.length < maxMessages && budget > 0; i--) {
     const m = valid[i], cap = Math.min(perMessageCap, budget), text = m.text.length > cap ? m.text.slice(0, cap) : m.text;
+    const rich = boundRichParts(m.parts, {completeText:text.length===m.chars,maxChars:richBudget});
+    if(rich) richBudget -= JSON.stringify(rich.parts).length;
     kept.push({ index: m.index, role: m.role, text, chars: m.chars, truncated: text.length < m.chars,
-      ...(m.id ? { id: m.id, idSource: 'data-message-id' } : {}) });
+      ...(m.id ? { id: m.id, idSource: 'data-message-id' } : {}),
+      ...(rich ? {parts:rich.parts,partsCoverage:{source:rich.source,complete:rich.complete,
+        omitted:rich.omitted+(Number.isSafeInteger(m.partsOmitted)&&m.partsOmitted>=0?m.partsOmitted:0),
+        excludedForTruncatedText:rich.excludedForTruncatedText}} : {}) });
     budget -= text.length; tails += m.chars - text.length;
   }
   kept.reverse();
