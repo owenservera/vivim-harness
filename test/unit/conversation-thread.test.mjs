@@ -54,6 +54,39 @@ test('turn observations do not infer idle from missing Stop and empty draft', ()
   assert.equal(result.controls.stopPresent, false);
 });
 
+test('turn observations reject ARIA-hidden ancestor messages and controls even when boxes are nonzero', () => {
+  const rect = () => ({ width: 20, height: 20 });
+  const ancestor = { parentElement: null, getBoundingClientRect: rect, getAttribute: (k) => k === 'aria-hidden' ? 'true' : null };
+  const node = (text, parentElement = null) => ({
+    parentElement, innerText: text, textContent: text, value: text, disabled: false,
+    getBoundingClientRect: rect, getAttribute: () => null, closest: () => null, querySelector: () => null,
+  });
+  const hiddenUser = node('PRIVATE_HIDDEN_TURN', ancestor);
+  const visibleUser = node('public turn');
+  const hiddenSend = node('', ancestor), hiddenStop = node('', ancestor);
+  const visibleSend = node('');
+  const groups = { '#user': [hiddenUser, visibleUser], '#composer': [node('')], '#send': [hiddenSend], '#stop': [hiddenStop] };
+  const expr = turnObservationExpression({
+    composer: { selectors: ['#composer'] }, assistant: { streamingSelectors: ['#stop'] },
+    send: { buttonSelectors: ['#send'] },
+  });
+  const globals = {
+    location: { origin: 'https://chatgpt.com', pathname: '/c/11111111-1111-4111-8111-111111111111' },
+    document: { querySelectorAll: (selector) => groups[selector] ?? [] },
+    getComputedStyle: () => ({ display: 'block', visibility: 'visible', contentVisibility: 'visible' }),
+  };
+  const blocked = vm.runInNewContext(expr, globals);
+  assert.deepEqual(Array.from(blocked.messages, (m) => m.text), ['public turn']);
+  assert.equal(blocked.controls.state, 'unknown');
+  assert.equal(blocked.controls.idleControlPresent, false);
+  assert.equal(blocked.controls.stopPresent, false);
+  groups['#send'] = [hiddenSend, visibleSend];
+  const ready = vm.runInNewContext(expr, globals);
+  assert.equal(ready.controls.state, 'idle');
+  assert.equal(ready.controls.idleControlPresent, true);
+  assert.equal(ready.controls.stopPresent, false);
+});
+
 // ---------------------------------------------------------------- bounded transcript shaping
 const raw = (over = {}) => ({ pathname: `/c/${A}`, origin: 'https://chatgpt.com', renderedTotal: 4, hiddenSkipped: 1, nestedDropped: 0, ambiguousSkipped: 0,
   scroll: { found: true, topReached: false, bottomReached: true }, draft: { present: true, chars: 5 },
