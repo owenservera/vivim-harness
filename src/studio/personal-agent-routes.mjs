@@ -22,6 +22,20 @@ export function registerPersonalAgentRoutes({ add, paths, getTools } = {}) {
     { tool: 'personal_agent_self_knowledge', query: { topic: { type: 'string',
       enum: ['all', 'identity', 'bootstrap', 'memory', 'work', 'world', 'capabilities', 'privacy'] } },
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false } });
+  add('GET', '/personal-agent/sitrep', 'Read private local Agent continuity and pending Work; not an agent tool',
+    () => agent.continuity());
+  add('GET', '/personal-agent/export', 'Explicit JSON export; sensitive contents included only by opt-in',
+    ({ q }) => {
+      const flag = (value, name) => {
+        if (value === undefined || value === 'false') return false;
+        if (value === 'true') return true;
+        throw problem(400, `${name} must be true or false`, 'PERSONAL_AGENT_INVALID');
+      };
+      return agent.exportSnapshot({
+        includeMemory: flag(q?.includeMemory, 'includeMemory'),
+        includeWorkDetails: flag(q?.includeWorkDetails, 'includeWorkDetails'),
+      });
+    }, { query: { includeMemory: { type: 'boolean', default: false }, includeWorkDetails: { type: 'boolean', default: false } } });
   add('GET', '/personal-agent/work', 'Read private local Personal Agent Work records (not in tool manifest)',
     () => agent.workList());
   add('POST', '/personal-agent/work', 'Create user-directed local Work; no provider dispatch',
