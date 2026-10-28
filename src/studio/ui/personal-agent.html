@@ -61,6 +61,29 @@ pre{max-height:360px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}
 <div id="discovery" aria-live="polite"></div>
 </section>
 <section>
+<h2>Agent Work</h2>
+<p class="subtle">User-directed local tasks with durable states and evidence receipts. Creating or updating Work never sends to an AI provider.</p>
+<form id="workForm">
+<label><span>Task title</span><input id="workTitle" maxlength="160" required placeholder="Research integration"></label>
+<label><span>Objective</span><textarea id="workObjective" maxlength="4000" required placeholder="Define the deliverable and acceptance condition"></textarea></label>
+<button id="workCreate" type="submit" disabled>Add Work item</button>
+</form>
+<div id="workSummary" class="subtle" aria-live="polite"></div>
+<div id="workList" aria-live="polite"></div>
+</section>
+<section>
+<h2>Self-knowledge</h2>
+<p class="subtle">What the local Agent can actually establish from its own state—claim, basis, evidence, freshness and limits.</p>
+<label><span>Topic</span><select id="knowledgeTopic">
+<option value="all">Everything (bounded overview)</option><option value="identity">Identity</option>
+<option value="bootstrap">Bootstrap</option><option value="memory">Memory counts</option>
+<option value="work">Work</option><option value="world">Local World</option>
+<option value="capabilities">Capabilities</option><option value="privacy">Privacy</option>
+</select></label>
+<button id="knowledgeRefresh" type="button" class="secondary">Inspect self-knowledge</button>
+<div id="selfKnowledge" class="subtle" aria-live="polite"></div>
+</section>
+<section>
 <h2>My memory</h2>
 <p class="subtle">This writes only to your locally versioned agent data. Use short, non-secret notes that you want the agent to preserve.</p>
 <form id="memoryForm">
