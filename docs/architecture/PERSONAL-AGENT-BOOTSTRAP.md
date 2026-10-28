@@ -33,7 +33,7 @@ The earlier *DNA-01 / bootstrap genome* discussion identifies future identity, p
 | `src/studio/ui/personal-agent.html`, `.mjs` | VIVIM World Personal Agent inspector and user controls |
 | `bin/commands/personal-agent.mjs` | Native CLI lifecycle commands, using same local versioned service |
 | `test/unit/personal-agent-*.test.mjs` | Unit, recovery, CAS, memory and real Studio HTTP acceptance |
-| `.github/workflows/personal-agent.yml` | Focused Node 22 + CLI smoke CI |
+| `docs/agents/LOCAL-VERIFICATION.md` | The local gates that replaced CI (GitHub Actions removed 2026-10-28) |
 
 ### Local persistence owner
 
@@ -53,7 +53,7 @@ The existing `VersionedStore` under `src/store/versioned.mjs` is the **only** st
 3. `personal-memory`: initialize/check empty CANON, Immediate and Curated tiers; does not infer private facts, promote global memory, or grant prompt injection authority.
 4. `skills-and-capabilities`: inspect repository-owned, bounded agentic instruction files with the existing inert `agentic-files` library and query Studio's registered tool manifest. Partial/missing inventory roots **block** completion. Source discovery does not imply installed or live-tested skill execution.
 
-Stages complete in order with **local observation receipts**. Each completed stage commits one immutable snapshot. An incomplete stage is marked `blocked` with a reason and a retriable status. Re-running is idempotent when all four stages are complete. Source receipts establish *local inspection* only; they do not prove full provider e2e behavior.
+Stages complete in order with **local observation receipts**. Each completed stage commits one immutable snapshot. A completed stage is **terminal**: reopening it to `pending`/`blocked` throws rather than erasing its receipts and rolling progress back. An incomplete stage is marked `blocked` with a reason and a retriable status. Re-running is idempotent when all four stages are complete. `bootstrap` accepts `expectedVersion: null` to mean "start **or resume**" — an interrupted first run resumes instead of returning 409 — while an integer revision stays CAS-strict. Source receipts establish *local inspection* only; they do not prove full provider e2e behavior.
 
 ## Contracts
 
@@ -123,7 +123,9 @@ All additions below are implemented **in source on PR #12**, not claimed as live
 
 `src/agents/personal-agent-self-knowledge.mjs` implements a read-only, deterministic claim contract:
 
-`{topic, value, basis, evidence, observedAt, freshness, authority, qualification, nextAction, trust}`.
+`{topic, value, basis, evidence, observedAt, sourceUpdatedAt, freshness, authority, qualification, nextAction, trust}`.
+
+`sourceUpdatedAt` anchors the claim to the real `state.updatedAt` (world/capabilities fall back to observation time), so freshness is falsifiable instead of a constant label. An uninitialized agent reports `{initialized:false, total:null, byStatus:null}` for Work and `{initialized:false, tiers:null}` for memory counts rather than a grounded-looking zero.
 
 Topics: `identity`, `bootstrap`, `memory`, `work`, `world`, `capabilities`, `privacy`. The `all` topic produces a bounded grouped overview. World counts come from existing `VersionedStore`; skill sources come from the existing inert `agentic-files` inventory; tool registrations come from the existing Studio manifest. No model guesses, private Work titles, private memory text, provider-account assumptions or fictional permissions appear in the self-knowledge tool.
 
@@ -147,6 +149,8 @@ The opt-in export returns `vivim.personal-agent.export/1` with a SHA-256 digest 
 `test/unit/personal-agent-work.test.mjs` covers idempotency keys, transition validation, blocked resume, evidence qualification and bounds. `test/unit/personal-agent-self-knowledge.test.mjs` checks every topic, claim basis, redaction and failed unknown topics. `test/unit/personal-agent-continuity.test.mjs` verifies explicit private SITREP, default-redacted export and SHA-256 digest. Existing service and HTTP tests now cover Work and self-knowledge recovery, same-owner token/Origin behavior, export opt-in, private-endpoint exclusion from tool manifests and absence of duplicate retries.
 
 The GitHub Actions workflow now includes these tests plus a CLI smoke cycle for queue → Work list → SITREP → export, but GitHub has reported **runner_id 0 and zero executed steps** on failing jobs. Those jobs do **not** constitute passing Node tests. Isolated source-level function checks are narrower than Node/end-to-end acceptance.
+
+**Update 2026-10-28: GitHub Actions is removed from this repository.** All `.github/workflows/*.yml` files were deleted; verification is local only — `bun run test`, `node bin/studio.mjs selftest`, and `node scripts/gate.mjs`. The paragraph above is kept as history of why CI receipts were never accepted as evidence. See `docs/agents/LOCAL-VERIFICATION.md`.
 
 ## Next integration depth (not silently implemented)
 
