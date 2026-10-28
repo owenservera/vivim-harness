@@ -455,3 +455,60 @@ test('reconciliation keeps drafts, page counts, member links, and active or unre
   assert.match(byId(root, 'worldError').textContent, /still active/);
   assert.equal(calls.some((call) => /\/map|\/search/.test(call.path)), false);
 });
+
+
+test('VIVIM Home, Settings and project gallery use existing local World API and real supported-site discovery', async () => {
+  const doc = fakeDoc();
+  const root = doc.createElement('section');
+  const chat = doc.createElement('div');
+  const modes = doc.createElement('nav');
+  const buttons = {};
+  for (const [view, label] of [
+    ['capture', 'Chat'], ['home', 'Home'], ['settings', 'Settings'], ['projects', 'Projects'],
+  ]) {
+    const button = doc.createElement('button');
+    button.setAttribute('data-view', view);
+    button.textContent = label;
+    modes.append(button);
+    buttons[view] = button;
+  }
+  modes.querySelectorAll = (selector) => selector === '[data-view]'
+    ? modes.children.filter((node) => node.getAttribute('data-view')) : [];
+  const api = studio();
+  const providerCalls = [];
+  const fetchImpl = async (url, init = {}) => {
+    if (String(url) === '/api/v1/conversation-targets') {
+      providerCalls.push({ method: init.method ?? 'GET' });
+      return { status: 200, json: async () => ({
+        sites: [{ id: 'chatgpt' }, { id: 'claude' }],
+        targets: [],
+      }) };
+    }
+    return api.fetchImpl(url, init);
+  };
+  const mounted = world.mountWorldView({
+    document: doc, root, modes, chat, rich: ui.createRichRenderer(doc), fetchImpl,
+    storage: { getItem: () => null, setItem() {} }, announce() {},
+  });
+  await buttons.home.click();
+  assert.equal(mounted.view(), 'home');
+  assert.equal(root.getAttribute('data-active-view'), 'home');
+  assert.match(root.textContent, /Good to see you/);
+  assert.equal(all(root, (node) => node.className === 'vivim-overview-card').length, 3);
+  assert.match(root.textContent, /Saved locally in this Harness/);
+  await buttons.settings.click();
+  assert.equal(mounted.view(), 'settings');
+  assert.equal(all(root, (node) => node.getAttribute?.('role') === 'tab').length, 5);
+  assert.match(root.textContent, /Supported websites are not verified logins or connected accounts/);
+  assert.match(root.textContent, /chatgpt/);
+  assert.match(root.textContent, /claude/);
+  assert.doesNotMatch(root.textContent, /✓ Connected|Authenticated account/);
+  assert.deepEqual(providerCalls, [{ method: 'GET' }], 'supported sites are read, never signed into');
+  await buttons.projects.click();
+  assert.equal(mounted.view(), 'projects');
+  assert.equal(root.getAttribute('data-active-view'), 'projects');
+  assert.ok(all(root, (node) => typeof node.className === 'string'
+    && node.className.includes('vivim-project-card')).length > 0);
+  assert.deepEqual(api.calls.filter((request) => request.method !== 'GET'), [],
+    'navigation never writes saved data or sends to a provider');
+});
