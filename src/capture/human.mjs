@@ -137,10 +137,9 @@ function keyFor(ch) {
     return { key: ch, code: 'Digit' + ch, vk: ch.charCodeAt(0), text: ch, unmodifiedText: ch, modifiers: 0 };
   }
   if (ch === ' ') return { key: ' ', code: 'Space', vk: 32, text: ' ', unmodifiedText: ' ', modifiers: 0 };
-  // A newline INSIDE a prompt is Shift+Enter, the key a person uses. A bare Enter is "send" on
-  // ChatGPT, Claude and most chat composers: typing one mid-prompt would submit the first line on
-  // its own (an unintended, partial provider send). Not yet measured live on every site.
-  if (ch === '\n') return { key: 'Enter', code: 'Enter', vk: 13, text: '\r', unmodifiedText: '\r', modifiers: 8 };
+  // Newlines are intentionally UNMAPPED. A keyed Shift+Enter with a literal CR in its
+  // char event triggers both ProseMirror's keymap and character insertion, doubling breaks.
+  // humanType inserts exactly one LF via Input.insertText for each newline instead.
   const p = PUNCT[ch];
   if (p) return { key: p.key, code: p.code, vk: p.vk, text: ch, unmodifiedText: p.base || ch, modifiers: p.shift ? 8 : 0 };
   return null;
@@ -207,8 +206,10 @@ export async function humanType(page, text, { pace = DEFAULT_PACE, human = false
   // composer verification. No random pauses, fabricated typos or per-key sleeps.
   // If insertion status is uncertain, do NOT inject again: a second write could
   // double the draft. The caller receives an explicit failure instead.
+  // The binding/thread fence must run ONCE before the first text effect in either mode.
+  // A failed guard propagates without dispatching a character or repeating the insertion.
+  if (beforeInsert) await beforeInsert();
   if (!human) {
-    if (beforeInsert) await beforeInsert();
     try {
       await page.send('Input.insertText', { text: s });
       stats.methodCounts.insertText++;
