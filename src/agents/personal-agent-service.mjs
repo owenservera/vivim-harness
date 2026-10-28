@@ -171,6 +171,10 @@ export function createPersonalAgentService({ paths, skillsRoot = TOOL_ROOT, getT
         if (e?.code?.startsWith('STORE_') || e?.code?.startsWith('CAS_')) throw storeProblem(e);
         report = { blocked: `Discovery failed: ${e?.code ?? 'UNKNOWN'}`, observation: { failureCode: e?.code ?? 'UNKNOWN' } };
       }
+      // Repeated blocked probes with identical evidence do not consume VersionedStore revisions.
+      if (report.blocked && state.stages[stage].status === 'blocked'
+        && state.stages[stage].blocker === report.blocked
+        && JSON.stringify(state.observations?.[stage]) === JSON.stringify(report.observation)) break;
       const now = clock();
       const next = updatePersonalAgentBootstrap(state, { stage, status: report.blocked ? 'blocked' : 'completed',
         evidence: report.refs ?? [], blocker: report.blocked ?? null, now });
