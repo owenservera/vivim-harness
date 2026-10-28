@@ -67,3 +67,13 @@ test('core Chat still owns send, World mount and browser connection', () => {
   assert.ok(source.includes("$('#btnConnect').addEventListener('click', connect)"));
   assert.doesNotMatch(fixture, /localStorage|sessionStorage|WebSocket|EventSource|XMLHttpRequest/);
 });
+
+test('preview server is loopback-only and allowlists immutable static assets', () => {
+  const server = readFileSync(new URL('../../ui-preview/serve.mjs', import.meta.url), 'utf8');
+  assert.match(server, /listen\(raw, '127\.0\.0\.1'/);
+  assert.match(server, /index\\?\.html/);
+  assert.match(server, /Read-only preview/);
+  assert.match(server, /'x-frame-options': 'DENY'/);
+  assert.match(server, /default-src 'none'/);
+  assert.doesNotMatch(server, /createProxy|http-proxy|forward\(.*api|listen\(raw, '0\.0\.0\.0'/);
+});

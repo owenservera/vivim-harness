@@ -11,3 +11,5 @@
 **Vercel Git project:** source repo `owenservera/vivim-harness`, root directory = repository root, framework = Other (null), build command = `node ui-preview/build.mjs`, output directory = `ui-preview/dist`. Use a **preview deployment**, not the product's production domain.
 
 **Browser review:** check welcome → Explore connection UI (existing connection field), sidebar Saved Conversations → open synthetic detail, Projects/Notes → read sample, Find and Relations → synthetic status, Transfer → clearly blocked writes, desktop narrow/mobile layout and keyboard focus. Report visual bugs separately from native provider acceptance.
+
+**Local browser fallback:** `node ui-preview/serve.mjs` builds the same preview and serves it only at `http://127.0.0.1:4173/`. No cloud, backend, browser automation, provider effect or credentials are required. Stop with Ctrl+C. Never expose this loopback preview to the network.
