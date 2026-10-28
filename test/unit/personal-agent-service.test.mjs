@@ -111,6 +111,8 @@ test('missing skill root blocks Stage 04 and resumes after restoring its real so
   assert.equal(partial.nextStage, 'skills-and-capabilities');
   assert.equal(partial.stages['skills-and-capabilities'].status, 'blocked');
   assert.equal(partial.stages['personal-memory'].status, 'completed');
+  const unchanged = make(f).bootstrap({ expectedVersion: partial.version });
+  assert.equal(unchanged.version, partial.version, 'unchanged blockers do not create repeated versions');
   renameSync(missing, f.skillsRoot);
   const resumed = make(f).bootstrap({ expectedVersion: partial.version });
   assert.equal(resumed.nextStage, null);
