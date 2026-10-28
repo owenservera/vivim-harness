@@ -75,13 +75,13 @@ Do not fabricate completion, selectors or browser evidence. Do not implement a s
 
 ## 001–100 individual reconciliation — 2026-10-28
 
-Source-reviewed classification after opening all 132 paths referenced by the maps and relevant connected helpers. **Supported/partial describes code availability, NOT 100 live scenario passes.** `source` means source reviewed, `isolated` is non-browser behavioral testing in this audit, and `historical-live` is a previously recorded probe, not a new live run. Open gaps are blocked on the named missing UI primitives, end-to-end integration, or actual local Chrome access. No simulated browser success is claimed.
+Source-reviewed classification reconciled against `CHATGPT-100-RECONCILED-STATUS.md` (10 supported / 22 partial / 68 unsupported) after source inspection, including later concurrent additions beyond the initial 132-path tree. **Supported/partial describes code availability, NOT 100 live scenario passes.** `source` means source reviewed, `isolated` is non-browser behavioral testing in this audit, and `historical-live` is a previously recorded probe, not a new live run. Open gaps are blocked on the named missing UI primitives, end-to-end integration, or actual local Chrome access. No simulated browser success is claimed.
 
 | # | User objective | Implementation / dependency | Source status | Remaining concrete gap / improvement | Verification |
 |---|---|---|---|---|---|
 | 001 | Account identity | `src/capture/conversation-browser-adapter.mjs`; `src/chrome/browser-ownership.mjs` | unsupported | Account reader absent; no credentials needed | source |
 | 002 | Authentication state | `src/capture/conversation-browser-adapter.mjs`; `src/chrome/browser-ownership.mjs` | partial | Auth wall, not complete auth state | source |
-| 003 | Native thread identity | `src/capture/conversation-browser-adapter.mjs`; `src/chrome/browser-ownership.mjs` | partial | Bound /c/ thread parse; active-tab proof incomplete | source |
+| 003 | Native thread identity | `src/capture/conversation-browser-adapter.mjs`; `src/chrome/browser-ownership.mjs` | supported | Bound /c/ thread parse; active-tab proof incomplete | source |
 | 004 | Tab discovery | `src/studio/conversation-tools.mjs` (`conversation_targets`) | supported | `conversation_targets` target metadata | source |
 | 005 | Chrome-profile isolation | `src/capture/conversation-browser-adapter.mjs`; `src/chrome/browser-ownership.mjs` | partial | Dedicated profile marker; account identity unproven | source |
 | 006 | Page readiness | `src/capture/conversation-browser-adapter.mjs`; `src/chrome/browser-ownership.mjs` | partial | Composer readiness; obstructions incomplete | source |
@@ -91,7 +91,7 @@ Source-reviewed classification after opening all 132 paths referenced by the map
 | 010 | UI obstruction recognition | `src/capture/conversation-browser-adapter.mjs`; `src/chrome/browser-ownership.mjs` | partial | Auth wall exists; modal taxonomy missing | source |
 | 011 | New-chat navigation | `src/studio/conversation-tools.mjs` (`create_conversation`) → `src/capture/conversation-runtime.mjs` | supported | `create_conversation` creates a Studio-owned blank chat; no send | source |
 | 012 | Sidebar history selection | `src/studio/conversation-tools.mjs`; `src/capture/chatgpt-chat-index.mjs`; `src/capture/human.mjs` | partial | Read rendered title candidates; no click-to-open tool | source |
-| 013 | Deep-link navigation | `src/studio/conversation-tools.mjs`; `src/capture/chatgpt-chat-index.mjs`; `src/capture/human.mjs` | partial | `drive` deep-link + connect with exact-thread fence; no standalone open action | source |
+| 013 | Deep-link navigation | `src/studio/conversation-tools.mjs`; `src/capture/chatgpt-chat-index.mjs`; `src/capture/human.mjs` | supported | `drive` deep-link + connect with exact-thread fence; no standalone open action | source |
 | 014 | Cross-thread navigation | `src/studio/conversation-tools.mjs`; `src/capture/chatgpt-chat-index.mjs`; `src/capture/human.mjs` | partial | Targets + exact connect; no return-stack primitive | source |
 | 015 | Native history search | `src/studio/conversation-tools.mjs`; `src/capture/chatgpt-chat-index.mjs`; `src/capture/human.mjs` | unsupported | ChatGPT native history-search tool absent | source |
 | 016 | Recent-thread recovery | `src/studio/conversation-tools.mjs`; `src/capture/chatgpt-chat-index.mjs`; `src/capture/human.mjs` | partial | Known /c/ can reopen; no last-thread recovery tool | source |
@@ -109,11 +109,11 @@ Source-reviewed classification after opening all 132 paths referenced by the map
 | 028 | Conversation branching | `src/capture/conversation-runtime.mjs`; `src/capture/actions.mjs`; `src/capture/thread-turn-journal.mjs` | unsupported | Branch-at-turn action absent | source |
 | 029 | Conversation rename | `src/capture/conversation-runtime.mjs`; `src/capture/actions.mjs`; `src/capture/thread-turn-journal.mjs` | unsupported | Rename mutation absent | source |
 | 030 | Archive mutation | `src/capture/conversation-runtime.mjs`; `src/capture/actions.mjs`; `src/capture/thread-turn-journal.mjs` | unsupported | Archive mutation absent | source |
-| 031 | Multiline payload fidelity | `src/capture/actions.mjs`; `src/profiles/sites/chatgpt.mjs`; `src/profiles/model-ops.mjs` | partial | `typeText` multiline; blank-line fidelity unproven | source |
-| 032 | Unicode editing | `src/capture/actions.mjs`; `src/profiles/sites/chatgpt.mjs`; `src/profiles/model-ops.mjs` | partial | Unicode typing; visual fidelity unproven | source |
+| 031 | Multiline payload fidelity | `src/capture/actions.mjs`; `src/profiles/sites/chatgpt.mjs`; `src/profiles/model-ops.mjs` | supported | `typeText` multiline; blank-line fidelity unproven | source |
+| 032 | Unicode editing | `src/capture/actions.mjs`; `src/profiles/sites/chatgpt.mjs`; `src/profiles/model-ops.mjs` | supported | Unicode typing; visual fidelity unproven | source |
 | 033 | Keyboard send action | `src/capture/actions.mjs` (`pressEnter`, `sendMessage`) | supported | `sendMessage` Enter dispatch available | source |
 | 034 | Keyboard newline action | `src/capture/actions.mjs`; `src/profiles/sites/chatgpt.mjs`; `src/profiles/model-ops.mjs` | unsupported | Composer newline-without-send primitive absent | source |
-| 035 | Model selection | `src/capture/actions.mjs`; `src/profiles/sites/chatgpt.mjs`; `src/profiles/model-ops.mjs` | unsupported | Profile model changes do not operate native model chooser | source |
+| 035 | Model selection | `src/capture/actions.mjs`; `src/profiles/sites/chatgpt.mjs`; `src/profiles/model-ops.mjs` | partial | Profile model changes do not operate native model chooser | source |
 | 036 | Temporary Chat activation | `src/capture/actions.mjs`; `src/profiles/sites/chatgpt.mjs`; `src/profiles/model-ops.mjs` | unsupported | Temporary-chat activation primitive absent | source |
 | 037 | Speech input | `src/capture/actions.mjs`; `src/profiles/sites/chatgpt.mjs`; `src/profiles/model-ops.mjs` | unsupported | Microphone and permission interface absent | source |
 | 038 | Suggestion-chip interaction | `src/capture/actions.mjs`; `src/profiles/sites/chatgpt.mjs`; `src/profiles/model-ops.mjs` | unsupported | Suggestion-chip reader/click absent | source |
@@ -121,21 +121,21 @@ Source-reviewed classification after opening all 132 paths referenced by the map
 | 040 | Feedback UI discovery | `src/capture/actions.mjs`; `src/profiles/sites/chatgpt.mjs`; `src/profiles/model-ops.mjs` | unsupported | Feedback UI inspection absent | source |
 | 041 | Long-answer extraction | `src/capture/conversation-thread.mjs`; `src/capture/conversation-rich.mjs`; `src/capture/page-agent.js` | partial | Rendered text bounded; offscreen answer remains unproven | source |
 | 042 | Role attribution | `src/capture/conversation-thread.mjs`; `src/capture/conversation-rich.mjs`; `src/capture/page-agent.js` | partial | Role-labelled DOM transcript; partial coverage | source |
-| 043 | List structure | `src/capture/conversation-rich.mjs` (`richPartReaderSource`, `boundRichParts`) | partial | `conversation-rich` returns list depth/items; rendered-only | source |
-| 044 | Code block fidelity | `src/capture/conversation-rich.mjs` | partial | `conversation-rich` code language/text; clipped | source |
-| 045 | Table semantics | `src/capture/conversation-rich.mjs` | partial | `conversation-rich` table rows and cells; bounded | source |
-| 046 | Math fidelity | `src/capture/conversation-rich.mjs` | partial | `conversation-rich` math with LaTeX when available | source |
-| 047 | Quotation structure | `src/capture/conversation-rich.mjs` | partial | `conversation-rich` blockquote text; attribution weak | source |
-| 048 | Hyperlink extraction | `src/capture/conversation-rich.mjs` | partial | Sanitized link href/label; query/fragment removed | source |
-| 049 | Citation anchoring | `src/capture/conversation-rich.mjs` | partial | Citation candidate extracted; passage-source anchor missing | source |
-| 050 | Image-block extraction | `src/capture/conversation-rich.mjs` | partial | Image block with alt/source presence, no bytes | source |
-| 051 | Search-tool activation | `src/profiles/stream-map.mjs`; `src/capture/network.mjs`; `src/studio/conversation-tools.mjs` | partial | Network stream may show search; no search-tool activation proof | source |
+| 043 | List structure | `src/capture/conversation-rich.mjs` (`richPartReaderSource`, `boundRichParts`) | unsupported | `conversation-rich` returns list depth/items; rendered-only | source |
+| 044 | Code block fidelity | `src/capture/conversation-rich.mjs` | unsupported | `conversation-rich` code language/text; clipped | source |
+| 045 | Table semantics | `src/capture/conversation-rich.mjs` | unsupported | `conversation-rich` table rows and cells; bounded | source |
+| 046 | Math fidelity | `src/capture/conversation-rich.mjs` | unsupported | `conversation-rich` math with LaTeX when available | source |
+| 047 | Quotation structure | `src/capture/conversation-rich.mjs` | unsupported | `conversation-rich` blockquote text; attribution weak | source |
+| 048 | Hyperlink extraction | `src/capture/conversation-rich.mjs` | unsupported | Sanitized link href/label; query/fragment removed | source |
+| 049 | Citation anchoring | `src/capture/conversation-rich.mjs` | unsupported | Citation candidate extracted; passage-source anchor missing | source |
+| 050 | Image-block extraction | `src/capture/conversation-rich.mjs` | unsupported | Image block with alt/source presence, no bytes | source |
+| 051 | Search-tool activation | `src/profiles/stream-map.mjs`; `src/capture/network.mjs`; `src/studio/conversation-tools.mjs` | unsupported | Network stream may show search; no search-tool activation proof | source |
 | 052 | Source card reading | `src/profiles/stream-map.mjs`; `src/capture/network.mjs`; `src/studio/conversation-tools.mjs` | unsupported | Source-card metadata reader absent | source |
 | 053 | Citation-source navigation | `src/profiles/stream-map.mjs`; `src/capture/network.mjs`; `src/studio/conversation-tools.mjs` | unsupported | Citation-source native open absent | source |
 | 054 | Tool-panel expansion | `src/profiles/stream-map.mjs`; `src/capture/network.mjs`; `src/studio/conversation-tools.mjs` | unsupported | Tool/status panel expansion absent | source |
-| 055 | Evidence presence | `src/profiles/stream-map.mjs`; `src/capture/network.mjs`; `src/studio/conversation-tools.mjs` | partial | Stream/DOM hints partial; sourced/unsourced distinction uncertain | source |
+| 055 | Evidence presence | `src/profiles/stream-map.mjs`; `src/capture/network.mjs`; `src/studio/conversation-tools.mjs` | unsupported | Stream/DOM hints partial; sourced/unsourced distinction uncertain | source |
 | 056 | Reasoning mode awareness | `src/profiles/stream-map.mjs`; `src/capture/network.mjs`; `src/studio/conversation-tools.mjs` | unsupported | Thinking mode selector absent | source |
-| 057 | Reasoning completion | `src/profiles/stream-map.mjs`; `src/capture/network.mjs`; `src/studio/conversation-tools.mjs` | partial | Streaming state observed; reasoning terminal state uncertain | source |
+| 057 | Reasoning completion | `src/profiles/stream-map.mjs`; `src/capture/network.mjs`; `src/studio/conversation-tools.mjs` | unsupported | Streaming state observed; reasoning terminal state uncertain | source |
 | 058 | Deep Research discovery | `src/profiles/stream-map.mjs`; `src/capture/network.mjs`; `src/studio/conversation-tools.mjs` | unsupported | Deep Research entrypoint discovery absent | source |
 | 059 | Research job monitoring | `src/profiles/stream-map.mjs`; `src/capture/network.mjs`; `src/studio/conversation-tools.mjs` | unsupported | Research job state reader absent | source |
 | 060 | Research report navigation | `src/profiles/stream-map.mjs`; `src/capture/network.mjs`; `src/studio/conversation-tools.mjs` | unsupported | Research report sections/navigation absent | source |
@@ -147,13 +147,13 @@ Source-reviewed classification after opening all 132 paths referenced by the map
 | 066 | Source-file input | `src/studio/agentic-files.mjs` (NOT browser file upload); `src/capture/network.mjs` | unsupported | No source file attach primitive | source |
 | 067 | File download | `src/studio/agentic-files.mjs` (NOT browser file upload); `src/capture/network.mjs` | unsupported | No ChatGPT native download operation | source |
 | 068 | Attachment preview | `src/studio/agentic-files.mjs` (NOT browser file upload); `src/capture/network.mjs` | unsupported | No attachment preview action | source |
-| 069 | Image generation result | `src/studio/agentic-files.mjs` (NOT browser file upload); `src/capture/network.mjs` | partial | Prompt send supported; image artifact identification incomplete | source |
+| 069 | Image generation result | `src/studio/agentic-files.mjs` (NOT browser file upload); `src/capture/network.mjs` | unsupported | Prompt send supported; image artifact identification incomplete | source |
 | 070 | Upload failure detection | `src/studio/agentic-files.mjs` (NOT browser file upload); `src/capture/network.mjs` | unsupported | No upload progress/failure observation | source |
 | 071 | Generated-document controls | `src/shapes/observation.mjs`; `src/studio/ui/universal-chat.mjs` | unsupported | No generated document download control | source |
 | 072 | Writing-artifact surface | `src/shapes/observation.mjs`; `src/studio/ui/universal-chat.mjs` | unsupported | No writing artifact open control | source |
 | 073 | Artifact edit | `src/shapes/observation.mjs`; `src/studio/ui/universal-chat.mjs` | unsupported | No editor mutation for native writing artifact | source |
-| 074 | Data-analysis execution provenance | `src/shapes/observation.mjs`; `src/studio/ui/universal-chat.mjs` | partial | Replay/network evidence may indicate execution, not authoritative | source |
-| 075 | Tool failure detection | `src/shapes/observation.mjs`; `src/studio/ui/universal-chat.mjs` | partial | Generic site failure reader; no tool-error category | source |
+| 074 | Data-analysis execution provenance | `src/shapes/observation.mjs`; `src/studio/ui/universal-chat.mjs` | unsupported | Replay/network evidence may indicate execution, not authoritative | source |
+| 075 | Tool failure detection | `src/shapes/observation.mjs`; `src/studio/ui/universal-chat.mjs` | unsupported | Generic site failure reader; no tool-error category | source |
 | 076 | Diagram artifact recognition | `src/shapes/observation.mjs`; `src/studio/ui/universal-chat.mjs` | unsupported | Diagram artifact detection absent | source |
 | 077 | Chart semantics | `src/shapes/observation.mjs`; `src/studio/ui/universal-chat.mjs` | unsupported | No chart axis/data point reader | source |
 | 078 | Input-output provenance | `src/shapes/observation.mjs`; `src/studio/ui/universal-chat.mjs` | unsupported | No upload-to-generated output provenance path | source |
@@ -171,11 +171,11 @@ Source-reviewed classification after opening all 132 paths referenced by the map
 | 090 | Personalization settings discovery | `src/capture/chatgpt-chat-index.mjs`; `src/studio/conversation-tools.mjs` | unsupported | No Personalization-settings viewer | source |
 | 091 | Network loss detection | `src/capture/thread-turn-journal.mjs`; `src/studio/uncertain-step-reconciler.mjs`; `src/studio/world-service.mjs` | partial | Network error detection partial; no guaranteed recovery | source |
 | 092 | Session expiration | `src/capture/thread-turn-journal.mjs`; `src/studio/uncertain-step-reconciler.mjs`; `src/studio/world-service.mjs` | partial | Auth wall found; thread preservation unverified | source |
-| 093 | Target drift | `src/capture/thread-turn-journal.mjs`; `src/studio/uncertain-step-reconciler.mjs`; `src/studio/world-service.mjs` | partial | Expected-thread fence; real drift scenario unverified | source |
+| 093 | Target drift | `src/capture/thread-turn-journal.mjs`; `src/studio/uncertain-step-reconciler.mjs`; `src/studio/world-service.mjs` | supported | Expected-thread fence; real drift scenario unverified | source |
 | 094 | Snapshot freshness | `src/capture/thread-turn-journal.mjs`; `src/studio/uncertain-step-reconciler.mjs`; `src/studio/world-service.mjs` | partial | Journal reads; reload freshness watcher missing | source |
 | 095 | Runtime reconnection | `src/studio/tool-client.mjs`; `bin/commands/tools.mjs` | supported | `tool-client` reconnects to same Studio process | source |
 | 096 | No-resend reconciliation | `src/capture/thread-turn-journal.mjs`; `src/studio/uncertain-step-reconciler.mjs` | partial | Thread journal and reconciler; legacy drive has no turn journal | source |
-| 097 | Rate-limit detection | `src/capture/actions.mjs` (`detectSiteFailure`) | partial | `detectSiteFailure` sees some usage-credit errors; banner missing | source |
+| 097 | Rate-limit detection | `src/capture/actions.mjs` (`detectSiteFailure`) | unsupported | `detectSiteFailure` sees some usage-credit errors; banner missing | source |
 | 098 | Timeout truthfulness | `src/capture/actions.mjs` (`driveSite`, `waitForCompletion`) | partial | FIXED: uncertain post-dispatch timeout retains browser tab; no resend | source; 4/4 isolated checks |
 | 099 | Capture provenance | `src/capture/recorder.mjs`; `src/studio/world-service.mjs` | partial | Recorder + World service; automatic chain needs confirmation | source |
 | 100 | Return-to-source continuity | `src/studio/world-service.mjs`; `src/studio/world-url.mjs` | partial | World source URL exists; round-trip reopen unverified | source |
