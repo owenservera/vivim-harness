@@ -247,3 +247,10 @@ Real browser code exists for: 003, 004, 006, 011, 012 (read only), 013 (connect 
 022 and 023 were blocked by `drive.mjs` discarding the `/c/` path. That is fixed in source; a live run is still needed.
 
 The other 64 objectives have no implementation.
+
+## 2026-10-28 — live-read control observation source correction (partial audit)
+
+- Objectives **007 (streaming state)** and **041–042 (answer read)**: `src/capture/conversation-browser-adapter.mjs::readTranscript` now passes existing site-profile `assistant.streamingSelectors` and `send.buttonSelectors` into `src/capture/conversation-thread.mjs::transcriptExpression`. `boundTranscript` returns `controls: {state, observed, stopPresent, idleControlPresent, composerEnabled}` in addition to bounded rendered messages. State is `busy` on observed stop, `idle` on positive enabled composer + send control, otherwise `unknown`. This is **only an observed UI control state**, never evidence that the reply completed or the full transcript was captured.
+- Existing Studio path: `read_conversation` → `conversation-runtime.read` → `conversation-browser-adapter.readTranscript` → `transcriptExpression` → `boundTranscript`. No new browser controller and no send on read.
+- Regression coverage added in `test/unit/conversation-thread.test.mjs`. Focused GitHub workflow: `.github/workflows/chatgpt-100-focused.yml`, but its first jobs failed without recorded test steps; **automated pass is not established**.
+- This checkpoint is **not a completed 100-scenario audit**. No other scenarios are promoted to supported or live-verified.
