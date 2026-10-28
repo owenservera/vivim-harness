@@ -1,0 +1,951 @@
+{
+  "schemaVersion": 1,
+  "sourceMap": "docs/agents/CHATGPT-100-SOURCE-MAP.md",
+  "symbolIndex": "docs/agents/CHATGPT-100-SOURCE-INDEX.json",
+  "evidence": "Source-map references only. Unsupported/partial citations may identify an adjacent primitive or gap; none establish live provider behavior.",
+  "counts": {
+    "mapped": 100,
+    "supported": 8,
+    "partial": 47,
+    "unsupported": 45,
+    "distinctSourceKeys": 31
+  },
+  "objectives": [
+    {
+      "id": "001",
+      "title": "Account identity",
+      "sourceClassification": "unsupported",
+      "sourceKeys": [
+        "src/capture/actions.mjs#detectAuthWall"
+      ],
+      "firstMissingLink": "No signed-in account identity reader."
+    },
+    {
+      "id": "002",
+      "title": "Authentication state",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/capture/actions.mjs#detectAuthWall"
+      ],
+      "firstMissingLink": "Login-wall heuristics do not classify account authentication reliably."
+    },
+    {
+      "id": "003",
+      "title": "Native thread identity",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/capture/conversation-thread.mjs#parseThread",
+        "src/capture/conversation-runtime.mjs#createConversationRuntime"
+      ],
+      "firstMissingLink": "No active-tab visibility identification; only exact /c/ UUID routes are recognized."
+    },
+    {
+      "id": "004",
+      "title": "Tab discovery",
+      "sourceClassification": "supported",
+      "sourceKeys": [
+        "src/capture/conversation-runtime.mjs#createConversationRuntime",
+        "src/cdp/discovery.mjs#listTargets"
+      ],
+      "firstMissingLink": null
+    },
+    {
+      "id": "005",
+      "title": "Chrome-profile isolation",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/chrome/browser-ownership.mjs#verifyBrowserOwner",
+        "src/chrome/launch.mjs#chromeStatus"
+      ],
+      "firstMissingLink": "Marker-based browser ownership is not independent OS-level profile attestation."
+    },
+    {
+      "id": "006",
+      "title": "Page readiness",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/capture/conversation-browser-adapter.mjs#createConversationBrowserAdapter",
+        "src/capture/actions.mjs#findComposer"
+      ],
+      "firstMissingLink": "Readiness checks do not distinguish every loading state or obstruction."
+    },
+    {
+      "id": "007",
+      "title": "Streaming state",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/capture/conversation-thread.mjs#transcriptExpression",
+        "src/capture/conversation-thread.mjs#boundTranscript"
+      ],
+      "firstMissingLink": "Busy/idle controls do not prove generation completion."
+    },
+    {
+      "id": "008",
+      "title": "Ephemeral chat awareness",
+      "sourceClassification": "unsupported",
+      "sourceKeys": [
+        "src/capture/conversation-thread.mjs#transcriptExpression"
+      ],
+      "firstMissingLink": "No Temporary Chat mode reader."
+    },
+    {
+      "id": "009",
+      "title": "Duplicate-title identity",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/capture/chatgpt-chat-index.mjs#normalizeChatIndex",
+        "src/capture/conversation-thread.mjs#parseThread"
+      ],
+      "firstMissingLink": "Rendered title candidates are bounded and not verified live thread bindings."
+    },
+    {
+      "id": "010",
+      "title": "UI obstruction recognition",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/capture/actions.mjs#detectAuthWall",
+        "src/capture/actions.mjs#detectSiteFailure"
+      ],
+      "firstMissingLink": "No general modal or challenge obstruction classifier."
+    },
+    {
+      "id": "011",
+      "title": "New-chat navigation",
+      "sourceClassification": "supported",
+      "sourceKeys": [
+        "src/studio/conversation-tools.mjs#executeConversationTool",
+        "src/capture/conversation-runtime.mjs#createConversationRuntime"
+      ],
+      "firstMissingLink": null
+    },
+    {
+      "id": "012",
+      "title": "Sidebar history selection",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/capture/chatgpt-chat-index-reader.mjs#readChatIndex",
+        "src/capture/chatgpt-chat-index.mjs#normalizeChatIndex"
+      ],
+      "firstMissingLink": "Only rendered links are indexed; missing titles and hidden history cannot be located."
+    },
+    {
+      "id": "013",
+      "title": "Deep-link navigation",
+      "sourceClassification": "supported",
+      "sourceKeys": [
+        "bin/commands/capture.mjs#runRecording",
+        "bin/commands/capture.mjs#openTab"
+      ],
+      "firstMissingLink": null
+    },
+    {
+      "id": "014",
+      "title": "Cross-thread navigation",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/capture/conversation-runtime.mjs#createConversationRuntime",
+        "src/capture/conversation-thread.mjs#parseThread"
+      ],
+      "firstMissingLink": "No standalone existing-tab activation and return control."
+    },
+    {
+      "id": "015",
+      "title": "Native history search",
+      "sourceClassification": "unsupported",
+      "sourceKeys": [
+        "src/capture/chatgpt-chat-index-reader.mjs#readChatIndex"
+      ],
+      "firstMissingLink": "No native history-search input and submit control."
+    },
+    {
+      "id": "016",
+      "title": "Recent-thread recovery",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "bin/commands/capture.mjs#openTab",
+        "src/capture/conversation-runtime.mjs#createConversationRuntime"
+      ],
+      "firstMissingLink": "No previous-active-thread tracking or return-in-place control."
+    },
+    {
+      "id": "017",
+      "title": "Long-thread traversal",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/capture/conversation-thread.mjs#transcriptExpression",
+        "src/capture/human.mjs#humanScroll"
+      ],
+      "firstMissingLink": "No owner-bound traversal to materialize earlier turns."
+    },
+    {
+      "id": "018",
+      "title": "Scroll-to-latest",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/capture/human.mjs#humanScroll"
+      ],
+      "firstMissingLink": "No owner-bound scroll-to-bottom control or arrival proof."
+    },
+    {
+      "id": "019",
+      "title": "Sidebar expansion",
+      "sourceClassification": "unsupported",
+      "sourceKeys": [
+        "src/capture/chatgpt-chat-index-reader.mjs#readChatIndex"
+      ],
+      "firstMissingLink": "No sidebar expansion control."
+    },
+    {
+      "id": "020",
+      "title": "Archived-history navigation",
+      "sourceClassification": "unsupported",
+      "sourceKeys": [
+        "src/capture/chatgpt-chat-index-reader.mjs#readChatIndex"
+      ],
+      "firstMissingLink": "No archive settings or archived-history navigation control."
+    },
+    {
+      "id": "021",
+      "title": "First-turn delivery",
+      "sourceClassification": "supported",
+      "sourceKeys": [
+        "src/studio/conversation-tools.mjs#executeConversationTool",
+        "src/capture/conversation-runtime.mjs#createConversationRuntime",
+        "src/capture/conversation-browser-adapter.mjs#createConversationBrowserAdapter"
+      ],
+      "firstMissingLink": null
+    },
+    {
+      "id": "022",
+      "title": "Same-thread follow-up",
+      "sourceClassification": "supported",
+      "sourceKeys": [
+        "src/capture/conversation-runtime.mjs#createConversationRuntime",
+        "src/capture/conversation-browser-adapter.mjs#createConversationBrowserAdapter",
+        "src/capture/thread-turn-journal.mjs#createThreadTurnJournal"
+      ],
+      "firstMissingLink": null
+    },
+    {
+      "id": "023",
+      "title": "Long-range thread continuity",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/capture/conversation-runtime.mjs#createConversationRuntime",
+        "src/capture/thread-turn-journal.mjs#createThreadTurnJournal"
+      ],
+      "firstMissingLink": "No mechanism verifies that early facts survive intervening context or appear in the reply."
+    },
+    {
+      "id": "024",
+      "title": "Message edit and branch awareness",
+      "sourceClassification": "unsupported",
+      "sourceKeys": [
+        "src/capture/conversation-capsule.mjs#buildCapabilityCapsule"
+      ],
+      "firstMissingLink": "No native message edit control or answer-branch reader."
+    },
+    {
+      "id": "025",
+      "title": "Response regeneration",
+      "sourceClassification": "unsupported",
+      "sourceKeys": [
+        "src/capture/conversation-capsule.mjs#buildCapabilityCapsule"
+      ],
+      "firstMissingLink": "No native regenerate control and replacement-reply readback."
+    },
+    {
+      "id": "026",
+      "title": "Interrupt generation",
+      "sourceClassification": "unsupported",
+      "sourceKeys": [
+        "src/capture/conversation-capsule.mjs#buildCapabilityCapsule"
+      ],
+      "firstMissingLink": "No provider stop-generation control."
+    },
+    {
+      "id": "027",
+      "title": "Generation continuation",
+      "sourceClassification": "unsupported",
+      "sourceKeys": [
+        "src/capture/conversation-capsule.mjs#buildCapabilityCapsule"
+      ],
+      "firstMissingLink": "No provider continue-generation control."
+    },
+    {
+      "id": "028",
+      "title": "Conversation branching",
+      "sourceClassification": "unsupported",
+      "sourceKeys": [
+        "src/capture/conversation-capsule.mjs#buildCapabilityCapsule"
+      ],
+      "firstMissingLink": "No native branch control and new-thread readback."
+    },
+    {
+      "id": "029",
+      "title": "Conversation rename",
+      "sourceClassification": "unsupported",
+      "sourceKeys": [
+        "src/capture/conversation-capsule.mjs#buildCapabilityCapsule"
+      ],
+      "firstMissingLink": "No native rename control and title readback."
+    },
+    {
+      "id": "030",
+      "title": "Archive mutation",
+      "sourceClassification": "unsupported",
+      "sourceKeys": [
+        "src/capture/conversation-capsule.mjs#buildCapabilityCapsule"
+      ],
+      "firstMissingLink": "No native archive control and archive-state readback."
+    },
+    {
+      "id": "031",
+      "title": "Multiline payload fidelity",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/capture/actions.mjs#typeText",
+        "src/capture/human.mjs#humanType"
+      ],
+      "firstMissingLink": "No end-to-end exact multiline payload fidelity guarantee."
+    },
+    {
+      "id": "032",
+      "title": "Unicode editing",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/capture/actions.mjs#typeText",
+        "src/capture/human.mjs#humanType"
+      ],
+      "firstMissingLink": "No exact mixed Unicode and bidirectional editing verification."
+    },
+    {
+      "id": "033",
+      "title": "Keyboard send action",
+      "sourceClassification": "supported",
+      "sourceKeys": [
+        "src/capture/actions.mjs#sendMessage",
+        "src/capture/actions.mjs#pressEnter"
+      ],
+      "firstMissingLink": null
+    },
+    {
+      "id": "034",
+      "title": "Keyboard newline action",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/capture/actions.mjs#typeText"
+      ],
+      "firstMissingLink": "No standalone native keyboard-newline action."
+    },
+    {
+      "id": "035",
+      "title": "Model selection",
+      "sourceClassification": "unsupported",
+      "sourceKeys": [
+        "src/capture/conversation-capsule.mjs#buildCapabilityCapsule"
+      ],
+      "firstMissingLink": "No model selection control and selected-model readback."
+    },
+    {
+      "id": "036",
+      "title": "Temporary Chat activation",
+      "sourceClassification": "unsupported",
+      "sourceKeys": [
+        "src/capture/conversation-capsule.mjs#buildCapabilityCapsule"
+      ],
+      "firstMissingLink": "No native Temporary Chat activation control."
+    },
+    {
+      "id": "037",
+      "title": "Speech input",
+      "sourceClassification": "unsupported",
+      "sourceKeys": [
+        "src/capture/conversation-capsule.mjs#buildCapabilityCapsule"
+      ],
+      "firstMissingLink": "No native microphone input control."
+    },
+    {
+      "id": "038",
+      "title": "Suggestion-chip interaction",
+      "sourceClassification": "unsupported",
+      "sourceKeys": [
+        "src/capture/conversation-capsule.mjs#buildCapabilityCapsule"
+      ],
+      "firstMissingLink": "No suggestion-chip selection control and composer readback."
+    },
+    {
+      "id": "039",
+      "title": "Copy action",
+      "sourceClassification": "unsupported",
+      "sourceKeys": [
+        "src/capture/conversation-capsule.mjs#buildCapabilityCapsule"
+      ],
+      "firstMissingLink": "No native answer-copy control."
+    },
+    {
+      "id": "040",
+      "title": "Feedback UI discovery",
+      "sourceClassification": "unsupported",
+      "sourceKeys": [
+        "src/capture/conversation-thread.mjs#transcriptExpression"
+      ],
+      "firstMissingLink": "No reaction or feedback-control reader."
+    },
+    {
+      "id": "041",
+      "title": "Long-answer extraction",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/capture/conversation-thread.mjs#transcriptExpression",
+        "src/capture/conversation-thread.mjs#boundTranscript"
+      ],
+      "firstMissingLink": "Bounded rendered-only transcript cannot guarantee the answer end."
+    },
+    {
+      "id": "042",
+      "title": "Role attribution",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/capture/conversation-thread.mjs#transcriptExpression",
+        "src/capture/conversation-thread.mjs#boundTranscript"
+      ],
+      "firstMissingLink": "Hidden or ambiguous message nodes can be omitted."
+    },
+    {
+      "id": "043",
+      "title": "List structure",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/capture/conversation-rich.mjs#richPartReaderSource"
+      ],
+      "firstMissingLink": "Bounded list items do not guarantee complete nested hierarchy."
+    },
+    {
+      "id": "044",
+      "title": "Code block fidelity",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/capture/conversation-rich.mjs#richPartReaderSource"
+      ],
+      "firstMissingLink": "Code text and language are bounded and may be omitted or clipped."
+    },
+    {
+      "id": "045",
+      "title": "Table semantics",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/capture/conversation-rich.mjs#richPartReaderSource"
+      ],
+      "firstMissingLink": "Table row and cell bounds omit large tables and complex spans."
+    },
+    {
+      "id": "046",
+      "title": "Math fidelity",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/capture/conversation-rich.mjs#richPartReaderSource"
+      ],
+      "firstMissingLink": "Reusable math is only available when a recognized LaTeX annotation exists."
+    },
+    {
+      "id": "047",
+      "title": "Quotation structure",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/capture/conversation-rich.mjs#richPartReaderSource"
+      ],
+      "firstMissingLink": "Blockquote attribution and full structure are not guaranteed."
+    },
+    {
+      "id": "048",
+      "title": "Hyperlink extraction",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/capture/conversation-rich.mjs#richPartReaderSource"
+      ],
+      "firstMissingLink": "Link query strings and fragments are deliberately removed."
+    },
+    {
+      "id": "049",
+      "title": "Citation anchoring",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/capture/conversation-rich.mjs#richPartReaderSource"
+      ],
+      "firstMissingLink": "Citation candidates are not anchored to supported passages."
+    },
+    {
+      "id": "050",
+      "title": "Image-block extraction",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/capture/conversation-rich.mjs#richPartReaderSource"
+      ],
+      "firstMissingLink": "Image metadata has no independently addressable image source."
+    },
+    {
+      "id": "051",
+      "title": "Search-tool activation",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/capture/conversation-runtime.mjs#createConversationRuntime",
+        "src/capture/conversation-rich.mjs#richPartReaderSource"
+      ],
+      "firstMissingLink": "No proof that ChatGPT actually ran web search."
+    },
+    {
+      "id": "052",
+      "title": "Source card reading",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/capture/conversation-rich.mjs#richPartReaderSource"
+      ],
+      "firstMissingLink": "Citation candidates do not expose source-card contents."
+    },
+    {
+      "id": "053",
+      "title": "Citation-source navigation",
+      "sourceClassification": "unsupported",
+      "sourceKeys": [
+        "src/capture/conversation-rich.mjs#richPartReaderSource"
+      ],
+      "firstMissingLink": "No native citation-source opening control."
+    },
+    {
+      "id": "054",
+      "title": "Tool-panel expansion",
+      "sourceClassification": "unsupported",
+      "sourceKeys": [
+        "src/capture/conversation-rich.mjs#richPartReaderSource"
+      ],
+      "firstMissingLink": "No native tool or sources-panel expansion control."
+    },
+    {
+      "id": "055",
+      "title": "Evidence presence",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/capture/conversation-rich.mjs#richPartReaderSource"
+      ],
+      "firstMissingLink": "Citation candidates do not establish that an answer is sourced."
+    },
+    {
+      "id": "056",
+      "title": "Reasoning mode awareness",
+      "sourceClassification": "unsupported",
+      "sourceKeys": [
+        "src/capture/conversation-capsule.mjs#buildCapabilityCapsule"
+      ],
+      "firstMissingLink": "No thinking-mode selection or progress reader."
+    },
+    {
+      "id": "057",
+      "title": "Reasoning completion",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/capture/conversation-thread.mjs#transcriptExpression"
+      ],
+      "firstMissingLink": "Observed generation controls do not prove reasoning completion."
+    },
+    {
+      "id": "058",
+      "title": "Deep Research discovery",
+      "sourceClassification": "unsupported",
+      "sourceKeys": [
+        "src/capture/conversation-capsule.mjs#buildCapabilityCapsule"
+      ],
+      "firstMissingLink": "No Deep Research entry-point reader."
+    },
+    {
+      "id": "059",
+      "title": "Research job monitoring",
+      "sourceClassification": "unsupported",
+      "sourceKeys": [
+        "src/capture/conversation-thread.mjs#transcriptExpression"
+      ],
+      "firstMissingLink": "No research-job state reader."
+    },
+    {
+      "id": "060",
+      "title": "Research report navigation",
+      "sourceClassification": "unsupported",
+      "sourceKeys": [
+        "src/capture/conversation-rich.mjs#richPartReaderSource"
+      ],
+      "firstMissingLink": "No research-report section navigation and reference-link control."
+    },
+    {
+      "id": "061",
+      "title": "File-picker input",
+      "sourceClassification": "unsupported",
+      "sourceKeys": [
+        "src/studio/conversation-tools.mjs#executeConversationTool"
+      ],
+      "firstMissingLink": "No ChatGPT file-picker control or attachment filename readback."
+    },
+    {
+      "id": "062",
+      "title": "Vision-file submission",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/capture/conversation-runtime.mjs#createConversationRuntime"
+      ],
+      "firstMissingLink": "Text submission exists but image attachment is unavailable."
+    },
+    {
+      "id": "063",
+      "title": "PDF interpretation",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/capture/conversation-runtime.mjs#createConversationRuntime"
+      ],
+      "firstMissingLink": "Text submission exists but PDF attachment is unavailable."
+    },
+    {
+      "id": "064",
+      "title": "Tabular file analysis",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/capture/conversation-runtime.mjs#createConversationRuntime"
+      ],
+      "firstMissingLink": "Text submission exists but CSV attachment is unavailable."
+    },
+    {
+      "id": "065",
+      "title": "Spreadsheet rendering",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/capture/conversation-runtime.mjs#createConversationRuntime"
+      ],
+      "firstMissingLink": "Text submission exists but spreadsheet attachment is unavailable."
+    },
+    {
+      "id": "066",
+      "title": "Source-file input",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/capture/conversation-runtime.mjs#createConversationRuntime"
+      ],
+      "firstMissingLink": "Text submission exists but source-file attachment is unavailable."
+    },
+    {
+      "id": "067",
+      "title": "File download",
+      "sourceClassification": "unsupported",
+      "sourceKeys": [
+        "src/studio/conversation-tools.mjs#executeConversationTool"
+      ],
+      "firstMissingLink": "No native generated-file download control."
+    },
+    {
+      "id": "068",
+      "title": "Attachment preview",
+      "sourceClassification": "unsupported",
+      "sourceKeys": [
+        "src/studio/conversation-tools.mjs#executeConversationTool"
+      ],
+      "firstMissingLink": "No attachment preview opener or type reader."
+    },
+    {
+      "id": "069",
+      "title": "Image generation result",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/capture/conversation-runtime.mjs#createConversationRuntime",
+        "src/capture/conversation-rich.mjs#richPartReaderSource"
+      ],
+      "firstMissingLink": "Text submission and image metadata exist but generated artifact identification is unavailable."
+    },
+    {
+      "id": "070",
+      "title": "Upload failure detection",
+      "sourceClassification": "unsupported",
+      "sourceKeys": [
+        "src/studio/conversation-tools.mjs#executeConversationTool"
+      ],
+      "firstMissingLink": "No attachment upload state reader."
+    },
+    {
+      "id": "071",
+      "title": "Generated-document controls",
+      "sourceClassification": "unsupported",
+      "sourceKeys": [
+        "src/capture/conversation-rich.mjs#richPartReaderSource"
+      ],
+      "firstMissingLink": "No generated-document download control or file-type reader."
+    },
+    {
+      "id": "072",
+      "title": "Writing-artifact surface",
+      "sourceClassification": "unsupported",
+      "sourceKeys": [
+        "src/studio/conversation-tools.mjs#executeConversationTool"
+      ],
+      "firstMissingLink": "No native writing-artifact opener."
+    },
+    {
+      "id": "073",
+      "title": "Artifact edit",
+      "sourceClassification": "unsupported",
+      "sourceKeys": [
+        "src/studio/conversation-tools.mjs#executeConversationTool"
+      ],
+      "firstMissingLink": "No native artifact editing control."
+    },
+    {
+      "id": "074",
+      "title": "Data-analysis execution provenance",
+      "sourceClassification": "unsupported",
+      "sourceKeys": [
+        "src/capture/conversation-thread.mjs#transcriptExpression"
+      ],
+      "firstMissingLink": "No data-analysis execution provenance reader."
+    },
+    {
+      "id": "075",
+      "title": "Tool failure detection",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/capture/actions.mjs#detectSiteFailure"
+      ],
+      "firstMissingLink": "Site-failure heuristics do not identify tool-computation errors."
+    },
+    {
+      "id": "076",
+      "title": "Diagram artifact recognition",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/capture/conversation-rich.mjs#richPartReaderSource"
+      ],
+      "firstMissingLink": "Image metadata does not identify a generated diagram artifact."
+    },
+    {
+      "id": "077",
+      "title": "Chart semantics",
+      "sourceClassification": "unsupported",
+      "sourceKeys": [
+        "src/capture/conversation-rich.mjs#richPartReaderSource"
+      ],
+      "firstMissingLink": "No chart axis and data-point reader."
+    },
+    {
+      "id": "078",
+      "title": "Input-output provenance",
+      "sourceClassification": "unsupported",
+      "sourceKeys": [
+        "src/studio/conversation-tools.mjs#executeConversationTool"
+      ],
+      "firstMissingLink": "No native upload-to-generated-file provenance reader."
+    },
+    {
+      "id": "079",
+      "title": "Code copying",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/capture/conversation-rich.mjs#richPartReaderSource"
+      ],
+      "firstMissingLink": "Code extraction exists but native copy control is unavailable."
+    },
+    {
+      "id": "080",
+      "title": "Artifact-open navigation",
+      "sourceClassification": "unsupported",
+      "sourceKeys": [
+        "src/studio/conversation-tools.mjs#executeConversationTool"
+      ],
+      "firstMissingLink": "No separate generated-attachment open action reader."
+    },
+    {
+      "id": "081",
+      "title": "Project creation",
+      "sourceClassification": "unsupported",
+      "sourceKeys": [
+        "src/capture/chatgpt-chat-index.mjs#normalizeChatIndex"
+      ],
+      "firstMissingLink": "No Project creation control."
+    },
+    {
+      "id": "082",
+      "title": "Conversation-to-Project move",
+      "sourceClassification": "unsupported",
+      "sourceKeys": [
+        "src/capture/chatgpt-chat-index.mjs#normalizeChatIndex"
+      ],
+      "firstMissingLink": "No conversation-to-Project move control."
+    },
+    {
+      "id": "083",
+      "title": "Project unlink",
+      "sourceClassification": "unsupported",
+      "sourceKeys": [
+        "src/capture/chatgpt-chat-index.mjs#normalizeChatIndex"
+      ],
+      "firstMissingLink": "No Project unlink control."
+    },
+    {
+      "id": "084",
+      "title": "Project instructions read",
+      "sourceClassification": "unsupported",
+      "sourceKeys": [
+        "src/capture/chatgpt-chat-index.mjs#normalizeChatIndex"
+      ],
+      "firstMissingLink": "No Project instructions reader."
+    },
+    {
+      "id": "085",
+      "title": "Project file attachment",
+      "sourceClassification": "unsupported",
+      "sourceKeys": [
+        "src/capture/chatgpt-chat-index.mjs#normalizeChatIndex"
+      ],
+      "firstMissingLink": "No Project file attachment control."
+    },
+    {
+      "id": "086",
+      "title": "Project-specific history",
+      "sourceClassification": "unsupported",
+      "sourceKeys": [
+        "src/capture/chatgpt-chat-index.mjs#normalizeChatIndex"
+      ],
+      "firstMissingLink": "Project routes are rejected and project context is unknown."
+    },
+    {
+      "id": "087",
+      "title": "Sharing control discovery",
+      "sourceClassification": "unsupported",
+      "sourceKeys": [
+        "src/studio/conversation-tools.mjs#executeConversationTool"
+      ],
+      "firstMissingLink": "No share-link control or existing-share state reader."
+    },
+    {
+      "id": "088",
+      "title": "Share-link revocation",
+      "sourceClassification": "unsupported",
+      "sourceKeys": [
+        "src/studio/conversation-tools.mjs#executeConversationTool"
+      ],
+      "firstMissingLink": "No share-link revocation control and readback."
+    },
+    {
+      "id": "089",
+      "title": "Memory setting inspection",
+      "sourceClassification": "unsupported",
+      "sourceKeys": [
+        "src/studio/conversation-tools.mjs#executeConversationTool"
+      ],
+      "firstMissingLink": "No Memory settings reader."
+    },
+    {
+      "id": "090",
+      "title": "Personalization settings discovery",
+      "sourceClassification": "unsupported",
+      "sourceKeys": [
+        "src/studio/conversation-tools.mjs#executeConversationTool"
+      ],
+      "firstMissingLink": "No Custom Instructions settings navigation or control reader."
+    },
+    {
+      "id": "091",
+      "title": "Network loss detection",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/capture/recorder.mjs#Recorder",
+        "src/capture/conversation-runtime.mjs#createConversationRuntime"
+      ],
+      "firstMissingLink": "No complete page-offline classifier and safe recovery determination."
+    },
+    {
+      "id": "092",
+      "title": "Session expiration",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/capture/actions.mjs#detectAuthWall",
+        "src/capture/conversation-browser-adapter.mjs#createConversationBrowserAdapter"
+      ],
+      "firstMissingLink": "Login-wall detection cannot restore the original thread after expiry."
+    },
+    {
+      "id": "093",
+      "title": "Target drift",
+      "sourceClassification": "supported",
+      "sourceKeys": [
+        "src/capture/conversation-runtime.mjs#createConversationRuntime",
+        "src/capture/conversation-browser-adapter.mjs#createConversationBrowserAdapter",
+        "src/capture/thread-turn-journal.mjs#createThreadTurnJournal"
+      ],
+      "firstMissingLink": null
+    },
+    {
+      "id": "094",
+      "title": "Snapshot freshness",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/capture/conversation-browser-adapter.mjs#createConversationBrowserAdapter",
+        "src/capture/thread-turn-journal.mjs#createThreadTurnJournal"
+      ],
+      "firstMissingLink": "No general reload watcher invalidates all previously captured snapshots."
+    },
+    {
+      "id": "095",
+      "title": "Runtime reconnection",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/studio/tool-client.mjs#createStudioToolClient",
+        "src/capture/conversation-runtime.mjs#createConversationRuntime"
+      ],
+      "firstMissingLink": "No automatic reattachment guarantee after a dropped request."
+    },
+    {
+      "id": "096",
+      "title": "No-resend reconciliation",
+      "sourceClassification": "supported",
+      "sourceKeys": [
+        "src/capture/conversation-runtime.mjs#createConversationRuntime",
+        "src/capture/thread-turn-journal.mjs#createThreadTurnJournal",
+        "src/studio/uncertain-step-reconciler.mjs#reconcileUncertainStep"
+      ],
+      "firstMissingLink": null
+    },
+    {
+      "id": "097",
+      "title": "Rate-limit detection",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/capture/actions.mjs#detectSiteFailure"
+      ],
+      "firstMissingLink": "Heuristics do not cover all quota or rate-limit banners."
+    },
+    {
+      "id": "098",
+      "title": "Timeout truthfulness",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/capture/actions.mjs#waitForCompletion",
+        "src/capture/conversation-runtime.mjs#createConversationRuntime"
+      ],
+      "firstMissingLink": "No definitive distinction between slow generation and every failure."
+    },
+    {
+      "id": "099",
+      "title": "Capture provenance",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/capture/conversation-evidence.mjs#captureConversationEvidence",
+        "src/studio/world-service.mjs#createWorldService"
+      ],
+      "firstMissingLink": "Capture provenance is recorded but completed conversation acceptance and World linkage are conditional."
+    },
+    {
+      "id": "100",
+      "title": "Return-to-source continuity",
+      "sourceClassification": "partial",
+      "sourceKeys": [
+        "src/studio/world-service.mjs#createWorldService",
+        "src/studio/world-url.mjs#sanitizeProviderUrl"
+      ],
+      "firstMissingLink": "Saved source attribution does not itself reopen the exact native conversation."
+    }
+  ]
+}
