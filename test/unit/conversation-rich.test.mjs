@@ -13,18 +13,21 @@ const element = (tag, value = '', attrs = {}) => ({
   querySelector: () => null, querySelectorAll: () => [],
 });
 
-function rendered({ busy = false } = {}) {
+function rendered({ busy = false, hiddenPart = false } = {}) {
   const effects = [];
   const code = element('PRE'); code.querySelector = () => element('CODE', 'const x = 2;\n', { className: 'language-js' });
   const row = element('TR'), table = element('TABLE');
   row.querySelectorAll = () => [element('TH', 'Name'), element('TD', 'Value')];
   table.querySelectorAll = () => [row];
   const root = element('ARTICLE', 'The answer is 2.');
+  const hiddenAncestor = element('DIV', '', { 'aria-hidden': 'true' });
+  const hiddenCode = element('PRE', 'never display private hidden answer', { parentElement: hiddenAncestor });
   root.querySelectorAll = () => [
     element('LI', 'First', { parentElement: element('OL') }), code, table,
     element('BLOCKQUOTE', 'Quoted'), element('A', 'Docs', { href: 'https://docs.example/path?private=token#secret' }),
     element('A', 'Unsafe', { href: 'javascript:alert(1)' }), element('IMG', '', { alt: 'diagram', src: 'blob:private' }),
     element('MATH', 'x=2', { 'data-math': 'x=2' }),
+    ...(hiddenPart ? [hiddenCode] : []),
   ];
   const composer = element('TEXTAREA', 'private unsent draft');
   Object.assign(composer, { value: 'private unsent draft', focus: () => effects.push('focus') });
@@ -65,6 +68,14 @@ test('live Read shape observation preserves code, tables, lists, quotes, links, 
   assert.equal(message.partsCoverage.complete, false);
   assert.equal(JSON.stringify(output).includes('private unsent draft'), false);
   assert.deepEqual(effects, []);
+});
+
+test('hidden semantic DOM descendants never escape Read', () => {
+  const { result } = rendered({ hiddenPart: true });
+  const read = boundTranscript(result, { maxMessages: 10, maxChars: 1000 });
+  assert.equal(JSON.stringify(read).includes('never display private hidden answer'), false);
+  assert.equal(read.messages[0].parts.some(part => part.text?.includes('never display')), false);
+  assert.equal(read.messages[0].partsCoverage.omitted >= 1, true);
 });
 
 test('Read controls distinguish visible generation from positive idle proof', () => {
