@@ -196,7 +196,7 @@ export function createConversationBrowserAdapter({ paths, profileStore, familySt
   // composer and empty observed transcript are enough to BEGIN typing, not to send.
   // Bound-thread/reply completion continues to require positive idleControls evidence.
   const freshComposerReady = (page) => page?.controls?.composerEnabled === true
-    && page.controls.stopPresent === false && page?.draft?.chars === 0
+    && page.controls.stopPresent === false && page.controls.state !== 'busy' && page?.draft?.chars === 0
     && Array.isArray(page.messages) && page.messages.length === 0;
   const samePrefix = (page, saved) => saved.baseline.every((m, i) => page.messages[i]?.id === m.id
     && page.messages[i]?.role === m.role && page.messages[i]?.text === m.text);
