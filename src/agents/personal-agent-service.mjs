@@ -102,7 +102,7 @@ export function createPersonalAgentService({ paths, skillsRoot = TOOL_ROOT, getT
     }
     if (stage === BOOTSTRAP_STAGES[3]) {
       const discovered = capabilities();
-      if (!discovered.skills.coverage.complete) return { blocked: 'Skill inventory incomplete; review coverage', observation: {
+      if (!discovered.skills.coverage.complete || !discovered.skills.coverage.roots?.length || discovered.skills.coverage.roots.some(root => root.status !== 'scanned')) return { blocked: 'Skill inventory root unavailable or incomplete; review coverage', observation: {
         matched: discovered.skills.items.length, coverage: discovered.skills.coverage,
       } };
       return { refs: [`local:agentic-files/inventory-${sha(JSON.stringify(discovered.skills.items.map(x => x.id)))}`],
