@@ -106,6 +106,18 @@
       "regressionTests": [
         "Inject target URL, page origin/path and timing cases to isolate readiness branches; genuine drift fails closed.",
         "Verify provenance-backed owner reporting distinguishes fresh owned, foreign and unknown targets; no send and draft fencing preserved."
+      ],
+      "sourceRepairUpdateRound2": [
+        {
+          "area": "fresh new-chat composer admission",
+          "implementation": "committed; see sourceRepairRounds",
+          "liveStatus": "unchanged"
+        },
+        {
+          "area": "unbound read exact-location fence",
+          "implementation": "committed; see sourceRepairRounds",
+          "liveStatus": "unchanged"
+        }
       ]
     },
     "D": {
@@ -159,6 +171,23 @@
       "regressionTests": [
         "Journal preserves observed delivery while completion remains unknown; read-only reconciliation reuses original operation key and never resends.",
         "Inventory native control registrations; test provider offer, ownership, exact-thread and draft/idle preconditions separately."
+      ],
+      "sourceRepairUpdateRound2": [
+        {
+          "area": "completion observation fail-closed",
+          "implementation": "committed; see sourceRepairRounds",
+          "liveStatus": "unchanged"
+        },
+        {
+          "area": "capability advice for NEW_CHAT and stale snapshots",
+          "implementation": "committed; see sourceRepairRounds",
+          "liveStatus": "unchanged"
+        },
+        {
+          "area": "finalization and contradictory UI evidence",
+          "implementation": "committed; see sourceRepairRounds",
+          "liveStatus": "unchanged"
+        }
       ]
     }
   },
@@ -322,7 +351,37 @@
       "acceptanceCriteria": [
         "Report evidenced input readiness or loading, otherwise unknown; never modify composer."
       ],
-      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner",
+      "sourceFixRound2": [
+        {
+          "area": "fresh new-chat composer admission",
+          "commits": [
+            "6f71804053f7b1e40c21a3485823e9744f9b79c7",
+            "6ec7181ad7120d38a151c8b6c1518a40e94cd851",
+            "778dd6fd0f3d6c5b6638e02a322a6baf9dfeb664"
+          ],
+          "verification": "source-implemented; no new live PASS"
+        },
+        {
+          "area": "capability advice for NEW_CHAT and stale snapshots",
+          "commits": [
+            "ef82725cc47f2f5a432200046e9ff0b514ce37a9",
+            "d04a44c5d331634da109266448dd0bdd9547b2a7",
+            "11f0e0ef77f3bd1ef4ed76e92765657ad5cb6f86"
+          ],
+          "verification": "source-implemented; no new live PASS"
+        },
+        {
+          "area": "finalization and contradictory UI evidence",
+          "commits": [
+            "9871120537bc27380e7de304e9442d88e3609153",
+            "d35ca93d618074abd58d6c4f6dc59dd57181bb41",
+            "100d81fa5db9f087a0eb5ac48ff782831082e06c",
+            "6297189b70c0fd9f6473b9a556e5ba25acf0d6b6"
+          ],
+          "verification": "source-implemented; no new live PASS"
+        }
+      ]
     },
     {
       "id": "007",
@@ -348,7 +407,18 @@
       "acceptanceCriteria": [
         "Identify evidenced generating or finished state; evaluation failure yields unknown, not finished."
       ],
-      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner",
+      "sourceFixRound2": [
+        {
+          "area": "completion observation fail-closed",
+          "commits": [
+            "e7deb05edbea1718da43be8c2fec94f73722d734",
+            "ed4b104345935a9474cda5c8c3c9224fc3f80647",
+            "9d6f1aaad5f0ae054219006de93c28b4732d966d"
+          ],
+          "verification": "source-implemented; no new live PASS"
+        }
+      ]
     },
     {
       "id": "008",
@@ -464,7 +534,45 @@
       "acceptanceCriteria": [
         "Create without sending and independently verify blank composer, readiness and consistent provenance-backed ownership; preserve original target."
       ],
-      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner",
+      "sourceFixRound2": [
+        {
+          "area": "fresh new-chat composer admission",
+          "commits": [
+            "6f71804053f7b1e40c21a3485823e9744f9b79c7",
+            "6ec7181ad7120d38a151c8b6c1518a40e94cd851",
+            "778dd6fd0f3d6c5b6638e02a322a6baf9dfeb664"
+          ],
+          "verification": "source-implemented; no new live PASS"
+        },
+        {
+          "area": "unbound read exact-location fence",
+          "commits": [
+            "d6d0b2cc4606c1d85a7d0d1e0f1eceb2566a44af",
+            "9e5ab49e4ebbada5a7538c8420fbda575f79793b"
+          ],
+          "verification": "source-implemented; no new live PASS"
+        },
+        {
+          "area": "capability advice for NEW_CHAT and stale snapshots",
+          "commits": [
+            "ef82725cc47f2f5a432200046e9ff0b514ce37a9",
+            "d04a44c5d331634da109266448dd0bdd9547b2a7",
+            "11f0e0ef77f3bd1ef4ed76e92765657ad5cb6f86"
+          ],
+          "verification": "source-implemented; no new live PASS"
+        },
+        {
+          "area": "finalization and contradictory UI evidence",
+          "commits": [
+            "9871120537bc27380e7de304e9442d88e3609153",
+            "d35ca93d618074abd58d6c4f6dc59dd57181bb41",
+            "100d81fa5db9f087a0eb5ac48ff782831082e06c",
+            "6297189b70c0fd9f6473b9a556e5ba25acf0d6b6"
+          ],
+          "verification": "source-implemented; no new live PASS"
+        }
+      ]
     },
     {
       "id": "012",
@@ -742,7 +850,46 @@
       "acceptanceCriteria": [
         "Evidence establishes delivery and separately reconciles completion/capture where possible; otherwise retain unknown without resending."
       ],
-      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner",
+      "sourceFixRound2": [
+        {
+          "area": "fresh new-chat composer admission",
+          "commits": [
+            "6f71804053f7b1e40c21a3485823e9744f9b79c7",
+            "6ec7181ad7120d38a151c8b6c1518a40e94cd851",
+            "778dd6fd0f3d6c5b6638e02a322a6baf9dfeb664"
+          ],
+          "verification": "source-implemented; no new live PASS"
+        },
+        {
+          "area": "capability advice for NEW_CHAT and stale snapshots",
+          "commits": [
+            "ef82725cc47f2f5a432200046e9ff0b514ce37a9",
+            "d04a44c5d331634da109266448dd0bdd9547b2a7",
+            "11f0e0ef77f3bd1ef4ed76e92765657ad5cb6f86"
+          ],
+          "verification": "source-implemented; no new live PASS"
+        },
+        {
+          "area": "completion observation fail-closed",
+          "commits": [
+            "e7deb05edbea1718da43be8c2fec94f73722d734",
+            "ed4b104345935a9474cda5c8c3c9224fc3f80647",
+            "9d6f1aaad5f0ae054219006de93c28b4732d966d"
+          ],
+          "verification": "source-implemented; no new live PASS"
+        },
+        {
+          "area": "finalization and contradictory UI evidence",
+          "commits": [
+            "9871120537bc27380e7de304e9442d88e3609153",
+            "d35ca93d618074abd58d6c4f6dc59dd57181bb41",
+            "100d81fa5db9f087a0eb5ac48ff782831082e06c",
+            "6297189b70c0fd9f6473b9a556e5ba25acf0d6b6"
+          ],
+          "verification": "source-implemented; no new live PASS"
+        }
+      ]
     },
     {
       "id": "022",
@@ -794,7 +941,17 @@
       "acceptanceCriteria": [
         "An authorized continuity question correctly references the earlier fact with observable same-thread evidence."
       ],
-      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner",
+      "sourceFixRound2": [
+        {
+          "area": "unbound read exact-location fence",
+          "commits": [
+            "d6d0b2cc4606c1d85a7d0d1e0f1eceb2566a44af",
+            "9e5ab49e4ebbada5a7538c8420fbda575f79793b"
+          ],
+          "verification": "source-implemented; no new live PASS"
+        }
+      ]
     },
     {
       "id": "024",
@@ -904,6 +1061,153 @@
   "revisionNotes": [
     "2026-10-28: Expanded original 001–017 snapshot through 027; earlier analysis retained except corrected title diagnosis.",
     "Group B: source and synthetic end-to-end proof identify default CLI privacy projection; deployed process and live DOM remain unverified.",
-    "Group C: confirmed ownership listing mismatch; BINDING_CHANGED live branch remains unknown. Linked focused tests are offline evidence only."
+    "Group C: confirmed ownership listing mismatch; BINDING_CHANGED live branch remains unknown. Linked focused tests are offline evidence only.",
+    "2026-10-28 round 2: source repairs pushed for blank-chat readiness, exact unbound read fencing, capability capsule recovery/finalization truth and completion observation failure. Test-source added; Node/live verification pending. The live JSON ledger was intentionally NOT modified."
+  ],
+  "sourceRepairRounds": [
+    {
+      "id": "2026-10-28-round-2-fresh-binding-completion",
+      "date": "2026-10-28",
+      "scope": "Source-only remote repair; latest main without opening local Chrome/profile",
+      "updates": [
+        {
+          "area": "fresh new-chat composer admission",
+          "scenarios": [
+            "006",
+            "011",
+            "021",
+            "093"
+          ],
+          "code": [
+            "src/capture/conversation-browser-adapter.mjs"
+          ],
+          "tests": [
+            "test/unit/chatgpt-new-chat-binding-investigation.test.mjs",
+            "test/unit/conversation-runtime.test.mjs"
+          ],
+          "commits": [
+            "6f71804053f7b1e40c21a3485823e9744f9b79c7",
+            "6ec7181ad7120d38a151c8b6c1518a40e94cd851",
+            "778dd6fd0f3d6c5b6638e02a322a6baf9dfeb664"
+          ],
+          "effect": "A Studio-created threadless home tab can be ready for first-turn composing with a positively observed enabled, empty composer and empty page turns even when blank Send is unavailable. It refuses non-home routes, existing turns, draft, busy or disabled composer. Bound-thread terminal/same-thread gates remain strict.",
+          "verification": "Five isolated V8 helper assertions passed before commit; Node test file changed but node --test has not been run; no live probe."
+        },
+        {
+          "area": "unbound read exact-location fence",
+          "scenarios": [
+            "011",
+            "023",
+            "093",
+            "094"
+          ],
+          "code": [
+            "src/capture/conversation-browser-adapter.mjs"
+          ],
+          "tests": [
+            "test/unit/chatgpt-new-chat-binding-investigation.test.mjs"
+          ],
+          "commits": [
+            "d6d0b2cc4606c1d85a7d0d1e0f1eceb2566a44af",
+            "9e5ab49e4ebbada5a7538c8420fbda575f79793b"
+          ],
+          "effect": "The fresh-unbound read rejects target or page drift away from the exact ChatGPT home path rather than treating a same-origin foreign conversation as a valid read. It never sends, clears draft or rebinds.",
+          "verification": "Source guard inspected and regression test authored; full Node/live outcomes not confirmed."
+        },
+        {
+          "area": "capability advice for NEW_CHAT and stale snapshots",
+          "scenarios": [
+            "006",
+            "011",
+            "021",
+            "095",
+            "096"
+          ],
+          "code": [
+            "src/capture/conversation-capsule.mjs"
+          ],
+          "tests": [
+            "test/unit/conversation-capsule.test.mjs"
+          ],
+          "commits": [
+            "ef82725cc47f2f5a432200046e9ff0b514ce37a9",
+            "d04a44c5d331634da109266448dd0bdd9547b2a7",
+            "11f0e0ef77f3bd1ef4ed76e92765657ad5cb6f86"
+          ],
+          "effect": "Read-only capability advice now allows guarded first turn for positively ready Studio-owned unbound NEW_CHAT but does not grant dispatch. Recovered/pending entries refuse new sends and do not advertise live read or tab-close ownership.",
+          "verification": "Eight isolated V8 source assertions passed in patch checks; authored Node tests remain unrun."
+        },
+        {
+          "area": "completion observation fail-closed",
+          "scenarios": [
+            "007",
+            "021",
+            "096",
+            "098"
+          ],
+          "code": [
+            "src/capture/actions.mjs"
+          ],
+          "tests": [
+            "test/unit/drive-observation-truth.test.mjs"
+          ],
+          "commits": [
+            "e7deb05edbea1718da43be8c2fec94f73722d734",
+            "ed4b104345935a9474cda5c8c3c9224fc3f80647",
+            "9d6f1aaad5f0ae054219006de93c28b4732d966d"
+          ],
+          "effect": "A failed or malformed streaming or transcript CDP evaluation is UNKNOWN rather than idle/empty-success. waitForCompletion requires positive fresh streaming and transcript observations to report settled, while preserving explicit provider-failure classification; no automatic resend.",
+          "verification": "Three isolated V8 assertions passed; four regression tests authored, not run with Node; no live tests."
+        },
+        {
+          "area": "finalization and contradictory UI evidence",
+          "scenarios": [
+            "006",
+            "011",
+            "021",
+            "096",
+            "098"
+          ],
+          "code": [
+            "src/capture/conversation-capsule.mjs",
+            "src/capture/conversation-browser-adapter.mjs"
+          ],
+          "tests": [
+            "test/unit/conversation-capsule.test.mjs",
+            "test/unit/chatgpt-new-chat-binding-investigation.test.mjs"
+          ],
+          "commits": [
+            "9871120537bc27380e7de304e9442d88e3609153",
+            "d35ca93d618074abd58d6c4f6dc59dd57181bb41",
+            "100d81fa5db9f087a0eb5ac48ff782831082e06c",
+            "6297189b70c0fd9f6473b9a556e5ba25acf0d6b6"
+          ],
+          "effect": "The advisory capsule treats requested/failed/interrupted finishing as non-readable/non-sendable and non-closable; fresh composer does not override contradictory busy-state evidence.",
+          "verification": "Isolated source assertions passed for capsule/fresh gate; Node and live tests not run."
+        }
+      ],
+      "verification": {
+        "sourceLevel": "Isolated V8 assertions passed for several patched pure source contracts",
+        "nodeTests": "NOT_RUN_IN_THIS_ENVIRONMENT",
+        "githubActions": "PREVIOUS_JOBS_FAILED_NO_EXECUTED_STEPS; current run outcome not established",
+        "liveProvider": "NOT_RUN",
+        "resend": "No provider send and no automatic retry"
+      },
+      "invariants": [
+        "No Playwright or Puppeteer",
+        "Only existing CDP/browser runtime",
+        "No live probe ledger writes",
+        "Title/CLI content redaction default preserved",
+        "Failed test prerequisites are not automatically product bugs",
+        "No false PASS promotions"
+      ],
+      "outstanding": [
+        "Run node --test on focused modified files in functioning Node runner",
+        "Verify fresh home page and blank composer with live-owner fixture",
+        "Verify new chat root location cannot silently drift during read",
+        "Verify completion and no-resend reconciliation against coordinated live probe only"
+      ],
+      "sourceClassificationNote": "Repairs are source changes and do not alter observedStatuses or attempt receipts in the live JSON ledger."
+    }
   ]
 }
