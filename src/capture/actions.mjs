@@ -651,8 +651,10 @@ export async function readTranscript(page, adapter = null, { exclude = [] } = {}
     if (tail) return { turns: [{ role: 'assistant', text: tail }], last: last, texts: blocks.map((b) => b.t), count: blocks.length, reason: 'generic text blocks (no assistant container matched)' };
     return { turns: [], last: '', texts: [], count: 0, reason: 'no assistant text found' };
   })()`);
-  if (!r.ok) return { turns: [], last: '', texts: [], count: 0, reason: `transcript read failed: ${r.error}` };
-  return { turns: r.value?.turns ?? [], last: r.value?.last ?? '', texts: r.value?.texts ?? [], count: r.value?.count ?? 0, reason: r.value?.reason ?? 'unknown' };
+  // A failed/invalid page evaluation is unknown, not an empty successful transcript.
+  if (!r.ok || !r.value || !Array.isArray(r.value.turns) || typeof r.value.last !== 'string')
+    return { observed: false, turns: [], last: '', texts: [], count: 0, reason: 'transcript observation unavailable' };
+  return { observed: true, turns: r.value.turns, last: r.value.last, texts: r.value.texts ?? [], count: r.value.count ?? 0, reason: r.value.reason ?? 'unknown' };
 }
 
 // The calibration prompt names the words it wants: "Reply with exactly these 12 words separated
@@ -726,8 +728,10 @@ export async function isStreaming(page, adapter = null) {
     // they are common on idle pages, and waitForCompletion's text-stability gate is authoritative.
     return { streaming: false, evidence: weak.length ? 'weak match only (' + weak.slice(0, 3).join(', ') + '); text stability decides' : 'none' };
   })()`);
-  if (!r.ok) return { streaming: false, evidence: `streaming check failed: ${r.error}` };
-  return { streaming: !!r.value?.streaming, evidence: r.value?.evidence ?? 'none' };
+  // Do not convert a failed page evaluation into a false "generation finished".
+  if (!r.ok || typeof r.value?.streaming !== 'boolean')
+    return { streaming: null, observed: false, evidence: 'streaming observation unavailable' };
+  return { streaming: r.value.streaming, observed: true, evidence: r.value.evidence ?? 'none' };
 }
 
 export async function waitForCompletion(page, adapter = null, { timeoutMs = 120000, stableMs = 2500, pollMs = 400, baseline = null, baseCount = null, exclude = [], signal, onUpdate } = {}) {
@@ -774,11 +778,14 @@ export async function waitForCompletion(page, adapter = null, { timeoutMs = 1200
     // previous one. The count of content blocks is what proves something arrived.
     const grew = baseCount === null || (tr.count ?? 0) > baseCount;
     const changed = grew || (base === null || norm(text) !== base);
-    if (!stream.streaming && text && changed && quietFor >= stableMs) {
+    // Both page observations must be fresh and valid. Otherwise "not streaming"
+    // plus stale answer text could falsely finalize an uncertain send.
+    if (stream.observed === true && stream.streaming === false && tr.observed === true
+      && text && changed && quietFor >= stableMs) {
       return { done: true, ms: Date.now() - startedAt, text, texts, reason: `settled: no change for ${quietFor} ms` };
     }
     if (now - startedAt >= timeoutMs) {
-      return { done: false, ms: Date.now() - startedAt, text, texts, reason: `timeout after ${timeoutMs} ms (${evidence}${stream.streaming ? ', still streaming' : ''}${changed ? '' : '; no new content since the send'})` };
+      return { done: false, ms: Date.now() - startedAt, text, texts, reason: `timeout after ${timeoutMs} ms (${evidence}${stream.streaming ? ', still streaming' : ''}${changed ? '' : '; no new content since the send'}${!stream.observed || !tr.observed ? '; observation incomplete' : ''})` };
     }
     await sleep(pollMs);
   }
