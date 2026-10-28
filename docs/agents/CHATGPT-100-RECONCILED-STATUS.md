@@ -116,3 +116,9 @@ Date: 2026-10-28. Baseline: original objectives and the three companion maps. **
 ## New roadmap extension
 
 Independent product-outcome scenarios **101–200**: [`CHATGPT-200-ROADMAP-OBJECTIVES.md`](CHATGPT-200-ROADMAP-OBJECTIVES.md). These include local capture, provenance, World, retrieval, portable context, adapter evolution, resilience, privacy and Windows/Android continuity; they are NOT marked implemented or live-passed.
+
+## Source-fix supplement — 2026-10-28 (not live verification)
+
+- **007 / 031–033 / 096 / 098**: `turnObservationExpression` no longer infers positive idle readiness from absence of Stop and an empty draft. An unresolved readiness fence is safer than automatic next-turn admission; genuine live readiness remains unproven.
+- **041–050**: the bounded structured DOM reader now filters nested hidden content and the transcript excludes hidden message roots/controls. This improves observation privacy, but native artifacts, broad history, citation anchoring and full response completeness remain partial/unsupported as classified above.
+- Code regression fixtures were committed. 10 isolated assertions against fetched JS source passed under V8 using fake DOM; the repository Node runner and real ChatGPT UI were **not** verified. No live scenarios executed.
