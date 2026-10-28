@@ -1,0 +1,909 @@
+{
+  "schemaVersion": "1.0",
+  "sourceLedger": "docs/agents/CHATGPT-100-LIVE-2026-10-28.json",
+  "researchSnapshot": {
+    "reportedIds": [
+      "001",
+      "002",
+      "003",
+      "004",
+      "005",
+      "006",
+      "007",
+      "008",
+      "009",
+      "010",
+      "011",
+      "012",
+      "013",
+      "014",
+      "015",
+      "016",
+      "017",
+      "018",
+      "019",
+      "020",
+      "021",
+      "022",
+      "023",
+      "024",
+      "025",
+      "026",
+      "027"
+    ],
+    "maxId": "027",
+    "scope": "Snapshot of latest attempts 001–027 observed at start of revision; later probes outside this revision. Statuses remain live-owner controlled."
+  },
+  "policy": {
+    "evidence": "Source evidence and fixture tests are not live passes. Remote implementation must not edit observed statuses. Only the coordinated live probe owner may update the live ledger.",
+    "routing": "Terra low for reading and probing; Terra medium/high for simple code; Sol for advanced architecture.",
+    "validationOwner": "Source/fixture validation: implementation owner; live reprobe and ledger updates: coordinated live probe owner, with authorization and safe evidence only."
+  },
+  "repairGroups": {
+    "A": {
+      "name": "Read-only state inspection",
+      "dependencies": [
+        "Map existing capsule and preflight evidence before proposing an inspector",
+        "Single existing browser/runtime owner",
+        "Explicit privacy and disclosure policy"
+      ],
+      "codeLocations": [
+        "src/studio/conversation-tools.mjs:29-63 CONVERSATION_TOOLS",
+        "src/capture/actions.mjs:59-103 findComposer",
+        "src/capture/actions.mjs:682-730 isStreaming",
+        "src/capture/actions.mjs:847-894 detectAuthWall",
+        "src/capture/conversation-browser-adapter.mjs:114-163 readiness",
+        "src/capture/conversation-capsule.mjs:75 capsule ownership"
+      ],
+      "evidence": "Registry has no dedicated state inspector; readiness is lifecycle-bound. findComposer writes page-global state, isStreaming returns false on evaluation failure, and detectAuthWall is heuristic and false does not prove authentication.",
+      "regressionTests": [
+        "Synthetic positive, negative, hidden, conflicting and evaluation-failure states yield bounded tri-state results; absence or failure is unknown when not proven.",
+        "Assert no page-global writes, focus, typing, navigation, send or sensitive text leakage; account identity disclosure requires explicit approval."
+      ]
+    },
+    "B": {
+      "name": "Title evidence pipeline",
+      "dependencies": [
+        "Synthetic fixture title and distinct exact refs",
+        "For live 012 an approved disposable exact title"
+      ],
+      "codeLocations": [
+        "src/capture/chatgpt-chat-index.mjs:150-196 normalizeChatIndex",
+        "test/unit/chatgpt-chat-index.test.mjs:106",
+        "test/unit/chatgpt-chat-index-reader.test.mjs:120",
+        "src/studio/conversation-tools.mjs:33-35 chat_index",
+        "src/studio/integration-hub.mjs:498 structuredContent",
+        "src/studio/tool-client.mjs:60-61 structuredContent",
+        "bin/commands/tools.mjs:36-44 runToolsCall",
+        "src/studio/tool-result.mjs:1-15 metadataOnly",
+        "docs/agents/CHATGPT-TITLE-PIPELINE-INVESTIGATION-2026-10-28.md:1",
+        "test/unit/chatgpt-title-pipeline-investigation.test.mjs:1"
+      ],
+      "evidence": "Normalizer emits displayTitle.text when title exists. CLI default metadataOnly recursively strips text/title; --include-content opts in. The recorded flags-only output is consistent with this intentional privacy projection, not a demonstrated product defect. Source and the parent-reported one-pass offline full-pipeline test establish mechanism, not deployed version or actual live DOM title. Index remains incomplete candidates, not bindings.",
+      "regressionTests": [
+        "Preserve default private-content redaction and explicit authorized inclusion; offline full-pipeline synthetic proof passed once per parent.",
+        "Test duplicate titles with distinct refs, Unicode, missing title and truncation/bounds; no private output in receipts."
+      ]
+    },
+    "C": {
+      "name": "Fresh-tab readiness and ownership provenance",
+      "dependencies": [
+        "Existing single runtime owner",
+        "Proven target ownership and fail-closed identity"
+      ],
+      "codeLocations": [
+        "src/studio/conversation-tools.mjs:45-47 create_conversation",
+        "src/studio/conversation-tools.mjs:82-94 executeConversationTool",
+        "src/capture/conversation-runtime.mjs:497-512 targets",
+        "src/capture/conversation-runtime.mjs:583-588 NEW_CHAT",
+        "src/capture/conversation-runtime.mjs:630-642 connect",
+        "src/capture/conversation-browser-adapter.mjs:114-143 readiness",
+        "src/capture/conversation-service.mjs:400-412 creation",
+        "docs/agents/CHATGPT-NEW-CHAT-BINDING-REPAIR-PLAN-2026-10-28.md:1",
+        "test/unit/chatgpt-new-chat-binding-investigation.test.mjs:1"
+      ],
+      "evidence": "Source confirms target listing hardcodes ownedByStudio false while fresh creation binding uses true. Do not set all targets true. Cause of live BINDING_CHANGED remains inconclusive. The linked binding plan documents candidate returned-blocked versus thrown branches; parent reports 9 focused tests passing. This is offline evidence, not a live branch diagnosis or product fix.",
+      "regressionTests": [
+        "Inject target URL, page origin/path and timing cases to isolate readiness branches; genuine drift fails closed.",
+        "Verify provenance-backed owner reporting distinguishes fresh owned, foreign and unknown targets; no send and draft fencing preserved."
+      ]
+    },
+    "D": {
+      "name": "Profile context and discovery",
+      "dependencies": [
+        "Correct explicit data directory and verified browser identity"
+      ],
+      "codeLocations": [
+        "bin/lib/context.mjs:13 data directory",
+        "bin/commands/capture.mjs:43-53 targets"
+      ],
+      "evidence": "targets verifies profile before listing. Explicit data-dir versus default is usage friction, not evidence of guard bypass. 005 is a qualified pass, not account or OS-window proof.",
+      "regressionTests": [
+        "Mismatched profile refuses enumeration; explicit correct context accepts verified ownership without weakening the guard."
+      ]
+    },
+    "E": {
+      "name": "Scoped native navigation, history and traversal",
+      "dependencies": [
+        "Inventory all tool and command registrations before claiming capability absence",
+        "Verified single owner, exact target and explicit draft safety",
+        "Approved disposable fixtures appropriate to each objective"
+      ],
+      "codeLocations": [
+        "src/studio/conversation-tools.mjs:14-20 schemas",
+        "src/studio/conversation-tools.mjs:33-35 chat_index",
+        "src/studio/conversation-tools.mjs:48-53 connect and read",
+        "bin/commands/drive.mjs:48-53 URL overlay",
+        "bin/commands/drive.mjs:63-96 prompt and driveSite",
+        "src/capture/conversation-browser-adapter.mjs:266-270 fresh navigation"
+      ],
+      "evidence": "Index inspects links and attach requires an already-open exact thread; neither is generic navigation. drive preserves a URL but its live path drives a prompt and is not no-send navigation. Fresh owned adapter navigation is to adapter home. Potential scoped URL, native search and scroll gaps require full registration inventory.",
+      "regressionTests": [
+        "Fixture-test exact allowed URLs, unsafe URLs, foreign owners, binding drift and draft-present refusals; assert no send.",
+        "Separate native history search from local indexing and verify traversal is bounded and exact-thread fenced."
+      ]
+    },
+    "F": {
+      "name": "Completion journal and native generation controls",
+      "dependencies": [
+        "Prior operation identity and original key retained",
+        "Read-only reconciliation and verified exact binding",
+        "Full native tool registration inventory before capability claims"
+      ],
+      "codeLocations": [
+        "src/capture/conversation-service.mjs:109-111",
+        "src/studio/conversation-tools.mjs:29-63",
+        "docs/agents/CHATGPT-100-LIVE-2026-10-28.json:1"
+      ],
+      "evidence": "021 observed an actual user turn and assistant answer 21, but reply interrupted, protocol completion unknown and capture incomplete; this is not a missed send. Prior uncertainty and closed local state constrain follow-ups. Native control non-discovery is distinct from provider feature unavailability.",
+      "regressionTests": [
+        "Journal preserves observed delivery while completion remains unknown; read-only reconciliation reuses original operation key and never resends.",
+        "Inventory native control registrations; test provider offer, ownership, exact-thread and draft/idle preconditions separately."
+      ]
+    }
+  },
+  "objectives": [
+    {
+      "id": "001",
+      "observedStatus": "UNSUPPORTED",
+      "classification": "Identity inspection not discovered; identity unknown",
+      "confidence": "medium",
+      "repairGroup": "A",
+      "dependencies": [
+        "Approved identity disclosure"
+      ],
+      "codeLocations": [
+        "src/studio/conversation-tools.mjs:29-63"
+      ],
+      "nextInvestigationSteps": [
+        "Map capsule/preflight fields; design a minimal approved disclosure contract only if necessary."
+      ],
+      "regressionTests": [
+        "Group A privacy, tri-state and no-effects tests; reject unapproved identity disclosure."
+      ],
+      "liveReprobePreconditions": [
+        "Human approval of exact identity disclosure and verified target."
+      ],
+      "acceptanceCriteria": [
+        "Safely identify the approved account field or explicitly report unknown without credentials."
+      ],
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+    },
+    {
+      "id": "002",
+      "observedStatus": "UNSUPPORTED",
+      "classification": "Authentication state unknown; missing dedicated inspection",
+      "confidence": "medium",
+      "repairGroup": "A",
+      "dependencies": [
+        "A capsule/preflight map"
+      ],
+      "codeLocations": [
+        "src/capture/actions.mjs:847-894"
+      ],
+      "nextInvestigationSteps": [
+        "Compare auth evidence with existing capsule; distinguish signed out, supported positive proof and unknown."
+      ],
+      "regressionTests": [
+        "Group A auth-positive, negative, conflicting and evaluation failure tests."
+      ],
+      "liveReprobePreconditions": [
+        "Verified target and authorized read-only inspection; known auth-state fixture or human confirmation."
+      ],
+      "acceptanceCriteria": [
+        "Correctly report login required when evidenced, otherwise authenticated only on positive proof or unknown."
+      ],
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+    },
+    {
+      "id": "003",
+      "observedStatus": "BLOCKED",
+      "classification": "No exact thread target; not established as a defect",
+      "confidence": "high",
+      "repairGroup": "E",
+      "dependencies": [
+        "Approved exact native thread"
+      ],
+      "codeLocations": [
+        "src/studio/conversation-tools.mjs:29-32",
+        "src/capture/conversation-runtime.mjs:497-512"
+      ],
+      "nextInvestigationSteps": [
+        "Confirm target discovery identity contract with an exact-thread fixture; do not automatically repair a missing live precondition."
+      ],
+      "regressionTests": [
+        "Root and malformed paths never become verified thread identities."
+      ],
+      "liveReprobePreconditions": [
+        "Approved exact live-bound thread and verified target/visibility."
+      ],
+      "acceptanceCriteria": [
+        "Report the visible native conversation ID with verified exact binding, not its title; otherwise unknown."
+      ],
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+    },
+    {
+      "id": "004",
+      "observedStatus": "PARTIAL",
+      "classification": "Profile-context friction and missing unrelated-tab fixture",
+      "confidence": "high",
+      "repairGroup": "D",
+      "dependencies": [
+        "Verified explicit data directory",
+        "Approved unrelated tab"
+      ],
+      "codeLocations": [
+        "bin/lib/context.mjs:13",
+        "bin/commands/capture.mjs:43-53"
+      ],
+      "nextInvestigationSteps": [
+        "Trace explicit and default context selection and document safe invocation; preserve verification."
+      ],
+      "regressionTests": [
+        "Group D profile mismatch refusal and explicit-context acceptance."
+      ],
+      "liveReprobePreconditions": [
+        "Verified dedicated profile plus an approved unrelated open webapp tab."
+      ],
+      "acceptanceCriteria": [
+        "Correctly locate ChatGPT among observed unrelated tabs under verified profile without bypassing ownership guard."
+      ],
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+    },
+    {
+      "id": "005",
+      "observedStatus": "PASS",
+      "classification": "Qualified profile-isolation pass; no automatic repair",
+      "confidence": "medium",
+      "repairGroup": "D",
+      "dependencies": [
+        "Verified explicit profile context"
+      ],
+      "codeLocations": [
+        "bin/commands/capture.mjs:43-53",
+        "bin/lib/context.mjs:13"
+      ],
+      "nextInvestigationSteps": [
+        "Retain qualification and confirm guard behavior in fixtures; do not infer account or OS window identity."
+      ],
+      "regressionTests": [
+        "Group D mismatch refusal and explicit-context acceptance."
+      ],
+      "liveReprobePreconditions": [
+        "Explicit intended data directory and independently verified capture browser."
+      ],
+      "acceptanceCriteria": [
+        "Identify the ChatGPT target in the guarded dedicated browser; disclose that this does not establish account or OS window handle."
+      ],
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+    },
+    {
+      "id": "006",
+      "observedStatus": "UNSUPPORTED",
+      "classification": "Readiness not exposed for root target",
+      "confidence": "medium",
+      "repairGroup": "A",
+      "dependencies": [
+        "A capsule/preflight map"
+      ],
+      "codeLocations": [
+        "src/capture/conversation-browser-adapter.mjs:114-163",
+        "src/capture/actions.mjs:59-103"
+      ],
+      "nextInvestigationSteps": [
+        "Determine whether a pure root-target inspector can distinguish ready, loading and unknown without lifecycle side effects."
+      ],
+      "regressionTests": [
+        "Group A readiness and no-effects cases, including hidden and conflicting composer."
+      ],
+      "liveReprobePreconditions": [
+        "Verified target, read-only authorization and observable loading/ready conditions."
+      ],
+      "acceptanceCriteria": [
+        "Report evidenced input readiness or loading, otherwise unknown; never modify composer."
+      ],
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+    },
+    {
+      "id": "007",
+      "observedStatus": "UNSUPPORTED",
+      "classification": "Streaming state unobserved; evaluation failure currently collapses to false",
+      "confidence": "high",
+      "repairGroup": "A",
+      "dependencies": [
+        "A capsule/preflight map"
+      ],
+      "codeLocations": [
+        "src/capture/actions.mjs:682-730"
+      ],
+      "nextInvestigationSteps": [
+        "Investigate a tri-state read contract without changing completion semantics blindly."
+      ],
+      "regressionTests": [
+        "Group A streaming, idle, hidden, conflicting and evaluation-failure cases."
+      ],
+      "liveReprobePreconditions": [
+        "Approved observable generating or completed disposable thread; no send solely to create state without authorization."
+      ],
+      "acceptanceCriteria": [
+        "Identify evidenced generating or finished state; evaluation failure yields unknown, not finished."
+      ],
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+    },
+    {
+      "id": "008",
+      "observedStatus": "UNSUPPORTED",
+      "classification": "Temporary Chat state unobserved",
+      "confidence": "medium",
+      "repairGroup": "A",
+      "dependencies": [
+        "A capsule/preflight map"
+      ],
+      "codeLocations": [
+        "src/studio/conversation-tools.mjs:29-63"
+      ],
+      "nextInvestigationSteps": [
+        "Inventory existing mode evidence and identify minimal visible mode signals without toggling settings."
+      ],
+      "regressionTests": [
+        "Group A mode-on/off, hidden, conflicting and evaluation-failure tests."
+      ],
+      "liveReprobePreconditions": [
+        "Approved target with independently known mode; no unapproved mode change."
+      ],
+      "acceptanceCriteria": [
+        "Correctly report evidenced Temporary Chat state or unknown, not infer off from absence."
+      ],
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+    },
+    {
+      "id": "009",
+      "observedStatus": "UNSUPPORTED",
+      "classification": "Flags-only output consistent with intentional default privacy projection; duplicate pair unverified",
+      "confidence": "high for source mechanism and offline reproduction; live deployed version and DOM unverified",
+      "repairGroup": "B",
+      "dependencies": [
+        "B pipeline trace",
+        "Approved duplicate-title fixtures"
+      ],
+      "codeLocations": [
+        "src/capture/chatgpt-chat-index.mjs:150-196",
+        "src/studio/tool-client.mjs:60-61",
+        "bin/commands/tools.mjs:36-44",
+        "src/studio/tool-result.mjs:1-15",
+        "docs/agents/CHATGPT-TITLE-PIPELINE-INVESTIGATION-2026-10-28.md:1"
+      ],
+      "nextInvestigationSteps": [
+        "Retain privacy default; use --include-content only with explicit local content authorization on approved disposable fixtures. If known visible title still missing, trace DOM reader through normalizer, registry, transport and CLI before proposing a fix."
+      ],
+      "regressionTests": [
+        "Group B default redaction, authorized opt-in, duplicate refs, Unicode and bounds; parent reports full-pipeline test 1 PASS."
+      ],
+      "liveReprobePreconditions": [
+        "Two approved visible disposable threads with identical titles and distinct native refs.",
+        "Explicit authorization to expose returned titles locally; avoid retaining unrelated private titles."
+      ],
+      "acceptanceCriteria": [
+        "Observe same title and distinguish two distinct exact candidate refs; do not assert live binding from index alone."
+      ],
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+    },
+    {
+      "id": "010",
+      "observedStatus": "UNSUPPORTED",
+      "classification": "Obstruction state unobserved",
+      "confidence": "medium",
+      "repairGroup": "A",
+      "dependencies": [
+        "A capsule/preflight map"
+      ],
+      "codeLocations": [
+        "src/capture/actions.mjs:847-894",
+        "src/capture/conversation-browser-adapter.mjs:114-163"
+      ],
+      "nextInvestigationSteps": [
+        "Compare modal/challenge signals with existing preflight; limit output to privacy-safe categories."
+      ],
+      "regressionTests": [
+        "Group A visible/hidden modal, conflicting signals, evaluation failure and no-effects tests."
+      ],
+      "liveReprobePreconditions": [
+        "Approved target with independently observed obstruction; no challenge interaction."
+      ],
+      "acceptanceCriteria": [
+        "Explain an evidenced obstruction category or return unknown without claiming an unobstructed composer from missing signals."
+      ],
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+    },
+    {
+      "id": "011",
+      "observedStatus": "PARTIAL",
+      "classification": "New target created; readiness and ownership conflict unverified",
+      "confidence": "high for source reporting mismatch; low for binding cause",
+      "repairGroup": "C",
+      "dependencies": [
+        "Provenance-safe owner",
+        "Fresh disposable tab authorization"
+      ],
+      "codeLocations": [
+        "src/capture/conversation-runtime.mjs:497-512",
+        "src/capture/conversation-runtime.mjs:583-588",
+        "src/capture/conversation-runtime.mjs:630-642",
+        "src/capture/conversation-browser-adapter.mjs:114-143",
+        "src/capture/conversation-service.mjs:400-412"
+      ],
+      "nextInvestigationSteps": [
+        "Follow linked binding plan: isolate origin/path/timing branch with sanitized diagnostics; trace current-runtime exact fresh-target ownership provenance without marking foreign or recovered targets owned. No production fix yet."
+      ],
+      "regressionTests": [
+        "Group C injected readiness and ownership tests; real drift fails closed."
+      ],
+      "liveReprobePreconditions": [
+        "Authorization for a fresh disposable owned tab; safe original draft; no send."
+      ],
+      "acceptanceCriteria": [
+        "Create without sending and independently verify blank composer, readiness and consistent provenance-backed ownership; preserve original target."
+      ],
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+    },
+    {
+      "id": "012",
+      "observedStatus": "UNSUPPORTED",
+      "classification": "Flags-only output consistent with intentional default privacy projection; approved target title and sidebar provenance missing",
+      "confidence": "high for source mechanism and offline reproduction; live deployed version and DOM unverified",
+      "repairGroup": "B",
+      "dependencies": [
+        "B pipeline trace",
+        "Approved disposable title"
+      ],
+      "codeLocations": [
+        "src/capture/chatgpt-chat-index.mjs:150-196",
+        "src/studio/integration-hub.mjs:498",
+        "src/studio/tool-client.mjs:60-61",
+        "bin/commands/tools.mjs:36-44",
+        "src/studio/tool-result.mjs:1-15",
+        "docs/agents/CHATGPT-TITLE-PIPELINE-INVESTIGATION-2026-10-28.md:1"
+      ],
+      "nextInvestigationSteps": [
+        "Retain privacy default; use --include-content only with explicit local content authorization on approved disposable fixtures. If known visible title still missing, trace DOM reader through normalizer, registry, transport and CLI before proposing a fix."
+      ],
+      "regressionTests": [
+        "Group B default redaction, authorized opt-in, duplicate refs, Unicode and bounds; parent reports full-pipeline test 1 PASS."
+      ],
+      "liveReprobePreconditions": [
+        "Approved specific disposable title and visible sidebar; read-only permission.",
+        "Explicit authorization to expose returned titles locally; avoid retaining unrelated private titles."
+      ],
+      "acceptanceCriteria": [
+        "Locate the approved title in evidenced sidebar candidates with its distinct native ref; report incomplete coverage and do not claim attachment."
+      ],
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+    },
+    {
+      "id": "013",
+      "observedStatus": "UNSUPPORTED",
+      "classification": "No scoped no-send exact URL action discovered; complete inventory pending",
+      "confidence": "medium",
+      "repairGroup": "E",
+      "dependencies": [
+        "E registration inventory",
+        "Verified disposable owned target"
+      ],
+      "codeLocations": [
+        "src/studio/conversation-tools.mjs:48-53",
+        "bin/commands/drive.mjs:48-53",
+        "bin/commands/drive.mjs:63-96"
+      ],
+      "nextInvestigationSteps": [
+        "Inventory owner-native navigation registrations; assess exact URL no-send operation and guard requirements without using drive as a substitute."
+      ],
+      "regressionTests": [
+        "Group E unsafe URL, foreign owner, drift and draft refusal; no-send assertion."
+      ],
+      "liveReprobePreconditions": [
+        "Approved exact disposable /c/ URL, verified owned disposable target and draft safety."
+      ],
+      "acceptanceCriteria": [
+        "Navigate without sending and independently verify exact resulting native URL and binding."
+      ],
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+    },
+    {
+      "id": "014",
+      "observedStatus": "BLOCKED",
+      "classification": "Two verified draft-safe disposable threads missing; navigation gap separate",
+      "confidence": "high",
+      "repairGroup": "E",
+      "dependencies": [
+        "Two approved exact draft-safe threads",
+        "E registration inventory"
+      ],
+      "codeLocations": [
+        "src/studio/conversation-tools.mjs:48-53",
+        "src/capture/conversation-browser-adapter.mjs:266-270"
+      ],
+      "nextInvestigationSteps": [
+        "Inventory existing switching operations and define identity and draft fencing; do not automatically fix missing fixtures."
+      ],
+      "regressionTests": [
+        "Group E foreign owner, drift and draft refusal; preserve both threads."
+      ],
+      "liveReprobePreconditions": [
+        "Two approved disposable exact live-bound threads with verified draft safety and authorized switching."
+      ],
+      "acceptanceCriteria": [
+        "Move to the second thread and return to the original exact native thread without send or draft loss."
+      ],
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+    },
+    {
+      "id": "015",
+      "observedStatus": "UNSUPPORTED",
+      "classification": "Native history-search action not discovered; full inventory pending",
+      "confidence": "medium",
+      "repairGroup": "E",
+      "dependencies": [
+        "E registration inventory",
+        "Approved known test phrase"
+      ],
+      "codeLocations": [
+        "src/studio/conversation-tools.mjs:33-35",
+        "src/studio/conversation-tools.mjs:14-20"
+      ],
+      "nextInvestigationSteps": [
+        "Inventory registered native search operations and inspect native UI interaction contract; local index is not a substitute."
+      ],
+      "regressionTests": [
+        "Group E owner and drift guards; verify native search interaction, bounded results and no send."
+      ],
+      "liveReprobePreconditions": [
+        "Approved disposable old test phrase and authorized native history search on verified target."
+      ],
+      "acceptanceCriteria": [
+        "Use ChatGPT's own history search and identify the specific matching disposable result, or report no observed result without claiming success."
+      ],
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+    },
+    {
+      "id": "016",
+      "observedStatus": "BLOCKED",
+      "classification": "Verified prior native thread and navigation missing",
+      "confidence": "high",
+      "repairGroup": "E",
+      "dependencies": [
+        "Known prior native thread",
+        "E registration inventory"
+      ],
+      "codeLocations": [
+        "src/studio/conversation-tools.mjs:48-53",
+        "src/capture/conversation-runtime.mjs:497-512"
+      ],
+      "nextInvestigationSteps": [
+        "Inventory owner-native recovery operations and trace safe provenance of prior exact thread; do not automatically repair missing precondition."
+      ],
+      "regressionTests": [
+        "Group E ownership, drift and draft refusals; exact prior-thread identity."
+      ],
+      "liveReprobePreconditions": [
+        "Approved verified owned target with known prior disposable native thread and authorized navigation away."
+      ],
+      "acceptanceCriteria": [
+        "Return to the independently verified exact prior native thread without sending or losing a draft."
+      ],
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+    },
+    {
+      "id": "017",
+      "observedStatus": "BLOCKED",
+      "classification": "Approved long thread missing; traversal capability separately unverified",
+      "confidence": "high",
+      "repairGroup": "E",
+      "dependencies": [
+        "Approved exact long thread and known early user turn",
+        "E registration inventory"
+      ],
+      "codeLocations": [
+        "src/studio/conversation-tools.mjs:51-53",
+        "src/capture/conversation-browser-adapter.mjs:114-163"
+      ],
+      "nextInvestigationSteps": [
+        "Inventory native bounded traversal and examine exact-thread and virtualization constraints; do not automatically fix missing fixture."
+      ],
+      "regressionTests": [
+        "Group E bounded scroll, wrong-thread drift and draft refusal; verify requested early user turn."
+      ],
+      "liveReprobePreconditions": [
+        "Approved disposable exact live-bound long thread with independently known early user turn and scroll authorization."
+      ],
+      "acceptanceCriteria": [
+        "Reach and verify the specified early user turn in that exact thread without sending or modifying drafts."
+      ],
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+    },
+    {
+      "id": "018",
+      "observedStatus": "BLOCKED",
+      "classification": "Missing approved exact thread and earlier position; traversal availability separate",
+      "confidence": "high for recorded observation; capability and cause require further verification",
+      "repairGroup": "E",
+      "dependencies": [
+        "E registration inventory and objective-specific approved fixture"
+      ],
+      "codeLocations": [
+        "src/studio/conversation-tools.mjs:51-53"
+      ],
+      "nextInvestigationSteps": [
+        "Inventory native jump-to-latest/scroll registration and bounded exact-thread traversal; do not treat missing fixture as defect."
+      ],
+      "regressionTests": [
+        "Group E verified owner, drift, draft refusal and no-send fixture tests."
+      ],
+      "liveReprobePreconditions": [
+        "Approved disposable exact live-bound thread, known earlier position and authorized scrolling."
+      ],
+      "acceptanceCriteria": [
+        "Reach and independently verify latest answer without a send or draft modification."
+      ],
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+    },
+    {
+      "id": "019",
+      "observedStatus": "UNSUPPORTED",
+      "classification": "Sidebar state/control not discovered; no expansion attempted",
+      "confidence": "high for recorded observation; capability and cause require further verification",
+      "repairGroup": "E",
+      "dependencies": [
+        "E registration inventory and objective-specific approved fixture"
+      ],
+      "codeLocations": [
+        "src/studio/conversation-tools.mjs:33-35"
+      ],
+      "nextInvestigationSteps": [
+        "Inventory native sidebar state and expansion registrations; distinguish unsupported control from unknown UI state."
+      ],
+      "regressionTests": [
+        "Group E verified owner, drift, draft refusal and no-send fixture tests."
+      ],
+      "liveReprobePreconditions": [
+        "Verified owned disposable target with independently observed collapsed sidebar and authorized expansion."
+      ],
+      "acceptanceCriteria": [
+        "Observe collapsed state, expand natively, and verify controls and expanded state."
+      ],
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+    },
+    {
+      "id": "020",
+      "observedStatus": "UNSUPPORTED",
+      "classification": "Archive navigation not discovered; approved archived fixture missing",
+      "confidence": "high for recorded observation; capability and cause require further verification",
+      "repairGroup": "E",
+      "dependencies": [
+        "E registration inventory and objective-specific approved fixture"
+      ],
+      "codeLocations": [
+        "src/studio/conversation-tools.mjs:33-35"
+      ],
+      "nextInvestigationSteps": [
+        "Inventory native archive navigation and state controls; distinguish provider feature availability from absent fixture."
+      ],
+      "regressionTests": [
+        "Group E verified owner, drift, draft refusal and no-send fixture tests."
+      ],
+      "liveReprobePreconditions": [
+        "Approved disposable archived thread, known archive state, verified owner and scoped navigation authorization."
+      ],
+      "acceptanceCriteria": [
+        "Open native archive and identify the approved archived thread; report feature unavailable only with evidence."
+      ],
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+    },
+    {
+      "id": "021",
+      "observedStatus": "PARTIAL",
+      "classification": "User turn and reply 21 observed; interrupted, completion unknown, capture incomplete",
+      "confidence": "high for recorded observation; capability and cause require further verification",
+      "repairGroup": "F",
+      "dependencies": [
+        "Original operation uncertainty and native control inventory"
+      ],
+      "codeLocations": [
+        "src/capture/conversation-service.mjs:109-111"
+      ],
+      "nextInvestigationSteps": [
+        "Trace completion and journal semantics, original operation identity and read-only reconciliation; do not interpret as missed send or generate a replacement key."
+      ],
+      "regressionTests": [
+        "Group F journal and native control safeguards."
+      ],
+      "liveReprobePreconditions": [
+        "Original journal and key available; explicit authorization for read-only reconciliation; no resend."
+      ],
+      "acceptanceCriteria": [
+        "Evidence establishes delivery and separately reconciles completion/capture where possible; otherwise retain unknown without resending."
+      ],
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+    },
+    {
+      "id": "022",
+      "observedStatus": "BLOCKED",
+      "classification": "Prior completion unknown; live readiness and draft safety unverified",
+      "confidence": "high for recorded observation; capability and cause require further verification",
+      "repairGroup": "F",
+      "dependencies": [
+        "Original operation uncertainty and native control inventory"
+      ],
+      "codeLocations": [
+        "src/capture/conversation-service.mjs:241-256"
+      ],
+      "nextInvestigationSteps": [
+        "Investigate original 021 completion reconciliation and same-thread live readiness before any follow-up."
+      ],
+      "regressionTests": [
+        "Group F journal and native control safeguards."
+      ],
+      "liveReprobePreconditions": [
+        "Prior uncertainty resolved under original identity, exact current thread binding and live draft-safe readiness, plus authorized follow-up."
+      ],
+      "acceptanceCriteria": [
+        "After preconditions, one authorized follow-up in same thread produces and verifies 24; no replacement or blind resend."
+      ],
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+    },
+    {
+      "id": "023",
+      "observedStatus": "BLOCKED",
+      "classification": "Intervening discussion absent and prior completion unknown",
+      "confidence": "high for recorded observation; capability and cause require further verification",
+      "repairGroup": "F",
+      "dependencies": [
+        "Original operation uncertainty and native control inventory"
+      ],
+      "codeLocations": [
+        "src/capture/conversation-service.mjs:109-111"
+      ],
+      "nextInvestigationSteps": [
+        "Investigate 021 reconciliation and identify approved existing continuity fixture; do not manufacture discussion by unapproved sends."
+      ],
+      "regressionTests": [
+        "Group F journal and native control safeguards."
+      ],
+      "liveReprobePreconditions": [
+        "Resolved prior uncertainty and approved exact live-ready thread containing a verifiable early fact and intervening discussion."
+      ],
+      "acceptanceCriteria": [
+        "An authorized continuity question correctly references the earlier fact with observable same-thread evidence."
+      ],
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+    },
+    {
+      "id": "024",
+      "observedStatus": "UNSUPPORTED",
+      "classification": "Edit and branch control not discovered; prior completion and safe readiness unverified",
+      "confidence": "high for recorded observation; capability and cause require further verification",
+      "repairGroup": "F",
+      "dependencies": [
+        "Original operation uncertainty and native control inventory"
+      ],
+      "codeLocations": [
+        "src/studio/conversation-tools.mjs:29-63"
+      ],
+      "nextInvestigationSteps": [
+        "Inventory native edit and branch registration and distinguish provider availability from control gap; resolve prior uncertainty first."
+      ],
+      "regressionTests": [
+        "Group F journal and native control safeguards."
+      ],
+      "liveReprobePreconditions": [
+        "Approved disposable editable turn, completed prior operation, verified idle binding and draft safety, and explicit edit authorization."
+      ],
+      "acceptanceCriteria": [
+        "Edit the approved turn natively and verify resulting branch identity without unapproved send."
+      ],
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+    },
+    {
+      "id": "025",
+      "observedStatus": "UNSUPPORTED",
+      "classification": "Regenerate control not discovered; completed answer and safe binding unverified",
+      "confidence": "high for recorded observation; capability and cause require further verification",
+      "repairGroup": "F",
+      "dependencies": [
+        "Original operation uncertainty and native control inventory"
+      ],
+      "codeLocations": [
+        "src/studio/conversation-tools.mjs:29-63"
+      ],
+      "nextInvestigationSteps": [
+        "Inventory native regeneration controls separately from provider availability; investigate original journal completion."
+      ],
+      "regressionTests": [
+        "Group F journal and native control safeguards."
+      ],
+      "liveReprobePreconditions": [
+        "Completed approved disposable answer, verified exact idle binding and explicit regeneration authorization."
+      ],
+      "acceptanceCriteria": [
+        "Invoke native regeneration once and independently verify new answer/branch; reconcile uncertainty without blind retry."
+      ],
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+    },
+    {
+      "id": "026",
+      "observedStatus": "UNSUPPORTED",
+      "classification": "Stop control not discovered; active generation not evidenced",
+      "confidence": "high for recorded observation; capability and cause require further verification",
+      "repairGroup": "F",
+      "dependencies": [
+        "Original operation uncertainty and native control inventory"
+      ],
+      "codeLocations": [
+        "src/studio/conversation-tools.mjs:29-63"
+      ],
+      "nextInvestigationSteps": [
+        "Inventory provider stop control and generation-state inspection; recorder finish is not provider stop."
+      ],
+      "regressionTests": [
+        "Group F journal and native control safeguards."
+      ],
+      "liveReprobePreconditions": [
+        "Approved disposable actively generating turn with positive current evidence and authorized stop on verified owner."
+      ],
+      "acceptanceCriteria": [
+        "Stop the positively observed generation using native control and verify resulting state without claiming completion."
+      ],
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+    },
+    {
+      "id": "027",
+      "observedStatus": "UNSUPPORTED",
+      "classification": "Continue control not discovered; provider offer unknown and previous reply interrupted",
+      "confidence": "high for recorded observation; capability and cause require further verification",
+      "repairGroup": "F",
+      "dependencies": [
+        "Original operation uncertainty and native control inventory"
+      ],
+      "codeLocations": [
+        "src/studio/conversation-tools.mjs:29-63"
+      ],
+      "nextInvestigationSteps": [
+        "Inventory native continue-control observation and activation; distinguish unknown provider offer from absent harness capability and reconcile original operation."
+      ],
+      "regressionTests": [
+        "Group F journal and native control safeguards."
+      ],
+      "liveReprobePreconditions": [
+        "Approved disposable thread with independently observed native continue offer, safe exact binding and explicit authorization."
+      ],
+      "acceptanceCriteria": [
+        "Activate the actually offered native continue control once and observe continuation; do not replace with a new prompt."
+      ],
+      "validationOwner": "Implementation owner fixtures; coordinated live probe owner"
+    }
+  ],
+  "revisionNotes": [
+    "2026-10-28: Expanded original 001–017 snapshot through 027; earlier analysis retained except corrected title diagnosis.",
+    "Group B: source and synthetic end-to-end proof identify default CLI privacy projection; deployed process and live DOM remain unverified.",
+    "Group C: confirmed ownership listing mismatch; BINDING_CHANGED live branch remains unknown. Linked focused tests are offline evidence only."
+  ]
+}

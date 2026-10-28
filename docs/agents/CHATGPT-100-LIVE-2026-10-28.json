@@ -457,128 +457,493 @@
       "section": "02 — Moving around ChatGPT",
       "title": "Cross-thread navigation",
       "objective": "Move between two open conversations and return to the original.",
-      "status": "NOT_TESTED",
-      "attempts": []
+      "status": "BLOCKED",
+      "attempts": [
+        {
+          "status": "BLOCKED",
+          "startedAt": "2026-10-28T09:51:10.9280055Z",
+          "finishedAt": "2026-10-28T09:51:23.5062803Z",
+          "elapsedMs": 12578.2748,
+          "deadlineAt": "2026-10-28T09:52:10.9280055Z",
+          "timedOut": false,
+          "cliInvocationCount": 2,
+          "commands": [
+            "'{}' | node bin/studio.mjs tools call conversation_targets --input - --studio-port 38703 --json",
+            "node bin/studio.mjs recipe choose --intent 'Switch between two open ChatGPT conversations and return to the original' --json"
+          ],
+          "observedOutcome": "Live target discovery returned two ChatGPT root targets, each with null thread, unverified identity and unknown visibility; neither establishes an exact live-bound conversation. Recipe choice returned no-match. No switching or return was attempted.",
+          "evidenceRefs": [],
+          "friction": "Two approved disposable exact-thread targets with verified binding and draft safety were not established. Separately, recipe discovery did not identify a switching or return action; its no-match is not by itself proof that all native navigation is unsupported.",
+          "failureClassification": "MISSING_TWO_VERIFIED_DISPOSABLE_THREADS",
+          "authorizationScope": "Switching only between approved disposable exact live-bound and draft-safe threads; actual actions were read-only.",
+          "model": "openai/gpt-6.1-terra#low",
+          "agent": "chatgpt-probe",
+          "uncertainty": "Root tabs are not proof of open native conversations; visibility, bindings and draft safety remain unknown. Each invocation began with at least 15 seconds remaining and used a 15-second shell timeout; independent process-kill enforcement was not verified.",
+          "reconciliationKeyRefs": []
+        }
+      ]
     },
     {
       "id": "015",
       "section": "02 — Moving around ChatGPT",
       "title": "Native history search",
       "objective": "Use ChatGPT's own history search to find a specific old test phrase.",
-      "status": "NOT_TESTED",
-      "attempts": []
+      "status": "UNSUPPORTED",
+      "attempts": [
+        {
+          "status": "UNSUPPORTED",
+          "startedAt": "2026-10-28T09:52:05.8229875Z",
+          "finishedAt": "2026-10-28T09:52:13.2350487Z",
+          "elapsedMs": 7412.0612,
+          "deadlineAt": "2026-10-28T09:53:05.8229875Z",
+          "timedOut": false,
+          "cliInvocationCount": 2,
+          "commands": [
+            "node bin/studio.mjs recipe choose --intent 'Use ChatGPT native history search to find a specific old test phrase' --json",
+            "node bin/studio.mjs recipe show provider.chat-index --json"
+          ],
+          "observedOutcome": "Recipe selection suggested provider.chat-index on vocabulary overlap. Its native recipe description and input schema expose only rendered candidate-link inspection, with no search phrase input or native history-search action. No ChatGPT history search was executed and no test phrase was found.",
+          "evidenceRefs": ["docs/agents/CHATGPT-100-SOURCE-MAP.md#live-evidence-already-taken"],
+          "friction": "No native ChatGPT history-search control was discovered in the previously inspected tool catalog or suggested recipe; local search and link indexing are not substitutes.",
+          "failureClassification": "HARNESS_UNSUPPORTED_NATIVE_HISTORY_SEARCH",
+          "authorizationScope": "Only native history search for the documented disposable test phrase was permitted; actual actions were read-only discovery, with no searches, sends, navigation or changes.",
+          "model": "openai/gpt-6.1-terra#low",
+          "agent": "chatgpt-probe",
+          "uncertainty": "Whether the historical test phrase is searchable or present in the account was not tested. Each invocation began with at least 15 seconds remaining and used a 15-second shell timeout; independent process-kill enforcement was not verified.",
+          "reconciliationKeyRefs": []
+        }
+      ]
     },
     {
       "id": "016",
       "section": "02 — Moving around ChatGPT",
       "title": "Recent-thread recovery",
       "objective": "Return to the last conversation after navigating away from it.",
-      "status": "NOT_TESTED",
-      "attempts": []
+      "status": "BLOCKED",
+      "attempts": [
+        {
+          "status": "BLOCKED",
+          "startedAt": "2026-10-28T09:52:51.3300054Z",
+          "finishedAt": "2026-10-28T09:52:58.0011075Z",
+          "elapsedMs": 6671.1021,
+          "deadlineAt": "2026-10-28T09:53:51.3300054Z",
+          "timedOut": false,
+          "cliInvocationCount": 2,
+          "commands": [
+            "'{}' | node bin/studio.mjs tools call conversation_targets --input - --studio-port 38703 --json",
+            "node bin/studio.mjs recipe choose --intent 'Return to the last ChatGPT conversation after navigating away' --json"
+          ],
+          "observedOutcome": "Live discovery showed two root ChatGPT targets, both with null thread, unverified identity and unknown visibility; no verified disposable target's last native thread was established. Recovery recipe selection returned no-match. No navigation away or return was performed.",
+          "evidenceRefs": [],
+          "friction": "An approved disposable last thread and verified owned target with a known prior navigation are missing. Recipe no-match is not proof that every possible navigation mechanism is unsupported.",
+          "failureClassification": "MISSING_VERIFIED_LAST_THREAD",
+          "authorizationScope": "Navigation only within a verified disposable owned target to an approved disposable last thread; actual actions were read-only discovery.",
+          "model": "openai/gpt-6.1-terra#low",
+          "agent": "chatgpt-probe",
+          "uncertainty": "The actual last native conversation and target ownership cannot be inferred from root tabs or a local conversation ID. Each invocation began with at least 15 seconds remaining and used a 15-second shell timeout; independent process-kill enforcement was not verified.",
+          "reconciliationKeyRefs": []
+        }
+      ]
     },
     {
       "id": "017",
       "section": "02 — Moving around ChatGPT",
       "title": "Long-thread traversal",
       "objective": "Navigate to a user turn near the start of a long thread.",
-      "status": "NOT_TESTED",
-      "attempts": []
+      "status": "BLOCKED",
+      "attempts": [
+        {
+          "status": "BLOCKED",
+          "startedAt": "2026-10-28T09:53:37.0601704Z",
+          "finishedAt": "2026-10-28T09:53:46.7981531Z",
+          "elapsedMs": 9737.9827,
+          "deadlineAt": "2026-10-28T09:54:37.0601704Z",
+          "timedOut": false,
+          "cliInvocationCount": 2,
+          "commands": [
+            "'{}' | node bin/studio.mjs tools call conversation_targets --input - --studio-port 38703 --json",
+            "node bin/studio.mjs recipe choose --intent 'Navigate to a user turn near the start of a long ChatGPT thread' --json"
+          ],
+          "observedOutcome": "Live discovery returned two root ChatGPT targets, both with null thread and unverified identity. No approved disposable exact live-bound long thread was established. Recipe selection suggested connect-existing by vocabulary overlap, not a traversal operation. No scrolling or traversal was performed.",
+          "evidenceRefs": [],
+          "friction": "Missing approved long-thread precondition; the previously inspected native catalog also did not expose a scrolling or early-turn traversal action, a separate capability limitation not exercised here.",
+          "failureClassification": "MISSING_VERIFIED_DISPOSABLE_LONG_THREAD",
+          "authorizationScope": "Read-only inspection and scrolling only on an approved disposable exact live-bound long thread; actual actions were read-only discovery.",
+          "model": "openai/gpt-6.1-terra#low",
+          "agent": "chatgpt-probe",
+          "uncertainty": "Neither thread length nor availability of a qualifying disposable thread was established. Each invocation began with at least 15 seconds remaining and used a 15-second shell timeout; independent process-kill enforcement was not verified.",
+          "reconciliationKeyRefs": []
+        }
+      ]
     },
     {
       "id": "018",
       "section": "02 — Moving around ChatGPT",
       "title": "Scroll-to-latest",
       "objective": "Jump to the most recent answer from an earlier message.",
-      "status": "NOT_TESTED",
-      "attempts": []
+      "status": "BLOCKED",
+      "attempts": [
+        {
+          "status": "BLOCKED",
+          "startedAt": "2026-10-28T09:54:46.7387514Z",
+          "finishedAt": "2026-10-28T09:54:53.3870080Z",
+          "elapsedMs": 6648.2566,
+          "deadlineAt": "2026-10-28T09:55:46.7387514Z",
+          "timedOut": false,
+          "cliInvocationCount": 2,
+          "commands": [
+            "'{}' | node bin/studio.mjs tools call conversation_targets --input - --studio-port 38703 --json",
+            "node bin/studio.mjs recipe choose --intent 'Jump to the most recent answer from an earlier message' --json"
+          ],
+          "observedOutcome": "Live discovery returned two root ChatGPT targets, both with null thread and unverified identity. Neither an approved exact live-bound disposable conversation nor an earlier scroll position was established. Recipe choice returned no-match. No scroll or jump was performed.",
+          "evidenceRefs": [],
+          "friction": "The required thread and earlier-message position are missing; separately, the previously examined native tool catalog did not expose a jump-to-latest action, which could not be exercised under these conditions.",
+          "failureClassification": "MISSING_VERIFIED_THREAD_AND_EARLIER_POSITION",
+          "authorizationScope": "Read-only inspection and scrolling only on an approved disposable exact live-bound thread; actual actions were read-only discovery.",
+          "model": "openai/gpt-6.1-terra#low",
+          "agent": "chatgpt-probe",
+          "uncertainty": "The presence of a latest answer and current scroll position are unknown. Each invocation began with at least 15 seconds remaining and used a 15-second shell timeout; independent process-kill enforcement was not verified.",
+          "reconciliationKeyRefs": []
+        }
+      ]
     },
     {
       "id": "019",
       "section": "02 — Moving around ChatGPT",
       "title": "Sidebar expansion",
       "objective": "Expand a collapsed conversation sidebar and find its controls.",
-      "status": "NOT_TESTED",
-      "attempts": []
+      "status": "UNSUPPORTED",
+      "attempts": [
+        {
+          "status": "UNSUPPORTED",
+          "startedAt": "2026-10-28T09:55:27.4179774Z",
+          "finishedAt": "2026-10-28T09:55:34.5409803Z",
+          "elapsedMs": 7123.0029,
+          "deadlineAt": "2026-10-28T09:56:27.4179774Z",
+          "timedOut": false,
+          "cliInvocationCount": 2,
+          "commands": [
+            "node bin/studio.mjs recipe choose --intent 'Expand the collapsed ChatGPT conversation sidebar and find its controls' --json",
+            "'{\"targetId\":\"9A3D0AAE522702601545ED3CCDAE2F5E\",\"maxEntries\":1,\"maxTitleChars\":1}' | node bin/studio.mjs tools call chat_index --input - --studio-port 38703 --json"
+          ],
+          "observedOutcome": "Recipe choice suggested the read-only chat index by vocabulary overlap. Live index inspection on the disposable target reported rendered candidate links with unknown container, but no collapsed or expanded state and no sidebar control. No expansion action or state change was observed.",
+          "evidenceRefs": [],
+          "friction": "No sidebar state reader or expansion control was exposed in the previously examined native tool catalog. The target's ownership metadata was previously contradictory; no effect was attempted.",
+          "failureClassification": "HARNESS_UNSUPPORTED_SIDEBAR_CONTROL",
+          "authorizationScope": "Sidebar expansion only on the specified disposable target if safe binding established; actual actions were read-only discovery and link inspection.",
+          "model": "openai/gpt-6.1-terra#low",
+          "agent": "chatgpt-probe",
+          "uncertainty": "Sidebar state, controls, and safe effect binding remain unverified; visible links do not prove expansion. Each invocation began with at least 15 seconds remaining and used a 15-second shell timeout; independent process-kill enforcement was not verified.",
+          "reconciliationKeyRefs": []
+        }
+      ]
     },
     {
       "id": "020",
       "section": "02 — Moving around ChatGPT",
       "title": "Archived-history navigation",
       "objective": "Find an archived disposable conversation if the account exposes archive history.",
-      "status": "NOT_TESTED",
-      "attempts": []
+      "status": "UNSUPPORTED",
+      "attempts": [
+        {
+          "status": "UNSUPPORTED",
+          "startedAt": "2026-10-28T09:56:25.8362171Z",
+          "finishedAt": "2026-10-28T09:56:31.9577853Z",
+          "elapsedMs": 6121.5682,
+          "deadlineAt": "2026-10-28T09:57:25.8362171Z",
+          "timedOut": false,
+          "cliInvocationCount": 2,
+          "commands": [
+            "node bin/studio.mjs recipe choose --intent 'Find an archived disposable ChatGPT conversation in archived history' --json",
+            "'{\"targetId\":\"9A3D0AAE522702601545ED3CCDAE2F5E\",\"maxEntries\":1,\"maxTitleChars\":1}' | node bin/studio.mjs tools call chat_index --input - --studio-port 38703 --json"
+          ],
+          "observedOutcome": "Recipe selection suggested the candidate-link index on vocabulary overlap. Live index inspection reported rendered links and unknown container, not archive history, archive state or account availability. No archived disposable conversation was identified and no archive panel was opened.",
+          "evidenceRefs": [],
+          "friction": "Previously inspected native tools expose no archived-history panel or archive-state inspection; independently, no approved archived disposable fixture was established. The target's ownership metadata was previously contradictory, so no effect was attempted.",
+          "failureClassification": "HARNESS_UNSUPPORTED_ARCHIVED_HISTORY",
+          "authorizationScope": "Read-only discovery and archive panel opening only if safe disposable binding verified; actual actions were read-only. No archive, unarchive, deletion, send, settings change or private conversation opening.",
+          "model": "openai/gpt-6.1-terra#low",
+          "agent": "chatgpt-probe",
+          "uncertainty": "Whether the account exposes archived history and whether an approved archived fixture exists remain unknown; missing native exposure does not establish feature unavailability. Each invocation began with at least 15 seconds remaining and used a 15-second shell timeout; independent process-kill enforcement was not verified.",
+          "reconciliationKeyRefs": []
+        }
+      ]
     },
     {
       "id": "021",
       "section": "03 — Native conversation lifecycle",
       "title": "First-turn delivery",
       "objective": "Ask one harmless question in a fresh ChatGPT conversation and verify its answer.",
-      "status": "NOT_TESTED",
-      "attempts": []
+      "status": "PARTIAL",
+      "attempts": [
+        {
+          "status": "PARTIAL",
+          "startedAt": "2026-10-28T09:57:20.9562543Z",
+          "finishedAt": null,
+          "elapsedMs": null,
+          "deadlineAt": "2026-10-28T09:58:20.9562543Z",
+          "timedOut": true,
+          "cliInvocationCount": 2,
+          "commands": [
+            "node bin/studio.mjs help chat",
+            "node bin/studio.mjs chat chatgpt --prompt 'What is 17 plus 4? Reply with only the number.' --fresh --execute --accept-sends --timeout 25 --data-dir C:\\VIVIM --port 38702 --json"
+          ],
+          "observedOutcome": "Original background output reports a fresh bound native thread, baseline zero user and assistant turns, a page-observed new user turn, and a page-observed assistant reply containing 21. The same output marks reply interrupted, protocol completion unknown, capture incomplete and local conversation closed; its native timedOut field is false and resent is false. Output was inspected after the objective deadline and contained no shell FINISH marker, so process termination and exact elapsed time are not established.",
+          "evidenceRefs": ["C:\\VIVIM\\conversations\\104349df-1f44-43da-8eef-4dbf56fa7a78.evidence.json", "session:20261028-095742-chatgpt-f9e2ad", "thread:chatgpt-c:6ae1c71a-3ef8-83eb-add3-b83f9e3da271"],
+          "friction": "The observed correct answer was marked interrupted with unknown completion and incomplete capture. The native timeout was a polling budget, not a verified hard process deadline; the objective deadline passed before reconciliation and terminal shell completion was not observed.",
+          "failureClassification": "OBSERVED_REPLY_COMPLETION_UNKNOWN_DEADLINE_EXCEEDED",
+          "authorizationScope": "User explicitly authorized disposable chat tests and exactly one harmless first-turn send; no other sends or settings, uploads, shares or destructive effects.",
+          "model": "openai/gpt-6.1-terra#low",
+          "agent": "chatgpt-probe",
+          "uncertainty": "Page evidence proves an observed user turn and answer text, not completed reply or accepted complete capture. Local conversation state is closed, but tabCloseRequested was false; continued availability or safe binding for objective 022 is not proven. Exact process finish time is unknown. Objective deadline was exceeded when output was reviewed; native output separately reports timedOut false.",
+          "reconciliationKeyRefs": ["conversation:104349df-1f44-43da-8eef-4dbf56fa7a78", "turn:cc8bb115-349f-4cea-aba3-3873ca64f031", "key:645629b2-c37f-4eb1-ba1c-37cd24f0d00d"]
+        }
+      ]
     },
     {
       "id": "022",
       "section": "03 — Native conversation lifecycle",
       "title": "Same-thread follow-up",
       "objective": "Ask a follow-up that depends on the answer in the immediately previous turn.",
-      "status": "NOT_TESTED",
-      "attempts": []
+      "status": "BLOCKED",
+      "attempts": [
+        {
+          "status": "BLOCKED",
+          "startedAt": "2026-10-28T10:00:13.4599523Z",
+          "finishedAt": "2026-10-28T10:00:22.0303136Z",
+          "elapsedMs": 8570.3613,
+          "deadlineAt": "2026-10-28T10:01:13.4599523Z",
+          "timedOut": false,
+          "cliInvocationCount": 2,
+          "commands": [
+            "'{\"conversation\":\"104349df-1f44-43da-8eef-4dbf56fa7a78\"}' | node bin/studio.mjs tools call get_conversation --input - --studio-port 38703 --json",
+            "'{}' | node bin/studio.mjs tools call conversation_targets --input - --studio-port 38703 --json"
+          ],
+          "observedOutcome": "Read-only stored journal inspection reported the original send observed, but reply interrupted, completion unknown and capture incomplete; local conversation is closed. Stored readiness was ready with no draft and recovery.pending false, but is not a current live readiness proof or completion evidence. Live target discovery reported the same exact native thread still open and bound, with unknown visibility. No 022 follow-up was sent and no answer of 24 was observed.",
+          "evidenceRefs": ["session:20261028-095742-chatgpt-f9e2ad", "thread:chatgpt-c:6ae1c71a-3ef8-83eb-add3-b83f9e3da271"],
+          "friction": "The explicit prerequisite that the prior operation not remain uncertain and that same-thread readiness and draft safety be established live was not satisfied; stored completion remains unknown and the local conversation is closed. No fresh binding, replacement send, or bypass was attempted.",
+          "failureClassification": "PRIOR_COMPLETION_UNKNOWN_LIVE_READINESS_UNVERIFIED",
+          "authorizationScope": "User authorized one distinct disposable follow-up only after prior uncertainty is cleared and same exact thread is verified ready and draft-safe; actual actions were read-only, no send.",
+          "model": "openai/gpt-6.1-terra#low",
+          "agent": "chatgpt-probe",
+          "uncertainty": "Prior completion and current composer state remain unknown; no 022 send key was generated because no follow-up was attempted. The prior observed send was not retried. Each invocation began with at least 15 seconds remaining and used a 15-second shell timeout; independent process-kill enforcement was not verified.",
+          "reconciliationKeyRefs": ["conversation:104349df-1f44-43da-8eef-4dbf56fa7a78", "turn:cc8bb115-349f-4cea-aba3-3873ca64f031", "key:645629b2-c37f-4eb1-ba1c-37cd24f0d00d"]
+        }
+      ]
     },
     {
       "id": "023",
       "section": "03 — Native conversation lifecycle",
       "title": "Long-range thread continuity",
       "objective": "Refer to a fact from an early turn after intervening discussion.",
-      "status": "NOT_TESTED",
-      "attempts": []
+      "status": "BLOCKED",
+      "attempts": [
+        {
+          "status": "BLOCKED",
+          "startedAt": "2026-10-28T10:01:11.0632140Z",
+          "finishedAt": "2026-10-28T10:01:12.5166090Z",
+          "elapsedMs": 1453.395,
+          "deadlineAt": "2026-10-28T10:02:11.0632140Z",
+          "timedOut": false,
+          "cliInvocationCount": 1,
+          "commands": ["'{\"conversation\":\"104349df-1f44-43da-8eef-4dbf56fa7a78\"}' | node bin/studio.mjs tools call get_conversation --input - --studio-port 38703 --json"],
+          "observedOutcome": "Read-only journal inspection showed one observed user turn and its assistant reply in the approved disposable conversation; no intervening discussion was recorded. The local conversation is closed, and the prior reply remains interrupted with completion unknown and capture incomplete. No continuity question was sent.",
+          "evidenceRefs": ["session:20261028-095742-chatgpt-f9e2ad", "thread:chatgpt-c:6ae1c71a-3ef8-83eb-add3-b83f9e3da271"],
+          "friction": "An approved live-ready exact thread with a demonstrable early fact and intervening discussion was not established; the prior turn's completion also remains unknown. No setup sends were made to manufacture the precondition.",
+          "failureClassification": "MISSING_INTERVENING_DISCUSSION_PRIOR_COMPLETION_UNKNOWN",
+          "authorizationScope": "Read-only inspection; harmless disposable tests authorized in principle but no setup or continuity send performed.",
+          "model": "openai/gpt-6.1-terra#low",
+          "agent": "chatgpt-probe",
+          "uncertainty": "Stored readiness does not prove live readiness; no long-range continuity was tested. The original 021 send was not retried. The invocation began with at least 15 seconds remaining and used a 15-second shell timeout; independent process-kill enforcement was not verified.",
+          "reconciliationKeyRefs": ["conversation:104349df-1f44-43da-8eef-4dbf56fa7a78", "turn:cc8bb115-349f-4cea-aba3-3873ca64f031", "key:645629b2-c37f-4eb1-ba1c-37cd24f0d00d"]
+        }
+      ]
     },
     {
       "id": "024",
       "section": "03 — Native conversation lifecycle",
       "title": "Message edit and branch awareness",
       "objective": "Edit a previously submitted disposable user message and identify the current answer branch.",
-      "status": "NOT_TESTED",
-      "attempts": []
+      "status": "UNSUPPORTED",
+      "attempts": [
+        {
+          "status": "UNSUPPORTED",
+          "startedAt": "2026-10-28T10:01:54.5667232Z",
+          "finishedAt": "2026-10-28T10:02:01.7524931Z",
+          "elapsedMs": 7185.7699,
+          "deadlineAt": "2026-10-28T10:02:54.5667232Z",
+          "timedOut": false,
+          "cliInvocationCount": 2,
+          "commands": [
+            "node bin/studio.mjs recipe choose --intent 'Edit a previously submitted ChatGPT user message and identify the current answer branch' --json",
+            "'{\"conversation\":\"104349df-1f44-43da-8eef-4dbf56fa7a78\"}' | node bin/studio.mjs tools call get_conversation --input - --studio-port 38703 --json"
+          ],
+          "observedOutcome": "Recipe selection returned no-match; previously examined native tools expose neither message-edit nor answer-branch control. The disposable conversation's stored journal is closed with a page-observed user turn but an interrupted reply and unknown completion. No message was edited and no new branch was observed.",
+          "evidenceRefs": ["session:20261028-095742-chatgpt-f9e2ad", "thread:chatgpt-c:6ae1c71a-3ef8-83eb-add3-b83f9e3da271"],
+          "friction": "Native edit and branch identification actions were not discovered; independently, the prior reply completion and current live idle/draft safety are unverified, preventing a safe effect.",
+          "failureClassification": "HARNESS_UNSUPPORTED_EDIT_AND_BRANCH_PRIOR_COMPLETION_UNKNOWN",
+          "authorizationScope": "Reversible edits only on safe verified disposable threads; actual actions were read-only discovery and stored journal inspection.",
+          "model": "openai/gpt-6.1-terra#low",
+          "agent": "chatgpt-probe",
+          "uncertainty": "No current branch identity or live readiness was established. The original 021 send was not retried. Each invocation began with at least 15 seconds remaining and used a 15-second shell timeout; independent process-kill enforcement was not verified.",
+          "reconciliationKeyRefs": ["conversation:104349df-1f44-43da-8eef-4dbf56fa7a78", "turn:cc8bb115-349f-4cea-aba3-3873ca64f031", "key:645629b2-c37f-4eb1-ba1c-37cd24f0d00d"]
+        }
+      ]
     },
     {
       "id": "025",
       "section": "03 — Native conversation lifecycle",
       "title": "Response regeneration",
       "objective": "Regenerate a completed assistant answer through ChatGPT's own control.",
-      "status": "NOT_TESTED",
-      "attempts": []
+      "status": "UNSUPPORTED",
+      "attempts": [
+        {
+          "status": "UNSUPPORTED",
+          "startedAt": "2026-10-28T10:02:41.9948556Z",
+          "finishedAt": "2026-10-28T10:02:49.6085033Z",
+          "elapsedMs": 7613.6477,
+          "deadlineAt": "2026-10-28T10:03:41.9948556Z",
+          "timedOut": false,
+          "cliInvocationCount": 2,
+          "commands": [
+            "node bin/studio.mjs recipe choose --intent 'Regenerate a completed ChatGPT assistant answer using the native regenerate control' --json",
+            "'{\"conversation\":\"104349df-1f44-43da-8eef-4dbf56fa7a78\"}' | node bin/studio.mjs tools call get_conversation --input - --studio-port 38703 --json"
+          ],
+          "observedOutcome": "Recipe discovery returned no-match, and previously examined native tool catalog did not expose a regeneration control. Stored disposable conversation reports an interrupted reply with completion unknown and closed local state. No native regeneration or fresh prompt was attempted.",
+          "evidenceRefs": ["session:20261028-095742-chatgpt-f9e2ad", "thread:chatgpt-c:6ae1c71a-3ef8-83eb-add3-b83f9e3da271"],
+          "friction": "Native regeneration action not discovered; separately a completed answer and live-safe binding were not established. Stored readiness does not prove protocol completion or current readiness.",
+          "failureClassification": "HARNESS_UNSUPPORTED_REGENERATE_PRIOR_COMPLETION_UNKNOWN",
+          "authorizationScope": "Regeneration only of a completed answer on a safe verified disposable thread; actual actions were read-only discovery and journal inspection.",
+          "model": "openai/gpt-6.1-terra#low",
+          "agent": "chatgpt-probe",
+          "uncertainty": "Provider regeneration availability and current live state remain unknown. The original 021 send was not retried. Each invocation began with at least 15 seconds remaining and used a 15-second shell timeout; independent process-kill enforcement was not verified.",
+          "reconciliationKeyRefs": ["conversation:104349df-1f44-43da-8eef-4dbf56fa7a78", "turn:cc8bb115-349f-4cea-aba3-3873ca64f031", "key:645629b2-c37f-4eb1-ba1c-37cd24f0d00d"]
+        }
+      ]
     },
     {
       "id": "026",
       "section": "03 — Native conversation lifecycle",
       "title": "Interrupt generation",
       "objective": "Stop a message while ChatGPT is visibly generating.",
-      "status": "NOT_TESTED",
-      "attempts": []
+      "status": "UNSUPPORTED",
+      "attempts": [
+        {
+          "status": "UNSUPPORTED",
+          "startedAt": "2026-10-28T10:03:35.5841284Z",
+          "finishedAt": "2026-10-28T10:03:43.5347156Z",
+          "elapsedMs": 7950.5872,
+          "deadlineAt": "2026-10-28T10:04:35.5841284Z",
+          "timedOut": false,
+          "cliInvocationCount": 2,
+          "commands": [
+            "node bin/studio.mjs recipe choose --intent 'Stop a ChatGPT message while it is visibly generating using the native stop control' --json",
+            "'{}' | node bin/studio.mjs tools call conversation_targets --input - --studio-port 38703 --json"
+          ],
+          "observedOutcome": "Recipe choice returned no-match. Live discovery showed the approved test thread target with bound thread identity but unknown visibility and no generation state. No positive current generation observation or native ChatGPT stop action was obtained; no stop or send was attempted.",
+          "evidenceRefs": ["thread:chatgpt-c:6ae1c71a-3ef8-83eb-add3-b83f9e3da271"],
+          "friction": "Previously inspected native catalog exposes no ChatGPT stop-generation action; independently, a currently generating disposable message and safe current owner were not established. Recorder finish is not a provider stop control.",
+          "failureClassification": "HARNESS_UNSUPPORTED_STOP_AND_GENERATING_PRECONDITION_UNVERIFIED",
+          "authorizationScope": "Stop only a positively observed generating message on a safe verified disposable thread; actual actions were read-only discovery.",
+          "model": "openai/gpt-6.1-terra#low",
+          "agent": "chatgpt-probe",
+          "uncertainty": "The prior interrupted journal does not prove current generation; present generation and stop-control availability at the provider remain unknown. No original send was retried. Each invocation began with at least 15 seconds remaining and used a 15-second shell timeout; independent process-kill enforcement was not verified.",
+          "reconciliationKeyRefs": ["conversation:104349df-1f44-43da-8eef-4dbf56fa7a78", "turn:cc8bb115-349f-4cea-aba3-3873ca64f031", "key:645629b2-c37f-4eb1-ba1c-37cd24f0d00d"]
+        }
+      ]
     },
     {
       "id": "027",
       "section": "03 — Native conversation lifecycle",
       "title": "Generation continuation",
       "objective": "Continue or resume an interrupted answer only when the site offers that control.",
-      "status": "NOT_TESTED",
-      "attempts": []
+      "status": "UNSUPPORTED",
+      "attempts": [
+        {
+          "status": "UNSUPPORTED",
+          "startedAt": "2026-10-28T10:04:36.4245914Z",
+          "finishedAt": "2026-10-28T10:04:45.5196624Z",
+          "elapsedMs": 9095.071,
+          "deadlineAt": "2026-10-28T10:05:36.4245914Z",
+          "timedOut": false,
+          "cliInvocationCount": 2,
+          "commands": [
+            "node bin/studio.mjs recipe choose --intent 'Resume an interrupted ChatGPT answer using its offered native continue control' --json",
+            "'{\"conversation\":\"104349df-1f44-43da-8eef-4dbf56fa7a78\"}' | node bin/studio.mjs tools call get_conversation --input - --studio-port 38703 --json"
+          ],
+          "observedOutcome": "Recipe selection returned no-match. Stored journal still reports the disposable reply interrupted with completion unknown and the local conversation closed. It does not report a currently offered native continue control. No continuation or fresh prompt was sent.",
+          "evidenceRefs": ["session:20261028-095742-chatgpt-f9e2ad", "thread:chatgpt-c:6ae1c71a-3ef8-83eb-add3-b83f9e3da271"],
+          "friction": "Previously inspected native tool catalog exposed no continue-control observation or activation; independently, actual provider offer and live-safe readiness were not established.",
+          "failureClassification": "HARNESS_UNSUPPORTED_CONTINUE_CONTROL",
+          "authorizationScope": "Continuation only using a positively observed native control on a safe disposable thread; actual actions were read-only discovery and stored journal inspection.",
+          "model": "openai/gpt-6.1-terra#low",
+          "agent": "chatgpt-probe",
+          "uncertainty": "The account may or may not offer continuation; stored interrupted state does not establish a current offer. The original 021 send was not retried. Each invocation began with at least 15 seconds remaining and used a 15-second shell timeout; independent process-kill enforcement was not verified.",
+          "reconciliationKeyRefs": ["conversation:104349df-1f44-43da-8eef-4dbf56fa7a78", "turn:cc8bb115-349f-4cea-aba3-3873ca64f031", "key:645629b2-c37f-4eb1-ba1c-37cd24f0d00d"]
+        }
+      ]
     },
     {
       "id": "028",
       "section": "03 — Native conversation lifecycle",
       "title": "Conversation branching",
       "objective": "Create a branch from an earlier turn using ChatGPT's native branching feature if present.",
-      "status": "NOT_TESTED",
-      "attempts": []
+      "status": "UNSUPPORTED",
+      "attempts": [
+        {
+          "status": "UNSUPPORTED",
+          "startedAt": "2026-10-28T10:05:42.9108821Z",
+          "finishedAt": "2026-10-28T10:05:50.3007141Z",
+          "elapsedMs": 7389.832,
+          "deadlineAt": "2026-10-28T10:06:42.9108821Z",
+          "timedOut": false,
+          "cliInvocationCount": 2,
+          "commands": [
+            "node bin/studio.mjs recipe choose --intent 'Create a native ChatGPT conversation branch from an earlier turn' --json",
+            "'{}' | node bin/studio.mjs tools call conversation_targets --input - --studio-port 38703 --json"
+          ],
+          "observedOutcome": "Recipe discovery returned no-match. Live target discovery reported the disposable exact native thread bound, but visibility unknown and no branch-control or current readiness evidence. No branch or prompt was created.",
+          "evidenceRefs": ["thread:chatgpt-c:6ae1c71a-3ef8-83eb-add3-b83f9e3da271"],
+          "friction": "Previously examined native tool catalog exposed no native branch creation or branch control inspection. Separately, prior reply completion and current live safety remain unverified.",
+          "failureClassification": "HARNESS_UNSUPPORTED_BRANCH_CONTROL",
+          "authorizationScope": "Branch only a safe verified disposable thread via a positively identified native branch control; actual actions were read-only discovery.",
+          "model": "openai/gpt-6.1-terra#low",
+          "agent": "chatgpt-probe",
+          "uncertainty": "Whether ChatGPT offers branching on this account is unknown; a bound thread identity alone does not establish feature availability or safe effect readiness. The original 021 send was not retried. Each invocation began with at least 15 seconds remaining and used a 15-second shell timeout; independent process-kill enforcement was not verified.",
+          "reconciliationKeyRefs": ["conversation:104349df-1f44-43da-8eef-4dbf56fa7a78", "turn:cc8bb115-349f-4cea-aba3-3873ca64f031", "key:645629b2-c37f-4eb1-ba1c-37cd24f0d00d"]
+        }
+      ]
     },
     {
       "id": "029",
       "section": "03 — Native conversation lifecycle",
       "title": "Conversation rename",
       "objective": "Rename a disposable conversation using the ChatGPT interface.",
-      "status": "NOT_TESTED",
-      "attempts": []
+      "status": "UNSUPPORTED",
+      "attempts": [
+        {
+          "status": "UNSUPPORTED",
+          "startedAt": "2026-10-28T10:06:37.3857425Z",
+          "finishedAt": "2026-10-28T10:06:45.7349185Z",
+          "elapsedMs": 8349.176,
+          "deadlineAt": "2026-10-28T10:07:37.3857425Z",
+          "timedOut": false,
+          "cliInvocationCount": 2,
+          "commands": [
+            "node bin/studio.mjs recipe choose --intent 'Rename a disposable ChatGPT conversation using the native interface' --json",
+            "'{}' | node bin/studio.mjs tools call conversation_targets --input - --studio-port 38703 --json"
+          ],
+          "observedOutcome": "Recipe discovery returned no-match. Live target discovery identified the approved disposable exact native thread as bound, but its visibility was unknown and target metadata reported no Studio owner. No native rename was attempted and no renamed title was observed.",
+          "evidenceRefs": ["thread:chatgpt-c:6ae1c71a-3ef8-83eb-add3-b83f9e3da271"],
+          "friction": "No native ChatGPT rename action was exposed in the previously examined tool catalog. Independently, current safe effect ownership and prior answer completion were not established; a local title update would not prove provider rename.",
+          "failureClassification": "HARNESS_UNSUPPORTED_NATIVE_RENAME",
+          "authorizationScope": "User authorized rename of the specified disposable test thread only; actual actions were read-only discovery.",
+          "model": "openai/gpt-6.1-terra#low",
+          "agent": "chatgpt-probe",
+          "uncertainty": "Native rename availability and current safe binding were not established. No private titles were inspected, and the original 021 send was not retried. Each invocation began with at least 15 seconds remaining and used a 15-second shell timeout; independent process-kill enforcement was not verified.",
+          "reconciliationKeyRefs": ["conversation:104349df-1f44-43da-8eef-4dbf56fa7a78", "turn:cc8bb115-349f-4cea-aba3-3873ca64f031", "key:645629b2-c37f-4eb1-ba1c-37cd24f0d00d"]
+        }
+      ]
     },
     {
       "id": "030",
