@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto';
 import { TOOL_ROOT } from '../config.mjs';
 import { createWork, transitionWork, workSummary } from './personal-agent-work.mjs';
 import { buildSelfKnowledge, SELF_KNOWLEDGE_TOPICS } from './personal-agent-self-knowledge.mjs';
+import { createContinuityPacket, createPortableSnapshot } from './personal-agent-continuity.mjs';
 import { VersionedStore } from '../store/versioned.mjs';
 import { createAgenticFileLibrary } from '../studio/agentic-files.mjs';
 import { problem, storeProblem } from '../studio/http.mjs';
@@ -221,6 +222,16 @@ export function createPersonalAgentService({ paths, skillsRoot = TOOL_ROOT, getT
     versioned({ ...state, memory, updatedAt: clock() }, state.version, `User memory removal: ${tier}`);
     return status();
   }
+  function continuity() {
+    const state = read();
+    if (!state) throw problem(404, 'Initialize Personal Agent first', 'PERSONAL_AGENT_NOT_INITIALIZED');
+    return createContinuityPacket(state, { now: clock() });
+  }
+  function exportSnapshot({ includeMemory = false, includeWorkDetails = false } = {}) {
+    const state = read();
+    if (!state) throw problem(404, 'Initialize Personal Agent first', 'PERSONAL_AGENT_NOT_INITIALIZED');
+    return createPortableSnapshot(state, { includeMemory, includeWorkDetails, now: clock() });
+  }
   // User-owned, durable Work is deliberately not an executor. These methods never send to a provider.
   function workList() {
     const state = read();
@@ -252,5 +263,5 @@ export function createPersonalAgentService({ paths, skillsRoot = TOOL_ROOT, getT
     versioned(result.state, state.version, `User Work transition: ${to}`);
     return { ...status(), item: result.item };
   }
-  return { status, initialize, bootstrap, capabilities, selfKnowledge, memories, remember, forget, workList, createWorkItem, transitionWorkItem };
+  return { status, initialize, bootstrap, capabilities, selfKnowledge, continuity, exportSnapshot, memories, remember, forget, workList, createWorkItem, transitionWorkItem };
 }
