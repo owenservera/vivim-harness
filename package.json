@@ -14,7 +14,7 @@
   },
   "scripts": {
     "test": "node --test \"test/unit/**/*.test.mjs\"",
-    "test:e2e": "node --test \"test/e2e/**/*.test.mjs\"",
+    "test:e2e": "node scripts/e2e.mjs",
     "studio": "node bin/studio.mjs",
     "start": "node bin/studio.mjs start",
     "doctor": "node bin/studio.mjs doctor",
