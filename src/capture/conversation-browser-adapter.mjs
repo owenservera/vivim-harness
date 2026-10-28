@@ -601,6 +601,7 @@ export function createConversationBrowserAdapter({ paths, profileStore, familySt
       const after = await check();
       if (!result || typeof result !== 'object' || !Array.isArray(result.messages)) throw problem('READ_FAILED');
       if (binding.thread && !threadMatches(`${binding.origin}${String(result?.pathname ?? '')}`)) throw problem('BINDING_CHANGED');
+      if (freshTab && !binding.thread && result.pathname !== '/') throw problem('BINDING_CHANGED');
       if (result?.origin !== undefined && result.origin !== binding.origin) throw problem('BINDING_CHANGED');
       return { binding: after, transcript: boundTranscript(result, { maxMessages, maxChars, perMessageCap: Math.min(perMessageCap, maxChars) }) };
     },
