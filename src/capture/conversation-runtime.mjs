@@ -498,8 +498,28 @@ export function createConversationRuntime({ paths, profileStore, familyStore, po
       active();
       const sites = (await Promise.all(ADAPTER_IDS.map(async (id) => { const a = await d.getAdapter(id); return a ? { id, adapter: a.id, url: a.url } : null; }))).filter(Boolean);
       const targets = [];
+      const discovered = await tabs();
+      // Only this runtime's successful fresh-tab creation may establish Studio ownership.
+      // Persisted flags, old recordings and same-origin tabs are not ownership evidence.
+      const ownedTargetIds = new Set();
+      for (const entry of entries.values()) {
+        const provenance = entry.freshTargetProvenance;
+        if (!provenance || entry.recovered || entry.readOnly || entry.pure || entry.finishing) continue;
+        const snapshot = entry.service.read();
+        if (snapshot.finish.requested || snapshot.binding?.ownedByStudio !== true
+          || snapshot.binding.targetId !== provenance.targetId || snapshot.binding.origin !== provenance.origin) continue;
+        const live = discovered.find((t) => t.id === provenance.targetId && (!t.type || t.type === 'page'));
+        let liveOrigin = null;
+        try { if (live) liveOrigin = new URL(live.url).origin; } catch {}
+        if (liveOrigin !== provenance.origin) {
+          // Once an owned target disappears or changes origin, never re-admit a reused ID.
+          entry.freshTargetProvenance = null;
+          continue;
+        }
+        ownedTargetIds.add(provenance.targetId);
+      }
       const recordings = d.listSessions(paths.sessions).filter((s) => ['recording', 'stopping'].includes(s.status));
-      for (const t of await tabs()) {
+      for (const t of discovered) {
         if (t.type && t.type !== 'page') continue;
         let url; try { url = new URL(t.url); } catch { continue; }
         if (url.protocol !== 'https:') continue;
@@ -509,7 +529,7 @@ export function createConversationRuntime({ paths, profileStore, familyStore, po
         const thread = parseThread(a.id, t.url);
         const identity = threadSupported(a.id) ? (thread ? { state: 'bound', reason: null } : { state: 'unverified', reason: 'UNSUPPORTED_PATH' }) : { state: 'unbound', reason: 'SITE_UNSUPPORTED' };
         targets.push({ id: t.id, targetId: t.id, site: a.id, url: url.origin, title: a.id, thread, identity,
-          ownedByStudio: false, recorderOwner: recording ? { sessionId: recording.id, kind: recording.conversationOwner ? 'conversation' : 'unknown' } : null, visibility: 'unknown' });
+          ownedByStudio: ownedTargetIds.has(t.id), recorderOwner: recording ? { sessionId: recording.id, kind: recording.conversationOwner ? 'conversation' : 'unknown' } : null, visibility: 'unknown' });
       }
       return { sites, targets };
     },
@@ -638,6 +658,13 @@ export function createConversationRuntime({ paths, profileStore, familyStore, po
         entry.writer = writerWindow(entry);
         entries.set(id, entry);
         await service.connect({ targetId: body.targetId ?? `pending-${id}`, origin, ownedByStudio: freshTab, thread, identity, ...(freshTab ? { threadDenylist } : {}), expectedRevision: service.read().revision });
+        // Ephemeral provenance is set only by this runtime's fresh connect, after the
+        // adapter bound Chrome's returned exact target ID. Recovery cannot reconstruct it.
+        const connected = service.read();
+        if (freshTab && connected.binding?.ownedByStudio === true
+          && connected.binding.targetId !== `pending-${id}` && connected.binding.origin === origin) {
+          entry.freshTargetProvenance = { targetId: connected.binding.targetId, origin };
+        }
         entry.writer.release(); // The idle fresh tab keeps no driving lease between turns.
         return view(entry);
       } catch (e) {
