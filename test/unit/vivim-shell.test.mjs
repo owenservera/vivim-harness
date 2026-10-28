@@ -119,3 +119,12 @@ test('native Home and Settings views reuse World and do not impersonate account 
   assert.match(worldSource, /No account connection or workspace folder is inferred/);
   assert.match(worldSource, /choose\('transfer'\)/);
 });
+
+test('Relations graph is a bounded rendering of real map responses, not a fabricated hub', () => {
+  const worldSource = readFileSync(new URL('../../src/studio/ui/world-view.mjs', import.meta.url), 'utf8');
+  assert.match(worldSource, /export function graphProjection\(map, focusId, maxNodes = 12\)/);
+  assert.match(worldSource, /Only links returned by the local map are drawn/);
+  assert.match(worldSource, /const projected = graphProjection\(rel\.map, rel\.id, 12\)/);
+  assert.match(worldSource, /if \(!workspace\) results\.append\(renderRelationGraph\(rel\)\)/);
+  assert.match(html, /vivim-graph-panel/);
+});

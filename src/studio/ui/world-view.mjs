@@ -667,6 +667,41 @@ function editorFrom(item, notice = '') {
   };
 }
 
+
+/**
+ * A bounded, deterministic VISUAL PROJECTION of locally reported relationships.
+ * This never invents nodes/edges or treats a local association as provider identity.
+ * The canonical text list and map metadata remain visible below the graphic.
+ */
+export function graphProjection(map, focusId, maxNodes = 12) {
+  if (!Array.isArray(map?.nodes) || !Array.isArray(map?.edges)) return { nodes: [], edges: [], truncated: false };
+  const limit = Number.isInteger(maxNodes) ? Math.min(24, Math.max(1, maxNodes)) : 12;
+  const unique = new Map();
+  for (const node of map.nodes) {
+    if (typeof node?.id !== 'string' || !node.id || unique.has(node.id)) continue;
+    unique.set(node.id, node);
+  }
+  const order = [...unique.values()];
+  const focus = order.find((node) => node.id === focusId) ?? null;
+  const ordered = focus ? [focus, ...order.filter((node) => node.id !== focusId)] : order;
+  const picked = ordered.slice(0, limit);
+  const centerId = picked[0]?.id ?? null;
+  const visible = picked.map((node, index) => {
+    const count = Math.max(1, picked.length - 1);
+    const angle = -Math.PI / 2 + (2 * Math.PI * (index - 1)) / count;
+    return {
+      ...node,
+      x: index === 0 ? 50 : Math.round((50 + 37 * Math.cos(angle)) * 100) / 100,
+      y: index === 0 ? 50 : Math.round((50 + 34 * Math.sin(angle)) * 100) / 100,
+      isFocus: node.id === centerId,
+    };
+  });
+  const byId = new Set(visible.map((node) => node.id));
+  const edges = map.edges.filter((edge) => edge && typeof edge.from === 'string' && typeof edge.to === 'string'
+    && byId.has(edge.from) && byId.has(edge.to) && edge.from !== edge.to);
+  return { nodes: visible, edges, truncated: unique.size > visible.length || map.truncated === true || map.complete === false };
+}
+
 /**
  * Mount peer views into the existing shell. `rich` is the chat renderer's static builder.
  * Drafts live in this tab until a confirmed save. A conflict never copies over the draft.
@@ -2644,6 +2679,69 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
       basisLine ? el('p', { class: 'note', text: `Recorded basis: ${basisLine}` }) : null,
     ]);
   }
+
+  // SVG lines are decorative. The same relation rows remain below for keyboard,
+  // screen reader, provenance and partial-coverage inspection.
+  function renderRelationGraph(rel) {
+    const projected = graphProjection(rel.map, rel.id, 12);
+    const section = el('section', { class: 'vivim-graph-panel', id: 'vivimRelationGraph',
+      'aria-label': 'Visual map of locally saved associations' });
+    section.append(el('div', { class: 'vivim-graph-heading' }, [
+      el('h3', { text: 'Knowledge graph' }),
+      el('span', { class: 'note', text: projected.truncated ? 'Partial projection · inspect the list below'
+        : 'Local associations · not provider identity' }),
+    ]));
+    if (!projected.nodes.length) {
+      section.append(el('p', { class: 'empty', text: 'No graph nodes were reported for this saved item.' }));
+      return section;
+    }
+    const stage = el('div', { class: 'vivim-graph-stage', role: 'group',
+      'aria-label': 'Saved relation nodes; use the list below for full evidence' });
+    if (typeof doc.createElementNS === 'function') {
+      const ns = 'http://www.w3.org/2000/svg';
+      const svg = doc.createElementNS(ns, 'svg');
+      svg.setAttribute('class', 'vivim-graph-lines');
+      svg.setAttribute('viewBox', '0 0 900 460');
+      svg.setAttribute('preserveAspectRatio', 'none');
+      svg.setAttribute('aria-hidden', 'true');
+      const lookup = new Map(projected.nodes.map((node) => [node.id, node]));
+      for (const edge of projected.edges) {
+        const from = lookup.get(edge.from), to = lookup.get(edge.to);
+        if (!from || !to) continue;
+        const line = doc.createElementNS(ns, 'line');
+        for (const [attribute, value] of [
+          ['x1', from.x * 9], ['y1', from.y * 4.6],
+          ['x2', to.x * 9], ['y2', to.y * 4.6],
+        ]) line.setAttribute(attribute, String(value));
+        line.setAttribute('class', 'vivim-graph-edge');
+        svg.append(line);
+      }
+      stage.append(svg);
+    }
+    for (const node of projected.nodes) {
+      const unresolved = node.availability === 'unresolved' || node.availabilityReason === 'NOT_SCANNED';
+      const label = typeof node.title === 'string' && node.title.trim() ? node.title : node.kind || node.id;
+      const button = el('button', {
+        type: 'button', class: 'vivim-graph-node' + (node.isFocus ? ' is-focus' : ''),
+        'data-kind': node.kind || 'unknown',
+        'aria-label': label + (unresolved ? ' — unresolved, cannot open' : ' — open saved record'),
+        'aria-disabled': unresolved ? 'true' : 'false',
+      }, [
+        el('span', { class: 'vivim-graph-node-label', text: label }),
+        el('span', { class: 'vivim-graph-node-kind', text: unresolved ? 'Unresolved' : node.kind || 'Saved record' }),
+      ]);
+      if (button.style) {
+        button.style.left = String(node.x) + '%';
+        button.style.top = String(node.y) + '%';
+      }
+      if (unresolved) button.disabled = true;
+      else on(button, 'click', () => openRelation({ id: node.id, node }));
+      stage.append(button);
+    }
+    section.append(stage, el('p', { class: 'note', text: 'Only links returned by the local map are drawn. A visual edge does not establish native-thread equality or provider confirmation.' }));
+    return section;
+  }
+
   function gatherRelations(rel = state.relations) {
     const groups = relationGroups(rel.id, rel.map);
     return { groups, shown: relationShown(groups) };
@@ -2711,6 +2809,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     });
     on(show, 'click', () => runRelations((select.value || typed.value).trim(), view));
     if (rel.map) {
+      if (!workspace) results.append(renderRelationGraph(rel));
       const { groups, shown } = gatherRelations(rel);
       for (const group of groups) {
         results.append(el('h3', { text: group.label }));
@@ -2726,7 +2825,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     }
     listPane.replaceChildren(
       el('h2', { text: workspace ? 'Workspace' : 'Relations' }),
-      el('p', { class: 'note', text: workspace ? 'Start with any saved item. Read its local associations here, then start from another item. No item is a home or a parent.' : 'Pick one saved record. Relations lists what this computer already links to it. It is not a home, and it does not draw a map.' }),
+      el('p', { class: 'note', text: workspace ? 'Start with any saved item. Read its local associations here, then start from another item. No item is a home or a parent.' : 'Pick one saved record. Visualize the local links reported by this computer, then inspect the complete labelled evidence list below. It is not a home.' }),
       el('label', { class: 'lab', for: prefix + 'Start', text: 'Starting record' }),
       select,
       typed,

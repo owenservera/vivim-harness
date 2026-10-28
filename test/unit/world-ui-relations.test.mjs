@@ -360,3 +360,30 @@ test('a not-reported scan never claims completeness, even with rows', async () =
   assert.match(byId(root, 'worldRelationStatus').textContent, /Whether more exist was not reported/);
   assert.doesNotMatch(byId(root, 'worldRelationStatus').textContent, /Showing 1\.$/);
 });
+
+test('graph projection contains only reported nodes and edges and respects coverage bounds', () => {
+  const map = {
+    nodes: [
+      { id: cid, kind: 'conversation', title: 'Observed' },
+      { id: pid, kind: 'project', title: 'Local project' },
+      { id: unid, kind: 'unresolved-reference', availability: 'unresolved', availabilityReason: 'NOT_SCANNED' },
+    ],
+    edges: [
+      { from: pid, to: cid, kind: 'associates', evidence: { basis: 'local association' } },
+      { from: pid, to: 'n-not-loaded', kind: 'references' },
+    ],
+    complete: false,
+  };
+  const graph = world.graphProjection(pid, map); // argument inversion should never generate an invented relation
+  assert.deepEqual(graph.nodes, []);
+  const actual = world.graphProjection(map, pid, 2);
+  assert.deepEqual(actual.nodes.map(n => n.id), [pid, cid]);
+  assert.equal(actual.nodes[0].isFocus, true);
+  assert.equal(actual.nodes[0].x, 50);
+  assert.equal(actual.nodes[0].y, 50);
+  assert.equal(actual.edges.length, 1);
+  assert.equal(actual.edges[0].from, pid);
+  assert.equal(actual.edges[0].to, cid);
+  assert.equal(actual.truncated, true);
+  assert.equal(world.graphProjection(null, pid).edges.length, 0);
+});
