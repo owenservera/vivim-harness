@@ -62,9 +62,14 @@ test('memory updates are user-authored, CAS guarded, and absent from status proj
   assert.equal(JSON.stringify(saved).includes('Investigate receipts'), false);
   assert.equal(make(f).memories('Immediate').entries[0].text, 'Investigate receipts');
   assert.equal(make(f).memories('Immediate').entries[0].source, 'user-authored');
+  const removed = agent.forget({ tier: 'Immediate', key: 'next_task', expectedVersion: saved.version });
+  assert.equal(removed.memoryCounts.Immediate, 0);
+  assert.deepEqual(make(f).memories('Immediate').entries, []);
+  assert.throws(() => agent.forget({ tier: 'Immediate', key: 'next_task', expectedVersion: removed.version }),
+    e => e.code === 'PERSONAL_AGENT_MEMORY_NOT_FOUND');
   assert.throws(() => agent.remember({ tier: 'CANON', key: 'other', text: 'stale', expectedVersion: bootstrap.version }),
     e => e.code === 'PERSONAL_AGENT_VERSION_CONFLICT');
-  assert.throws(() => agent.remember({ tier: 'Curated', key: '../escape', text: 'bad', expectedVersion: saved.version }), /key/);
+  assert.throws(() => agent.remember({ tier: 'Curated', key: '../escape', text: 'bad', expectedVersion: removed.version }), /key/);
   const independent = make({ ...f, paths: { root: path.join(path.dirname(f.paths.root), 'other') } });
   assert.equal(independent.status().initialized, false, 'no cross-data-directory identity leakage');
 });
