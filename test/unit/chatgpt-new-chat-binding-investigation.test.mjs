@@ -8,7 +8,7 @@ const root = `${origin}/`;
 const thread = `/c/11111111-1111-4111-8111-111111111111`;
 const idle = { observed: true, state: 'idle', idleControlPresent: true, stopPresent: false, composerEnabled: true };
 
-function fixture({ urls = [root], pageOrigin = origin, pathname = '/', draftChars = 0, controls = idle, messages = [] } = {}) {
+function fixture({ urls = [root], pageOrigin = origin, pathname = '/', draftChars = 0, controls = idle, messages = [], transcriptOverride = null } = {}) {
   const calls = [], bound = [];
   let targetReads = 0, pagePath = pathname;
   const forbidden = (name) => () => { calls.push(name); throw new Error(`Forbidden ${name}`); };
@@ -19,7 +19,7 @@ function fixture({ urls = [root], pageOrigin = origin, pathname = '/', draftChar
       fetch: async (url, init) => { calls.push(['fetch', url, init.method]); return { ok: true, json: async () => ({ id: 'fresh' }) }; },
       attachIdlePage: async (id) => ({ send: async (method, params) => { calls.push(['page', id, method, params]); return {}; } }),
       listTargets: async () => [{ id: 'fresh', url: urls[Math.min(targetReads++, urls.length - 1)] }],
-      evaluate: async (_, expression) => { assert.ok(['location.origin', 'location.pathname'].includes(expression)); return expression === 'location.origin' ? pageOrigin : pagePath; },
+      evaluate: async (_, expression) => { if (expression.startsWith('(() => {') && transcriptOverride) return transcriptOverride; assert.ok(['location.origin', 'location.pathname'].includes(expression)); return expression === 'location.origin' ? pageOrigin : pagePath; },
       findComposer: async () => ({ found: true }), detectAuthWall: async () => ({ blocked: false }),
       detectSiteFailure: async () => ({ failed: false }), sendState: async () => ({ evalOk: true, draftChars }),
       readTurnPage: async () => ({ origin: pageOrigin, pathname: pagePath, messages, draft: { chars: draftChars }, controls }),
@@ -103,4 +103,15 @@ test('unbound Read refuses target and page drift without any typing or send', as
   await assert.rejects(f.adapter.readTranscript({ maxMessages: 5, maxChars: 100 }),
     (error) => error.code === 'BINDING_CHANGED');
   f.verify(); // Only one owned tab, one navigation; no recorder or send.
+});
+
+test('unbound Read rejects a transient non-home evaluated snapshot even when pre/post checks agree', async () => {
+  const f = fixture({ transcriptOverride: {
+    origin, pathname: thread, messages: [], controls: idle,
+    renderedTotal: 0, scannedCount: 0, scroll: { found: false }
+  } });
+  await f.connect();
+  await assert.rejects(f.adapter.readTranscript({ maxMessages: 5, maxChars: 100 }),
+    (error) => error.code === 'BINDING_CHANGED');
+  f.verify();
 });
