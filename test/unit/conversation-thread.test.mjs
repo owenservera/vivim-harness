@@ -11,7 +11,7 @@ import { createConversationRuntime } from '../../src/capture/conversation-runtim
 import { createConversationService } from '../../src/capture/conversation-service.mjs';
 import { createConversationBrowserAdapter } from '../../src/capture/conversation-browser-adapter.mjs';
 import { acquireDriveLease } from '../../src/capture/drive-lease.mjs';
-import { parseThread, sameThread, threadSupported, boundTranscript, transcriptExpression } from '../../src/capture/conversation-thread.mjs';
+import { parseThread, sameThread, threadSupported, boundTranscript, transcriptExpression, turnObservationExpression } from '../../src/capture/conversation-thread.mjs';
 
 const A = '11111111-1111-4111-8111-111111111111', B = '22222222-2222-4222-8222-222222222222';
 const urlA = `https://chatgpt.com/c/${A}`, urlB = `https://chatgpt.com/c/${B}`;
@@ -36,6 +36,22 @@ test('sameThread: null equals null, different refs differ, a title is never an i
   assert.equal(sameThread(parseThread('chatgpt', urlA), parseThread('chatgpt', urlB)), false);
   assert.equal(sameThread(parseThread('chatgpt', urlA), null), false);
   assert.equal(parseThread('chatgpt', urlA).title, undefined);
+});
+
+test('turn observations do not infer idle from missing Stop and empty draft', () => {
+  const composer = { value: '', disabled: false, getBoundingClientRect: () => ({ width: 20, height: 20 }),
+    getAttribute: () => null };
+  const groups = { '#composer': [composer], '#stop': [], '#send': [] };
+  const result = vm.runInNewContext(turnObservationExpression({
+    composer: { selectors: ['#composer'] },
+    assistant: { streamingSelectors: ['#stop'] },
+    send: { buttonSelectors: ['#send'] },
+  }), { location: { origin: 'https://chatgpt.com', pathname: '/c/11111111-1111-4111-8111-111111111111' },
+    document: { querySelectorAll: (selector) => groups[selector] ?? [] } });
+  assert.equal(result.controls.state, 'unknown');
+  assert.equal(result.controls.observed, false);
+  assert.equal(result.controls.idleControlPresent, false);
+  assert.equal(result.controls.stopPresent, false);
 });
 
 // ---------------------------------------------------------------- bounded transcript shaping
