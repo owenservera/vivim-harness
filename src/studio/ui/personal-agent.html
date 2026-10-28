@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>VIVIM — Personal Agent</title>
+<style>
+:root{font-family:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;color-scheme:dark;--base:#091522;--panel:#112437;--border:#2e526c;--text:#eff7ff;--muted:#afc4d8;--accent:#74d7c2;--danger:#ffc0ac}
+@media(prefers-color-scheme:light){:root{color-scheme:light;--base:#eef4f6;--panel:#fff;--border:#bfced6;--text:#153146;--muted:#496276;--accent:#086657;--danger:#a9321b}}
+*{box-sizing:border-box}body{margin:0;background:var(--base);color:var(--text);line-height:1.55}
+main{max-width:1100px;margin:auto;padding:24px clamp(14px,4vw,48px) 72px}
+header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;margin-bottom:26px}
+a{color:var(--accent)}h1{font-size:clamp(28px,4vw,43px);line-height:1.1;letter-spacing:-.04em;margin:8px 0}
+h2{font-size:18px;margin:0 0 8px}.overline{color:var(--accent);font-size:12px;text-transform:uppercase;letter-spacing:.18em;font-weight:750}
+p{max-width:70ch;margin:4px 0 14px}.subtle{color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px}
+section{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:17px}
+button,select,input,textarea{font:inherit;min-height:44px;border-radius:8px;border:1px solid var(--border);padding:8px 11px}
+button{background:var(--accent);color:var(--base);font-weight:700;cursor:pointer}button:disabled{opacity:.5;cursor:not-allowed}
+button.secondary{background:transparent;color:var(--text)}
+label{display:block;font-weight:600;margin-top:12px}label span{display:block;margin-bottom:4px}
+input,select,textarea{width:100%;color:var(--text);background:var(--base)}
+textarea{min-height:90px;resize:vertical}code{font-family:"Cascadia Code",Consolas,monospace}
+ol{padding-left:24px;margin:12px 0}li{padding:8px 0;border-bottom:1px solid var(--border)}
+li:last-child{border-bottom:0}.status{font-weight:700;color:var(--accent)}
+#notice[role=alert]{color:var(--danger)}#notice[role=status]{color:var(--accent)}
+#notice{min-height:28px;overflow-wrap:anywhere}details{margin-top:12px}summary{cursor:pointer;font-weight:650}
+.chip{display:inline-block;border:1px solid var(--border);border-radius:100px;padding:2px 10px;font-size:12px}
+pre{max-height:360px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+</style>
+<script type="module" src="/ui/personal-agent.mjs"></script>
+</head>
+<body>
+<main>
+<header>
+<div><div class="overline">VIVIM World · local first</div><h1>Your Personal Agent</h1><p class="subtle">One durable identity. Memory you control. Abilities proven by evidence—not promises.</p></div>
+<a href="/chat">← Back to VIVIM World</a>
+</header>
+<div class="grid">
+<section>
+<h2>Bootstrap lifecycle</h2>
+<p id="state" class="status" aria-live="polite">Loading local state…</p>
+<p id="scope" class="subtle"></p>
+<button id="bootstrap" type="button" disabled>Bootstrap / Resume</button>
+<button id="refresh" type="button" class="secondary">Refresh</button>
+<p id="notice" role="status" aria-live="polite"></p>
+</section>
+<section>
+<h2>Memory ownership</h2>
+<p class="subtle">Three personal tiers. Nothing is imported from your provider conversations automatically.</p>
+<div id="memoryCounts">Not yet initialized</div>
+</section>
+</div>
+<section><h2>Four ordered stages</h2><ol id="stages"></ol></section>
+<section>
+<h2>Skills and capabilities</h2>
+<p class="subtle">Discovered skill documents remain untrusted; registered tools are not evidence of live execution or account access.</p>
+<button type="button" class="secondary" id="discover">Inspect available sources</button>
+<div id="discovery" aria-live="polite"></div>
+</section>
+<section>
+<h2>My memory</h2>
+<p class="subtle">This writes only to your locally versioned agent data. Use short, non-secret notes that you want the agent to preserve.</p>
+<form id="memoryForm">
+<label><span>Tier</span><select id="tier"><option>Immediate</option><option>CANON</option><option>Curated</option></select></label>
+<label><span>Key</span><input id="memoryKey" pattern="[a-z][a-z0-9_-]{0,63}" maxlength="64" placeholder="current-priority" required></label>
+<label><span>Note</span><textarea id="memoryText" maxlength="8000" required placeholder="What should your agent remember?"></textarea></label>
+<button type="submit" id="saveMemory" disabled>Save to local memory</button>
+</form>
+<details><summary>Review saved entries in selected tier</summary><div id="entries" class="subtle">Choose a tier to load its entries.</div></details>
+</section>
+</main>
+</body>
+</html>
