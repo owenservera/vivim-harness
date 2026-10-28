@@ -91,12 +91,27 @@ test('personal agent survives a real Studio HTTP restart with local-only effects
       'POST', { expectedVersion: transitioned.data.version, to: 'completed' });
     assert.equal(invalidCompletion.status, 400);
     assert.equal(invalidCompletion.data.code, 'PERSONAL_AGENT_WORK_EVIDENCE_REQUIRED');
+    const sitrep = await api('/api/v1/personal-agent/sitrep');
+    assert.equal(sitrep.status, 200);
+    assert.equal(sitrep.data.communications.status, 'not-inspected');
+    assert.equal(sitrep.data.workCoverage.openTotal, 1);
+    const privateExportDefault = await api('/api/v1/personal-agent/export');
+    assert.equal(privateExportDefault.status, 200);
+    assert.equal(privateExportDefault.data.payload.work.detailsOmitted, true);
+    assert.equal(privateExportDefault.data.payload.memory.detailsOmitted, true);
+    assert.equal(JSON.stringify(privateExportDefault.data).includes('Local integration test'), false);
+    const privateExportDetails = await api('/api/v1/personal-agent/export?includeWorkDetails=true');
+    assert.equal(privateExportDetails.data.includesPrivateWorkDetails, true);
+    assert.equal(privateExportDetails.data.payload.work[0].title, 'Local integration test');
+    assert.equal((await api('/api/v1/personal-agent/export?includeMemory=yes')).status, 400);
+    assert.equal((await api('/api/v1/personal-agent/export', 'GET', undefined, false)).status, 401);
     const toolList = await api('/api/v1/integrations/tools');
     const toolNames = toolList.data.tools.map(tool => tool.name);
     assert.ok(toolNames.includes('personal_agent_status'));
     assert.ok(toolNames.includes('personal_agent_capabilities'));
     assert.ok(toolNames.includes('personal_agent_self_knowledge'));
     assert.equal(toolNames.some(name => name.startsWith('personal_agent_work')), false);
+    assert.equal(toolNames.some(name => name.includes('sitrep') || name.includes('export')), false);
     assert.equal(toolNames.some(name => name.includes('memory')), false);
 
     await studio.close(); studio = await start();
