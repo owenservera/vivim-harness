@@ -86,3 +86,24 @@ test('maxChars and hostile shape inputs cannot bypass the transcript boundary', 
     { completeText: true, maxChars: 100 }).parts.length, 1);
   assert.equal(RICH_PART_KINDS.includes('script'), false);
 });
+
+test('page-side rich read caps payload and omits hidden nodes before CDP transport', () => {
+  const root = element('DIV', 'visible assistant text');
+  const descendants = Array.from({ length: 65 }, (_, index) => element('PRE', 'x'.repeat(4096), { index }));
+  for (const node of descendants) node.querySelector = () => element('CODE', 'x'.repeat(4096));
+  descendants[0].getBoundingClientRect = () => ({ width: 0, height: 0 });
+  root.querySelectorAll = () => descendants;
+  const document = { querySelectorAll: (selector) => selector === '.assistant' ? [root] : [],
+    querySelector: () => null };
+  const location = { origin: 'https://chatgpt.com', href: 'https://chatgpt.com/c/11111111-1111-4111-8111-111111111111',
+    pathname: '/c/11111111-1111-4111-8111-111111111111' };
+  const observation = vm.runInNewContext(transcriptExpression({
+    assistantSelectors: ['.assistant'], userSelectors: [],
+  }), { document, location, URL, getComputedStyle: () => ({ overflowY: 'visible' }) });
+  const raw = observation.messages[0];
+  assert.ok(raw.partsOmitted >= 33, '32-node cap plus one hidden node are reported');
+  assert.ok(raw.parts.reduce((n, part) => n + JSON.stringify(part).length, 0) <= 8192,
+    'semantic parts are capped before sending them through CDP');
+  const shaped = boundTranscript(observation, { maxChars: 2000 });
+  assert.equal(shaped.messages[0].partsCoverage.complete, false);
+});
