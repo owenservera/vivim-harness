@@ -104,13 +104,57 @@ node --test test/unit/personal-agent-bootstrap.test.mjs test/unit/personal-agent
 
 Do not use browser/CDP alternatives for this local-state test. Real provider acceptance, when authorized separately, remains with the existing single owner, its objective ledger and no-resend safeguards.
 
+## 2026-10-28 — major sprint: native Work, self-knowledge, continuity and export
+
+All additions below are implemented **in source on PR #12**, not claimed as live Windows-accepted features.
+
+### Work: explicit local lifecycle, not a provider executor
+
+`src/agents/personal-agent-work.mjs` defines a bounded, idempotent work index inside the **same Personal Agent VersionedStore snapshot**. There is no separate queue database or new browser controller. States: `queued → active → blocked ↔ active → completed` where completion is possible from active only and requires evidence references. Cancellation is explicit; completed/cancelled records are terminal. Blocked items require a reason and can resume.
+
+- Client-selected idempotency keys derive stable hashed Work IDs; a lost-response replay with the **same payload** returns the earlier committed item without consuming another version, even with a stale expectedVersion. Key reuse with a different payload refuses.
+- All other mutations require the current version (CAS); source records and Work events remain versioned locally.
+- Completion evidence is tagged `user-attested; unverified-for-live-execution`. **No completed local Work item equals a live ChatGPT scenario PASS**, and the agent cannot send anything from this model alone.
+- Maximum 200 Work records and 100 events per item; bounded title, objective, note and reference sizes.
+- `GET /api/v1/personal-agent/work` lists private local Work; `POST /api/v1/personal-agent/work` creates an item; `POST /api/v1/personal-agent/work/{id}/transition` updates its state. None is in the agent-invocable tool manifest.
+- Native CLI: `personal-agent work`, `personal-agent queue --title ... --objective ... [--key ...]`, `personal-agent advance <id> --to ... [--note ...] [--evidence ...]`.
+
+### Self-knowledge: claims with citations to local reality
+
+`src/agents/personal-agent-self-knowledge.mjs` implements a read-only, deterministic claim contract:
+
+`{topic, value, basis, evidence, observedAt, freshness, authority, qualification, nextAction, trust}`.
+
+Topics: `identity`, `bootstrap`, `memory`, `work`, `world`, `capabilities`, `privacy`. The `all` topic produces a bounded grouped overview. World counts come from existing `VersionedStore`; skill sources come from the existing inert `agentic-files` inventory; tool registrations come from the existing Studio manifest. No model guesses, private Work titles, private memory text, provider-account assumptions or fictional permissions appear in the self-knowledge tool.
+
+- `GET /api/v1/personal-agent/self-knowledge?topic=all`
+- Read-only tool `personal_agent_self_knowledge`, with a closed topic enum.
+- Native CLI `personal-agent self [topic]`.
+- UI offers a topic selector and sources/freshness details.
+
+### Session continuity (SITREP) and portable JSON export
+
+`src/agents/personal-agent-continuity.mjs` reconstructs an ephemeral **private** SITREP from canonical persisted state: bootstrap evidence, recent CANON/Immediate/Curated memory, active/blocked Work and remaining actions. It explicitly marks AION agent-to-agent communications **not inspected** rather than pretending to have read them. No external action occurs. Read through `GET /api/v1/personal-agent/sitrep` or `personal-agent sitrep --json`. This private endpoint is **not** a tool for autonomous reading of memory.
+
+The opt-in export returns `vivim.personal-agent.export/1` with a SHA-256 digest of canonical JSON payload, bounded to 1 MiB. It excludes private memory contents and Work details **by default**; explicit `includeMemory=true` and `includeWorkDetails=true` parameters include them. No credentials or remote chat history are pulled. The UI downloads JSON locally. **Export is not encrypted and import is not yet implemented**; removing memory from CURRENT does not erase historical version files.
+
+- `GET /api/v1/personal-agent/export?includeMemory=false&includeWorkDetails=false`
+- Native CLI `personal-agent export --json [--include-memory] [--include-work]`.
+- UI supports explicit SITREP review and optional inclusion checkboxes for export.
+
+### Offline regression set
+
+`test/unit/personal-agent-work.test.mjs` covers idempotency keys, transition validation, blocked resume, evidence qualification and bounds. `test/unit/personal-agent-self-knowledge.test.mjs` checks every topic, claim basis, redaction and failed unknown topics. `test/unit/personal-agent-continuity.test.mjs` verifies explicit private SITREP, default-redacted export and SHA-256 digest. Existing service and HTTP tests now cover Work and self-knowledge recovery, same-owner token/Origin behavior, export opt-in, private-endpoint exclusion from tool manifests and absence of duplicate retries.
+
+The GitHub Actions workflow now includes these tests plus a CLI smoke cycle for queue → Work list → SITREP → export, but GitHub has reported **runner_id 0 and zero executed steps** on failing jobs. Those jobs do **not** constitute passing Node tests. Isolated source-level function checks are narrower than Node/end-to-end acceptance.
+
 ## Next integration depth (not silently implemented)
 
 1. Reconcile the durable identity with a real VIVIM principal/instance schema when the canonical product identity owner is available. Migrate rather than invent duplicate principals.
 2. Connect `Immediate` to the actual owner-approved current Work/commitment model; attach citations/freshness and retention policies to memory records, prevent accidental global promotion, and add explicit export/erase semantics.
-3. Build typed self-knowledge projections from the existing World, capability registry and evidence; distinguish the answer's claim, basis, freshness, authority and executable action.
-4. Implement controlled tool-execution capability checks through the existing harness; enforce specific authorization and log observed outcomes. Neither source files nor declarative manifests can grant permissions.
+3. Extend the implemented typed self-knowledge projections to full dependency and impact graphs with source-specific freshness and falsifiable claims; do not elevate local inventories into authority.
+4. Connect the implemented local Work records to the **existing** harness Work/effect owner through preflight and explicit authorization, retaining evidence receipts and no-resend safeguards. Neither source files nor declarative manifests can grant permissions.
 5. Add staged skill validation, discovery refresh policy, communication handoff and optional schedule semantics only after establishing one real local lifecycle and ownership contract.
-6. Repeat focused Node tests and perform the first local Windows restart/recovery acceptance with real receipts before merging a runtime claim.
+6. Execute the focused Node and HTTP tests on a functioning runner; perform a local Windows restart/recovery acceptance with actual receipts before merging a runtime claim. Add a portable import/restore path only with schema checks, rollback and explicit user review.
 
 **Constraint:** this is a foundational *product implementation*, not a general-purpose autonomous agent runtime. Keep one product, one effect owner, one canonical storage implementation and evidence-qualified claims.
