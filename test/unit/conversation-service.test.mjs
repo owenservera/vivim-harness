@@ -376,3 +376,55 @@ test('stop after typing intent/effect never receives pre-effect proof and remain
   await rejects(next.submit({ key: 'new-key', prompt: 'synthetic follow-up', confirm: true, expectedRevision: next.read().revision }), 'THREAD_FENCED');
   assert.equal(f.calls.filter((c) => c === 'type').length, 1); assert.equal(f.calls.includes('submit'), false);
 });
+
+test('fresh-tab returned readiness block remains blocked, with no send or claimed completion', async (t) => {
+  const f = fixture(t, {
+    async connect(b, hooks) {
+      const created = { ...b, targetId: 'fresh-created-target' };
+      hooks.bind(created);
+      return { binding: created, sessionId: null, deferredCapture: true,
+        readiness: { ready: false, draft: { present: null, chars: null }, reason: 'BINDING_CHANGED' } };
+    },
+  });
+  const connected = await f.service.connect({ targetId: 'pending-created', origin: binding.origin, ownedByStudio: true,
+    identity: { state: 'unbound', reason: 'NEW_CHAT' }, expectedRevision: f.service.read().revision });
+  assert.equal(connected.binding.targetId, 'fresh-created-target');
+  assert.equal(connected.binding.ownedByStudio, true);
+  assert.equal(connected.state, 'blocked');
+  assert.equal(connected.readiness.reason, 'BINDING_CHANGED');
+  assert.equal(connected.attempts.length, 0);
+  assert.deepEqual(f.calls, []); // No typing, send or recorder.
+});
+
+test('fresh-tab thrown binding drift requires attachment reconciliation, not ordinary blocked readiness', async (t) => {
+  const f = fixture(t, {
+    async connect(b, hooks) {
+      hooks.bind({ ...b, targetId: 'fresh-created-target' });
+      throw Object.assign(new Error('sanitized failure'), { code: 'BINDING_CHANGED' });
+    },
+  });
+  await rejects(f.service.connect({ targetId: 'pending-created', origin: binding.origin, ownedByStudio: true,
+    identity: { state: 'unbound', reason: 'NEW_CHAT' }, expectedRevision: f.service.read().revision }), 'ATTACHMENT_FAILED');
+  const s = f.service.read();
+  assert.equal(s.state, 'needs-reconciliation');
+  assert.equal(s.uncertainty, 'attachment-failed');
+  assert.equal(s.readiness.reason, 'BINDING_CHANGED');
+  assert.equal(s.attempts.length, 0);
+  assert.deepEqual(f.calls, []); // No typing or send even after failed attachment.
+});
+
+test('page-observed send is not proof of terminal reply or capture; reconcile never resends', async (t) => {
+  const f = fixture(t);
+  await f.connect();
+  const delivered = await f.submit();
+  assert.equal(delivered.send.state, 'observed');
+  const before = f.service.read();
+  assert.equal(before.attempts[0].reply.completion, 'unknown');
+  const after = await f.service.reconcile({ expectedRevision: before.revision });
+  assert.equal(after.attempts[0].key, before.attempts[0].key);
+  assert.equal(after.attempts[0].send.state, 'observed');
+  assert.equal(after.attempts[0].reply.completion, 'unknown');
+  assert.equal(f.calls.filter((c) => c === 'submit').length, 1);
+  await f.submit({ expectedRevision: -1 }); // Original key replay is read-only, even with a stale revision.
+  assert.equal(f.calls.filter((c) => c === 'submit').length, 1);
+});
