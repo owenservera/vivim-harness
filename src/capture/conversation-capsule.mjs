@@ -25,12 +25,13 @@ export function buildCapabilityCapsule({ view, profile = null } = {}) {
   const identity = view.identity ?? { state: 'unknown' };
   const readiness = view.readiness ?? { ready: false };
   const state = view.state ?? 'disconnected';
-  const finished = state === 'closed' || view.diagnostic?.finishPhase === 'done';
+  const finished = state === 'closed' || (view.diagnostic?.finishPhase != null && view.diagnostic.finishPhase !== 'idle');
   const recovered = (view.limitations ?? []).some((l) => String(l).includes('Recovered snapshot'));
   const capturedAt = new Date().toISOString();
 
   const read = (() => {
     if (state === 'disconnected') return op('read_conversation', 'unavailable', { reason: 'NOT_CONNECTED', evidence: ['conversation state is disconnected'] });
+    if (finished) return op('read_conversation', 'unavailable', { reason: 'CONVERSATION_FINISHED', evidence: ['finalization already requested; live reader is closed'] });
     if (identity.state === 'unverified') return op('read_conversation', 'unavailable', { reason: 'THREAD_IDENTITY_UNVERIFIED', evidence: [`identity reason: ${identity.reason ?? 'unknown'}`] });
     if (recovered || view.recovery?.pending === true || identity.state === 'unknown') return op('read_conversation', 'unverified', { reason: 'READ_REQUIRES_LIVE_CONVERSATION', evidence: ['no proven live writable browser attachment'] });
     // A live, verified conversation can be read by the runtime (bounded transcript, zero send).
