@@ -427,7 +427,9 @@ export async function sendState(page, adapter = null, before = null) {
   let streaming = null;
   try {
     const stream = await isStreaming(page, adapter);
-    if (!String(stream.evidence ?? '').startsWith('streaming check failed:')) streaming = stream.streaming;
+    // `observed` is the contract, not the evidence wording: a failed observation must never
+    // assign a value here, whatever string the failure happens to carry.
+    streaming = stream.observed === true ? stream.streaming : null;
   } catch { /* unreadable streaming state stays unknown, never a false -> true transition */ }
   const baseline = before?.evalOk === true && Number.isSafeInteger(before.draftChars) && before.draftChars > 0
     && Number.isSafeInteger(before.turns) && typeof before.streaming === 'boolean';
@@ -897,7 +899,9 @@ export async function detectAuthWall(page, adapter = null) {
     if (hasComposer && !composerUsable) return { blocked: true, reason: 'composer is disabled or read-only (signed out)' };
     return { blocked: false, reason: hasComposer ? 'composer available' : 'no composer found, no login wall detected' };
   })()`);
-  if (!r.ok) return { blocked: false, reason: `auth check unavailable: ${r.error}` };
+  // Unreadable is "unknown", not "definitely no auth wall": `null` stays falsy for the existing
+  // `if (auth.blocked)` call sites but cannot be mistaken for positive evidence of no wall.
+  if (!r.ok) return { blocked: null, reason: `auth check unavailable: ${r.error}` };
   return { blocked: !!r.value?.blocked, reason: r.value?.reason ?? 'unknown' };
 }
 

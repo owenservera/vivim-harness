@@ -288,8 +288,18 @@ export function createConversationService({ dataDir, id = randomUUID(), adapter,
     let preflight;
     try { preflight = await adapter.preflight(structuredClone(snapshot.binding), { priorTurns: [] }); }
     catch (e) {
-      if (e?.code !== 'PREEXISTING_THREAD') throw error(/^[A-Z][A-Z0-9_]{0,79}$/.test(e?.code ?? '') ? e.code : 'PREFLIGHT_FAILED');
-      snapshot.attempts.push(attempt); prove(); return finish();
+      const code = /^[A-Z][A-Z0-9_]{0,79}$/.test(e?.code ?? '') ? e.code : 'PREFLIGHT_FAILED';
+      if (e?.code === 'PREEXISTING_THREAD') { snapshot.attempts.push(attempt); prove(); return finish(); }
+      // Proven pre-effect block: nothing was typed or dispatched, so the receipt is persisted,
+      // capture is disarmed, and the key is consumed - then the same error still propagates.
+      snapshot.attempts.push(attempt); prove();
+      attempt.reason = code;
+      snapshot.readiness = { ready: false, draft: { present: null, chars: null }, reason: code };
+      snapshot.state = 'blocked'; snapshot.uncertainty = null;
+      await adapter.stopTurnCapture?.().catch(() => {});
+      snapshot.capture.state = 'idle';
+      save();
+      throw error(code);
     }
     const threadless = preflight?.creation?.threadless === true && !preflight?.targetThread && !preflight?.pageThread;
     const controls = preflight?.controls;

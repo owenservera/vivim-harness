@@ -66,6 +66,34 @@ export function buildCapabilityCapsule({ view, profile = null } = {}) {
     return op('stop_generation', 'unavailable', { reason: 'NOT_IMPLEMENTED_IN_RUNTIME', evidence: ['finish_conversation finalizes capture; it does not stop provider generation'] });
   })();
 
+  const renameNative = (() => {
+    // Rename is a provider-side title control the runtime does not implement. Declared as absent so a
+    // consumer cannot read the omission as permission.
+    return op('rename_conversation', 'unavailable', { reason: 'NOT_IMPLEMENTED_IN_RUNTIME',
+      evidence: ['no measured rename control in the site profile; no post-effect title readback defined'] });
+  })();
+
+  const branchNative = (() => {
+    // Branching creates a new thread identity; it needs exact-thread, ownership and readback gates
+    // that do not exist in the runtime, so it is declared absent rather than omitted.
+    return op('branch_conversation', 'unavailable', { reason: 'NOT_IMPLEMENTED_IN_RUNTIME',
+      evidence: ['branching changes thread identity; requires exact-thread gate, draft-idle precondition and post-branch readback'] });
+  })();
+
+  const editNative = (() => {
+    // Editing a sent turn rewrites the thread's own history; with no measured edit control and no
+    // readback of the rewritten turn, absence must not read as permission.
+    return op('edit_message', 'unavailable', { reason: 'NOT_IMPLEMENTED_IN_RUNTIME',
+      evidence: ['no measured edit control in the site profile; no post-edit turn identity/readback defined'] });
+  })();
+
+  const regenerateNative = (() => {
+    // Regeneration replaces an existing reply, so it needs reply-identity fencing and a new-reply
+    // readback the runtime does not have.
+    return op('regenerate', 'unavailable', { reason: 'NOT_IMPLEMENTED_IN_RUNTIME',
+      evidence: ['no measured regenerate control in the site profile; replacing a reply requires prior-reply fencing and new-reply readback'] });
+  })();
+
   const reconcile = (() => {
     if (state === 'disconnected') return op('reconcile_conversation', 'unavailable', { reason: 'NOT_CONNECTED' });
     if (view.writer?.active === true) return op('reconcile_conversation', 'supported', { evidence: ['writer window held; explicit reconciliation may resolve an unknown delivery'] });
@@ -103,7 +131,9 @@ export function buildCapabilityCapsule({ view, profile = null } = {}) {
     // bypass, or a promise about provider-side features.
     scope: 'current conversation evidence only; the runtime re-checks every gate at effect time',
     operations: { read_conversation: read, read_transcript: read, submit_conversation_turn: submit,
-      stop_generation: stop, reconcile_conversation: reconcile, finish_conversation: finish,
+      stop_generation: stop, rename_conversation: renameNative, branch_conversation: branchNative,
+      edit_message: editNative, regenerate: regenerateNative,
+      reconcile_conversation: reconcile, finish_conversation: finish,
       close_tab: closeTab, change_model: modelSelection },
   };
 }

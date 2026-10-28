@@ -113,12 +113,18 @@ export function createConversationBrowserAdapter({ paths, profileStore, familySt
   }
   async function readiness(end) {
     const blocked = (reason, draft = { present: null, chars: null }) => ({ ready: false, reason, draft });
+    let lastReason = null; // Reset every tick: an earlier sample must never become the timeout verdict.
     do {
+      lastReason = null;
       const target = (await d.listTargets({ port })).find((t) => t.id === binding.targetId);
       if (!target) return blocked('TARGET_DISAPPEARED');
-      let actual; try { actual = new URL(target.url).origin; } catch { return blocked('BINDING_CHANGED'); }
+      let actual; try { actual = new URL(target.url).origin; } catch { actual = 'null'; }
       if (actual !== binding.origin) {
-        if (!(freshTab && target.url === 'about:blank')) return blocked('BINDING_CHANGED');
+        // A fresh tab that has not committed yet reports the string origin 'null' — `about:blank`,
+        // but equally `chrome://newtab/` or any other non-special scheme. That is the same
+        // uncommitted state :127 already tolerates for the page origin, so it must not be reported as
+        // a binding change; a committed foreign origin still is.
+        if (!(freshTab && (actual === 'null' || target.url === 'about:blank'))) return blocked('BINDING_CHANGED');
       } else {
         const pageOrigin = await d.evaluate(livePage(), 'location.origin');
         if (pageOrigin !== binding.origin) {
@@ -126,23 +132,47 @@ export function createConversationBrowserAdapter({ paths, profileStore, familySt
         } else if (!threadMatches(target.url) || !(await pageThreadMatches())) {
           return blocked('BINDING_CHANGED');
         } else if (freshTab && !binding.thread) {
-          const loc = await creationLocation();
-          if (loc.targetThread || loc.pageThread) return blocked('PREEXISTING_THREAD');
-          // A project/custom-GPT route is not a fresh home composer.
-          if (loc.targetPath !== '/' || loc.pathname !== '/') return blocked('BINDING_CHANGED');
-          const composer = await d.findComposer(livePage(), siteAdapter);
-          const auth = await d.detectAuthWall(livePage(), siteAdapter);
-          if (auth.blocked) return blocked('AUTH_WALL');
-          const gate = await d.detectSiteFailure(livePage(), siteAdapter);
-          if (gate.failed) return blocked('SITE_GATE');
-          if (composer.found) {
-            const state = await d.sendState(livePage(), siteAdapter);
-            const page = await d.readTurnPage(livePage(), siteAdapter);
-            if (!state.evalOk) { /* keep polling */ }
-            else if (parseThread(siteAdapter.id, `${binding.origin}${page?.pathname ?? ''}`)) return blocked('PREEXISTING_THREAD');
-            else if (state.draftChars > 0 || page?.draft?.chars > 0) return blocked('DRAFT_PRESENT', { present: true, chars: state.draftChars });
-            else if (state.draftChars === 0 && freshComposerReady(page))
-              return { ready: true, draft: { present: false, chars: 0 }, reason: null, creation: { threadless: true } };
+          // A single unreadable location sample is a transient of a polling function, not a terminal
+          // binding change: the same tab legitimately reports a null origin mid-navigation (:124-125).
+          // The reason is remembered for the deadline verdict; the composer probe below is only
+          // reached on a successful sample, so a persistent wrong location can never report ready.
+          let loc = null;
+          try { loc = await creationLocation(); }
+          catch (e) {
+            const code = /^[A-Z][A-Z0-9_]{0,79}$/.test(e?.code ?? '') ? e.code : 'BINDING_CHANGED';
+            // Only page-level samples are transient. A target that has committed a parseable URL on
+            // a different origin is a real binding change and stays terminal, exactly as before; an
+            // unparseable URL means the tab has not committed yet, an `about:blank` target reports the
+            // string origin 'null' (the same uncommitted state :123-127 already tolerate), and a
+            // same-origin target with an unreadable page sample is the mid-navigation case this loop
+            // is allowed to survive.
+            let targetOrigin = null;
+            try {
+              const now = (await d.listTargets({ port })).find((t) => t.id === binding.targetId);
+              if (!now) return blocked('TARGET_DISAPPEARED');
+              try { targetOrigin = new URL(now.url).origin; } catch { targetOrigin = null; }
+            } catch { targetOrigin = null; }
+            if (targetOrigin !== null && targetOrigin !== 'null' && targetOrigin !== binding.origin) throw problem(code);
+            lastReason = code;
+          }
+          if (loc) {
+            if (loc.targetThread || loc.pageThread) return blocked('PREEXISTING_THREAD');
+            // A project/custom-GPT route is not a fresh home composer.
+            if (loc.targetPath !== '/' || loc.pathname !== '/') return blocked('BINDING_CHANGED');
+            const composer = await d.findComposer(livePage(), siteAdapter);
+            const auth = await d.detectAuthWall(livePage(), siteAdapter);
+            if (auth.blocked) return blocked('AUTH_WALL');
+            const gate = await d.detectSiteFailure(livePage(), siteAdapter);
+            if (gate.failed) return blocked('SITE_GATE');
+            if (composer.found) {
+              const state = await d.sendState(livePage(), siteAdapter);
+              const page = await d.readTurnPage(livePage(), siteAdapter);
+              if (!state.evalOk) { /* keep polling */ }
+              else if (parseThread(siteAdapter.id, `${binding.origin}${page?.pathname ?? ''}`)) return blocked('PREEXISTING_THREAD');
+              else if (state.draftChars > 0 || page?.draft?.chars > 0) return blocked('DRAFT_PRESENT', { present: true, chars: state.draftChars });
+              else if (state.draftChars === 0 && freshComposerReady(page))
+                return { ready: true, draft: { present: false, chars: 0 }, reason: null, creation: { threadless: true } };
+            }
           }
         } else {
           const composer = await d.findComposer(livePage(), siteAdapter);
@@ -162,7 +192,7 @@ export function createConversationBrowserAdapter({ paths, profileStore, familySt
       if (Date.now() >= end) break;
       await d.sleep(d.readinessPollMs);
     } while (Date.now() <= end);
-    return blocked('READINESS_TIMEOUT');
+    return blocked(lastReason ?? 'READINESS_TIMEOUT');
   }
   async function check() {
     if (!livePage()) throw problem('CAPTURE_NOT_ACTIVE');

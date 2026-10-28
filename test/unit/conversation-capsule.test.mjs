@@ -68,6 +68,15 @@ test('writer window busy and unfinished readiness gate the send honestly; stop_g
     'finish_conversation is capture finalization; claiming a provider stop would be a fabricated capability');
 });
 
+test('absent native lifecycle controls are declared unavailable, not silently omitted', () => {
+  const c = buildCapabilityCapsule({ view: view(), profile: chatgptProfile });
+  for (const name of ['rename_conversation', 'branch_conversation', 'edit_message', 'regenerate']) {
+    assert.equal(c.operations[name].availability, 'unavailable', name);
+    assert.equal(c.operations[name].reason, 'NOT_IMPLEMENTED_IN_RUNTIME', name);
+    assert.ok(Array.isArray(c.operations[name].evidence) && c.operations[name].evidence.length > 0, `${name} must carry the registration bar`);
+  }
+});
+
 test('finished and recovered conversations refuse sends; model change stays unverified when only selectors exist', () => {
   const done = buildCapabilityCapsule({ view: view({ state: 'closed', diagnostic: { finishPhase: 'done' } }), profile: chatgptProfile });
   assert.equal(done.operations.submit_conversation_turn.availability, 'unavailable');

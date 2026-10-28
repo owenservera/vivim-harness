@@ -94,13 +94,29 @@ test('navigation to a denylisted /c before send sends nothing and proves pre-eff
   const f = harness(t, { tabs: [{ id: 'open', type: 'page', url: `https://chatgpt.com/c/${OPEN}` }] });
   const c = await f.connectFresh();
   f.state.pathname = `/c/${OPEN}`; f.state.targetUrl = `https://chatgpt.com/c/${OPEN}`;
-  const blocked = await f.submit(c);
-  assert.equal(blocked.turn.phase, 'blocked'); assert.equal(blocked.turn.reason, 'PREEXISTING_THREAD');
+  await assert.rejects(f.submit(c), (e) => e.code === 'BINDING_CHANGED');
   assert.equal(f.state.insertions, 0); assert.equal(f.state.sends, 0); assert.equal(f.state.replyReads, 0);
   const disk = JSON.parse(fs.readFileSync(f.file(c.id), 'utf8'));
-  assert.equal(disk.attempts[0].preEffect.typing, 'not-executed'); assert.equal(disk.attempts[0].preEffect.dispatch, 'not-executed');
-  assert.equal(disk.binding.thread, undefined);
+  assert.equal(disk.attempts.length, 1);
+  assert.equal(disk.attempts[0].phase, 'blocked');
+  assert.equal(disk.attempts[0].reason, 'BINDING_CHANGED');
+  assert.equal(disk.attempts[0].preEffect.typing, 'not-executed');
+  assert.equal(disk.attempts[0].preEffect.dispatch, 'not-executed');
+  assert.equal(disk.binding.thread, undefined); // still unbound: no thread pinned
+  assert.equal(disk.capture.state, 'idle'); // capture disarmed: nothing was typed
+  assert.equal(disk.state, 'blocked');
+  assert.equal(disk.readiness.reason, 'BINDING_CHANGED'); // no stale ready:true
+  assert.equal(disk.readiness.ready, false);
   assert.equal(fs.existsSync(path.join(path.dirname(f.file(c.id)), 'thread-turns')), false);
+  // The pre-effect block consumes the key: a same-key retry replays the blocked attempt read-only
+  // (idempotent, no second typing/dispatch), and a NEW key is refused before any browser work.
+  const replay = await f.submit(c);
+  assert.equal(replay.turn.phase, 'blocked');
+  assert.equal(replay.turn.reason, 'BINDING_CHANGED');
+  assert.equal(f.state.insertions, 0); assert.equal(f.state.sends, 0);
+  const after = await f.runtime.get(c.id);
+  await assert.rejects(f.submit(after, { key: 'two', expectedRevision: after.revision }), (e) => e.code === 'CREATION_UNCERTAIN');
+  assert.equal(f.state.insertions, 0); assert.equal(f.state.sends, 0);
 });
 
 test('target/page mismatch does not pin or read a reply', async (t) => {

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isStreaming, readTranscript, waitForCompletion } from '../../src/capture/actions.mjs';
+import vm from 'node:vm';
+import { detectAuthWall, findComposer, isStreaming, readTranscript, sendState, waitForCompletion } from '../../src/capture/actions.mjs';
 
 // Synthetic CDP responses only: no browser, recorder, network, or provider sends.
 function page({ stream = { streaming: false, evidence: 'idle' }, transcript = {
@@ -71,4 +72,59 @@ test('an explicitly detected provider failure can still stop waiting without a f
   assert.equal(result.done, true);
   assert.equal(result.failed, true);
   assert.ok(observations >= 3);
+});
+
+test('sendState trusts the observation flag, not the evidence wording', async () => {
+  // The retired guard filtered on the evidence string `streaming check failed:`. Wording is not
+  // the contract — `observed` is — so a successful observation must be used whatever it says,
+  // and a failed one must never contribute a value. This page reports a boolean with legacy-
+  // looking evidence, so an evidence-based guard silently drops a real observation.
+  const composer = { evalOk: true, text: 'private draft', turns: 5, bodyLen: 100, sendDisabled: false };
+  const page = {
+    async send(method, { expression } = {}) {
+      assert.equal(method, 'Runtime.evaluate');
+      if (expression.includes('const TURN_SEL')) return { result: { value: composer } };
+      if (expression.includes('const stopLabel ='))
+        return { result: { value: { streaming: true, evidence: 'streaming check failed: legacy wording' } } };
+      throw new Error('Unexpected evaluation');
+    },
+  };
+  const before = { evalOk: true, draftChars: 13, turns: 4, bodyLen: 100, streaming: false };
+  const after = await sendState(page, null, before);
+  assert.equal(after.streaming, true, 'a successful streaming observation is authoritative');
+  assert.equal(after.sent, true, 'turn growth plus observed streaming is corroborated delivery');
+});
+
+test('an unreadable auth check is unknown, never "not blocked"', async () => {
+  const p = { async send() { throw new Error('page not evaluable'); } };
+  const result = await detectAuthWall(p);
+  assert.equal(result.blocked, null);
+  assert.notEqual(result.blocked, false);
+  assert.match(result.reason, /auth check unavailable/);
+});
+
+test('findComposer writes exactly one page-state handle and clears it when nothing matches', async () => {
+  // Pins the write set: the read path is not "no page state" — it leaves a composer handle in
+  // `globalThis.__aionDrive`, which sendState/detectAuthWall and human.mjs read back.
+  const composer = {
+    tagName: 'TEXTAREA', isConnected: true, value: '', disabled: false, readOnly: false,
+    getBoundingClientRect: () => ({ width: 50, height: 20 }), getAttribute: () => null, closest: () => null,
+  };
+  const probe = async (els) => {
+    const sandbox = {
+      document: { activeElement: null, body: { innerText: '' }, querySelectorAll: (sel) => (sel === 'textarea' ? els : []) },
+      getComputedStyle: () => ({ display: 'block', visibility: 'visible', opacity: '1' }),
+    };
+    const page = { async send(method, { expression }) {
+      assert.equal(method, 'Runtime.evaluate');
+      return { result: { value: vm.runInNewContext(expression, sandbox) } };
+    } };
+    return { result: await findComposer(page), handle: sandbox.__aionDrive };
+  };
+  const found = await probe([composer]);
+  assert.equal(found.result.found, true);
+  assert.equal(found.handle?.el, composer);
+  const missing = await probe([]);
+  assert.equal(missing.result.found, false);
+  assert.equal(missing.handle, null);
 });
