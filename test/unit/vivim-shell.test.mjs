@@ -72,3 +72,9 @@ test('first-use provider choices are sourced only from existing supported-sites 
   assert.match(script, /renderChrome\(\); renderWelcome\(S\.snap\)/);
   assert.doesNotMatch(html, /data-logged-in="true"|data-verified-account="true"/);
 });
+
+test('provider chip selection tracks the original site dropdown and mode changes', () => {
+  assert.match(script, /S\.site = \$\('#site'\)\.value; renderConnect\(\); renderWelcome\(S\.snap\)/);
+  assert.match(script, /S\.mode = r\.value; \$\('#connectError'\)\.textContent = ''; renderConnect\(\); renderWelcome\(S\.snap\)/);
+  assert.match(script, /button\.dataset\.provider === S\.site && S\.mode === 'new'/);
+});

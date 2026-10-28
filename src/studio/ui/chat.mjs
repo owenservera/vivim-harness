@@ -1843,7 +1843,7 @@ function boot() {
       } else {
         choices.replaceChildren(...sites.map((site) => el('button', {
           type: 'button', class: 'vivim-provider-choice', text: siteName(site.id),
-          'data-provider': site.id, 'aria-pressed': site.id === S.site ? 'true' : 'false',
+          'data-provider': site.id, 'aria-pressed': site.id === S.site && S.mode === 'new' ? 'true' : 'false',
           onclick: () => {
             // A provider choice only changes the existing form. Connecting and sending remain separate deliberate actions.
             S.mode = 'new'; S.site = site.id; $('#modeNew').checked = true;
@@ -1854,7 +1854,7 @@ function boot() {
       }
     }
     for (const button of choices.querySelectorAll('button[data-provider]')) {
-      button.setAttribute('aria-pressed', button.dataset.provider === S.site ? 'true' : 'false');
+      button.setAttribute('aria-pressed', button.dataset.provider === S.site && S.mode === 'new' ? 'true' : 'false');
       button.disabled = view.busy || S.targetsState !== 'ok';
     }
   }
@@ -1880,8 +1880,8 @@ function boot() {
     view.click();
     view.focus();
   });
-  document.querySelectorAll('input[name=mode]').forEach((r) => r.addEventListener('change', () => { if (r.checked) { S.mode = r.value; $('#connectError').textContent = ''; renderConnect(); } }));
-  $('#site').addEventListener('change', () => { S.site = $('#site').value; renderConnect(); });
+  document.querySelectorAll('input[name=mode]').forEach((r) => r.addEventListener('change', () => { if (r.checked) { S.mode = r.value; $('#connectError').textContent = ''; renderConnect(); renderWelcome(S.snap); } }));
+  $('#site').addEventListener('change', () => { S.site = $('#site').value; renderConnect(); renderWelcome(S.snap); });
   $('#btnTabs').addEventListener('click', loadTargets);
   $('#btnConnect').addEventListener('click', connect);
   // Enter is a plain newline and there is no keyboard shortcut that sends: Send is one deliberate click.
