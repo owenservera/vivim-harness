@@ -58,3 +58,21 @@ At the tree snapshot, 66 explicitly referenced files and 128 additional `.mjs`/`
 - `src/profiles/sites/chatgpt.mjs` provides `assistant.streamingSelectors` and `send.buttonSelectors`; these are now passed by `src/capture/conversation-browser-adapter.mjs::readTranscript` to `src/capture/conversation-thread.mjs::transcriptExpression`. `boundTranscript` retains a conservative, source-labelled UI controls summary.
 - Callers: `src/capture/conversation-runtime.mjs::read` → adapter read, `src/studio/conversation-tools.mjs::read_conversation` → same owner runtime; `src/studio/conversation-api.mjs` has the POST /read surface.
 - Focused test source: `test/unit/conversation-thread.test.mjs`. This establishes only these code-level import/call relationships; other P0–P2 candidate classification and complete transitive review remain open.
+
+## Verified dependency relationships — audit 2026-10-28
+
+The initial three maps referenced **132 unique source/config paths**; all 132 were fetched from GitHub and their source inspected for imports, exports and runtime owners during this audit. Additional connected modules were opened, including `src/capture/conversation-rich.mjs`, `src/intel/correlate.mjs`, `src/intel/join.mjs`, `src/intel/history.mjs`, `src/intel/schema.mjs`, `src/intel/similarity.mjs`, `src/intel/discover.mjs`, `src/intel/learn.mjs`, `src/intel/platform.mjs`, `src/decode/proto-features.mjs`, `src/decode/protobuf.mjs`, `src/studio/adapter-learning-pipeline.mjs`, `src/studio/systems-probes.mjs`, `src/studio/world-url.mjs`, `src/studio/world-transfer.mjs`, and `src/export/graph-ranked.mjs`. **This is not a certification of every recursive import reachable from all unrelated subsystems**; other recursive helper edges remain outside the verified ledger.
+
+| Classification | Verified files and dependency relationship | Relevance |
+|---|---|---|
+| Direct CLI/native dependency | `bin/commands/tools.mjs` → `src/studio/tool-client.mjs` → `src/studio/conversation-tools.mjs` (`executeConversationTool`) → `src/capture/conversation-runtime.mjs` | Existing Studio owner and named tools |
+| Direct creation path | `create_conversation` (`src/studio/conversation-tools.mjs`) → `runtime.connect({site:'chatgpt',freshTab:true})`; HTTP in `src/studio/conversation-api.mjs` | 011: new Studio-owned blank chat without send |
+| Direct browser/send path | `src/capture/conversation-runtime.mjs` → `src/capture/conversation-browser-adapter.mjs` → `src/capture/actions.mjs` → `src/cdp/client.mjs`, `src/cdp/discovery.mjs` | Turn submission, thread fence, reconciliation |
+| Direct native read path | `src/capture/conversation-thread.mjs` `transcriptExpression` → `src/capture/conversation-rich.mjs` `richPartReaderSource` / `boundRichParts` → `read_conversation` | 041–050 partial live semantic extraction |
+| Direct capture/persistence path | `src/capture/recorder.mjs` → `src/capture/dom.mjs` / `src/capture/page-agent.js` / `src/capture/network.mjs` → `src/store/session.mjs` → `src/replay/derive.mjs` | Session evidence and recoverable World data |
+| Browser ownership | `src/chrome/launch.mjs` → `src/chrome/browser-ownership.mjs`; serialization via `src/capture/drive-lease.mjs` | Prevent duplicate CDP owner |
+| Alternate implementation | `bin/commands/drive.mjs` → `src/capture/actions.mjs` `driveSite`; `bin/commands/chat.mjs`, `bin/commands/run.mjs`, `src/recipes/service.mjs` | Alternate dispatch does not imply all native tools are exposed |
+| Related, not ChatGPT browser effect | `src/studio/agentic-files.mjs` (agent context files), `src/profiles/model-ops.mjs` (profile settings), `src/shapes/extract.mjs` (record selector extraction) | Do not misclassify as web upload/model selection/interaction |
+| Related replay/semantic support | `src/replay/stream-components.mjs`, `src/profiles/stream-map.mjs`, `src/shapes/observation.mjs` | Structured saved evidence, not necessarily a live control |
+
+**Remaining blocking categories:** browser-only UI controls (upload, feedback, projects, settings, research panels), incomplete rendered/offscreen coverage, missing durable send-journal integration in legacy `driveSite`, and unverified real ChatGPT feature availability. No Playwright/Puppeteer or secondary browser controller was added.
