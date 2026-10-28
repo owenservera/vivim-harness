@@ -97,14 +97,14 @@ test('boundTranscript: streaming and idle controls require positive UI evidence,
 });
 
 // ---------------------------------------------------------------- in-page reader never mutates the page
-function fakePage({ pathname = `/c/${A}`, draft = 'unsent draft text' } = {}) {
+function fakePage({ pathname = `/c/${A}`, draft = 'unsent draft text', ariaHidden = false } = {}) {
   const touched = [];
   const spy = (name) => () => { touched.push(name); };
   const rect = (w = 20, h = 20) => () => ({ width: w, height: h });
   const mk = (text, over = {}) => ({ innerText: text, getBoundingClientRect: rect(), contains: () => false, compareDocumentPosition: () => 4, parentElement: null,
     focus: spy('focus'), blur: spy('blur'), click: spy('click'), scrollIntoView: spy('scrollIntoView'), scrollTo: spy('scrollTo'), dispatchEvent: spy('dispatchEvent'), remove: spy('remove'), ...over });
   const order = [];
-  const u1 = mk('hello'), a1 = mk('world'), hidden = mk('hidden', { getBoundingClientRect: rect(0, 0) }), outer = mk('outer'), inner = mk('inner');
+  const u1 = mk('hello'), a1 = mk('world'), hidden = mk('hidden', { getBoundingClientRect: rect(0, 0) }), aria = mk('PRIVATE_ARIA_HIDDEN', { getAttribute: (name) => name === 'aria-hidden' ? 'true' : null }), outer = mk('outer'), inner = mk('inner');
   outer.contains = (el) => el === inner; const u2 = mk('x'.repeat(50));
   for (const el of [u1, a1, hidden, outer, inner, u2]) order.push(el);
   order.forEach((el, i) => { el.compareDocumentPosition = (other) => (order.indexOf(other) > i ? 4 : 2); });
@@ -112,7 +112,7 @@ function fakePage({ pathname = `/c/${A}`, draft = 'unsent draft text' } = {}) {
   Object.defineProperty(composer, 'value', { get: () => draft, set() { valueWrites++; } });
   const scroller = { scrollTop: 300, scrollHeight: 2000, clientHeight: 500, parentElement: null };
   u1.parentElement = scroller;
-  const groups = { '[data-message-author-role="user"]': [u1, hidden, outer, inner, u2], '[data-message-author-role="assistant"]': [a1], '#prompt-textarea': [composer] };
+  const groups = { '[data-message-author-role="user"]': [u1, hidden, ...(ariaHidden ? [aria] : []), outer, inner, u2], '[data-message-author-role="assistant"]': [a1], '#prompt-textarea': [composer] };
   const document = { querySelectorAll: (sel) => groups[sel] ?? [], querySelector: (sel) => (groups[sel] ?? [])[0] ?? null };
   const sandbox = { document, location: { pathname, origin: 'https://chatgpt.com' }, getComputedStyle: (el) => ({ overflowY: el === scroller ? 'auto' : 'visible' }),
     window: { scrollTo: spy('window.scrollTo') } };
@@ -130,6 +130,16 @@ test('page reader returns visible ordered messages and draft presence only; muta
   assert.equal(out.messages.find((m) => m.chars === 50).text.length, 20);
   assert.deepEqual({ ...out.draft }, { present: true, chars: 'unsent draft text'.length }); assert.equal(JSON.stringify(out).includes('unsent draft'), false);
   assert.equal(out.scroll.found, true); assert.equal(out.scroll.topReached, false);
+});
+
+test('aria-hidden message roots stay outside Read and increment honest hidden coverage', () => {
+  const page = fakePage({ ariaHidden: true });
+  const expr = transcriptExpression({ composerSelectors: ['#prompt-textarea'], scanLimit: 50,
+    userSelectors: ['[data-message-author-role="user"]'], assistantSelectors: ['[data-message-author-role="assistant"]'] });
+  const out = vm.runInNewContext(expr, page.sandbox);
+  assert.equal(out.hiddenSkipped, 2);
+  assert.equal(out.messages.some((m) => m.text.includes('PRIVATE_ARIA_HIDDEN')), false);
+  assert.deepEqual(page.touched, []);
 });
 
 // ---------------------------------------------------------------- adapter: BINDING_CHANGED on same target+origin, different thread
