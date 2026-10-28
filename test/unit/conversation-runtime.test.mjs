@@ -434,7 +434,7 @@ test('another runtime can read a live owner snapshot without rewriting it or fin
 });
 
 function browserFixture({ freshTab = false, readinessDependencies = {} } = {}) {
-  const calls = [], records = [], store = new Map(); let users = ['earlier prompt'], origin = 'https://chatgpt.com', draftChars = 0, draft = '', rec;
+  const calls = [], records = [], store = new Map(); let users = freshTab ? [] : ['earlier prompt'], origin = 'https://chatgpt.com', draftChars = 0, draft = '', rec;
   const id = '11111111-1111-4111-8111-111111111111';
   const thread = freshTab ? null : { kind: 'chatgpt-c', id, ref: `chatgpt-c:${id}` };
   const binding = { targetId: freshTab ? 'pending' : 'selected', origin, ownedByStudio: freshTab, ...(thread ? { thread } : {}) };
