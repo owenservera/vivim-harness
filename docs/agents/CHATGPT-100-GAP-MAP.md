@@ -190,7 +190,7 @@ Source-reviewed classification reconciled against `CHATGPT-100-RECONCILED-STATUS
 
 ## 2026-10-28 — scenario closure reconciliation and remaining gaps
 
-[Per-scenario source/gap/status ledger for all objectives 001–100](CHATGPT-100-AUDIT-LEDGER-2026-10-28.md): **6 source-supported, 43 partial, 51 unsupported**, where "source-supported" is not a new live verification result.
+[Per-scenario source/gap/status ledger for all objectives 001–100](CHATGPT-100-AUDIT-LEDGER-2026-10-28.md): **7 source-supported, 42 partial, 51 unsupported**, where "source-supported" is not a new live verification result.
 
 - **007:** observed generation controls exposed through existing `read_conversation`, with `busy / idle / unknown` derived from stop/send/composer selectors. Still no complete backend generation-terminal proof.
 - **041–050:** typed, bounded DOM parts now flow via existing CDP read. Structure is partial and limited to rendered nodes: citation anchoring remains candidate-only; HTML tables/rows are capped; links are intentionally query/fragment sanitized; image metadata is not an asset download; math depends on DOM annotation availability. No offscreen traversal.
