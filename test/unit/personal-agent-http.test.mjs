@@ -68,10 +68,35 @@ test('personal agent survives a real Studio HTTP restart with local-only effects
     assert.equal((await api('/api/v1/personal-agent/memory/Immediate/task', 'PUT', {
       text: 'stale attempt', expectedVersion: revision,
     })).status, 409);
+    const knowledge = await api('/api/v1/personal-agent/self-knowledge?topic=privacy');
+    assert.equal(knowledge.status, 200);
+    assert.equal(knowledge.data.answers.privacy.value.providerSendsDuringBootstrap, false);
+    const beforeWork = await api('/api/v1/personal-agent/status');
+    const workInputs = { expectedVersion: beforeWork.data.version, title: 'Local integration test',
+      objective: 'No browser or provider dispatch', idempotencyKey: 'http_work_1234567' };
+    const createdWork = await api('/api/v1/personal-agent/work', 'POST', workInputs);
+    assert.equal(createdWork.status, 200);
+    assert.equal(createdWork.data.work.byStatus.queued, 1);
+    const duplicateWork = await api('/api/v1/personal-agent/work', 'POST', workInputs);
+    assert.equal(duplicateWork.status, 200);
+    assert.equal(duplicateWork.data.replayed, true);
+    assert.equal(duplicateWork.data.version, createdWork.data.version);
+    const listedWork = await api('/api/v1/personal-agent/work');
+    assert.equal(listedWork.data.items[0].title, workInputs.title);
+    const transitioned = await api('/api/v1/personal-agent/work/' + createdWork.data.item.id + '/transition',
+      'POST', { expectedVersion: createdWork.data.version, to: 'active' });
+    assert.equal(transitioned.status, 200);
+    assert.equal(transitioned.data.work.byStatus.active, 1);
+    const invalidCompletion = await api('/api/v1/personal-agent/work/' + createdWork.data.item.id + '/transition',
+      'POST', { expectedVersion: transitioned.data.version, to: 'completed' });
+    assert.equal(invalidCompletion.status, 400);
+    assert.equal(invalidCompletion.data.code, 'PERSONAL_AGENT_WORK_EVIDENCE_REQUIRED');
     const toolList = await api('/api/v1/integrations/tools');
     const toolNames = toolList.data.tools.map(tool => tool.name);
     assert.ok(toolNames.includes('personal_agent_status'));
     assert.ok(toolNames.includes('personal_agent_capabilities'));
+    assert.ok(toolNames.includes('personal_agent_self_knowledge'));
+    assert.equal(toolNames.some(name => name.startsWith('personal_agent_work')), false);
     assert.equal(toolNames.some(name => name.includes('memory')), false);
 
     await studio.close(); studio = await start();
@@ -79,6 +104,8 @@ test('personal agent survives a real Studio HTTP restart with local-only effects
     assert.equal(recovered.status, 200);
     assert.equal(recovered.data.nextStage, null);
     assert.equal(recovered.data.memoryCounts.Immediate, 0);
+    assert.equal(recovered.data.work.byStatus.active, 1);
+    assert.equal((await api('/api/v1/personal-agent/work')).data.items.length, 1);
     const replay = await api('/api/v1/personal-agent/bootstrap', 'POST', { expectedVersion: recovered.data.version });
     assert.equal(replay.data.version, recovered.data.version, 'idempotent recovery does not append a revision');
   } finally { await studio.close(); studio = null; }
