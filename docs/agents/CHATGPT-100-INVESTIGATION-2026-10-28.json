@@ -1189,9 +1189,11 @@
       "verification": {
         "sourceLevel": "Isolated V8 assertions passed for several patched pure source contracts",
         "nodeTests": "NOT_RUN_IN_THIS_ENVIRONMENT",
-        "githubActions": "PREVIOUS_JOBS_FAILED_NO_EXECUTED_STEPS; current run outcome not established",
+        "githubActions": "FAILED: workflow ChatGPT 100 focused source tests run 40673889685 (commit dbb023ade3a7d3d225d8e6aab452e218a9240f69); job source-audit has steps:null and no asserted test results. Failure cause not established.",
         "liveProvider": "NOT_RUN",
-        "resend": "No provider send and no automatic retry"
+        "resend": "No provider send and no automatic retry",
+        "syntax": "PASS: isolated V8 parsed changed production sources and 3 regression files; conversation-runtime test parses with module-only import.meta.url replaced for this parser. This is not Node test execution.",
+        "browserAdapter": "PASS: isolated execution of actual 627-line browser adapter: blank-ChatGPT composing allowed with absent Send, target-thread drift blocked, evaluated snapshot-thread drift blocked."
       },
       "invariants": [
         "No Playwright or Puppeteer",
