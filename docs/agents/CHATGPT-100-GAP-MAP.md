@@ -2,9 +2,9 @@
 
 ## 2026-10-28 gap reconciliation
 
-**Latest-main correction:** `src/capture/conversation-rich.mjs` is wired into `src/capture/conversation-thread.mjs` for bounded read-only DOM parts. Objectives **043–048 and 050** are now **partial** in the [matrix](CHATGPT-100-RECONCILED-STATUS.md), not unsupported; citation anchoring **049** remains unsupported. This is synthetic/source evidence, **not live provider verification**.
+**Latest-main correction:** `src/capture/conversation-rich.mjs` is wired into `src/capture/conversation-thread.mjs` for bounded read-only DOM parts. Objectives **043–048 and 050** are now **partial** in the [matrix](CHATGPT-100-RECONCILED-STATUS.md), not unsupported; citation anchoring **049** remains unsupported at capability level (its candidate reader is a `P` source path, AUDIT-LEDGER `:65`). This is synthetic/source evidence, **not live provider verification**.
 
-The [001–100 objective matrix](CHATGPT-100-RECONCILED-STATUS.md) supersedes any blanket “no source” classification that overlooks newly exposed existing controls. Current source-level rollup is **10 supported / 29 partial / 61 unsupported**; no new live or automated execution proof was obtained in this pass. The added [101–200 roadmap objectives](CHATGPT-200-ROADMAP-OBJECTIVES.md) are unverified future user goals.
+The [001–100 objective matrix](CHATGPT-100-RECONCILED-STATUS.md) supersedes any blanket “no source” classification that overlooks newly exposed existing controls. The status rollup lives in the [progress matrix](CHATGPT-100-PROGRESS-2026-10-28.md) and the [live ledger](CHATGPT-100-LIVE-2026-10-28.json); no counts are restated here. No new live or automated execution proof was obtained in this pass. The added [101–200 roadmap objectives](CHATGPT-200-ROADMAP-OBJECTIVES.md) are unverified future user goals.
 
 - **Closed: capability visibility through named tools** — `conversation_capsule` delegates read-only to the already implemented runtime capsule. The `conversation.capabilities` recipe is one native command; its result is advisory and never bypasses effect-time gates. Unit-test changes were authored, not run here.
 - **Corrected: blank new conversation** — `create_conversation` exists on updated `main` and delegates to the existing Studio browser owner. Do not recreate this primitive. It does not prove native thread identity until `/c/<uuid>` is observed.
@@ -77,7 +77,7 @@ Do not fabricate completion, selectors or browser evidence. Do not implement a s
 
 ## 001–100 individual reconciliation — 2026-10-28
 
-Source-reviewed classification reconciled against `CHATGPT-100-RECONCILED-STATUS.md` (10 supported / 29 partial / 61 unsupported) after source inspection, including later concurrent additions beyond the initial 132-path tree. **Supported/partial describes code availability, NOT 100 live scenario passes.** `source` means source reviewed, `isolated` is non-browser behavioral testing in this audit, and `historical-live` is a previously recorded probe, not a new live run. Open gaps are blocked on the named missing UI primitives, end-to-end integration, or actual local Chrome access. No simulated browser success is claimed.
+Source-reviewed classification reconciled against `CHATGPT-100-RECONCILED-STATUS.md` (status rollup: see the [progress matrix](CHATGPT-100-PROGRESS-2026-10-28.md) and [live ledger](CHATGPT-100-LIVE-2026-10-28.json); not restated here) after source inspection, including later concurrent additions beyond the initial 132-path tree. **Supported/partial describes code availability, NOT 100 live scenario passes.** `source` means source reviewed, `isolated` is non-browser behavioral testing in this audit, and `historical-live` is a previously recorded probe, not a new live run. Open gaps are blocked on the named missing UI primitives, end-to-end integration, or actual local Chrome access. No simulated browser success is claimed.
 
 | # | User objective | Implementation / dependency | Source status | Remaining concrete gap / improvement | Verification |
 |---|---|---|---|---|---|
@@ -91,7 +91,7 @@ Source-reviewed classification reconciled against `CHATGPT-100-RECONCILED-STATUS
 | 008 | Ephemeral chat awareness | `src/capture/conversation-browser-adapter.mjs`; `src/chrome/browser-ownership.mjs` | unsupported | Temporary Chat state detection absent | source |
 | 009 | Duplicate-title identity | `src/capture/conversation-browser-adapter.mjs`; `src/chrome/browser-ownership.mjs` | partial | Index keyed by /c/ not title; candidates unverified | source |
 | 010 | UI obstruction recognition | `src/capture/conversation-browser-adapter.mjs`; `src/chrome/browser-ownership.mjs` | partial | Auth wall exists; modal taxonomy missing | source |
-| 011 | New-chat navigation | `src/studio/conversation-tools.mjs` (`create_conversation`) → `src/capture/conversation-runtime.mjs` | supported | `create_conversation` creates a Studio-owned blank chat; no send | source |
+| 011 | New-chat navigation | `src/studio/conversation-tools.mjs` (`create_conversation`) → `src/capture/conversation-runtime.mjs` | supported | `create_conversation` creates a Studio-owned blank chat; no send. Source-level only — 011's live status is in `CHATGPT-100-LIVE-2026-10-28.json` | source |
 | 012 | Sidebar history selection | `src/studio/conversation-tools.mjs`; `src/capture/chatgpt-chat-index.mjs`; `src/capture/human.mjs` | partial | Read rendered title candidates; no click-to-open tool | source |
 | 013 | Deep-link navigation | `src/studio/conversation-tools.mjs`; `src/capture/chatgpt-chat-index.mjs`; `src/capture/human.mjs` | supported | `drive` deep-link + connect with exact-thread fence; no standalone open action | source |
 | 014 | Cross-thread navigation | `src/studio/conversation-tools.mjs`; `src/capture/chatgpt-chat-index.mjs`; `src/capture/human.mjs` | partial | Targets + exact connect; no return-stack primitive | source |
@@ -123,14 +123,14 @@ Source-reviewed classification reconciled against `CHATGPT-100-RECONCILED-STATUS
 | 040 | Feedback UI discovery | `src/capture/actions.mjs`; `src/profiles/sites/chatgpt.mjs`; `src/profiles/model-ops.mjs` | unsupported | Feedback UI inspection absent | source |
 | 041 | Long-answer extraction | `src/capture/conversation-thread.mjs`; `src/capture/conversation-rich.mjs`; `src/capture/page-agent.js` | partial | Rendered text bounded; offscreen answer remains unproven | source |
 | 042 | Role attribution | `src/capture/conversation-thread.mjs`; `src/capture/conversation-rich.mjs`; `src/capture/page-agent.js` | partial | Role-labelled DOM transcript; partial coverage | source |
-| 043 | List structure | `src/capture/conversation-rich.mjs` (`richPartReaderSource`, `boundRichParts`) | unsupported | `conversation-rich` returns list depth/items; rendered-only | source |
-| 044 | Code block fidelity | `src/capture/conversation-rich.mjs` | unsupported | `conversation-rich` code language/text; clipped | source |
-| 045 | Table semantics | `src/capture/conversation-rich.mjs` | unsupported | `conversation-rich` table rows and cells; bounded | source |
-| 046 | Math fidelity | `src/capture/conversation-rich.mjs` | unsupported | `conversation-rich` math with LaTeX when available | source |
-| 047 | Quotation structure | `src/capture/conversation-rich.mjs` | unsupported | `conversation-rich` blockquote text; attribution weak | source |
-| 048 | Hyperlink extraction | `src/capture/conversation-rich.mjs` | unsupported | Sanitized link href/label; query/fragment removed | source |
-| 049 | Citation anchoring | `src/capture/conversation-rich.mjs` | unsupported | Citation candidate extracted; passage-source anchor missing | source |
-| 050 | Image-block extraction | `src/capture/conversation-rich.mjs` | unsupported | Image block with alt/source presence, no bytes | source |
+| 043 | List structure | `src/capture/conversation-rich.mjs` (`richPartReaderSource`, `boundRichParts`); wired by `src/capture/conversation-thread.mjs:1,103,173,177-179` | partial | `conversation-rich` returns list depth/items; rendered-only | source |
+| 044 | Code block fidelity | `src/capture/conversation-rich.mjs`; wired by `src/capture/conversation-thread.mjs:1,103,173,177-179` | partial | `conversation-rich` code language/text; clipped | source |
+| 045 | Table semantics | `src/capture/conversation-rich.mjs`; wired by `src/capture/conversation-thread.mjs:1,103,173,177-179` | partial | `conversation-rich` table rows and cells; bounded | source |
+| 046 | Math fidelity | `src/capture/conversation-rich.mjs`; wired by `src/capture/conversation-thread.mjs:1,103,173,177-179` | partial | `conversation-rich` math with LaTeX when available | source |
+| 047 | Quotation structure | `src/capture/conversation-rich.mjs`; wired by `src/capture/conversation-thread.mjs:1,103,173,177-179` | partial | `conversation-rich` blockquote text; attribution weak | source |
+| 048 | Hyperlink extraction | `src/capture/conversation-rich.mjs`; wired by `src/capture/conversation-thread.mjs:1,103,173,177-179` | partial | Sanitized link href/label; query/fragment removed | source |
+| 049 | Citation anchoring | `src/capture/conversation-rich.mjs` | unsupported | Citation candidate extracted; passage-source anchor missing. `unsupported` grades the required binding, not reader presence (`P` at reader level, AUDIT-LEDGER `:65`) | source |
+| 050 | Image-block extraction | `src/capture/conversation-rich.mjs`; wired by `src/capture/conversation-thread.mjs:1,103,173,177-179` | partial | Image block with alt/source presence, no bytes | source |
 | 051 | Search-tool activation | `src/profiles/stream-map.mjs`; `src/capture/network.mjs`; `src/studio/conversation-tools.mjs` | unsupported | Network stream may show search; no search-tool activation proof | source |
 | 052 | Source card reading | `src/profiles/stream-map.mjs`; `src/capture/network.mjs`; `src/studio/conversation-tools.mjs` | unsupported | Source-card metadata reader absent | source |
 | 053 | Citation-source navigation | `src/profiles/stream-map.mjs`; `src/capture/network.mjs`; `src/studio/conversation-tools.mjs` | unsupported | Citation-source native open absent | source |
@@ -190,7 +190,7 @@ Source-reviewed classification reconciled against `CHATGPT-100-RECONCILED-STATUS
 
 ## 2026-10-28 — scenario closure reconciliation and remaining gaps
 
-[Per-scenario source/gap/status ledger for all objectives 001–100](CHATGPT-100-AUDIT-LEDGER-2026-10-28.md): **7 source-supported, 42 partial, 51 unsupported**, where "source-supported" is not a new live verification result.
+[Per-scenario source/gap/status ledger for all objectives 001–100](CHATGPT-100-AUDIT-LEDGER-2026-10-28.md). The status rollup moved to the [progress matrix](CHATGPT-100-PROGRESS-2026-10-28.md) and [live ledger](CHATGPT-100-LIVE-2026-10-28.json); "source-supported" is not a new live verification result.
 
 - **007:** observed generation controls exposed through existing `read_conversation`, with `busy / idle / unknown` derived from stop/send/composer selectors. Still no complete backend generation-terminal proof.
 - **041–050:** typed, bounded DOM parts now flow via existing CDP read. Structure is partial and limited to rendered nodes: citation anchoring remains candidate-only; HTML tables/rows are capped; links are intentionally query/fragment sanitized; image metadata is not an asset download; math depends on DOM annotation availability. No offscreen traversal.
@@ -215,7 +215,7 @@ Source-reviewed classification reconciled against `CHATGPT-100-RECONCILED-STATUS
 | 008 | Ephemeral chat awareness | unsupported | `conversation-browser-adapter` + `thread-identity` + browser ownership | No ephemeral mode selector | source-reviewed; tests blocked; no new live proof |
 | 009 | Duplicate-title identity | partial | `chatgpt-chat-index` (native link ID keys) | Index uses native link IDs but not duplicate-title selection | source-reviewed; tests blocked; no new live proof |
 | 010 | UI obstruction recognition | unsupported | `conversation-browser-adapter` + `thread-identity` + browser ownership | No generalized modal/challenge classifier | source-reviewed; tests blocked; no new live proof |
-| 011 | New-chat navigation | supported | `create_conversation` → `conversation-runtime.connect` | Fresh Studio-owned unbound chat tab supported | source-reviewed; tests blocked; no new live proof |
+| 011 | New-chat navigation | supported | `create_conversation` → `conversation-runtime.connect` | Fresh Studio-owned unbound chat tab supported; source-level only — 011's live status is in `CHATGPT-100-LIVE-2026-10-28.json` | source-reviewed; tests blocked; no new live proof |
 | 012 | Sidebar history selection | partial | `chat_index` + `chatgpt-chat-index-reader` | Title candidates; no native click/navigation | source-reviewed; tests blocked; no new live proof |
 | 013 | Deep-link navigation | supported | `drive` URL and `connect_conversation` | Exact URL/deep-link only, no new live proof | source-reviewed; tests blocked; no new live proof |
 | 014 | Cross-thread navigation | partial | `conversation_targets` + `connect_conversation` | Targets can be found but no switch-and-return command | source-reviewed; tests blocked; no new live proof |
@@ -253,7 +253,7 @@ Source-reviewed classification reconciled against `CHATGPT-100-RECONCILED-STATUS
 | 046 | Math fidelity | partial | `conversation-rich` math reader | LaTeX only if visible in DOM | source-reviewed; tests blocked; no new live proof |
 | 047 | Quotation structure | partial | `conversation-rich` blockquote reader | Blockquote text observed; attribution unknown | source-reviewed; tests blocked; no new live proof |
 | 048 | Hyperlink extraction | partial | `conversation-rich.safeLink` | Href sanitized, query/fragment intentionally removed | source-reviewed; tests blocked; no new live proof |
-| 049 | Citation anchoring | partial | `conversation-rich` citation-candidate | Citation candidates only; no passage/source binding | source-reviewed; tests blocked; no new live proof |
+| 049 | Citation anchoring | unsupported | `conversation-rich` citation-candidate | Citation candidate extracted (`conversation-rich.mjs:5,77-78`); passage-source anchor missing. `unsupported` grades the objective's required binding, not reader presence — the reader path itself is `P` (AUDIT-LEDGER `:65`) | source-reviewed; tests blocked; no new live proof |
 | 050 | Image-block extraction | partial | `conversation-rich` image part | Image alt and presence, not addressable image content | source-reviewed; tests blocked; no new live proof |
 | 051 | Search-tool activation | unsupported | `chatgpt` seed + `adapter-probes` + `network` | No proof native search actually ran | source-reviewed; tests blocked; no new live proof |
 | 052 | Source card reading | unsupported | `chatgpt` seed + `adapter-probes` + `network` | No source-card provenance classifier | source-reviewed; tests blocked; no new live proof |
@@ -306,30 +306,30 @@ Source-reviewed classification reconciled against `CHATGPT-100-RECONCILED-STATUS
 | 099 | Capture provenance | partial | `recorder` + `conversation-evidence` + `world-service` | Recorder/session-to-World path exists, acceptance unproven | source-reviewed; tests blocked; no new live proof |
 | 100 | Return-to-source continuity | partial | `world-service` + `world-url` + `conversation-thread` | Saved source pointer exists, native return navigation not verified | source-reviewed; tests blocked; no new live proof |
 
-**Totals:** 13 source-supported, 32 partial, 55 unsupported; **0 live-verified in this audit**. No unverified scenario is promoted by a source signature or fixture alone.
+**Totals:** moved to the [progress matrix](CHATGPT-100-PROGRESS-2026-10-28.md) and [live ledger](CHATGPT-100-LIVE-2026-10-28.json); **0 live-verified in this audit**. No unverified scenario is promoted by a source signature or fixture alone.
 
 ## 2026-10-28 — all 100 objectives reconciled: concrete missing edges and blockers
 
 **Authoritative per-objective coverage:** The final table in `CHATGPT-100-SOURCE-MAP.md` identifies every numbered scenario **001–100** separately, its implementation, classification, first missing link and verification. `CHATGPT-100-DEPENDENCY-MAP.md` contains the read ledger and import/call-graph evidence. Earlier blanket “no source” assertions are superseded where code exists but was unexposed.
 
-| Scenarios | Source-level status | Shared existing/fixed primitive | Remaining blocker |
-|---|---|---|---|
-| 001–010 | 2 supported, 5 partial, 3 unsupported | Exact thread/target plus partial auth/readiness | No account identity, temporary-chat state or modal reader |
-| 011–020 | 1 supported, 5 partial, 4 unsupported | NEW_CHAT native tool, chat index, drive deep link | No owner-bound history/search/navigation/scroll actions |
-| 021–030 | 1 supported, 2 partial, 7 unsupported | Submit/journal/recorder, previous one-shot | No edit, regenerate, stop, branch, rename or archive controls |
-| 031–040 | 0 supported, 3 partial, 7 unsupported | Existing typing, enter and Unicode path | No exposed newline/model/voice/chip/copy/feedback controls |
-| 041–050 | 0 supported, 10 partial, 0 unsupported | Existing page-agent blocks; concurrent rich-part reader; filtered URL fix | No complete offscreen history, attribution or shape fidelity proof |
-| 051–060 | 0 supported, 0 partial, 10 unsupported | Network observation only | No activation and job status selectors for search/thinking/research |
-| 061–070 | 0 supported, 0 partial, 10 unsupported | Local agentic-files library; raw capture | No ChatGPT-native upload/download actions |
-| 071–080 | 0 supported, 0 partial, 10 unsupported | Generic DOM shape capture, World display | No native artifact/canvas/chart/code-copy effect and reader |
-| 081–090 | 0 supported, 1 partial, 9 unsupported | Chat index project state unknown | No project/sharing/settings navigation and mutation |
-| 091–100 | 3 supported, 6 partial, 1 unsupported | Drive lease, exact-thread fence, journal, World | No complete live interruption/expiry/rate-limit/return-source proof |
+| Scenarios | Shared existing/fixed primitive | Remaining blocker |
+|---|---|---|
+| 001–010 | Exact thread/target plus partial auth/readiness | No account identity, temporary-chat state or modal reader |
+| 011–020 | NEW_CHAT native tool, chat index, drive deep link | No owner-bound history/search/navigation/scroll actions |
+| 021–030 | Submit/journal/recorder, previous one-shot | No edit, regenerate, stop, branch, rename or archive controls |
+| 031–040 | Existing typing, enter and Unicode path | No exposed newline/model/voice/chip/copy/feedback controls |
+| 041–050 | Existing page-agent blocks; concurrent rich-part reader; filtered URL fix | No complete offscreen history, attribution or shape fidelity proof |
+| 051–060 | Network observation only | No activation and job status selectors for search/thinking/research |
+| 061–070 | Local agentic-files library; raw capture | No ChatGPT-native upload/download actions |
+| 071–080 | Generic DOM shape capture, World display | No native artifact/canvas/chart/code-copy effect and reader |
+| 081–090 | Chat index project state unknown | No project/sharing/settings navigation and mutation |
+| 091–100 | Drive lease, exact-thread fence, journal, World | No complete live interruption/expiry/rate-limit/return-source proof |
 
-**Total: 7 supported source paths, 32 partial, 61 unsupported.** None is newly live verified. These are implementation classifications, not 100/100 successful user outcomes. All 61 unsupported scenarios are **blocked** by the absent exposed browser action/reader and unavailable real ChatGPT UI selector evidence from this remote source-only execution environment. The 32 partial scenarios have a reusable primitive but lack the fully observed outcome. The 7 supported still require end-to-end live acceptance where appropriate.
+**Total:** the per-band status counts moved to the [progress matrix](CHATGPT-100-PROGRESS-2026-10-28.md) and [live ledger](CHATGPT-100-LIVE-2026-10-28.json); none is newly live verified. These are implementation classifications, not 100/100 successful user outcomes. Unsupported scenarios are **blocked** by the absent exposed browser action/reader and unavailable real ChatGPT UI selector evidence from this remote source-only execution environment. Partial scenarios have a reusable primitive but lack the fully observed outcome. Supported ones still require end-to-end live acceptance where appropriate.
 
 ### Fixed shared gaps
 
-- **011, native new-chat navigation:** New `create_conversation` tool delegates to existing `conversation-runtime.mjs::connect({site:'chatgpt',freshTab:true})`; `POST /api/v1/conversations/create` and `conversation.create` recipe use the existing Studio/Chrome owner. No message is sent, no controller added, and no unverified thread is treated as bound.
+- **011, native new-chat navigation:** New `create_conversation` tool delegates to existing `conversation-runtime.mjs::connect({site:'chatgpt',freshTab:true})`; `POST /api/v1/conversations/create` and `conversation.create` recipe use the existing Studio/Chrome owner. No message is sent, no controller added, and no unverified thread is treated as bound. This entry is source-level only; 011's authoritative status is in `CHATGPT-100-LIVE-2026-10-28.json`.
 - **043–050, structured evidence privacy:** `src/capture/dom.mjs::scrubBlocks` now applies configured URL and text sanitization recursively to inline citation/link URLs, image/media sources, table headings and nested blocks. `test/unit/dom-structured-privacy.test.mjs` checks filtered and local-raw modes.
 - **043–050, existing/exposed typed readers:** `src/capture/page-agent.js::blocks` was previously present; concurrent `src/capture/conversation-rich.mjs` exposes bounded page-visible typed parts. This corrects the missing-source diagnosis but does not make the scenarios complete.
 
@@ -350,5 +350,5 @@ Source-reviewed classification reconciled against `CHATGPT-100-RECONCILED-STATUS
 **Test evidence distinction:** 10/10 isolated source-evaluation assertions passed with injected fake DOM and mock URL; no repository `node --test` or live Chrome pass has been obtained. GitHub Actions CI jobs reported failure with no recorded steps and unavailable logs. This does not make any of the 100 scenarios live-verified.
 
 ## 2026-10-28 round 2 — repaired vs unresolved
-**Source-repaired, not live PASS:** 006/011/021 (blank new-chat readiness first-turn prerequisites), 023/093/094 (unbound same-origin drift read fence), 007/096/098 (completion truth when CDP observation fails), 095/096 (capsule recovery/finalization advice). Positive DOM evidence and same-owner Studio tab identity are still mandatory; a blocked test precondition is not a product bug. Existing turn journal no-resend guards and privacy projection remain intact.
+**Source-repaired, not live-verified by this audit:** 006/011/021 (blank new-chat readiness first-turn prerequisites), 023/093/094 (unbound same-origin drift read fence), 007/096/098 (completion truth when CDP observation fails), 095/096 (capsule recovery/finalization advice). Positive DOM evidence and same-owner Studio tab identity are still mandatory; a blocked test precondition is not a product bug. Existing turn journal no-resend guards and privacy projection remain intact. 011's authoritative status is in `CHATGPT-100-LIVE-2026-10-28.json`.
 **Open:** real provider first-turn confirmation, native thread establishment after send, account/auth indicators, full history navigation, multi-turn live delivery/reply reconciliation, tool-generated artifacts, uploads/Projects controls. No 100-case live scenario campaign was run. The 100-case source matrix statuses are **not promoted** by these isolated repairs. A source-repair record with exact commits and verification is maintained in `CHATGPT-100-INVESTIGATION-2026-10-28.json`; live attempts remain exclusively in `CHATGPT-100-LIVE-2026-10-28.json`.
