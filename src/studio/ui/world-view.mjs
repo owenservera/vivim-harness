@@ -825,6 +825,8 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     }
     // The header describes the actual World view instead of remaining on Chat.
     // It is a label only; no second navigation owner or application state is introduced.
+    // #announce is the single polite live region and already speaks each view change once,
+    // so the breadcrumb itself must never become a second live region.
     const breadcrumb = doc.getElementById?.('vivimViewBreadcrumb');
     if (breadcrumb) {
       const titles = {

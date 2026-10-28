@@ -205,7 +205,13 @@ test('markup: reply tools, sources, artifacts, retry and history controls exist;
   assert.equal((html.match(/aria-live="polite"/g) ?? []).length, 1, 'still one polite live region');
   assert.match(html, /button, select, input\[type=text\], input\[type=search\], input\[type=file\], textarea, summary, a\.hit \{ min-height: 44px; \}/);
   assert.match(html, /button\.mini \{ padding: 2px 10px; font-size: 12\.5px; \}/, 'compact buttons keep the 44px minimum height');
-  assert.doesNotMatch(source, /aria-pressed/);
+  // No reply control is a pressed/armed toggle. aria-pressed is only the provider chips,
+  // which are a separate control from the transcript tools asserted above.
+  for (const line of source.split('\n').filter((text) => text.includes('aria-pressed'))) {
+    assert.match(line, /provider/i, 'aria-pressed is only used by the provider chips: ' + line.trim());
+  }
+  for (const id of ['btnCopyReply', 'btnRawToggle', 'btnRetry', 'btnListRefresh', 'btnListMore'])
+    assert.doesNotMatch(html, new RegExp('id="' + id + '"[^>]*aria-pressed'), id + ' is not a pressed toggle');
   assert.match(html, /follow up in the same chat, one turn at a time/);
   assert.doesNotMatch(html, /send one message,/);
 });

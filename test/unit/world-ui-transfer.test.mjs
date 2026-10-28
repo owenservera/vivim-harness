@@ -50,7 +50,12 @@ function mount(fetchImpl) {
 test('transfer is a peer view and does not treat a partial restore as success', () => {
   assert.match(html, /data-view="transfer"/);
   assert.match(html, /Local edits do not change provider content/);
-  assert.doesNotMatch(html, /data-view="home"/);
+  // Transfer is a peer entry in the one view nav, never a sub-view nested inside another screen:
+  // every data-view marker in the document is a mode button inside #shellModes.
+  const nav = html.slice(html.indexOf('id="shellModes"'), html.indexOf('</nav>', html.indexOf('id="shellModes"')));
+  assert.match(nav, /id="viewTransfer" data-view="transfer"/);
+  assert.equal((nav.match(/data-view="/g) ?? []).length, (nav.match(/<button[^>]*data-view="/g) ?? []).length, 'every view marker is a peer mode button');
+  assert.equal((html.match(/data-view="/g) ?? []).length, (nav.match(/data-view="/g) ?? []).length, 'no view is nested inside another view');
   assert.equal(world.IMPORT_BYTE_CAP, 8 * 1024 * 1024);
   assert.equal(world.restoreSummary({ dryRun: true, pending: ['a'], applied: [], skipped: [], failed: [] }).success, false);
   assert.equal(world.restoreSummary({ dryRun: false, valid: true, partial: false, applied: [], skipped: ['a'], failed: [], pending: [], receipt: 'i-1' }).success, false);

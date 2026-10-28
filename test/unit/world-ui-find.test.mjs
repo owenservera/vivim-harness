@@ -53,7 +53,12 @@ const hit = (fields) => ({ score: 1, source: {}, ...fields });
 test('find is a peer view and does not inject result text as HTML', () => {
   assert.match(html, /data-view="find"/);
   assert.match(html, /Local edits do not change provider content/);
-  assert.doesNotMatch(html, /data-view="home"/);
+  // Find is a peer entry in the one view nav, never a sub-view nested inside another screen:
+  // every data-view marker in the document is a mode button inside #shellModes.
+  const nav = html.slice(html.indexOf('id="shellModes"'), html.indexOf('</nav>', html.indexOf('id="shellModes"')));
+  assert.match(nav, /id="viewFind" data-view="find"/);
+  assert.equal((nav.match(/data-view="/g) ?? []).length, (nav.match(/<button[^>]*data-view="/g) ?? []).length, 'every view marker is a peer mode button');
+  assert.equal((html.match(/data-view="/g) ?? []).length, (nav.match(/data-view="/g) ?? []).length, 'no view is nested inside another view');
   assert.doesNotMatch(source, /innerHTML|insertAdjacentHTML|outerHTML|document\.write/);
   assert.match(world.searchStatusText({ shown: 1, total: 2, coverage: { complete: false, truncated: true } }), /1 of 2 matches in this scan/);
   assert.doesNotMatch(world.searchStatusText({ shown: 1, total: 2, coverage: { complete: false } }), /all results/i);

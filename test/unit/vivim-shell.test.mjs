@@ -56,7 +56,7 @@ test('first-use buttons only focus/connect through existing controls and open sa
 
 
 test('World library cards use accessible source-preserving styles', () => {
-  assert.match(html, /\/\* VIVIM World library and detail surface \*\//);
+  assert.match(html, /\/\* VIVIM World library and detail surface/);
   assert.match(html, /#worldItems \.rowbtn\[aria-current="true"\]/);
   assert.match(html, /#worldList, \.vivim-app #worldDetail/);
   assert.match(html, /@media \(prefers-reduced-motion: reduce\)/);
@@ -89,7 +89,11 @@ test('empty provider states invalidate the chooser cache after discovery failure
 });
 
 test('World navigation keeps the visible breadcrumb synchronized', () => {
-  assert.match(html, /id="vivimViewBreadcrumb" aria-live="polite"/);
+  assert.match(html, /id="vivimViewBreadcrumb"/);
+  // The breadcrumb is a visible label, not a live region: #announce already speaks each
+  // view change once, and two polite regions would announce every change twice.
+  assert.doesNotMatch(html, /id="vivimViewBreadcrumb"[^>]*aria-live/, 'the breadcrumb is a label, not a second live region');
+  assert.equal((html.match(/aria-live="polite"/g) ?? []).length, 1, 'view changes are announced once, through #announce');
   const worldSource = readFileSync(new URL('../../src/studio/ui/world-view.mjs', import.meta.url), 'utf8');
   assert.match(worldSource, /doc\.getElementById\?\.\('vivimViewBreadcrumb'\)/);
   assert.match(worldSource, /conversations: 'Saved conversations'/);
@@ -99,7 +103,7 @@ test('World navigation keeps the visible breadcrumb synchronized', () => {
 
 test('projects render source-bound cards with decorative, non-invented covers', () => {
   const worldSource = readFileSync(new URL('../../src/studio/ui/world-view.mjs', import.meta.url), 'utf8');
-  assert.match(worldSource, /vivim-record-list-projects/); // constructed from current real state.view
+  assert.match(worldSource, /'plain vivim-record-list vivim-record-list-' \+ state\.view/); // constructed from current real state.view
   assert.match(worldSource, /vivim-card-art-'/);
   assert.match(worldSource, /Local project · saved grouping/);
   assert.match(worldSource, /openItem\(state\.view, item\.id\)/);

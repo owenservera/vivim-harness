@@ -452,7 +452,13 @@ test('Finish is one click; early finish is relabelled; the result shows chip, re
   assert.equal(ui.finishControl(ready({ state: 'closed' })).disabled, true);
   assert.equal(ui.finishControl(live, { working: true }).disabled, true);
   assert.match(source, /\$\('#btnFinish'\)\.addEventListener\('click', finish\)/, 'no arming step');
-  assert.doesNotMatch(source, /Armed|armed|aria-pressed/);
+  assert.doesNotMatch(source, /Armed|armed/, 'Finish has no armed/arming state');
+  // Finish is a one-click button, never a toggle. aria-pressed belongs only to the
+  // provider rail chips, which are a separate control from the capture actions.
+  assert.doesNotMatch(html, /id="btnFinish"[^>]*aria-pressed/, 'the Finish button is not a pressed toggle');
+  for (const line of source.split('\n').filter((text) => text.includes('aria-pressed'))) {
+    assert.match(line, /provider/i, 'aria-pressed is only used by the provider chips: ' + line.trim());
+  }
   assert.equal(ui.finishOutcome(live), null, 'no outcome while recording');
   const done = ready({
     state: 'closed', capture: { state: 'incomplete' },
