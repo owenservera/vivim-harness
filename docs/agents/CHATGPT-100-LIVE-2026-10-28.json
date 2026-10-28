@@ -3450,6 +3450,42 @@
             "session:20261028-201842-chatgpt-cdfe85",
             "turn:61884b71-d107-4756-b0b9-1e60bff69bc2"
           ]
+        },
+        {
+          "attemptPhase": "OFFLINE_MULTILINE_INSERTTEXT_AND_OWNERSHIP_FENCE_REPAIR",
+          "agent": "chatgpt-integration",
+          "model": "gpt-6",
+          "testedRevision": "088c7faea073d9c0a825b077e7895b01b72f7868",
+          "testedRevisionCaveat": "GitHub integration branch revision; dynamic offline source execution with mock CDP only. GitHub Actions full suite could not execute runner steps. No local Windows Studio/profile/browser ownership.",
+          "status": "PARTIAL",
+          "startedAt": null,
+          "finishedAt": "2026-10-28T21:11:36.608Z",
+          "elapsedMs": null,
+          "deadlineAt": null,
+          "timedOut": false,
+          "cliInvocationCount": 0,
+          "commands": [
+            "No Studio or live browser CLI invocation; GitHub source integration and in-memory V8 mock of humanType from committed revision 088c7fa.",
+            "GitHub Actions full-suite integration gate attempted on untouched d7eda45-derived source at 25299141 and on repair at 088c7fa; jobs failed without executed steps."
+          ],
+          "observedOutcome": "Scoped source patch landed on integration branch: human:true newline is handled by one Input.insertText({text:'\\n'}) per LF; other mapped characters retain keyed dispatch and pacing. Moved beforeInsert() to execute exactly once before text effects in both human and non-human modes, reactivating binding guard and stop latch. New offline regression test covers doubled-break DOM simulation, CRLF/lone-CR, guard rejection without text effects and non-human bulk mode. Independently executed actual production humanType function in an isolated V8 mock against original d7eda45 and patched 088c7fa: original 11-character 'alpha\\n\\nbeta' became 13 characters and guard was not called; patched output was exactly 11 characters, with 2 Input.insertText newline calls, zero Shift+Enter, and one guard invocation. Three additional patched-source offline scenarios (CRLF, guard reject, bulk path) passed. This is not proof of a live provider result or the full node/bun suite.",
+          "evidenceRefs": [
+            "git:088c7faea073d9c0a825b077e7895b01b72f7868",
+            "test:test/unit/human-multiline-dispatch.test.mjs",
+            "github-actions:40769419020 (baseline source, no executed steps)",
+            "github-actions:40769603022 (patched source, no executed steps)",
+            "docs/agents/CHATGPT-100-LIVE-2026-10-28.json#/objectives/30/attempts/11"
+          ],
+          "friction": "GitHub Actions runners failed to execute steps; full bun run test baseline and post-fix still unverified. Dedicated VIVIM Chrome/Studio effect owner unavailable here.",
+          "failureClassification": "OFFLINE_DOUBLE_BREAK_REPAIR_CHECKED_LIVE_RETEST_PENDING",
+          "authorizationScope": "GitHub branch-only source, unit-test and append-only ledger changes; no live provider sends, browser/CDP effects, key reuse, draft clearing or recovery.",
+          "uncertainty": "Source-level mock validates the known failure mechanism and strict behavior, not actual ProseMirror runtime or delivered ChatGPT turn. Objective 031 remains BLOCKED until the dedicated chatgpt-probe owner retests on a fresh disposable conversation with a brand-new key and exact payload readback.",
+          "evidenceGap": true,
+          "evidenceGapReason": "No live Chrome/Studio runtime owned in this environment and no provider-rendered user turn observed for the repaired revision. CI full suite did not run.",
+          "reconciliationKeyRefs": [
+            "preserved-spent-keys:see objective 031 previous attempts",
+            "new-key-not-used:owner-must-generate-unique-obj031-key"
+          ]
         }
       ]
     },
