@@ -15,6 +15,7 @@ import { parseThread, threadSupported, TRANSCRIPT_LIMITS } from './conversation-
 import { buildCapabilityCapsule } from './conversation-capsule.mjs';
 import { captureConversationEvidence } from './conversation-evidence.mjs';
 import { readChatIndex } from './chatgpt-chat-index-reader.mjs';
+import { ownedFreshTargetIds } from './conversation-ownership.mjs';
 
 const fail = (status, code) => Object.assign(new Error(code), { status, code });
 function outward(e) {
@@ -499,25 +500,7 @@ export function createConversationRuntime({ paths, profileStore, familyStore, po
       const sites = (await Promise.all(ADAPTER_IDS.map(async (id) => { const a = await d.getAdapter(id); return a ? { id, adapter: a.id, url: a.url } : null; }))).filter(Boolean);
       const targets = [];
       const discovered = await tabs();
-      // Only this runtime's successful fresh-tab creation may establish Studio ownership.
-      // Persisted flags, old recordings and same-origin tabs are not ownership evidence.
-      const ownedTargetIds = new Set();
-      for (const entry of entries.values()) {
-        const provenance = entry.freshTargetProvenance;
-        if (!provenance || entry.recovered || entry.readOnly || entry.pure || entry.finishing) continue;
-        const snapshot = entry.service.read();
-        if (snapshot.finish.requested || snapshot.binding?.ownedByStudio !== true
-          || snapshot.binding.targetId !== provenance.targetId || snapshot.binding.origin !== provenance.origin) continue;
-        const live = discovered.find((t) => t.id === provenance.targetId && (!t.type || t.type === 'page'));
-        let liveOrigin = null;
-        try { if (live) liveOrigin = new URL(live.url).origin; } catch {}
-        if (liveOrigin !== provenance.origin) {
-          // Once an owned target disappears or changes origin, never re-admit a reused ID.
-          entry.freshTargetProvenance = null;
-          continue;
-        }
-        ownedTargetIds.add(provenance.targetId);
-      }
+      const ownedTargetIds = ownedFreshTargetIds(entries.values(), discovered);
       const recordings = d.listSessions(paths.sessions).filter((s) => ['recording', 'stopping'].includes(s.status));
       for (const t of discovered) {
         if (t.type && t.type !== 'page') continue;
