@@ -1,32 +1,28 @@
 # VIVIM Harness — start here
 
-This repository is the runnable VIVIM product. Take initiative: pick the useful work, do it, verify it, and report what actually happened.
-
-OpenCode loads this file automatically. `context.md` is preloaded and holds the native CLI reference.
+This repository is the runnable VIVIM product. Take initiative: do useful work, verify it, and report what actually happened. OpenCode loads this file; `context.md` supplies native CLI reference.
 
 ## Who does what
-- **Most work: do it yourself.** Delegate only when a second lane genuinely runs faster or a specialist adds real expertise.
-- `@chatgpt-probe` — live webapp scenarios from `docs/agents/CHATGPT-100-OBJECTIVES.md`.
-- `@local-opencode` — focused local debugging and implementation.
-- `@git-manager` — staging, commits, pushes when asked.
+- **Most work: do it yourself.** Delegate only an independent lane or a real specialist task.
+- `@chatgpt-probe` — one real ChatGPT objective at a time; see `docs/agents/CHATGPT-100-OBJECTIVES.md` and `docs/agents/CHATGPT-PROBE-ENVIRONMENT.md`.
+- `@local-opencode` — evidence-driven source tracing, minimal repairs, regression tests, handoff for live retest.
+- `@git-manager` — staging/commits/pushes when assigned.
 - `@marketing-landing` — README and `marketing/` surfaces.
-- `docs/agents/OPENCODE-V2.md` — OpenCode orchestration notes.
+- `docs/agents/OPENCODE-V2.md` — coordination reference.
 
-## Live webapp work
-Do the setup yourself with the native CLI:
+## Real-world testing and debugging standard
+**Observe → Trace → Reproduce → Fix → Regression test → Live retest → Reconcile.** An HTTP 200, file, registry entry or passing fixture is not proof of real provider behavior. Never claim a live PASS without a concrete observed outcome and evidence.
 
-```powershell
-node bin/studio.mjs launch --data-dir C:\VIVIM --port 38702
-node bin/studio.mjs agent status --studio-port 38703 --json
-'{}' | node bin/studio.mjs tools call conversation_targets --input - --studio-port 38703 --json
-```
-
-Signing in to a provider account is the human's step. Everything else — launching the browser, opening the tab, choosing a thread, running the scenario, recording the result — is yours. Run scenarios in order and record each outcome as it happens.
+- Reuse the **existing single Studio/Chrome effect owner** on the dedicated VIVIM profile. First inspect native `agent status` and `conversation_targets`; historical ports/paths are references, not live identity proof. Do not automatically launch another Chrome/controller or use ordinary Chrome, Playwright, Puppeteer, raw CDP or computer-use substitutes. If initial setup is genuinely missing, coordinate once; provider sign-in is human-owned.
+- Execute **one objective at a time, in catalog order**, respecting exact read-only/effect authorization. A scenario assignment alone is not send authorization. Preserve original keys and journals for uncertain sends; reconcile read-only and never blindly resend.
+- Record each attempt **immediately** to the canonical append-only `docs/agents/CHATGPT-100-LIVE-2026-10-28.json` and applicable `CHATGPT-100-INVESTIGATION-2026-10-28.json` via one coordinated writer. Capture objective, tested revision, commands/count, outcome, evidence refs, timing/deadline/timeout, agent/model, authorization, friction, classification and uncertainty. Derive latest status from latest attempt, never erase earlier receipts. Never store raw private conversations/credentials.
+- Classify PASS / PARTIAL / BLOCKED / UNSUPPORTED / FEATURE_UNAVAILABLE / NOT_TESTED according to observed evidence. Missing titles may reflect intentional default privacy filtering; blocked preconditions are not automatically bugs. Preserve profile/thread ownership, drafts, and no-resend safeguards.
+- A repair agent traces the actual complete CLI → Studio → browser → provider UI → capture/persistence/reconciliation code path, reproduces the live failure shape in tests, fixes the root cause and hands a revision to the single live operator for retest. Keep **source unit pass** and **live provider pass** separate.
+- Avoid repeated full sweeps, duplicate browser agents, competing ledger writes and speculative architecture work. Independent read-only analysis may parallelize; one owner performs effects and one writer updates evidence.
 
 ## Working style
-- Report observed evidence: the command, the response, the result.
-- A real provider reply, a passing test, or a written file is proof. A plan, a catalog entry, or an HTTP 200 is not.
-- Prefer one user command. Three is the ceiling for a normal action.
-- Keep every foreground command under 15 seconds; run anything longer in the background and report when it finishes.
+- Report observed commands, responses, resulting source revision and what remains unverified.
+- Minimize user commands, repetitive discovery, model/token cost and unnecessary delegation.
+- Preserve local changes and existing evidence. Keep normal foreground commands short; use the repo's supported longer-run workflow when needed.
 
 Product CLI: `bin/studio.mjs`. Simplification ledger: `docs/architecture/AGENT-CODE-SIMPLIFICATION-LEDGER.md`.
