@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, renameSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { createPersonalAgentService } from '../../src/agents/personal-agent-service.mjs';
@@ -102,4 +102,18 @@ test('Studio routes expose read-only inspection, explicit mutation and private m
     p: { tier: 'Curated', key: 'ui_preference' }, body: { text: 'Readable', expectedVersion: boot.version },
   });
   assert.equal(saved.memoryCounts.Curated, 1);
+});
+
+test('missing skill root blocks Stage 04 and resumes after restoring its real source', t => {
+  const f = fixture(t), missing = f.skillsRoot + '-moved';
+  renameSync(f.skillsRoot, missing);
+  const agent = make(f), partial = agent.bootstrap({ expectedVersion: null });
+  assert.equal(partial.nextStage, 'skills-and-capabilities');
+  assert.equal(partial.stages['skills-and-capabilities'].status, 'blocked');
+  assert.equal(partial.stages['personal-memory'].status, 'completed');
+  renameSync(missing, f.skillsRoot);
+  const resumed = make(f).bootstrap({ expectedVersion: partial.version });
+  assert.equal(resumed.nextStage, null);
+  assert.equal(resumed.stages['skills-and-capabilities'].status, 'completed');
+  assert.equal(resumed.stages['identity-and-sitrep'].updatedAt, partial.stages['identity-and-sitrep'].updatedAt);
 });
