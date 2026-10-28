@@ -6,7 +6,7 @@ import { EXIT } from '../../src/config.mjs';
 import { defaultConversationRuntime, validateConversationBody } from '../../src/studio/conversation-api.mjs';
 import { launchChrome } from '../../src/chrome/launch.mjs';
 
-export async function runChat(ctx, { factory = defaultConversationRuntime, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), now = Date.now } = {}) {
+export async function runChat(ctx, { factory = defaultConversationRuntime, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), now = Date.now, launch = launchChrome } = {}) {
   const { flags, args, out } = ctx;
   if (args.length !== 1) throw usageError('Usage: studio chat <site> --prompt TEXT [--execute]');
   const connect = validateConversationBody('connect', { site: args[0], ...(flags.target ? { targetId: flags.target } : {}), freshTab: flags.fresh ?? !flags.target });
@@ -23,7 +23,8 @@ export async function runChat(ctx, { factory = defaultConversationRuntime, sleep
   }
   if (!flags['accept-sends']) throw usageError('Live sends require --execute --accept-sends. For the 100-scenario campaign, use studio live-100: never dispatch parallel studio chat workers.');
   // A single user command prepares (or verifies) the dedicated browser before any live send.
-  await launchChrome({ profileDir: ctx.paths.chromeProfile, port: ctx.port });
+  // Injected like `factory` so an offline test can prove the one-shot lifecycle without a browser.
+  await launch({ profileDir: ctx.paths.chromeProfile, port: ctx.port });
   const runtime = await factory({ paths: ctx.paths, profileStore: ctx.profiles(), familyStore: ctx.families(), port: ctx.port });
   let conversation, finalized = false;
   try {

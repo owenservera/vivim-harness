@@ -128,6 +128,9 @@ export function createRecipeService({ harnessApi, conversationRuntime } = {}) {
     async finish(runId, state) {
       if (!['succeeded', 'failed', 'interrupted'].includes(state)) throw fail(400, 'INVALID_RUN_STATUS');
       const prior = status(runId);
+      // A finished run is terminal. Refuse it before judging completion evidence, so a second finish
+      // reports the truthful RUN_FINISHED instead of a completion-evidence failure on a closed run.
+      if (prior.status !== 'running') throw fail(409, 'RUN_FINISHED');
       if (state === 'succeeded') {
         const run = harnessApi.get(runId).run;
         const recipe = recipeDefinition(prior.recipe);
