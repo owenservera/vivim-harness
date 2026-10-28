@@ -187,7 +187,10 @@ async function runChecks(ctx) {
 
       if (startedOk) {
         await run('studio-stats', 'required', async () => {
-          const res = await httpGet(port, '/api/x/stats', token);
+          // /api/x/stats walks the whole data root, so its latency scales with the operator's real
+          // archive (181 sessions / 10k files here). A 5 s cap made this required check fail on a
+          // healthy Studio; the endpoint gets its own budget instead of a shared one.
+          const res = await httpGet(port, '/api/x/stats', token, 30_000);
           if (res.status !== 200) throw new Error(`GET /api/x/stats -> HTTP ${res.status}${res.error ? ` (${res.error})` : ''}`);
           if (res.body?.schema !== 'capture-studio.platform-stats/1') throw new Error(`unexpected schema key: ${JSON.stringify(res.body?.schema)}`);
           return `schema=${res.body.schema}, sessions=${res.body.sessions}`;
