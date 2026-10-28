@@ -11,6 +11,34 @@ import { parseThread, sameThread, transcriptExpression, turnObservationExpressio
 const norm = (s) => String(s ?? '').replace(/\s+/g, ' ').trim();
 const problem = (code) => Object.assign(new Error(code), { code, status: 409 });
 const digest = (text) => createHash('sha256').update(text, 'utf8').digest('hex');
+// Typed-text readback contract for rich composers. A contenteditable (ProseMirror/Lexical) reports
+// the trailing block break as one extra newline, so the readback may carry exactly ONE appended
+// newline beyond the payload. Only the readback is normalized/trimmed; the payload is never
+// altered, so a prompt that already ends in a newline still needs its own exact match first.
+// Anything else — mid-payload drift, two appended newlines, a non-string readback — does not match.
+const readbackMatches = (readback, prompt) => {
+  if (typeof readback !== 'string' || typeof prompt !== 'string') return false;
+  const want = prompt.replace(/\r\n/g, '\n'), got = readback.replace(/\r\n/g, '\n');
+  return got === want || got === `${want}\n`;
+};
+// The composer DOM settles after an insert: an immediate read of a multiline payload can report
+// doubled, dropped or otherwise transient separators while the outbound text is already correct.
+// Re-read a bounded number of times before refusing, well inside the per-turn envelope.
+//
+// Acceptance requires the freshly read PAGE DRAFT to match. The owner snapshot (`typed.typed`) is a
+// single read of the same editor taken at insertion time and can be as transient as the page read,
+// so it may prove the payload landed but may never substitute for the draft: a stale matching
+// snapshot next to persistently drifted composer content must not authorize a send.
+const TYPING_READBACK_ATTEMPTS = 3;
+const TYPING_READBACK_DELAY_MS = 250;
+const settleTypingReadback = async (read, prompt) => {
+  for (let attempt = 0; attempt < TYPING_READBACK_ATTEMPTS; attempt++) {
+    if (attempt) await sleep(TYPING_READBACK_DELAY_MS);
+    const after = await read();
+    if (readbackMatches(after?.draft?.text, prompt)) return after;
+  }
+  return null;
+};
 export const readTurnPage = (page, adapter) => evaluate(page, turnObservationExpression(adapter));
 // Read-only observed-prefix page read: one evaluation, same shaper, reports the positive-idle
 // controls alongside the transcript so idle and empty composer describe the same instant.
@@ -525,12 +553,14 @@ export function createConversationBrowserAdapter({ paths, profileStore, familySt
         const saved = { ...pending, turnId, prompt, payloadDigest: digest(prompt), samples: [], creation: true };
         attempts.set(turnId, saved);
         recorder.session.kv.set(`CONVERSATION_ATTEMPT_${turnId}`, saved);
-        const typed = await d.typeText(recorder.page, prompt, { human: false, beforeInsert: async () => { await guard(); beforeEffect?.(); } });
+        const typed = await d.typeText(recorder.page, prompt, { human: true, beforeInsert: async () => { await guard(); beforeEffect?.(); } });
         await check();
-        const after = await d.readTurnPage(recorder.page, siteAdapter);
-        if (parseThread(siteAdapter.id, `${binding.origin}${after?.pathname ?? ''}`)) throw problem('PREEXISTING_THREAD');
-        if (!typed.ok || typed.typed?.replace(/\r\n/g, '\n') !== prompt.replace(/\r\n/g, '\n')
-          || after?.draft?.text !== prompt.replace(/\r\n/g, '\n')) throw problem('TYPING_UNCONFIRMED');
+        const after = await settleTypingReadback(async () => {
+          const page = await d.readTurnPage(recorder.page, siteAdapter);
+          if (parseThread(siteAdapter.id, `${binding.origin}${page?.pathname ?? ''}`)) throw problem('PREEXISTING_THREAD');
+          return page;
+        }, prompt);
+        if (!typed.ok || !after) throw problem('TYPING_UNCONFIRMED');
         return;
       }
       if (!pending) throw problem('THREAD_IDENTITY_UNVERIFIED');
@@ -542,12 +572,10 @@ export function createConversationBrowserAdapter({ paths, profileStore, familySt
       const saved = { ...pending, turnId, prompt, payloadDigest: digest(prompt), samples: [] };
       attempts.set(turnId, saved);
       recorder.session.kv.set(`CONVERSATION_ATTEMPT_${turnId}`, saved); // Protected local capture storage only.
-      const typed = await d.typeText(recorder.page, prompt, { human: false,
+      const typed = await d.typeText(recorder.page, prompt, { human: true,
         beforeInsert: () => effectPreflight(saved, beforeEffect, true) });
       await check();
-      const after = await pageState();
-      if (!typed.ok || typed.typed?.replace(/\r\n/g, '\n') !== prompt.replace(/\r\n/g, '\n')
-        || after.draft?.text !== prompt.replace(/\r\n/g, '\n')) throw problem('TYPING_UNCONFIRMED');
+      if (!typed.ok || !await settleTypingReadback(pageState, prompt)) throw problem('TYPING_UNCONFIRMED');
     },
     async submit(args) {
       await check();

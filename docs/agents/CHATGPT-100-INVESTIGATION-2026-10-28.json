@@ -1,5 +1,62 @@
 {
   "schemaVersion": "1.0",
+  "setupReceipts": [
+    {
+      "phase": "AUTHORIZED_SINGLE_CHATGPT_TAB_SETUP",
+      "classification": "PARTIAL",
+      "testedRevision": "3c6f0b415adccb6d859e22030802168d7b11dc45",
+      "testedRevisionCaveat": "Previously verified local HEAD; serving Studio revision unverified. No restart performed.",
+      "authorization": "User explicitly authorized one new ChatGPT tab through the existing Studio/browser owner, without sends, private-title disclosure, account changes, browser restart or deep-link navigation.",
+      "commands": [
+        "node bin/studio.mjs agent status --studio-port 38703 --json",
+        "node bin/studio.mjs help tools call",
+        "node bin/studio.mjs tools list --studio-port 38703 --json",
+        "'{}' | node bin/studio.mjs tools call list_conversations --input - --studio-port 38703 --json",
+        "'{\"site\":\"chatgpt\"}' | node bin/studio.mjs tools call create_conversation --input - --studio-port 38703 --timeout 60 --json"
+      ],
+      "cliInvocationCount": 5,
+      "timing": {"measuredSequenceStartedAt":"2026-10-28T16:25:49.3452340Z","preListFinishedAt":"2026-10-28T16:25:50.7731334Z","createStartedAt":"2026-10-28T16:25:50.8398613Z","createFinishedAt":"2026-10-28T16:26:03.1534427Z","createElapsedMs":12313.5814,"createHttpTimeoutSeconds":60,"shellTimeoutMs":75000,"timedOut":false,"caveat":"The earlier status, help and tools-list invocation timings and entire setup duration were not measured."},
+      "observedOutcome": "Existing Studio status reported reachable, C:\\VIVIM data root, dedicated chrome-profile, CDP port 38702 and chrome reachable, with profile not-proven-by-status and account unverified. The native catalog described create_conversation as fresh Studio-owned ChatGPT tab creation through the existing owner. Pre-create list_conversations exited 0 and was held in memory. One create_conversation exited 0, returning conversation 6f5a1b31-07d6-45fe-859f-95b3bb1ad283, revision 3, state ready, ChatGPT origin binding ownedByStudio true, identity unbound NEW_CHAT, zero turns, readiness ready true, empty draft, and no session ID. No send was made.",
+      "evidenceRefs": ["docs/agents/CHATGPT-100-LIVE-2026-10-28.json#/objectives/9/attempts/2", "native create_conversation response summarized in this receipt"],
+      "uncertainty": "Create response supports a newly created Studio-owned unbound ChatGPT conversation and reported readiness; exact root pathname, independent target enumeration, login wall, account identity and browser OS-window visibility were not independently observed. The pre-create list was not persisted and cannot support later list-diff attribution. No retry was needed or performed. Page readiness does not prove authentication.",
+      "agent": "chatgpt-probe",
+      "model": "openai/gpt-6.1-terra",
+      "privacy": "No private title, message, account identifier, credential or raw capture retained. Conversation reference is the returned Studio conversation identifier.",
+      "objective011Change": false
+    },
+    {
+      "phase": "AUTHORIZED_SINGLE_CHATGPT_TAB_SETUP_TARGET_CHECK",
+      "parentReceipt": "docs/agents/CHATGPT-100-INVESTIGATION-2026-10-28.json#/setupReceipts/0",
+      "command": "'{}' | node bin/studio.mjs tools call conversation_targets --input - --studio-port 38703 --json",
+      "cliInvocationCount": 1,
+      "startedAt": "2026-10-28T16:26:32.0587622Z",
+      "finishedAt": "2026-10-28T16:26:33.2246180Z",
+      "elapsedMs": 1165.8558,
+      "shellTimeoutMs": 20000,
+      "exitCode": 0,
+      "observedOutcome": "The target returned in the create binding matched exactly one conversation_targets entry. It reported ChatGPT origin, ownedByStudio true, thread absent, identity unverified with reason UNSUPPORTED_PATH, and visibility unknown.",
+      "uncertainty": "The target URL is origin-only and does not independently establish the exact root pathname. Login wall and account state were not observed. No additional browser effects occurred.",
+      "agent": "chatgpt-probe",
+      "model": "openai/gpt-6.1-terra"
+    }
+  ],
+  "readOnlyPreconditionReceipts": [
+    {
+      "objectiveId": "002",
+      "recordedAt": "2026-10-28T15:45:30.4718066Z",
+      "phase": "READ_ONLY_PRECONDITION_RECHECK",
+      "testedRevision": "3c6f0b415adccb6d859e22030802168d7b11dc45",
+      "status": "BLOCKED",
+      "nativeEvidence": {
+        "agentStatus": {"studio": "reachable", "studioPort": 38703, "dataDir": "C:\\VIVIM", "chromeProfile": "C:\\VIVIM\\chrome-profile", "cdpPort": 38702, "chromeReachable": true, "browserProfileVerified": "not-proven-by-status", "browserAccountState": "unverified"},
+        "conversationTargets": {"chatgptRegistered": true, "targets": []}
+      },
+      "liveAttemptRef": "docs/agents/CHATGPT-100-LIVE-2026-10-28.json#objectives/1/attempts/2",
+      "coordination": "Parent assigned one objective and sole ledger writer. No competing actor identified in available historical evidence; exclusivity not independently proven. No browser effects performed.",
+      "nextStep": "Operator/parent must establish an available ChatGPT target and verify the single dedicated-profile owner before assigning another read-only authentication observation. Human owns any required sign-in. No source defect demonstrated by empty targets alone.",
+      "privacy": "Only bounded status and empty-target metadata retained; no account identifiers, credentials, private captures or conversation content."
+    }
+  ],
   "sourceLedger": "docs/agents/CHATGPT-100-LIVE-2026-10-28.json",
   "researchSnapshot": {
     "reportedIds": [
