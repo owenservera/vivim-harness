@@ -34,7 +34,8 @@ test('continuity packet is private, bounded, transparent about communications an
   assert.equal(sitrep.work[0].title, 'PRIVATE_WORK_TITLE');
   assert.equal(sitrep.workCoverage.openTotal, 1);
   assert.equal(sitrep.communications.status, 'not-inspected');
-  assert.equal(sitrep.execution.providerSendsPerformed, 0);
+  assert.equal(sitrep.execution.effectsDuringPacketAssembly, 'none');
+  assert.equal(sitrep.execution.providerActivityOutsideThisPacket, 'not-inspected');
   assert.equal(sitrep.identity.providerAccountVerified, false);
 });
 
