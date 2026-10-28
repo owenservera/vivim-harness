@@ -31,6 +31,7 @@ import './commands/run.mjs';
 import './commands/library.mjs';
 import './commands/campaign.mjs';
 import './commands/tools.mjs';
+import './commands/personal-agent.mjs';
 import './commands/recipes.mjs';
 
 // A closed pipe (studio … | head) is a normal way to finish, not an error.
