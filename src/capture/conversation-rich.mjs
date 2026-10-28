@@ -5,7 +5,7 @@ export const RICH_PART_KINDS = Object.freeze([
   'list-item', 'code', 'table', 'blockquote', 'link', 'citation-candidate', 'image', 'math',
 ]);
 export const RICH_PARTS_MAX = 32;
-export const RICH_PARTS_MAX_CHARS = 16000;
+export const RICH_PARTS_MAX_CHARS = 8192;
 
 export function richPartReaderSource() {
   return String.raw`
@@ -23,8 +23,10 @@ export function richPartReaderSource() {
           return u.toString();
         } catch { return null; }
       };
-      const parts = [];
+      const parts = []; let pageBudget = 8192, skipped = Math.max(0,nodes.length-32);
       for (const el of nodes.slice(0,32)) {
+        const rect = el.getBoundingClientRect?.();
+        if (!rect || rect.width < 1 || rect.height < 1) { skipped++; continue; }
         const tag = String(el.tagName ?? '').toLowerCase();
         const label = clip(el.innerText ?? el.textContent);
         let part = null;
@@ -42,9 +44,9 @@ export function richPartReaderSource() {
           part={type:'code',language,text:clip(code.innerText??code.textContent,4096)};
         } else if (tag === 'table') {
           const rows=Array.from(el.querySelectorAll('tr'));
-          part={type:'table',rows:rows.slice(0,24).map(row=>Array.from(row.querySelectorAll('th,td')).slice(0,16)
+          part={type:'table',rows:rows.slice(0,12).map(row=>Array.from(row.querySelectorAll('th,td')).slice(0,8)
             .map(cell=>({header:String(cell.tagName).toLowerCase()==='th',
-              text:clip(cell.innerText??cell.textContent,256)}))),rowsTruncated:rows.length>24};
+              text:clip(cell.innerText??cell.textContent,128)}))),rowsTruncated:rows.length>12};
         } else if (tag === 'blockquote') part={type:'blockquote',text:clip(label,2048)};
         else if (tag === 'a') {
           const href=safeLink(el.getAttribute?.('href'));
@@ -58,9 +60,13 @@ export function richPartReaderSource() {
           part={type:'math',latex:latex===null?null:clip(latex,2048),text:label};
         } else if (/citation/i.test(String(el.getAttribute?.('data-testid')??'')))
           part={type:'citation-candidate',text:label,href:null};
-        if (part) parts.push({index:parts.length,...part});
+        if (part) {
+          const candidate={index:parts.length,...part};
+          const size=JSON.stringify(candidate).length;
+          if (size<=pageBudget) {parts.push(candidate);pageBudget-=size;} else skipped++;
+        }
       }
-      return {parts,omitted:Math.max(0,nodes.length-32)};
+      return {parts,omitted:skipped};
     };
   `;
 }
