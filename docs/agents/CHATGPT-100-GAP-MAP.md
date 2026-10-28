@@ -185,3 +185,14 @@ Source-reviewed classification after opening all 132 paths referenced by the map
 **Fixed in source during this audit:** `src/capture/actions.mjs` preserves a newly created drive tab when a send was attempted but the outcome remained unresolved; `src/capture/conversation-thread.mjs` removes a duplicate unverified controls projection overriding the observed readiness result; the focused CI workflow now includes the timeout regression. Existing/additional functional surfaces: `create_conversation` creates blank owned tabs; `read_conversation` can return bounded typed DOM parts via `src/capture/conversation-rich.mjs`. Those latter two were added on `main` by concurrent repository updates; their separate authorship is not attributed to this audit.
 
 **Open shared gaps:** most of 061–090 (native uploads, generated artifacts, Project/settings/share controls), unexposed navigation and message lifecycle UI tools, read visibility limits, citation provenance, and a true persistent no-resend journal for standalone `drive`. Source fixtures cannot establish whether these features are present on this particular signed-in account; no live scenarios 001–100 were executed. **Do not mark this 100-scenario effort complete.**
+
+## 2026-10-28 — scenario closure reconciliation and remaining gaps
+
+[Per-scenario source/gap/status ledger for all objectives 001–100](CHATGPT-100-AUDIT-LEDGER-2026-10-28.md): **6 source-supported, 43 partial, 51 unsupported**, where "source-supported" is not a new live verification result.
+
+- **007:** observed generation controls exposed through existing `read_conversation`, with `busy / idle / unknown` derived from stop/send/composer selectors. Still no complete backend generation-terminal proof.
+- **041–050:** typed, bounded DOM parts now flow via existing CDP read. Structure is partial and limited to rendered nodes: citation anchoring remains candidate-only; HTML tables/rows are capped; links are intentionally query/fragment sanitized; image metadata is not an asset download; math depends on DOM annotation availability. No offscreen traversal.
+- **022–023, 093, 096:** thread fence and no-resend durability remain first-class; source fixes do not imply live continuity confirmation. Never resend after unknown delivery.
+- **051–090:** crucial ChatGPT-native UI primitives remain mostly absent: search, thinking mode, upload/download, artifact manipulation, Project/settings/share management. Generic local file or profile modules do not close those gaps.
+
+**Verification state:** focused V8 source-contract assertions passed, and `test/unit/conversation-rich.test.mjs` plus GitHub Actions workflow `.github/workflows/chatgpt-source-audit.yml` are committed. Latest observed GitHub Actions runs failed without retrievable job logs; the Node assertions are therefore **unverified**, and no new live scenario was run. No claim that all actionable findings are fixed; this audit is incomplete.
