@@ -128,7 +128,8 @@ export function createConversationBrowserAdapter({ paths, profileStore, familySt
         } else if (freshTab && !binding.thread) {
           const loc = await creationLocation();
           if (loc.targetThread || loc.pageThread) return blocked('PREEXISTING_THREAD');
-          if (loc.targetPath !== loc.pathname) return blocked('BINDING_CHANGED');
+          // A project/custom-GPT route is not a fresh home composer.
+          if (loc.targetPath !== '/' || loc.pathname !== '/') return blocked('BINDING_CHANGED');
           const composer = await d.findComposer(livePage(), siteAdapter);
           const auth = await d.detectAuthWall(livePage(), siteAdapter);
           if (auth.blocked) return blocked('AUTH_WALL');
@@ -140,7 +141,8 @@ export function createConversationBrowserAdapter({ paths, profileStore, familySt
             if (!state.evalOk) { /* keep polling */ }
             else if (parseThread(siteAdapter.id, `${binding.origin}${page?.pathname ?? ''}`)) return blocked('PREEXISTING_THREAD');
             else if (state.draftChars > 0 || page?.draft?.chars > 0) return blocked('DRAFT_PRESENT', { present: true, chars: state.draftChars });
-            else if (idleControls(page?.controls)) return { ready: true, draft: { present: false, chars: 0 }, reason: null, creation: { threadless: true } };
+            else if (state.draftChars === 0 && freshComposerReady(page))
+              return { ready: true, draft: { present: false, chars: 0 }, reason: null, creation: { threadless: true } };
           }
         } else {
           const composer = await d.findComposer(livePage(), siteAdapter);
@@ -183,6 +185,12 @@ export function createConversationBrowserAdapter({ paths, profileStore, familySt
   }
   const idleControls = (c) => c?.observed === true && ['idle', 'terminal'].includes(c.state)
     && c.idleControlPresent === true && c.stopPresent === false && c.composerEnabled === true;
+  // Blank NEW_CHAT has no usable Send control until text is typed. An enabled, empty
+  // composer and empty observed transcript are enough to BEGIN typing, not to send.
+  // Bound-thread/reply completion continues to require positive idleControls evidence.
+  const freshComposerReady = (page) => page?.controls?.composerEnabled === true
+    && page.controls.stopPresent === false && page?.draft?.chars === 0
+    && Array.isArray(page.messages) && page.messages.length === 0;
   const samePrefix = (page, saved) => saved.baseline.every((m, i) => page.messages[i]?.id === m.id
     && page.messages[i]?.role === m.role && page.messages[i]?.text === m.text);
   const persist = (record) => recorder.recordConversationObservation({ ...record, binding: structuredClone(binding) });
@@ -408,7 +416,7 @@ export function createConversationBrowserAdapter({ paths, profileStore, familySt
         requireRecording();
         const loc = await creationLocation();
         if (loc.targetThread || loc.pageThread) throw Object.assign(problem('PREEXISTING_THREAD'), { notDispatched: true, notTyped: true });
-        if (loc.targetPath !== loc.pathname) throw problem('BINDING_CHANGED');
+        if (loc.targetPath !== '/' || loc.pathname !== '/') throw problem('BINDING_CHANGED');
         const composer = await d.findComposer(recorder.page, siteAdapter);
         if ((await d.detectAuthWall(recorder.page, siteAdapter)).blocked) throw problem('AUTH_WALL');
         if ((await d.detectSiteFailure(recorder.page, siteAdapter)).failed) throw problem('SITE_GATE');
@@ -417,8 +425,8 @@ export function createConversationBrowserAdapter({ paths, profileStore, familySt
         if (!state.evalOk) throw problem('COMPOSER_UNREADABLE');
         const page = await d.readTurnPage(recorder.page, siteAdapter);
         if (parseThread(siteAdapter.id, `${binding.origin}${page?.pathname ?? ''}`)) throw Object.assign(problem('PREEXISTING_THREAD'), { notDispatched: true, notTyped: true });
-        if (!idleControls(page?.controls)) throw problem('GENERATION_CONTROLS_UNAVAILABLE_OR_BUSY');
         if (state.draftChars !== 0 || page?.draft?.chars !== 0) throw problem('DRAFT_PRESENT');
+        if (!freshComposerReady(page)) throw problem('GENERATION_CONTROLS_UNAVAILABLE_OR_BUSY');
         const boundary = { sessionId: recorder.session.id, sequence: recorder.session.raw.seq, transcriptCount: 0 };
         pending = { baseline: [], boundary, creation: true };
         // A just-created page has no rendered turns; the scan is still taken from the same store
