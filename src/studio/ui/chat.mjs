@@ -1853,8 +1853,13 @@ function boot() {
         })));
       }
     }
-    for (const button of choices.querySelectorAll('button[data-provider]')) {
-      button.setAttribute('aria-pressed', button.dataset.provider === S.site && S.mode === 'new' ? 'true' : 'false');
+    // Real DOM querySelectorAll, with the repository's minimal offline DOM fixture fallback.
+    const providerButtons = typeof choices.querySelectorAll === 'function'
+      ? [...choices.querySelectorAll('button[data-provider]')]
+      : [...(choices.children ?? [])].filter((button) => button?.attrs?.['data-provider']);
+    for (const button of providerButtons) {
+      const provider = button.getAttribute?.('data-provider') ?? button.dataset?.provider ?? button.attrs?.['data-provider'];
+      button.setAttribute('aria-pressed', provider === S.site && S.mode === 'new' ? 'true' : 'false');
       button.disabled = view.busy || S.targetsState !== 'ok';
     }
   }
