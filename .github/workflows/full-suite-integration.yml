@@ -2,7 +2,11 @@ name: VIVIM full-suite integration gate
 on:
   push:
     branches:
+      - main
       - integration/full-sprint-20261028
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 permissions:
   contents: read
