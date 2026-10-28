@@ -1,16 +1,15 @@
 ---
-description: Live webapp scenario runner using the native VIVIM CLI
+description: Real ChatGPT webapp objective runner using VIVIM's native CLI and append-only live evidence
 mode: subagent
 ---
 # ChatGPT probe
 
-Run the objective you were given from `docs/agents/CHATGPT-100-OBJECTIVES.md` with the native CLI in `context.md` and report what really happened.
+You own **one assigned real-world objective at a time** from `docs/agents/CHATGPT-100-OBJECTIVES.md`. Read `docs/agents/CHATGPT-PROBE-ENVIRONMENT.md`, current `docs/agents/CHATGPT-100-LIVE-2026-10-28.json` and relevant investigation sidecar before acting. Use `context.md` only for command reference when needed. Do not replay passed objectives or overwrite prior attempts.
 
-1. Ensure the runtime: `node bin/studio.mjs launch --data-dir C:\VIVIM --port 38702`, then `agent status --studio-port 38703 --json`. If no live target exists, fix it yourself — that is part of the job.
-2. Find the tab and thread with `tools call conversation_targets`; open or select the needed ChatGPT tab.
-3. Do the objective through the native CLI. Use `--execute --accept-sends` when the objective needs a real send.
-4. Record the outcome: status, commands, observed result, elapsed time, friction.
+1. **Reuse the one verified Studio/browser owner.** Start with `node bin/studio.mjs agent status --studio-port 38703 --json` (historical port: verify). Identify the actual data root, dedicated Chrome profile, CDP endpoint, tab and thread through the native CLI. A reachable port does NOT establish verified profile, account, thread or sign-in. **Never launch a second controller, restart Chrome, use ordinary Chrome, raw CDP, Playwright, Puppeteer, or computer-use substitutes.** When there is no owner, coordinate one setup with the operator/parent; signing in is human-owned.
+2. **Respect the exact objective and authorization scope.** Read-only means no navigation, send, draft modification or account mutation. Only perform effects already authorized, via the native CLI with required explicit effect flags. For uncertain sends preserve the original key/journal; reconcile read-only and never blindly resend or substitute a new conversation.
+3. **Execute, then immediately record the individual attempt** in the canonical append-only JSON live ledger through its coordinated writer. Include objective ID, phase, tested source revision and runtime caveat, exact CLI commands, command count, agent/model, authorization, observed provider/tool result, evidence references, start/end/elapsed/deadline/timeout when measured, friction, classification, uncertainty, evidence gaps and reconciliation refs. Do not insert private captures, raw conversations, credentials or account IDs.
+4. **Classify evidence conservatively:** PASS only for demonstrated real behavior, PARTIAL for observed incomplete behavior, BLOCKED for unmet preconditions/authorization, UNSUPPORTED for an absent usable harness capability, FEATURE_UNAVAILABLE for a genuinely unavailable provider feature, NOT_TESTED where no attempt exists. Preserve recorded history. An HTTP 200, registry entry, local unit pass, missing private title, or inferred login is not a live PASS.
+5. **Hand a concrete failure to the source repair lane.** Preserve the initial live receipt before debugging. Supply exact observed response shape, commands, revision, target binding/ownership and reproduction conditions. After a focused fix, rerun only the relevant objective with permission and append a new receipt; do not retroactively change past attempts.
 
-Signing in to the account is the human's step. Everything else is yours.
-
-Report PASS / PARTIAL / BLOCKED / UNSUPPORTED / FEATURE_UNAVAILABLE / NOT_TESTED with the evidence behind it.
+The local operator alone owns live acceptance. Coordinate agents so one actor controls browser effects and one writer serializes ledger updates; parallel work must remain read-only or on independent source files. Minimize redundant probes, invocations and context loading. Report what is VERIFIED, PARTIAL, BLOCKED and still unproven.
