@@ -30,4 +30,8 @@ test('family filtering, unknown family rejection and unsupported recipe lookup s
   assert.equal(recipeDefinition('does.not-exist'), null);
   assert.equal(recipeDefinition('conversation.connect-existing').inputSchema.properties.site.enum[0], 'chatgpt');
   assert.equal(recipeDefinition('conversation.continue').effects.includes('provider-send'), true);
+  const capsule = recipeDefinition('conversation.capabilities');
+  assert.equal(capsule.tool, 'conversation_capsule');
+  assert.deepEqual(capsule.effects, ['read']);
+  assert.equal(capsule.maxUserCommands, 1);
 });
