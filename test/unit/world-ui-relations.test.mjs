@@ -197,6 +197,11 @@ test('relations lists neighbours from one record, ignores a stale map, and does 
   await pending;
   assert.match(byId(root, 'worldRelationStatus').textContent, /Showing \d+, more exist/);
   assert.match(root.textContent, /Comments on/);
+  assert.ok(byId(root, 'vivimRelationGraph'), 'the real map also renders a visual projection');
+  assert.ok(all(root, (node) => node.tag === 'button' && String(node.className).includes('vivim-graph-node')).length >= 2,
+    'graph nodes are keyboard-usable buttons, derived only from returned nodes');
+  assert.equal(all(root, (node) => node.tag === 'button' && String(node.className).includes('vivim-graph-node')
+    && node.disabled).length >= 1, true, 'unavailable source reference is not actionable from the graph');
   assert.match(root.textContent, /Yours/);
   assert.match(root.textContent, /SOURCE_MISSING/);
   assert.match(root.textContent, /not the same as deleted/i);

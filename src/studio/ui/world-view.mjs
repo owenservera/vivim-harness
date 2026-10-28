@@ -2720,7 +2720,8 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
       stage.append(svg);
     }
     for (const node of projected.nodes) {
-      const unresolved = node.availability === 'unresolved' || node.availabilityReason === 'NOT_SCANNED';
+      const unresolved = ['unresolved', 'missing', 'unavailable', 'stale'].includes(node.availability)
+        || node.availabilityReason === 'NOT_SCANNED';
       const label = typeof node.title === 'string' && node.title.trim() ? node.title : node.kind || node.id;
       const button = el('button', {
         type: 'button', class: 'vivim-graph-node' + (node.isFocus ? ' is-focus' : ''),
