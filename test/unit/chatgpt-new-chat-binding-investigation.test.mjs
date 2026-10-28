@@ -64,6 +64,9 @@ for (const [name, options, reason] of [
   ['disabled composer prevents new-chat readiness', {
     controls: { observed: false, state: 'unknown', idleControlPresent: false, stopPresent: false, composerEnabled: false }
   }, 'READINESS_TIMEOUT'],
+  ['contradictory busy state cannot be admitted as a blank composer', {
+    controls: { observed: false, state: 'busy', idleControlPresent: false, stopPresent: false, composerEnabled: true }
+  }, 'READINESS_TIMEOUT'],
   ['non-home route even with matching target/page paths is refused', {
     urls: [`${origin}/g/custom-gpt`], pathname: '/g/custom-gpt'
   }, 'BINDING_CHANGED'],
