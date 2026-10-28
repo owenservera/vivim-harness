@@ -38,7 +38,12 @@ export function createContinuityPacket(state, { now }) {
     communications: {
       status: 'not-inspected', note: 'AION peer communications are not automatically imported into local Work',
     },
-    execution: { permittedByThisPacket: false, providerSendsPerformed: 0, toolRunsPerformed: 0 },
+    execution: {
+      permittedByThisPacket: false,
+      effectsDuringPacketAssembly: 'none',
+      providerActivityOutsideThisPacket: 'not-inspected',
+      toolExecutionOutsideThisPacket: 'not-inspected',
+    },
   };
 }
 
