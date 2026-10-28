@@ -83,3 +83,24 @@ define({ name: 'personal-agent advance', section: 'System', usage: '<work-id>',
       id: ctx.args[0], to: ctx.flags.to, note: ctx.flags.note, evidence: ctx.flags.evidence ?? [] }));
   },
 });
+
+define({ name: 'personal-agent sitrep', section: 'System',
+  summary: 'Private, bounded continuity packet: bootstrap, recent memory and outstanding Work',
+  examples: ['studio personal-agent sitrep --json'],
+  run(ctx) { noArgs(ctx); emit(ctx, service(ctx).continuity()); },
+});
+define({ name: 'personal-agent export', section: 'System',
+  summary: 'Export checksummed local agent JSON; private details only on explicit flags',
+  flags: {
+    'include-memory': { type: 'boolean', desc: 'Explicitly include private memory text' },
+    'include-work': { type: 'boolean', desc: 'Explicitly include private Work titles, objectives and events' },
+  },
+  examples: ['studio personal-agent export --json', 'studio personal-agent export --include-memory --include-work --json'],
+  run(ctx) {
+    noArgs(ctx);
+    emit(ctx, service(ctx).exportSnapshot({
+      includeMemory: !!ctx.flags['include-memory'],
+      includeWorkDetails: !!ctx.flags['include-work'],
+    }));
+  },
+});
