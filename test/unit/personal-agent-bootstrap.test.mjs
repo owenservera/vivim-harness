@@ -33,3 +33,15 @@ test("completion requires real reference-shaped evidence, not empty values", () 
   assert.throws(() => updatePersonalAgentBootstrap(state, { stage: BOOTSTRAP_STAGES[0], status: "completed", evidence: [" "] }), /Evidence/);
   assert.throws(() => updatePersonalAgentBootstrap(state, { stage: BOOTSTRAP_STAGES[0], status: "blocked" }), /blocker/);
 });
+test("a completed stage is terminal and its receipts cannot be erased", () => {
+  let state = createPersonalAgentBootstrap({ agentId: "a", ownerId: "o", now: "2026-10-28T00:00:00Z" });
+  state = updatePersonalAgentBootstrap(state, { stage: BOOTSTRAP_STAGES[0], status: "completed", evidence: ["receipt:identity"] });
+  for (const status of ["pending", "blocked"]) {
+    assert.throws(() => updatePersonalAgentBootstrap(state, { stage: BOOTSTRAP_STAGES[0], status, blocker: "regressed" }),
+      /reopened or rewritten/);
+  }
+  const snapshot = JSON.parse(JSON.stringify(state));
+  assert.equal(snapshot.stages[BOOTSTRAP_STAGES[0]].status, "completed");
+  assert.deepEqual(snapshot.stages[BOOTSTRAP_STAGES[0]].evidence, ["receipt:identity"]);
+  assert.equal(nextPersonalAgentBootstrapStage(snapshot), BOOTSTRAP_STAGES[1], "progress is never silently rolled back");
+});

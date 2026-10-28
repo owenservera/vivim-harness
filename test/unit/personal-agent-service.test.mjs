@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { createPersonalAgentService } from '../../src/agents/personal-agent-service.mjs';
 import { registerPersonalAgentRoutes } from '../../src/studio/personal-agent-routes.mjs';
+import { VersionedStore } from '../../src/store/versioned.mjs';
 
 function fixture(t) {
   const root = mkdtempSync(path.join(os.tmpdir(), 'vivim-personal-agent-test-'));
@@ -170,4 +171,66 @@ test('Work and memory text are not exposed by default status or global self-know
   assert.equal(publicView.includes('PRIVATE_WORK_OBJECTIVE'), false);
   assert.equal(publicView.includes('PRIVATE_MEMORY_CONTENT'), false);
   assert.equal(saved.memoryCounts.CANON, 1);
+});
+
+test('initialize returns the same status projection as status() and first-run bootstrap resumes with null', t => {
+  const f = fixture(t), agent = make(f);
+  // Regression: initialize used to return the raw store record (no nextStage/memoryCounts/work summary),
+  // so the first-run HTTP response had a different shape from every other lifecycle response.
+  const initialized = agent.initialize({ expectedVersion: null });
+  assert.deepEqual(initialized, agent.status());
+  assert.equal(initialized.initialized, true);
+  assert.equal(initialized.nextStage, 'identity-and-sitrep');
+  assert.equal(initialized.memoryCounts.Immediate, 0);
+  assert.equal(initialized.work.total, 0);
+  assert.equal('savedAt' in initialized, false, 'store metadata is not part of the public projection');
+  // Regression: an interrupted first run (identity committed, crash before stage 0) could not be resumed with the
+  // documented expectedVersion:null - it returned 409 and forced a separate status read first.
+  const resumed = make(f).bootstrap({ expectedVersion: null });
+  assert.equal(resumed.nextStage, null);
+  assert.ok(resumed.version > initialized.version);
+  for (const stage of Object.values(resumed.stages)) assert.equal(stage.status, 'completed');
+  assert.throws(() => make(f).bootstrap({ expectedVersion: initialized.version }),
+    e => e.code === 'PERSONAL_AGENT_VERSION_CONFLICT', 'a stale integer revision still refuses');
+});
+
+test('identity is fingerprinted to this local data directory only', t => {
+  const first = fixture(t), second = fixture(t);
+  const a = make(first).status(), b = make(second).status();
+  assert.match(a.scopeFingerprint, /^local-dir-sha256:[0-9a-f]{20}$/);
+  assert.equal(a.scope, 'local-data-directory');
+  assert.notEqual(a.scopeFingerprint, b.scopeFingerprint, 'separate data directories are distinguishable');
+  const booted = make(first).bootstrap({ expectedVersion: null });
+  assert.equal(booted.scopeFingerprint, a.scopeFingerprint, 'same directory keeps a stable fingerprint');
+  assert.equal(make(first).continuity().identity.scopeFingerprint, a.scopeFingerprint);
+  assert.equal(make(first).exportSnapshot().payload.identity.scopeFingerprint, a.scopeFingerprint);
+  const identity = make(first).selfKnowledge('identity').answers.identity;
+  assert.equal(identity.value.scopeFingerprint, a.scopeFingerprint);
+  assert.equal(identity.value.providerAccountVerified, false);
+  assert.match(identity.qualification, /not a device or cross-device principal/);
+  assert.equal(JSON.stringify(booted).includes(first.paths.root), false, 'the local path itself is not exposed');
+});
+
+test('corrupt stored state and memory tiers fail with a stable code, never a raw TypeError', t => {
+  const f = fixture(t);
+  make(f).bootstrap({ expectedVersion: null });
+  const store = new VersionedStore(path.join(f.paths.root, 'personal-agent'), { kind: 'personal agent' });
+  const stored = store.load('primary');
+  const corrupt = (value) => store.compareAndSave('primary', { ...stored, ...value },
+    { expectedVersion: store.current('primary'), changeNote: 'corrupt fixture' });
+
+  corrupt({ memory: { ...stored.memory, CANON: 'not-an-array' } });
+  const version = store.current('primary');
+  for (const call of [
+    () => make(f).memories('CANON'),
+    () => make(f).remember({ tier: 'CANON', key: 'note', text: 'x', expectedVersion: version }),
+    () => make(f).forget({ tier: 'CANON', key: 'note', expectedVersion: version }),
+    () => make(f).continuity(),
+    () => make(f).exportSnapshot(),
+  ]) {
+    assert.throws(call, e => e.code === 'PERSONAL_AGENT_STATE_CORRUPT' && e.status === 500);
+  }
+  // A schema-invalid snapshot is reported as corrupt local state, not an uncaught validation TypeError.
+  corrupt({ memory: { CANON: [], Immediate: [], Curated: [] }, stages: {} });
+  assert.throws(() => make(f).status(), e => e.code === 'PERSONAL_AGENT_STATE_CORRUPT');
 });

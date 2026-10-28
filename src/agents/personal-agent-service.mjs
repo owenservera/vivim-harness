@@ -18,20 +18,25 @@ const KEY = 'primary';
 const token = (s) => typeof s === 'string' && /^[a-z][a-z0-9_-]{0,63}$/.test(s);
 const sha = (s) => createHash('sha256').update(s).digest('hex').slice(0, 20);
 const memoryBlank = () => Object.fromEntries(MEMORY_TIERS.map(tier => [tier, []]));
-const plain = (state) => {
-  const { name, changeNote, ...rest } = state;
-  void name; void changeNote;
-  return rest;
-};
+// Stable fingerprint of THIS local data directory. It distinguishes two local instances without exposing the
+// path, and it is deliberately not a device, account or cross-device identity. Separators are normalised with
+// path.sep (host data, never a platform branch) so the same root hashes the same on every host; letter case is
+// left alone because folding it would collapse two genuinely distinct case-sensitive directories into one scope.
+const dirScope = (root) => 'local-dir-sha256:' + sha(path.resolve(root).split(path.sep).join('/'));
 
 export function createPersonalAgentService({ paths, skillsRoot = TOOL_ROOT, getTools = () => [], clock = () => new Date().toISOString() } = {}) {
   if (!paths?.root || !path.isAbsolute(paths.root)) throw new TypeError('Absolute paths.root required');
   const store = new VersionedStore(path.join(paths.root, 'personal-agent'), { kind: 'personal agent' });
   const library = createAgenticFileLibrary({ roots: [{ path: skillsRoot, id: 'vivim-harness', untrusted: true }] });
+  const scopeFingerprint = dirScope(paths.root);
   const read = () => {
-    if (!store.has(KEY)) return null;
-    const state = store.load(KEY);
-    validatePersonalAgentBootstrap(state);
+    let exists;
+    try { exists = store.has(KEY); } catch (e) { throw storeProblem(e); }
+    if (!exists) return null;
+    let state;
+    try { state = store.load(KEY); } catch (e) { throw storeProblem(e); }
+    try { validatePersonalAgentBootstrap(state); }
+    catch { throw problem(500, 'Stored Personal Agent state failed schema validation', 'PERSONAL_AGENT_STATE_CORRUPT'); }
     return state;
   };
   const bad = (message, code = 'PERSONAL_AGENT_INVALID') => problem(400, message, code);
@@ -41,9 +46,11 @@ export function createPersonalAgentService({ paths, skillsRoot = TOOL_ROOT, getT
   };
   function status() {
     const state = read();
-    if (!state) return { initialized: false, schemaVersion: 1, agentId: KEY, scope: 'local-data-directory', nextStage: BOOTSTRAP_STAGES[0], stages: null };
+    if (!state) return { initialized: false, schemaVersion: 1, agentId: KEY, scope: 'local-data-directory',
+      scopeFingerprint, nextStage: BOOTSTRAP_STAGES[0], stages: null };
     return { initialized: true, schemaVersion: state.schemaVersion, agentId: state.agentId,
-      scope: 'local-data-directory', identityAssurance: 'local-instance-only; no remote account claim',
+      scope: 'local-data-directory', scopeFingerprint,
+      identityAssurance: 'local-instance-only; no remote account claim',
       version: state.version, createdAt: state.createdAt, updatedAt: state.updatedAt,
       stages: state.stages, nextStage: nextPersonalAgentBootstrapStage(state),
       observations: state.observations ?? {}, memoryCounts: Object.fromEntries(MEMORY_TIERS.map(tier => [tier, (state.memory?.[tier] ?? []).length])),
@@ -58,7 +65,9 @@ export function createPersonalAgentService({ paths, skillsRoot = TOOL_ROOT, getT
     state.memory = memoryBlank();
     state.work = [];
     state.observations = {};
-    return plain(versioned(state, null, 'Initialize local Personal Agent state'));
+    versioned(state, null, 'Initialize local Personal Agent state');
+    // Same projection as status(): one stable shape for every lifecycle response.
+    return status();
   }
   function capabilities() {
     const scan = library.list();
@@ -151,6 +160,7 @@ export function createPersonalAgentService({ paths, skillsRoot = TOOL_ROOT, getT
   }
   // One explicit, synchronous local bootstrap. Every stage is committed independently for crash recovery.
   // No browser/CDP effects, external requests, auto-sends or network identity inference.
+  // expectedVersion:null means "start or resume from whatever exists"; an integer must match CURRENT.
   function bootstrap({ expectedVersion } = {}) {
     if (expectedVersion !== null && (!Number.isSafeInteger(expectedVersion) || expectedVersion < 1)) {
       throw bad('expectedVersion must be null or positive integer', 'PERSONAL_AGENT_EXPECTED_VERSION');
@@ -160,7 +170,7 @@ export function createPersonalAgentService({ paths, skillsRoot = TOOL_ROOT, getT
       if (expectedVersion !== null) throw problem(409, 'Personal Agent not initialized', 'PERSONAL_AGENT_NOT_INITIALIZED');
       initialize({ expectedVersion: null });
       state = read();
-    } else if (expectedVersion !== state.version) {
+    } else if (expectedVersion !== null && expectedVersion !== state.version) {
       throw problem(409, 'Personal Agent version changed; refresh status', 'PERSONAL_AGENT_VERSION_CONFLICT');
     }
     for (const stage of BOOTSTRAP_STAGES) {
@@ -185,11 +195,17 @@ export function createPersonalAgentService({ paths, skillsRoot = TOOL_ROOT, getT
     }
     return status();
   }
+  const corrupt = () => problem(500, 'Stored Personal Agent memory tier is not an array', 'PERSONAL_AGENT_STATE_CORRUPT');
+  const tierOf = (memory, tier) => {
+    const entries = memory?.[tier] ?? [];
+    if (!Array.isArray(entries)) throw corrupt();
+    return entries;
+  };
   function memories(tier) {
     if (!MEMORY_TIERS.includes(tier)) throw bad('Unknown memory tier');
     const state = read();
     if (!state) throw problem(404, 'Initialize Personal Agent first', 'PERSONAL_AGENT_NOT_INITIALIZED');
-    return { tier, version: state.version, entries: structuredClone(state.memory?.[tier] ?? []),
+    return { tier, version: state.version, updatedAt: state.updatedAt, entries: structuredClone(tierOf(state.memory, tier)),
       disclosure: 'User-authored local data; not injected into provider requests automatically' };
   }
   function remember({ tier, key, text, expectedVersion } = {}) {
@@ -201,7 +217,7 @@ export function createPersonalAgentService({ paths, skillsRoot = TOOL_ROOT, getT
     if (!state) throw problem(404, 'Initialize Personal Agent first', 'PERSONAL_AGENT_NOT_INITIALIZED');
     if (state.version !== expectedVersion) throw problem(409, 'Memory version changed; refresh first', 'PERSONAL_AGENT_VERSION_CONFLICT');
     const memory = structuredClone(state.memory ?? memoryBlank());
-    const entries = memory[tier] ?? [];
+    const entries = tierOf(memory, tier);
     if (entries.length >= 500 && !entries.some(x => x.key === key)) throw problem(409, 'Memory tier is full', 'PERSONAL_AGENT_MEMORY_LIMIT');
     const stamp = clock();
     const record = { key, text: text.trim(), source: 'user-authored', updatedAt: stamp };
@@ -220,7 +236,7 @@ export function createPersonalAgentService({ paths, skillsRoot = TOOL_ROOT, getT
     if (!state) throw problem(404, 'Initialize Personal Agent first', 'PERSONAL_AGENT_NOT_INITIALIZED');
     if (state.version !== expectedVersion) throw problem(409, 'Memory version changed; refresh first', 'PERSONAL_AGENT_VERSION_CONFLICT');
     const memory = structuredClone(state.memory ?? memoryBlank());
-    const old = memory[tier] ?? [];
+    const old = tierOf(memory, tier);
     if (!old.some(entry => entry.key === key)) throw problem(404, 'Memory entry not found', 'PERSONAL_AGENT_MEMORY_NOT_FOUND');
     memory[tier] = old.filter(entry => entry.key !== key);
     versioned({ ...state, memory, updatedAt: clock() }, state.version, `User memory removal: ${tier}`);
@@ -229,12 +245,12 @@ export function createPersonalAgentService({ paths, skillsRoot = TOOL_ROOT, getT
   function continuity() {
     const state = read();
     if (!state) throw problem(404, 'Initialize Personal Agent first', 'PERSONAL_AGENT_NOT_INITIALIZED');
-    return createContinuityPacket(state, { now: clock() });
+    return createContinuityPacket(state, { now: clock(), scopeFingerprint });
   }
   function exportSnapshot({ includeMemory = false, includeWorkDetails = false } = {}) {
     const state = read();
     if (!state) throw problem(404, 'Initialize Personal Agent first', 'PERSONAL_AGENT_NOT_INITIALIZED');
-    return createPortableSnapshot(state, { includeMemory, includeWorkDetails, now: clock() });
+    return createPortableSnapshot(state, { includeMemory, includeWorkDetails, now: clock(), scopeFingerprint });
   }
   // User-owned, durable Work is deliberately not an executor. These methods never send to a provider.
   function workList() {

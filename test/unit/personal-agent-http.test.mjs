@@ -46,6 +46,18 @@ test('personal agent survives a real Studio HTTP restart with local-only effects
     assert.equal(crossOrigin.status, 403);
     assert.equal((await api('/api/v1/personal-agent/status')).data.initialized, false);
 
+    // First-run HTTP shape: initialize must answer with the same projection as status(), not a raw store record.
+    const initialized = await api('/api/v1/personal-agent/initialize', 'POST', { expectedVersion: null });
+    assert.equal(initialized.status, 200, JSON.stringify(initialized.data));
+    assert.equal(initialized.data.initialized, true);
+    assert.equal(initialized.data.nextStage, 'identity-and-sitrep');
+    assert.equal(initialized.data.memoryCounts.Curated, 0);
+    assert.equal(initialized.data.work.total, 0);
+    assert.match(initialized.data.scopeFingerprint, /^local-dir-sha256:[0-9a-f]{20}$/);
+    assert.equal('savedAt' in initialized.data, false);
+    assert.equal((await api('/api/v1/personal-agent/initialize', 'POST', { expectedVersion: null })).status, 409);
+
+    // Documented resume path: after an interrupted first run, bootstrap with expectedVersion:null continues.
     const boot = await api('/api/v1/personal-agent/bootstrap', 'POST', { expectedVersion: null });
     assert.equal(boot.status, 200, JSON.stringify(boot.data));
     assert.equal(boot.data.initialized, true);

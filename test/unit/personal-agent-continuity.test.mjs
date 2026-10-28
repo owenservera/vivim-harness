@@ -68,3 +68,45 @@ test('invalid flags and excessive export refuse instead of emitting unbounded pr
   assert.throws(() => createPortableSnapshot(huge, { now, includeMemory: true }),
     e => e.code === 'PERSONAL_AGENT_EXPORT_LIMIT' && e.status === 413);
 });
+
+test('corrupt local state fails with a stable code instead of an uncaught TypeError', () => {
+  // Regression: a non-array tier threw "…slice is not a function" and a Work item without evidence threw
+  // "Cannot read properties of undefined", both surfacing as an uncoded 500 through the Studio routes.
+  const badTier = structuredClone(state);
+  badTier.memory.CANON = 'not-an-array';
+  assert.throws(() => createContinuityPacket(badTier, { now }),
+    e => e.code === 'PERSONAL_AGENT_STATE_CORRUPT' && e.status === 500);
+  assert.throws(() => createPortableSnapshot(badTier, { now }),
+    e => e.code === 'PERSONAL_AGENT_STATE_CORRUPT');
+  assert.throws(() => createPortableSnapshot(badTier, { now, includeMemory: true }),
+    e => e.code === 'PERSONAL_AGENT_STATE_CORRUPT');
+  const noEvidence = structuredClone(state);
+  delete noEvidence.work[0].evidence;
+  assert.deepEqual(createContinuityPacket(noEvidence, { now }).work[0].evidence, [],
+    'a Work record without receipts is projected empty, not fatal');
+});
+
+test('continuity surfaces the most recently updated memory, not insertion order', () => {
+  const reordered = structuredClone(state);
+  reordered.memory.Curated = [
+    { key: 'older', text: 'OLDER', source: 'user-authored', updatedAt: '2026-10-01T00:00:00.000Z' },
+    { key: 'newest', text: 'NEWEST', source: 'user-authored', updatedAt: '2026-10-27T00:00:00.000Z' },
+    { key: 'middle', text: 'MIDDLE', source: 'user-authored', updatedAt: '2026-10-20T00:00:00.000Z' },
+  ];
+  const packet = createContinuityPacket(reordered, { now });
+  assert.deepEqual(packet.memory.Curated.map(entry => entry.key), ['newest', 'middle', 'older']);
+  assert.match(packet.memory.coverage, /most recently updated first/);
+  assert.match(packet.workCoverage.selection, /newest 20/);
+});
+
+test('export and continuity report the local data-directory scope without claiming more', () => {
+  const bundle = createPortableSnapshot(state, { now, scopeFingerprint: 'local-dir-sha256:0123456789abcdef0123' });
+  assert.equal(bundle.payload.identity.scope, 'local-data-directory-only');
+  assert.equal(bundle.payload.identity.scopeFingerprint, 'local-dir-sha256:0123456789abcdef0123');
+  assert.equal(bundle.payload.identity.providerAccountVerified, false);
+  const packet = createContinuityPacket(state, { now, scopeFingerprint: 'local-dir-sha256:0123456789abcdef0123' });
+  assert.equal(packet.identity.scopeFingerprint, 'local-dir-sha256:0123456789abcdef0123');
+  assert.equal(packet.identity.assurance, 'local-data-directory-only');
+  assert.equal(createPortableSnapshot(state, { now }).payload.identity.scopeFingerprint, null,
+    'no fingerprint is invented when the caller does not supply one');
+});

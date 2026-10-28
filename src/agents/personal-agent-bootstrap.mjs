@@ -61,6 +61,11 @@ export function updatePersonalAgentBootstrap(snapshot, { stage, status, evidence
   if (status === "blocked" && (typeof blocker !== "string" || !blocker.trim())) {
     throw new TypeError("Blocked stage requires an explicit blocker");
   }
+  // Completion is monotonic: a stage that already carries local observation receipts is terminal, so a
+  // later call cannot regress bootstrap progress or silently erase the evidence behind a completed stage.
+  if (snapshot.stages[stage].status === "completed") {
+    throw new Error("Completed bootstrap stages cannot be reopened or rewritten");
+  }
   const firstIncomplete = nextPersonalAgentBootstrapStage(snapshot);
   if (status === "completed" && stage !== firstIncomplete && snapshot.stages[stage].status !== "completed") {
     throw new Error("Bootstrap stages must complete in order");

@@ -42,3 +42,28 @@ test('scoped query does not include unrelated domains or inspectable private mem
 test('unknown topics fail explicitly instead of silently returning an ungrounded answer', () => {
   assert.throws(() => buildSelfKnowledge({ ...args, topic: 'passwords' }), e => e.code === 'PERSONAL_AGENT_TOPIC_INVALID');
 });
+
+test('an uninitialized agent does not claim a grounded zero Work or memory index', () => {
+  // Regression: `agent.work ?? { total: 0, byStatus: {} }` fabricated a confident zero-count claim for an
+  // agent that has no local state at all.
+  const uninitialized = { initialized: false, agentId: 'primary', nextStage: 'identity-and-sitrep', stages: null };
+  const report = buildSelfKnowledge({ agent: uninitialized, world: { state: 'not-inspected' }, at });
+  assert.deepEqual(report.answers.work.value, { initialized: false, total: null, byStatus: null });
+  assert.deepEqual(report.answers.memory.value, { initialized: false, tiers: null });
+  assert.equal(report.answers.work.evidence.length, 0);
+  assert.equal(report.answers.work.sourceUpdatedAt, null, 'freshness has no local revision to point at');
+});
+
+test('freshness is anchored to the real local state revision time, and identity carries the local scope', () => {
+  const grounded = { ...agent, updatedAt: '2026-10-28T20:59:00.000Z', scopeFingerprint: 'local-dir-sha256:0123456789abcdef0123' };
+  const report = buildSelfKnowledge({ ...args, agent: grounded });
+  for (const topic of ['identity', 'bootstrap', 'memory', 'work']) {
+    assert.equal(report.answers[topic].sourceUpdatedAt, '2026-10-28T20:59:00.000Z');
+    assert.equal(report.answers[topic].observedAt, at);
+  }
+  assert.equal(report.answers.world.sourceUpdatedAt, at, 'request-time projections are observed now');
+  assert.equal(report.answers.identity.value.scopeFingerprint, 'local-dir-sha256:0123456789abcdef0123');
+  assert.equal(report.answers.identity.value.scope, 'local-data-directory');
+  assert.equal(report.answers.work.value.initialized, true);
+  assert.equal(report.answers.work.value.total, 1);
+});

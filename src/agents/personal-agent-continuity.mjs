@@ -7,34 +7,44 @@ const MAX_EXPORT_BYTES = 1024 * 1024;
 const tiers = ['CANON', 'Immediate', 'Curated'];
 const fail = (message, status = 400, code = 'PERSONAL_AGENT_CONTINUITY_INVALID') =>
   Object.assign(new Error(message), { status, code });
+// A corrupt tier must fail with a stable machine code, never an uncaught TypeError through the HTTP boundary.
+const tierEntries = (state, tier) => {
+  const value = state.memory?.[tier] ?? [];
+  if (!Array.isArray(value)) throw fail(`Stored memory tier is not an array: ${tier}`, 500, 'PERSONAL_AGENT_STATE_CORRUPT');
+  return value;
+};
+const list = (value) => (Array.isArray(value) ? value : []);
 
-export function createContinuityPacket(state, { now }) {
+export function createContinuityPacket(state, { now, scopeFingerprint = null } = {}) {
   if (!state || typeof state !== 'object' || !state.agentId || !state.stages) throw fail('Invalid agent state');
-  const recent = (tier, limit) => (state.memory?.[tier] ?? []).slice(-limit).map(entry => ({
+  // Most recently updated first: continuity must surface the freshest user-authored memory, not insertion order.
+  const recent = (tier, limit) => tierEntries(state, tier).map(entry => ({
     key: entry.key, text: entry.text, updatedAt: entry.updatedAt, source: entry.source,
-  }));
-  const open = (state.work ?? []).filter(item => ['queued', 'active', 'blocked'].includes(item.status));
+  })).sort((a, b) => String(b.updatedAt ?? '').localeCompare(String(a.updatedAt ?? ''))).slice(0, limit);
+  const open = list(state.work).filter(item => ['queued', 'active', 'blocked'].includes(item?.status));
   return {
     schema: CONTINUITY_SCHEMA, assembledAt: now,
     privacy: 'Private local continuity packet; not published as a tool or sent to an AI provider',
     identity: { agentId: state.agentId, role: state.identity?.role ?? 'personal-agent',
+      scope: 'local-data-directory', scopeFingerprint,
       assurance: 'local-data-directory-only', providerAccountVerified: false },
     localRevision: state.version,
     bootstrap: Object.fromEntries(Object.entries(state.stages).map(([name, stage]) => [name, {
-      status: stage.status, evidence: [...stage.evidence], blocker: stage.blocker ?? null,
+      status: stage.status, evidence: [...list(stage.evidence)], blocker: stage.blocker ?? null,
     }])),
     memory: {
       CANON: recent('CANON', 20),
       Immediate: recent('Immediate', 20),
       Curated: recent('Curated', 10),
-      coverage: 'last 20 CANON, last 20 Immediate, last 10 Curated; explicit user-authored content only',
+      coverage: 'most recently updated first: up to 20 CANON, 20 Immediate, 10 Curated; explicit user-authored content only',
     },
     work: open.slice(-20).map(item => ({
       id: item.id, title: item.title, objective: item.objective,
       status: item.status, nextAction: item.nextAction,
-      updatedAt: item.updatedAt, evidence: item.evidence.slice(-10),
+      updatedAt: item.updatedAt, evidence: list(item.evidence).slice(-10),
     })),
-    workCoverage: { openTotal: open.length, included: Math.min(open.length, 20), fullArchive: false },
+    workCoverage: { openTotal: open.length, included: Math.min(open.length, 20), fullArchive: false,
+      selection: 'open Work in creation order; the newest 20 are retained' },
     communications: {
       status: 'not-inspected', note: 'AION peer communications are not automatically imported into local Work',
     },
@@ -47,22 +57,22 @@ export function createContinuityPacket(state, { now }) {
   };
 }
 
-export function createPortableSnapshot(state, { now, includeMemory = false, includeWorkDetails = false } = {}) {
+export function createPortableSnapshot(state, { now, includeMemory = false, includeWorkDetails = false, scopeFingerprint = null } = {}) {
   if (!state || typeof state !== 'object' || !state.agentId || !state.stages) throw fail('Invalid agent state');
   if (typeof includeMemory !== 'boolean' || typeof includeWorkDetails !== 'boolean') throw fail('Export flags must be booleans');
   const payload = {
     schema: EXPORT_SCHEMA, createdAt: now, sourceVersion: state.version,
-    identity: { agentId: state.agentId, scope: 'local-data-directory-only',
+    identity: { agentId: state.agentId, scope: 'local-data-directory-only', scopeFingerprint,
       providerAccountVerified: false },
     bootstrap: Object.fromEntries(Object.entries(state.stages).map(([name, value]) => [name, {
-      status: value.status, updatedAt: value.updatedAt, evidence: [...value.evidence], blocker: value.blocker ?? null,
+      status: value.status, updatedAt: value.updatedAt, evidence: [...list(value.evidence)], blocker: value.blocker ?? null,
     }])),
-    work: includeWorkDetails ? structuredClone(state.work ?? []) : {
-      count: (state.work ?? []).length, detailsOmitted: true,
+    work: includeWorkDetails ? structuredClone(list(state.work)) : {
+      count: list(state.work).length, detailsOmitted: true,
     },
     memory: includeMemory
-      ? Object.fromEntries(tiers.map(tier => [tier, structuredClone(state.memory?.[tier] ?? [])]))
-      : { counts: Object.fromEntries(tiers.map(tier => [tier, (state.memory?.[tier] ?? []).length])),
+      ? Object.fromEntries(tiers.map(tier => [tier, structuredClone(tierEntries(state, tier))]))
+      : { counts: Object.fromEntries(tiers.map(tier => [tier, tierEntries(state, tier).length])),
         detailsOmitted: true },
     provenance: 'Exported user-owned local state; no remote conversation history or credentials were accessed',
   };
