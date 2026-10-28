@@ -1,5 +1,14 @@
 # ChatGPT 100 — blank-space and missing-capability map
 
+## 2026-10-28 gap reconciliation
+
+The [001–100 objective matrix](CHATGPT-100-RECONCILED-STATUS.md) supersedes any blanket “no source” classification that overlooks newly exposed existing controls. Current source-level rollup is **10 supported / 22 partial / 68 unsupported**; no new live or automated execution proof was obtained in this pass. The added [101–200 roadmap objectives](CHATGPT-200-ROADMAP-OBJECTIVES.md) are unverified future user goals.
+
+- **Closed: capability visibility through named tools** — `conversation_capsule` delegates read-only to the already implemented runtime capsule. The `conversation.capabilities` recipe is one native command; its result is advisory and never bypasses effect-time gates. Unit-test changes were authored, not run here.
+- **Corrected: blank new conversation** — `create_conversation` exists on updated `main` and delegates to the existing Studio browser owner. Do not recreate this primitive. It does not prove native thread identity until `/c/<uuid>` is observed.
+- **Still open:** account identity; native navigation/search/settings/model/upload/artifact controls; structured ChatGPT block extraction; broad history coverage; positive delivery proof after uncertain sends; live capture-to-World acceptance. Generic shape, file-inventory and export code must not be mistaken for provider-native browser actions.
+
+
 Generated 2026-10-28. Companion to `CHATGPT-100-SOURCE-MAP.md` and `CHATGPT-100-DEPENDENCY-MAP.md`.
 
 ## Partial gap closures (2026-10-28)
