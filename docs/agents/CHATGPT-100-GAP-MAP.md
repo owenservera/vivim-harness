@@ -307,3 +307,35 @@ Source-reviewed classification reconciled against `CHATGPT-100-RECONCILED-STATUS
 | 100 | Return-to-source continuity | partial | `world-service` + `world-url` + `conversation-thread` | Saved source pointer exists, native return navigation not verified | source-reviewed; tests blocked; no new live proof |
 
 **Totals:** 13 source-supported, 32 partial, 55 unsupported; **0 live-verified in this audit**. No unverified scenario is promoted by a source signature or fixture alone.
+
+## 2026-10-28 — all 100 objectives reconciled: concrete missing edges and blockers
+
+**Authoritative per-objective coverage:** The final table in `CHATGPT-100-SOURCE-MAP.md` identifies every numbered scenario **001–100** separately, its implementation, classification, first missing link and verification. `CHATGPT-100-DEPENDENCY-MAP.md` contains the read ledger and import/call-graph evidence. Earlier blanket “no source” assertions are superseded where code exists but was unexposed.
+
+| Scenarios | Source-level status | Shared existing/fixed primitive | Remaining blocker |
+|---|---|---|---|
+| 001–010 | 2 supported, 5 partial, 3 unsupported | Exact thread/target plus partial auth/readiness | No account identity, temporary-chat state or modal reader |
+| 011–020 | 1 supported, 5 partial, 4 unsupported | NEW_CHAT native tool, chat index, drive deep link | No owner-bound history/search/navigation/scroll actions |
+| 021–030 | 1 supported, 2 partial, 7 unsupported | Submit/journal/recorder, previous one-shot | No edit, regenerate, stop, branch, rename or archive controls |
+| 031–040 | 0 supported, 3 partial, 7 unsupported | Existing typing, enter and Unicode path | No exposed newline/model/voice/chip/copy/feedback controls |
+| 041–050 | 0 supported, 10 partial, 0 unsupported | Existing page-agent blocks; concurrent rich-part reader; filtered URL fix | No complete offscreen history, attribution or shape fidelity proof |
+| 051–060 | 0 supported, 0 partial, 10 unsupported | Network observation only | No activation and job status selectors for search/thinking/research |
+| 061–070 | 0 supported, 0 partial, 10 unsupported | Local agentic-files library; raw capture | No ChatGPT-native upload/download actions |
+| 071–080 | 0 supported, 0 partial, 10 unsupported | Generic DOM shape capture, World display | No native artifact/canvas/chart/code-copy effect and reader |
+| 081–090 | 0 supported, 1 partial, 9 unsupported | Chat index project state unknown | No project/sharing/settings navigation and mutation |
+| 091–100 | 3 supported, 6 partial, 1 unsupported | Drive lease, exact-thread fence, journal, World | No complete live interruption/expiry/rate-limit/return-source proof |
+
+**Total: 7 supported source paths, 32 partial, 61 unsupported.** None is newly live verified. These are implementation classifications, not 100/100 successful user outcomes. All 61 unsupported scenarios are **blocked** by the absent exposed browser action/reader and unavailable real ChatGPT UI selector evidence from this remote source-only execution environment. The 32 partial scenarios have a reusable primitive but lack the fully observed outcome. The 7 supported still require end-to-end live acceptance where appropriate.
+
+### Fixed shared gaps
+
+- **011, native new-chat navigation:** New `create_conversation` tool delegates to existing `conversation-runtime.mjs::connect({site:'chatgpt',freshTab:true})`; `POST /api/v1/conversations/create` and `conversation.create` recipe use the existing Studio/Chrome owner. No message is sent, no controller added, and no unverified thread is treated as bound.
+- **043–050, structured evidence privacy:** `src/capture/dom.mjs::scrubBlocks` now applies configured URL and text sanitization recursively to inline citation/link URLs, image/media sources, table headings and nested blocks. `test/unit/dom-structured-privacy.test.mjs` checks filtered and local-raw modes.
+- **043–050, existing/exposed typed readers:** `src/capture/page-agent.js::blocks` was previously present; concurrent `src/capture/conversation-rich.mjs` exposes bounded page-visible typed parts. This corrects the missing-source diagnosis but does not make the scenarios complete.
+
+### Explicit verification limits
+
+- Read in full and inspected: **132 mapped source/config files and 40 additional imported/adjacent files**, 172 files total. A concurrent `conversation-rich.mjs` module was separately fetched. A static import/caller audit is not a full Chrome runtime trace.
+- Fresh-creation focus check: **16 isolated JS assertions passed** against changed source with injected dependencies. This is not a real Node unit-test or live-site result.
+- Committed fixture tests: `test/unit/conversation-tools.test.mjs`, `test/unit/conversation-read-api.test.mjs`, and `test/unit/dom-structured-privacy.test.mjs`. Their mere presence is not a passing test run.
+- Full `node --test`, existing browser/CDP and live user scenarios **not executed**: GitHub access does not expose the local Windows checkout, and this isolated container cannot resolve GitHub for cloning. The focused workflow previously reported failure without actionable step logs. No Playwright, Puppeteer, secondary controller or false success was introduced.
