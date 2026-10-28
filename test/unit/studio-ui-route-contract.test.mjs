@@ -28,7 +28,7 @@ test('every shipped Studio page serves its referenced JS modules under token sec
   const auth = { 'x-studio-token': 'route-fixture-token' };
   const allModules = new Set();
 
-  for (const route of ['/', '/chat', '/drive', '/platform']) {
+  for (const route of ['/', '/chat', '/drive', '/platform', '/personal-agent']) {
     assert.equal((await fetch(base + route)).status, 401, route + ' must require configured token');
     const page = await fetch(base + route, { headers: auth });
     assert.equal(page.status, 200, route + ' page');

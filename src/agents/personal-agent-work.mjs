@@ -1,0 +1,77 @@
+// Durable, local-only Work model. Never dispatches a tool or claims a live provider PASS.
+import { createHash } from 'node:crypto';
+
+export const WORK_STATES = Object.freeze(['queued', 'active', 'blocked', 'completed', 'cancelled']);
+const WORK_TRANSITIONS = Object.freeze({
+  queued: ['active', 'blocked', 'cancelled'],
+  active: ['blocked', 'completed', 'cancelled'],
+  blocked: ['active', 'cancelled'],
+  completed: [],
+  cancelled: [],
+});
+export const MAX_WORK_ITEMS = 200;
+const keyPattern = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{7,127}$/;
+const workId = key => 'work-' + createHash('sha256').update(key).digest('hex').slice(0, 32);
+const err = (code, message, status = 400) => Object.assign(new Error(message), { code, status });
+const text = (value, name, max) => {
+  if (typeof value !== 'string' || !value.trim() || value.trim().length > max) throw err('PERSONAL_AGENT_WORK_INVALID', `${name} must be 1..${max} characters`);
+  return value.trim();
+};
+const existing = state => {
+  const work = state.work ?? [];
+  if (!Array.isArray(work) || work.length > MAX_WORK_ITEMS) throw err('PERSONAL_AGENT_WORK_CORRUPT', 'Stored Work index is invalid', 500);
+  return work;
+};
+
+export function workSummary(state) {
+  const work = existing(state);
+  return {
+    total: work.length,
+    byStatus: Object.fromEntries(WORK_STATES.map(status => [status, work.filter(item => item.status === status).length])),
+    authority: 'local-user-directed-work; not provider execution',
+  };
+}
+
+export function createWork(state, { title, objective, idempotencyKey, now }) {
+  const name = text(title, 'title', 160), goal = text(objective, 'objective', 4000);
+  if (typeof idempotencyKey !== 'string' || !keyPattern.test(idempotencyKey)) throw err('PERSONAL_AGENT_WORK_INVALID', 'idempotencyKey must be 8..128 safe characters');
+  const id = workId(idempotencyKey);
+  const work = existing(state);
+  const previous = work.find(x => x.id === id);
+  if (previous) {
+    if (previous.title !== name || previous.objective !== goal) throw err('PERSONAL_AGENT_WORK_IDEMPOTENCY_CONFLICT', 'Same key has different Work inputs', 409);
+    return { state, item: previous, changed: false };
+  }
+  if (work.length >= MAX_WORK_ITEMS) throw err('PERSONAL_AGENT_WORK_LIMIT', 'Work index reached capacity', 409);
+  const item = {
+    id, title: name, objective: goal, status: 'queued', nextAction: null,
+    createdAt: now, updatedAt: now, source: 'user-authored',
+    evidence: [], events: [{ type: 'created', at: now, basis: 'explicit-user-request' }],
+  };
+  return { state: { ...state, updatedAt: now, work: [...work, item] }, item, changed: true };
+}
+
+export function transitionWork(state, { id, to, note, evidence = [], now }) {
+  if (typeof id !== 'string' || !/^work-[a-f0-9]{32}$/.test(id)) throw err('PERSONAL_AGENT_WORK_INVALID', 'Invalid Work ID');
+  if (!WORK_STATES.includes(to)) throw err('PERSONAL_AGENT_WORK_INVALID', 'Invalid Work status');
+  const work = existing(state);
+  const old = work.find(item => item.id === id);
+  if (!old) throw err('PERSONAL_AGENT_WORK_NOT_FOUND', 'Work item not found', 404);
+  if (!WORK_TRANSITIONS[old.status]?.includes(to)) throw err('PERSONAL_AGENT_WORK_TRANSITION', 'Work transition not permitted', 409);
+  if (!Array.isArray(evidence) || evidence.length > 20 || evidence.some(ref => typeof ref !== 'string' || !/^[-a-zA-Z0-9_./:#?=]{4,256}$/.test(ref))) {
+    throw err('PERSONAL_AGENT_WORK_INVALID', 'Evidence must contain at most 20 bounded reference tokens');
+  }
+  if (to === 'completed' && evidence.length === 0) throw err('PERSONAL_AGENT_WORK_EVIDENCE_REQUIRED', 'Completion requires explicit evidence references');
+  if (to === 'blocked' && (typeof note !== 'string' || !note.trim())) throw err('PERSONAL_AGENT_WORK_INVALID', 'Blocked Work requires a reason');
+  if (note !== undefined && (typeof note !== 'string' || note.length > 2000)) throw err('PERSONAL_AGENT_WORK_INVALID', 'Note must be at most 2000 characters');
+  const event = {
+    type: 'transition', from: old.status, to, at: now,
+    note: note?.trim() || null,
+    evidence: evidence.map(ref => ({ ref, basis: 'user-attested; unverified-for-live-execution' })),
+  };
+  const item = { ...old, status: to, updatedAt: now,
+    nextAction: to === 'blocked' ? event.note : null,
+    evidence: [...old.evidence, ...event.evidence], events: [...old.events, event] };
+  if (item.events.length > 100) throw err('PERSONAL_AGENT_WORK_LIMIT', 'Work event history reached capacity', 409);
+  return { state: { ...state, updatedAt: now, work: work.map(row => row.id === id ? item : row) }, item, changed: true };
+}
