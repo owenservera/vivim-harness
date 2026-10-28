@@ -54,8 +54,11 @@ const cases = [
     page: rawPage({ controls: { observed: true, state: 'busy', idleControlPresent: false, stopPresent: true, composerEnabled: true } }) }), (f) => f.bind()],
   ['a composer that still holds a draft', 'PREFIX_DRAFT_PRESENT', (t) => workspace(t, {
     page: rawPage({ draft: { present: true, chars: 3 } }) }), (f) => f.bind()],
+  // `chars` must equal the rendered length: a shape-invalid read is refused as unreadable before the
+  // stability comparison, so the changed reply has to stay a well-formed page.
   ['an assistant reply that changes inside the stability window', 'PREFIX_REPLY_UNSTABLE', (t) => workspace(t, {
-    pages: [rawPage(), pageWith((p) => ({ ...p, messages: [p.messages[0], { ...p.messages[1], text: `${REPLY} Also: no cloud.`, chars: REPLY.length + 14 }] }))] }), (f) => f.bind()],
+    pages: [rawPage(), pageWith((p) => { const text = `${REPLY} Also: no cloud.`;
+      return { ...p, messages: [p.messages[0], { ...p.messages[1], text, chars: text.length }] }; })] }), (f) => f.bind()],
   ['a target that changes between the two reads', 'PREFIX_TARGET_CHANGED', (t) => workspace(t, {
     afterRead: (n, state) => { if (n === 1) state.targets = [{ id: 'tab-1', type: 'page', url: 'https://chatgpt.com/' }]; } }), (f) => f.bind()],
   ['a thread named in a snapshot denylist', 'PREFIX_THREAD_DENYLISTED', (t) => workspace(t, {

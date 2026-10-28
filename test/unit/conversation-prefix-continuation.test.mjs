@@ -80,13 +80,16 @@ test('turn 1 is never a journal turn: the journal holds exactly the delivered tu
   const active = await f.connect();
   await f.submit(active);
   const journalDir = path.join(f.conversations, 'thread-turns');
-  const files = fs.readdirSync(journalDir);
+  // The journal directory also holds the lock subdirectory; count only durable journal snapshots.
+  const files = fs.readdirSync(journalDir).filter((name) => name.endsWith('.turn-journal.json'));
   assert.equal(files.length, 1);
   const journal = JSON.parse(fs.readFileSync(path.join(journalDir, files[0]), 'utf8'));
-  assert.equal(journal.turns.length, 1);
-  assert.equal(journal.turns[0].key, 'two');
-  assert.equal(journal.turns[0].delivery.state, 'observed');
-  assert.notEqual(journal.turns[0].payloadDigest, active.prefix.prompt.digest); // it is turn 2, not turn 1
-  assert.equal(JSON.stringify(journal).includes('user-1'), false); // the prefix message id is not journal evidence
-  assert.equal(JSON.stringify(journal).includes(TURN2), false); // no prompt bodies in the journal
+  // Durable journal files are a checksummed envelope: the turn log lives in `snapshot`.
+  const { snapshot } = journal;
+  assert.equal(snapshot.turns.length, 1);
+  assert.equal(snapshot.turns[0].key, 'two');
+  assert.equal(snapshot.turns[0].delivery.state, 'observed');
+  assert.notEqual(snapshot.turns[0].payloadDigest, active.prefix.prompt.digest); // it is turn 2, not turn 1
+  assert.equal(JSON.stringify(snapshot).includes('user-1'), false); // the prefix message id is not journal evidence
+  assert.equal(JSON.stringify(snapshot).includes(TURN2), false); // no prompt bodies in the journal
 });

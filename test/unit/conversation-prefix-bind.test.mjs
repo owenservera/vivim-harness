@@ -132,7 +132,10 @@ test('the API route forwards the validated prefix request to the runtime', async
     { ...body, unexpected: true }), (e) => e.status === 400);
   await assert.rejects(api.handle({ method: 'POST' }, res, new URL('http://127.0.0.1/api/v1/conversations/prefix'),
     { site: 'chatgpt', targetId: 'tab-1', expectedThread: `chatgpt-c:${THREAD}` }), (e) => e.status === 400);
-  await assert.rejects(api.handle({ method: 'GET' }, res, new URL('http://127.0.0.1/api/v1/conversations/prefix'), {}),
-    (e) => e.status === 405);
+  // A wrong method is a normal HTTP refusal written by the route (405 + Allow), not a thrown error:
+  // the same contract every other conversation route uses. It must not reach the runtime.
+  assert.equal(await api.handle({ method: 'GET' }, res, new URL('http://127.0.0.1/api/v1/conversations/prefix'), {}), true);
+  assert.equal(res.status, 405);
+  assert.match(JSON.parse(res.written).error, /POST/);
   assert.equal(calls.length, 1);
 });

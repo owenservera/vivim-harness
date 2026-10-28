@@ -8,18 +8,41 @@ import { createConversationBrowserAdapter } from '../../src/capture/conversation
 import { Recorder } from '../../src/capture/recorder.mjs';
 import { RawLog } from '../../src/store/raw-log.mjs';
 import site from '../../src/profiles/sites/chatgpt.mjs';
+import { typeText } from '../../src/capture/actions.mjs';
 import vm from 'node:vm';
 import { turnObservationExpression } from '../../src/capture/conversation-thread.mjs';
 
 const ref = '11111111-1111-4111-8111-111111111111';
+const otherRef = '22222222-2222-4222-8222-222222222222';
 const idle = () => ({ observed: true, state: 'idle', idleControlPresent: true, stopPresent: false, composerEnabled: true });
+// Pacing is not what these tests assert: the same production typing stack runs, with the wall-clock
+// pauses removed so a per-character payload does not dominate the test run.
+const FAST_PACE = { keyMinMs: 0, keyMaxMs: 1, wordPauseMs: [0, 0], sentencePauseMs: [0, 0],
+  thinkPauseEveryChars: 0, thinkPauseMs: [0, 0], preSendPauseMs: [0, 0], mouseMoveSteps: [1, 1] };
 const tick = () => new Promise(setImmediate);
-async function until(fn) { for (let i = 0; i < 500; i++) { const result = await fn(); if (result) return result; await tick(); } throw new Error('Synthetic job did not settle'); }
+// The synthetic job really does type and send, so wait on wall-clock time, not on a tick budget.
+async function until(fn) {
+  const deadline = Date.now() + 15000;
+  for (;;) {
+    const result = await fn(); if (result) return result;
+    if (Date.now() > deadline) throw new Error('Synthetic job did not settle');
+    await new Promise((resolve) => setTimeout(resolve, 1));
+  }
+}
 function fixture(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'conversation-m2-'));
   const paths = { root, sessions: path.join(root, 'sessions') };
   const state = { pathname: `/c/${ref}`, draft: '', messages: [], controls: idle(), insertions: 0, sends: 0, records: [], mode: 'normal', recorders: [] };
   let sessionNo = 0;
+  // The composer's own insert semantics, not a bulk paste: 'partial' refuses everything past two
+  // characters and 'nav-typing' navigates the page away as soon as the first character lands.
+  // One insertion = one prompt typed into an empty composer (its first character landing).
+  const land = (text) => {
+    const room = state.mode === 'partial' ? Math.max(0, 2 - state.draft.length) : text.length;
+    if (room > 0 && state.draft.length === 0) state.insertions++;
+    state.draft += text.slice(0, room);
+    if (state.mode === 'nav-typing' && state.draft.length > 0) state.pathname = `/c/${otherRef}`;
+  };
   class FakeRecorder extends Recorder {
     constructor(options) {
       super(options);
@@ -28,11 +51,13 @@ function fixture(t) {
           const focus = /return \{ ok:|ok: !!/.test(params.expression);
           return { result: { value: focus ? { ok: true } : state.draft } };
         }
-        if (method === 'Input.insertText') {
-          state.insertions++;
-          state.draft += state.mode === 'partial' ? params.text.slice(0, 2) : params.text;
-          if (state.mode === 'nav-typing') state.pathname = `/c/${'22222222-2222-4222-8222-222222222222'}`;
+        // The production path types like a person: one key event per character, with
+        // Input.insertText reserved for code points that have no US-layout key (newlines).
+        if (method === 'Input.dispatchKeyEvent') {
+          if (params.type === 'char' && typeof params.text === 'string' && params.text !== '\r') land(params.text);
+          else if (params.type === 'keyDown' && params.key === 'Backspace') state.draft = state.draft.slice(0, -1);
         }
+        if (method === 'Input.insertText' && typeof params.text === 'string') land(params.text);
         return {};
       } };
       this.reducer = { ingest: () => [] };
@@ -55,6 +80,8 @@ function fixture(t) {
       evaluate: async (_, expression) => expression === 'location.origin' ? 'https://chatgpt.com' : state.pathname,
       readTurnPage: async () => ({ origin: 'https://chatgpt.com', pathname: state.pathname,
         messages: structuredClone(state.messages), draft: { text: state.draft, chars: state.draft.length }, controls: structuredClone(state.controls) }),
+      // Real typing stack, with the wall-clock pacing removed (see FAST_PACE above).
+      typeText: (page, prompt, opts = {}) => typeText(page, prompt, { ...opts, pace: FAST_PACE }),
       findComposer: async () => ({ found: true }), focusComposer: async () => ({ ok: true }),
       sendState: async () => ({ evalOk: true, draftChars: state.draft.length }),
       detectAuthWall: async () => ({ blocked: false }), detectSiteFailure: async () => ({ failed: false }),
@@ -196,13 +223,15 @@ test('M2 real read-only page expression reports observed message IDs and positiv
   const document = { querySelectorAll: (selector) => selector === '[data-message-author-role="user"]' ? [user]
     : selector === '[data-message-author-role="assistant"]' ? [assistant] : selector === '#prompt-textarea' ? [composer]
       : selector === 'button[data-testid="send-button"]' && idlePresent ? [button] : [] };
-  const evaluate = () => vm.runInNewContext(turnObservationExpression(site), { document, location: { origin: 'https://chatgpt.com', pathname: `/c/${ref}` } });
+  const evaluate = () => vm.runInNewContext(turnObservationExpression(site), { document, getComputedStyle: () => ({ display: 'block', visibility: 'visible', contentVisibility: 'visible' }),
+      location: { origin: 'https://chatgpt.com', pathname: `/c/${ref}` } });
   const measured = evaluate();
   assert.deepEqual(Array.from(measured.messages, (m) => m.id), ['observed-user-id', 'observed-reply-id']);
   assert.equal(measured.controls.state, 'idle'); assert.equal(measured.controls.idleControlPresent, true);
   idlePresent = false;
-  // ChatGPT renders no send button while the composer is empty: empty composer + no stop control is idle.
-  assert.equal(evaluate().controls.state, 'idle');
+  // Fail-closed contract (conversation-thread.mjs): an empty composer and no Stop control do NOT prove
+  // idle. Without positive send-control evidence readiness stays unknown and the fence is preserved.
+  assert.equal(evaluate().controls.state, 'unknown');
   // A non-empty composer without a send button is still not positively idle.
   composer.innerText = 'half-typed draft';
   assert.equal(evaluate().controls.state, 'unknown');
@@ -221,6 +250,7 @@ test('M2 message ids come from the current ChatGPT DOM (search-message-ids unit 
   const composer = make({}, null, 2); composer.innerText = '';
   const document = { querySelectorAll: (s) => s === '[data-message-author-role="user"]' ? [user]
     : s === '[data-message-author-role="assistant"]' ? [assistant] : s === '#prompt-textarea' ? [composer] : [] };
-  const out = vm.runInNewContext(turnObservationExpression(site), { document, location: { origin: 'https://chatgpt.com', pathname: `/c/${ref}` } });
+  const out = vm.runInNewContext(turnObservationExpression(site), { document, getComputedStyle: () => ({ display: 'block', visibility: 'visible', contentVisibility: 'visible' }),
+      location: { origin: 'https://chatgpt.com', pathname: `/c/${ref}` } });
   assert.deepEqual(Array.from(out.messages, (m) => m.id), ['user-msg-1', 'asst-msg-1']);
 });

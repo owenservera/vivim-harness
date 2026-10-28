@@ -10,7 +10,10 @@ test('a pending record written before a crash is resumed by connect in a fresh r
   const f = workspace(t);
   const pending = await f.bind();
   // Simulate the crash: a brand-new runtime over the same disk, with no in-memory entry.
-  const restarted = createConversationRuntime({ paths: f.paths, port: 19271, dependencies: f.dependencies });
+  // The runtime always drives the adapter through a profile store; the fixture's fake one is
+  // required here too, or attachment fails before the prefix can be audited.
+  const restarted = createConversationRuntime({ paths: f.paths, port: 19271, dependencies: f.dependencies,
+    profileStore: { load: () => ({}) } });
   t.after(() => restarted.close().catch(() => {}));
   const reads = f.state.pageReads;
   const active = await restarted.connect({ site: 'chatgpt', targetId: 'tab-1', expectedThread: `chatgpt-c:${pending.prefix.thread.id}`,

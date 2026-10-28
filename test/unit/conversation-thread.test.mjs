@@ -65,7 +65,11 @@ test('turn observations reject ARIA-hidden ancestor messages and controls even w
   const visibleUser = node('public turn');
   const hiddenSend = node('', ancestor), hiddenStop = node('', ancestor);
   const visibleSend = node('');
-  const groups = { '#user': [hiddenUser, visibleUser], '#composer': [node('')], '#send': [hiddenSend], '#stop': [hiddenStop] };
+  // Message selectors are the fixed TRANSCRIPT_SELECTORS contract (the site profile carries no
+  // message selectors); only composer/stop/send come from the adapter. Key the fake document by the
+  // real selectors, otherwise the reader sees no messages at all and the assertion proves nothing.
+  const groups = { '[data-message-author-role="user"]': [hiddenUser, visibleUser],
+    '#composer': [node('')], '#send': [hiddenSend], '#stop': [hiddenStop] };
   const expr = turnObservationExpression({
     composer: { selectors: ['#composer'] }, assistant: { streamingSelectors: ['#stop'] },
     send: { buttonSelectors: ['#send'] },
@@ -150,7 +154,9 @@ function fakePage({ pathname = `/c/${A}`, draft = 'unsent draft text', ariaHidde
   const touched = [];
   const spy = (name) => () => { touched.push(name); };
   const rect = (w = 20, h = 20) => () => ({ width: w, height: h });
-  const mk = (text, over = {}) => ({ innerText: text, getBoundingClientRect: rect(), contains: () => false, compareDocumentPosition: () => 4, parentElement: null,
+  // A real Element always answers getAttribute (aria-disabled is read on the composer), so the
+  // fake nodes provide it; the aria-hidden case overrides it below.
+  const mk = (text, over = {}) => ({ innerText: text, getAttribute: () => null, getBoundingClientRect: rect(), contains: () => false, compareDocumentPosition: () => 4, parentElement: null,
     focus: spy('focus'), blur: spy('blur'), click: spy('click'), scrollIntoView: spy('scrollIntoView'), scrollTo: spy('scrollTo'), dispatchEvent: spy('dispatchEvent'), remove: spy('remove'), ...over });
   const order = [];
   const u1 = mk('hello'), a1 = mk('world'), hidden = mk('hidden', { getBoundingClientRect: rect(0, 0) }), aria = mk('PRIVATE_ARIA_HIDDEN', { getAttribute: (name) => name === 'aria-hidden' ? 'true' : null }), outer = mk('outer'), inner = mk('inner');

@@ -162,16 +162,23 @@ test('both derive entrypoints reject conversation-owned active sessions', async 
 });
 
 function cli(flags = {}) {
-  const results = [];
-  return { args: ['chatgpt'], flags: { prompt: 'hello', ...flags }, paths: {}, profiles: () => ({}), families: () => ({}), port: 9222, out: { emit: (value) => results.push(value) }, results };
+  const results = [], launched = { count: 0 };
+  // `accept-sends` is the product's live-send acknowledgement; the lifecycle assertions below are
+  // about one-shot behavior, not consent. The browser-preparation step is injected (like `factory`)
+  // so no Chrome is launched and the call can still be counted.
+  return { args: ['chatgpt'], flags: { prompt: 'hello', 'accept-sends': true, ...flags }, paths: {}, profiles: () => ({}), families: () => ({}), port: 9222,
+    out: { emit: (value) => results.push(value) }, results, launched,
+    options: { launch: async () => { launched.count++; return { alreadyRunning: true }; } } };
 }
 
 test('CLI defaults offline and execute performs exactly one lifecycle with tab preserved', async () => {
   const preview = cli(); await runChat(preview, { factory: () => { throw new Error('Must not construct runtime'); } });
   assert.equal(preview.results[0].browserAction, false);
   assert.equal(preview.results[0].freshTab, true);
+  assert.equal(preview.launched.count, 0);
   const runtime = fake(), execution = cli({ execute: true });
-  await runChat(execution, { factory: async () => runtime });
+  await runChat(execution, { ...execution.options, factory: async () => runtime });
+  assert.equal(execution.launched.count, 1);
   assert.deepEqual(runtime.calls.map(([name]) => name), ['connect', 'submit', 'finish', 'close']);
   assert.deepEqual(runtime.calls.find(([name]) => name === 'finish')[2], { closeTab: false });
 });
@@ -181,12 +188,13 @@ test('CLI bounded polls snapshots only and never resubmits uncertain turns', asy
   const runtime = fake(); let clock = 0;
   runtime.submit = async (id, body) => { runtime.calls.push(['submit', id, body]); return { id, revision: 2, reply: { state: 'waiting' }, turn: { send: { state: 'observed' } } }; };
   const execution = cli({ execute: true, timeout: 1 });
-  await runChat(execution, { factory: async () => runtime, now: () => clock, sleep: async (ms) => { clock += ms; } });
+  await runChat(execution, { ...execution.options, factory: async () => runtime, now: () => clock, sleep: async (ms) => { clock += ms; } });
   assert.equal(runtime.calls.filter(([name]) => name === 'submit').length, 1);
   assert.ok(runtime.calls.some(([name]) => name === 'get'));
   runtime.calls.length = 0;
   runtime.submit = async (id) => { runtime.calls.push(['submit']); return { id, reply: { state: 'waiting' }, turn: { send: { state: 'uncertain' } } }; };
-  await runChat(cli({ execute: true }), { factory: async () => runtime });
+  const uncertain = cli({ execute: true });
+  await runChat(uncertain, { ...uncertain.options, factory: async () => runtime });
   assert.deepEqual(runtime.calls.map(([name]) => name), ['connect', 'submit', 'finish', 'close']);
   process.exitCode = originalExitCode;
 });
@@ -198,7 +206,7 @@ test('CLI polls accepted preparing/not-attempted but stops promptly on blocked/n
     runtime.submit = async (id) => ({ id, state: 'busy', turn: { phase: 'preparing', send: { state: 'not-attempted' } }, reply: { state: 'empty' } });
     runtime.get = async (id) => ({ id, state: 'blocked', turn: { phase: 'blocked', send: { state: 'not-attempted' } }, reply: { state: 'unknown' } });
     const ctx = cli({ execute: true });
-    await runChat(ctx, { factory: async () => runtime, sleep: async () => { waits++; if (waits > 1) throw new Error('Polling blocked operation'); } });
+    await runChat(ctx, { ...ctx.options, factory: async () => runtime, sleep: async () => { waits++; if (waits > 1) throw new Error('Polling blocked operation'); } });
     assert.equal(waits, 1); assert.equal(ctx.results[0].error.code, 'TURN_BLOCKED'); assert.equal(ctx.results[0].timedOut, false);
     assert.equal(runtime.calls.filter(([name]) => name === 'finish').length, 1);
   } finally { process.exitCode = originalExitCode; }

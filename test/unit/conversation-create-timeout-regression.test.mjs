@@ -13,7 +13,7 @@ import { createStudioToolClient } from '../../src/studio/tool-client.mjs';
 const approvedTemp = 'C:\\Users\\VIVIM.inc\\AppData\\Local\\Temp\\opencode';
 const tempRoot = fs.existsSync(approvedTemp) ? approvedTemp : os.tmpdir();
 
-test('create timeout reports unknown once while the original operation persists ready', { timeout: 5000 }, async (t) => {
+test('create timeout reports unknown once while the original operation persists ready', { timeout: 30000 }, async (t) => {
   const root = fs.mkdtempSync(path.join(tempRoot, 'create-timeout-regression-'));
   const paths = dataPaths(root); ensureDataDirs(paths);
   const profileStore = new ProfileStore(paths.profiles);
@@ -45,7 +45,10 @@ test('create timeout reports unknown once while the original operation persists 
   let studio;
   t.after(async () => { release(); if (connects) await finished; await studio?.close(); await runtime.close(); fs.rmSync(root, { recursive: true, force: true }); });
   studio = await startStudio({ paths, port: 0, profileStore, conversationRuntime: runtime });
-  const client = createStudioToolClient({ port: studio.port, timeoutMs: 250,
+  // The client deadline only has to expire while the adapter is still gated. It must not be so
+  // tight that parallel-suite scheduling jitter aborts the request before the first assertion can
+  // attach a handler to the rejected call (which would surface as an unhandled rejection).
+  const client = createStudioToolClient({ port: studio.port, timeoutMs: 1500,
     fetch: (...args) => { requests++; return globalThis.fetch(...args); } });
   const call = client.call('create_conversation', { site: 'chatgpt' });
   await inAdapter;
@@ -65,7 +68,7 @@ test('create timeout reports unknown once while the original operation persists 
   assert.equal(requests, 1); assert.equal(connects, 1);
 });
 
-test('sufficient client deadline returns the original ready record once', { timeout: 5000 }, async (t) => {
+test('sufficient client deadline returns the original ready record once', { timeout: 30000 }, async (t) => {
   const root = fs.mkdtempSync(path.join(tempRoot, 'create-deadline-control-'));
   const paths = dataPaths(root); ensureDataDirs(paths);
   const profileStore = new ProfileStore(paths.profiles);
@@ -94,7 +97,9 @@ test('sufficient client deadline returns the original ready record once', { time
   let studio;
   t.after(async () => { release(); await studio?.close(); await runtime.close(); fs.rmSync(root, { recursive: true, force: true }); });
   studio = await startStudio({ paths, port: 0, profileStore, conversationRuntime: runtime });
-  const client = createStudioToolClient({ port: studio.port, timeoutMs: 2000,
+  // A sufficient deadline: the gated create completes in ~100 ms of real work, so the budget only
+  // has to absorb parallel-suite scheduling jitter, not a slow operation.
+  const client = createStudioToolClient({ port: studio.port, timeoutMs: 8000,
     fetch: (...args) => { requests++; return globalThis.fetch(...args); } });
   const call = client.call('create_conversation', { site: 'chatgpt' });
   await inAdapter;

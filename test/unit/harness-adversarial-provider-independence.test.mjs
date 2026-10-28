@@ -2,15 +2,16 @@
 // Read-only unit diagnostics for the multi-turn lane. No browser, no network, no credentials.
 //
 // Findings encoded here (exact source lines):
-//  F1 src/capture/conversation-thread.mjs parseThread() allowlists chatgpt.com and chat.openai.com.
-//     Lookalike hosts, ports and foreign origins do not mint a thread. `sameThread` still compares
-//     refs only, so two allowlisted hosts can share a ref; durable journal keys remain origin-scoped.
-//  F2 src/capture/thread-identity.mjs:15-28 chatgptConversationClaim() mints a `verified` claim on
-//     ANY https host whose path is /c/<uuid> (no hostname allowlist). Downstream scoping relies on
-//     claim.origin === page.origin only.
-//  F3 src/studio/core-runtime-bridge.mjs:19-26 slot() checks claim.kind, verified, origin and
-//     local source metadata, but NOT adapter.providerId/siteId. A structurally valid conversation
-//     claim therefore binds on a non-ChatGPT site (e.g. claude.ai with a /c/<uuid> path).
+//  F1 src/capture/conversation-thread.mjs parseThread() allowlists chatgpt.com and chat.openai.com
+//     and refuses a non-default port. Lookalike hosts, ports and foreign origins do not mint a
+//     thread. `sameThread` still compares refs only, so two allowlisted hosts can share a ref;
+//     durable journal keys remain origin-scoped.
+//  F2 src/capture/thread-identity.mjs chatgptConversationClaim() reuses the canonical parser, so a
+//     foreign https host with a /c/<uuid> path can no longer mint a `verified` claim. Downstream
+//     scoping still requires claim.origin === page.origin, so neither layer stands alone.
+//  F3 src/studio/core-runtime-bridge.mjs slot() checks claim.kind, verified, origin and local source
+//     metadata, but NOT adapter.providerId/siteId. A structurally valid conversation claim therefore
+//     binds on a non-ChatGPT site (e.g. claude.ai with a /c/<uuid> path).
 //  F4 src/capture/thread-turn-journal.mjs:62-70 canonicalThreadKey() hard-codes kind 'chatgpt-c'
 //     and a UUID, so the durable multi-turn journal cannot represent any other provider's thread.
 import test from 'node:test';
@@ -37,8 +38,9 @@ test('F1: thread parse is host-allowlisted; sameThread still is not an origin ch
   assert.equal(real?.ref, REF);
   assert.deepEqual(legacy, real);
   assert.equal(sameThread(real, legacy), true, 'allowlisted hosts can share a ref');
-  // URL.hostname drops the port, so a non-default port still parses. Durable keys stay origin-scoped.
-  assert.equal(parseThread('chatgpt', `https://chatgpt.com:8443/c/${UUID}`)?.ref, REF);
+  // A non-default port is not ChatGPT's canonical origin: the parser refuses it rather than
+  // minting a thread for an origin no provider serves. Durable keys stay origin-scoped either way.
+  assert.equal(parseThread('chatgpt', `https://chatgpt.com:8443/c/${UUID}`), null);
   for (const url of [`https://evil.example/c/${UUID}`, `https://chatgpt.com.evil.test/c/${UUID}`, `https://sub.chatgpt.com/c/${UUID}`]) {
     assert.equal(parseThread('chatgpt', url), null, url);
   }
@@ -88,11 +90,17 @@ test('F2: only ChatGPT is a supported multi-turn thread; every other provider st
   assert.equal(parseThread('qwen', others.qwen), null, 'the selected site gate still refuses it');
 });
 
-test('F2: claim minting is hostname-agnostic but evidence-scoped', () => {
-  const foreign = claimAt('https://evil.example');
-  assert.equal(foreign.verified, true);
-  assert.equal(foreign.origin, 'https://evil.example');
-  assert.equal(foreign.nativeRef, UUID);
+test('F2: claim minting is host-allowlisted and evidence-scoped', () => {
+  // Hardened after this finding: chatgptConversationClaim() reuses the canonical ChatGPT parser,
+  // so a foreign https host with a /c/<uuid> path can no longer mint a verified claim at all.
+  for (const origin of ['https://evil.example', 'https://chatgpt.com.evil.test', 'https://sub.chatgpt.com', 'https://qwen.ai']) {
+    assert.equal(claimAt(origin), null, `${origin} must not mint a ChatGPT conversation claim`);
+  }
+  // The legacy allowlisted host still mints, and the claim keeps its own exact origin.
+  const legacy = claimAt('https://chat.openai.com');
+  assert.equal(legacy.verified, true);
+  assert.equal(legacy.origin, 'https://chat.openai.com');
+  assert.equal(legacy.nativeRef, UUID);
   for (const bad of [null, '', 'https://chatgpt.com/c/not-a-uuid', 'http://chatgpt.com/c/' + UUID, 'about:blank']) {
     assert.equal(chatgptConversationClaim({ url: bad, captureRef: 'capture-1', sequence: 1 }), null, String(bad));
   }
@@ -109,8 +117,12 @@ test('F3: identity binds only for the exact page origin/site/surface', () => {
     assert.equal(none.identity[kind].state, 'unverified');
     assert.equal(none.identity[kind].reason, 'NO_DURABLE_IDENTITY');
   }
-  // A claim minted at another origin must never bind to this page.
-  const crossOrigin = resolveConversationIdentity({ ...adapter(), page: page(), claims: { conversation: claimAt('https://evil.example') } });
+  // A claim minted at another origin must never bind to this page. The claim is constructed
+  // literally here because the hardened minter now refuses a foreign host outright (F2); the slot
+  // must still refuse it, so neither layer is load-bearing on its own.
+  const foreignClaim = { kind: 'conversation', verified: true, nativeRef: UUID, origin: 'https://evil.example',
+    source: { kind: 'native-route', captureRef: 'capture-1', sequence: 7, reference: `/c/${UUID}`, evidenceClass: 'live-browser-observation' } };
+  const crossOrigin = resolveConversationIdentity({ ...adapter(), page: page(), claims: { conversation: foreignClaim } });
   assert.equal(crossOrigin.identity.conversation.state, 'unverified');
   assert.equal(crossOrigin.identity.conversation.reason, 'IDENTITY_NOT_PROVEN');
   // Site/surface mismatch is a hard scope error, not a silent downgrade.
