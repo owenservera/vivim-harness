@@ -42,6 +42,9 @@ function showStatus(status) {
     : 'Local-only identity; no agent memory has been created';
   $('bootstrap').disabled = false;
   $('saveMemory').disabled = !status.initialized;
+  $('workCreate').disabled = !status.initialized;
+  const w = status.work;
+  $('workSummary').textContent = w ? `Total ${w.total} · Active ${w.byStatus.active} · Blocked ${w.byStatus.blocked} · Completed (user-attested) ${w.byStatus.completed}` : 'Initialize the Personal Agent to use Work.';
   $('bootstrap').textContent = status.initialized ? 'Resume / Verify bootstrap' : 'Initialize and bootstrap';
   $('memoryCounts').replaceChildren();
   for (const [tier, count] of Object.entries(status.memoryCounts ?? {})) {
@@ -142,5 +145,114 @@ $('refresh').addEventListener('click', refresh);
 $('bootstrap').addEventListener('click', bootstrap);
 $('discover').addEventListener('click', discover);
 $('tier').addEventListener('change', readMemory);
+
+/* Local Work is a durable planning record; no tool/provider dispatch is performed here. */
+const workTransitions = {
+  queued: ['active', 'blocked', 'cancelled'],
+  active: ['blocked', 'completed', 'cancelled'],
+  blocked: ['active', 'cancelled'],
+  completed: [], cancelled: [],
+};
+let pendingWorkKey = null;
+async function loadWork() {
+  const area = $('workList');
+  if (!snapshot?.initialized) { area.replaceChildren(element('p', 'No local agent yet.')); return; }
+  try {
+    const data = await request('/work');
+    area.replaceChildren();
+    if (!data.items.length) area.append(element('p', 'No Work items yet.', 'subtle'));
+    for (const item of data.items.slice().reverse()) {
+      const card = element('article');
+      card.style.borderTop = '1px solid var(--border)';
+      card.style.padding = '12px 0';
+      card.append(element('strong', item.title), element('p', item.objective),
+        element('p', `State: ${item.status} · Last updated ${item.updatedAt}`, 'subtle'));
+      if (item.nextAction) card.append(element('p', 'Next: ' + item.nextAction, 'subtle'));
+      const transitions = workTransitions[item.status] ?? [];
+      if (transitions.length) {
+        const select = element('select');
+        select.setAttribute('aria-label', `Next status for ${item.title}`);
+        for (const status of transitions) {
+          const option = element('option', status);
+          option.value = status;
+          select.append(option);
+        }
+        const note = element('input');
+        note.maxLength = 2000;
+        note.placeholder = 'Reason (required if blocked)';
+        note.setAttribute('aria-label', `Reason for ${item.title}`);
+        const evidence = element('input');
+        evidence.maxLength = 1200;
+        evidence.placeholder = 'Evidence refs separated by commas (required if completed)';
+        evidence.setAttribute('aria-label', `Evidence for ${item.title}`);
+        const button = element('button', 'Update Work', 'secondary');
+        button.type = 'button';
+        button.addEventListener('click', async () => {
+          button.disabled = true;
+          try {
+            const current = await request('/status');
+            const refs = evidence.value.split(',').map(ref => ref.trim()).filter(Boolean);
+            await request('/work/' + encodeURIComponent(item.id) + '/transition', {
+              method: 'POST', body: JSON.stringify({
+                expectedVersion: current.version, to: select.value,
+                note: note.value, evidence: refs,
+              }),
+            });
+            message('Work updated in local version history; no external action executed.');
+            await refresh(); await loadWork();
+          } catch (error) {
+            message(`Work: ${error.code} — ${error.message}`, true);
+            button.disabled = false;
+          }
+        });
+        const controls = element('div');
+        controls.style.display = 'grid';
+        controls.style.gap = '8px';
+        controls.append(select, note, evidence, button);
+        card.append(controls);
+      }
+      area.append(card);
+    }
+  } catch (e) { area.replaceChildren(element('p', `Work: ${e.code} — ${e.message}`)); }
+}
+async function createWork(event) {
+  event.preventDefault();
+  if (!snapshot?.initialized) return;
+  pendingWorkKey ??= crypto.randomUUID();
+  $('workCreate').disabled = true;
+  try {
+    const latest = await request('/status');
+    await request('/work', { method: 'POST', body: JSON.stringify({
+      expectedVersion: latest.version, title: $('workTitle').value,
+      objective: $('workObjective').value, idempotencyKey: pendingWorkKey,
+    }) });
+    pendingWorkKey = null;
+    $('workForm').reset();
+    message('Work queued locally. No provider operation was dispatched.');
+    await refresh(); await loadWork();
+  } catch (e) { message(`Create Work: ${e.code} — ${e.message}`, true); }
+  finally { $('workCreate').disabled = !snapshot?.initialized; }
+}
+async function showKnowledge() {
+  const area = $('selfKnowledge');
+  area.replaceChildren(element('p', 'Reading grounded local projections…'));
+  try {
+    const data = await request('/self-knowledge?topic=' + encodeURIComponent($('knowledgeTopic').value));
+    area.replaceChildren();
+    for (const result of Object.values(data.answers)) {
+      const card = element('article');
+      card.style.borderTop = '1px solid var(--border)';
+      card.style.padding = '12px 0';
+      card.append(element('strong', result.topic),
+        element('pre', JSON.stringify(result.value, null, 2)),
+        element('p', `Basis: ${result.basis} · Observed: ${result.observedAt}`, 'subtle'),
+        element('p', result.qualification, 'subtle'));
+      area.append(card);
+    }
+  } catch (e) { area.replaceChildren(element('p', `Self-knowledge: ${e.code} — ${e.message}`)); }
+}
+
+$('workForm').addEventListener('submit', createWork);
+$('knowledgeRefresh').addEventListener('click', showKnowledge);
 $('memoryForm').addEventListener('submit', saveMemory);
-void refresh().then(readMemory);
+void refresh().then(async () => { await readMemory(); await loadWork(); await showKnowledge(); });
