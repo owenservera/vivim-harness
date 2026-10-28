@@ -59,6 +59,12 @@ test('personal agent survives a real Studio HTTP restart with local-only effects
     assert.equal(saved.data.memoryCounts.Immediate, 1);
     assert.equal(JSON.stringify(saved.data).includes('Resume local skill review'), false);
     assert.equal((await api('/api/v1/personal-agent/memory/Immediate')).data.entries[0].text, 'Resume local skill review');
+    const removed = await api('/api/v1/personal-agent/memory/Immediate/task/remove', 'POST', {
+      expectedVersion: saved.data.version,
+    });
+    assert.equal(removed.status, 200);
+    assert.equal(removed.data.memoryCounts.Immediate, 0);
+    assert.equal((await api('/api/v1/personal-agent/memory/Immediate')).data.entries.length, 0);
     assert.equal((await api('/api/v1/personal-agent/memory/Immediate/task', 'PUT', {
       text: 'stale attempt', expectedVersion: revision,
     })).status, 409);
@@ -72,7 +78,7 @@ test('personal agent survives a real Studio HTTP restart with local-only effects
     const recovered = await api('/api/v1/personal-agent/status');
     assert.equal(recovered.status, 200);
     assert.equal(recovered.data.nextStage, null);
-    assert.equal(recovered.data.memoryCounts.Immediate, 1);
+    assert.equal(recovered.data.memoryCounts.Immediate, 0);
     const replay = await api('/api/v1/personal-agent/bootstrap', 'POST', { expectedVersion: recovered.data.version });
     assert.equal(replay.data.version, recovered.data.version, 'idempotent recovery does not append a revision');
   } finally { await studio.close(); studio = null; }
