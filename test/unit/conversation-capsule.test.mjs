@@ -90,3 +90,35 @@ test('no profile at all: read honestly unverified (no selector evidence), send r
   assert.equal(c.operations.submit_conversation_turn.reason, 'COMPOSER_UNAVAILABLE');
   assert.throws(() => buildCapabilityCapsule({ view: null }), TypeError);
 });
+
+test('fresh owned empty ChatGPT can begin first-turn flow but never promises a pinned thread', () => {
+  const fresh = view({ identity: { state: 'unbound', reason: 'NEW_CHAT' },
+    binding: { ownedByStudio: true, origin: 'https://chatgpt.com' } });
+  const offered = buildCapabilityCapsule({ view: fresh, profile: chatgptProfile });
+  assert.equal(offered.operations.submit_conversation_turn.availability, 'supported');
+  assert.ok(offered.operations.submit_conversation_turn.evidence.some(x => x.includes('pinned after delivery')));
+  assert.ok(offered.operations.submit_conversation_turn.evidence.some(x => x.includes('effect-time gates')));
+  for (const blocked of [
+    { ...fresh, binding: { ownedByStudio: false, origin: 'https://chatgpt.com' } },
+    { ...fresh, identity: { state: 'unbound', reason: 'NOT_PROVIDED' } },
+    { ...fresh, identity: { state: 'unverified', reason: 'UNSUPPORTED_PATH' } },
+    { ...fresh, site: 'claude' },
+    { ...fresh, state: 'blocked', readiness: { ready: false, reason: 'DRAFT_PRESENT' } },
+    { ...fresh, binding: { ownedByStudio: true, thread: { kind: 'chatgpt-c', ref: 'fake' } } },
+  ]) assert.notEqual(buildCapabilityCapsule({ view: blocked, profile: chatgptProfile }).operations.submit_conversation_turn.availability, 'supported');
+});
+
+test('recovered/pending snapshots never offer new send, live read or tab-close ownership', () => {
+  for (const mutation of [
+    { limitations: ['Recovered snapshot only; interrupted capture ownership requires reconciliation'] },
+    { recovery: { pending: true } },
+  ]) {
+    const stale = view({ binding: { ownedByStudio: true, origin: 'https://chatgpt.com' }, ...mutation });
+    const c = buildCapabilityCapsule({ view: stale, profile: chatgptProfile });
+    assert.equal(c.operations.submit_conversation_turn.availability, 'unavailable');
+    assert.equal(c.operations.submit_conversation_turn.reason, 'CONVERSATION_NOT_WRITABLE');
+    assert.equal(c.operations.read_conversation.availability, 'unverified');
+    assert.equal(c.operations.close_tab.availability, 'unavailable');
+    assert.equal(c.operations.close_tab.reason, 'TAB_OWNERSHIP_NOT_LIVE');
+  }
+});
