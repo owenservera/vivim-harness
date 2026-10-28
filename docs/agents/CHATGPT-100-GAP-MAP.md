@@ -339,3 +339,12 @@ Source-reviewed classification reconciled against `CHATGPT-100-RECONCILED-STATUS
 - Fresh-creation focus check: **16 isolated JS assertions passed** against changed source with injected dependencies. This is not a real Node unit-test or live-site result.
 - Committed fixture tests: `test/unit/conversation-tools.test.mjs`, `test/unit/conversation-read-api.test.mjs`, and `test/unit/dom-structured-privacy.test.mjs`. Their mere presence is not a passing test run.
 - Full `node --test`, existing browser/CDP and live user scenarios **not executed**: GitHub access does not expose the local Windows checkout, and this isolated container cannot resolve GitHub for cloning. The focused workflow previously reported failure without actionable step logs. No Playwright, Puppeteer, secondary controller or false success was introduced.
+
+## 2026-10-28 — two additional defects fixed in source
+
+| Scenario bands | Defect found by reading source | Code repair | Current verification / residual |
+|---|---|---|---|
+| 041–050 | Structured reader accepted DOM descendants hidden by an ancestor, potentially exposing non-visible content | `src/capture/conversation-rich.mjs` now filters hidden / inert / ARIA-hidden / CSS-hidden ancestors and accounts for omitted nodes; `transcriptExpression` excludes hidden roots | Source implemented; synthetic hidden-descendant assertions passed; rich parts remain bounded, non-exhaustive and not live verified |
+| 007, 031–033, 096, 098 | Turn observer treated an empty draft and absent Stop as a positive idle control, even though journal readiness explicitly requires positive observation | `turnObservationExpression` only marks idle when a send control is actually observed; no effect-time retry is added | Source implemented; isolated no-false-idle assertion passed; if ChatGPT hides its send control, readiness stays unknown and follow-up admission can remain blocked until positive evidence exists |
+
+**Test evidence distinction:** 10/10 isolated source-evaluation assertions passed with injected fake DOM and mock URL; no repository `node --test` or live Chrome pass has been obtained. GitHub Actions CI jobs reported failure with no recorded steps and unavailable logs. This does not make any of the 100 scenarios live-verified.
