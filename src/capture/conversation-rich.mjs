@@ -11,7 +11,23 @@ export function richPartReaderSource() {
   return String.raw`
     const readRichParts = (root) => {
       if (typeof root.querySelectorAll !== 'function') return { parts: [], omitted: 0 };
-      const nodes = Array.from(root.querySelectorAll('li,pre,table,blockquote,a[href],img,math,[data-math],[data-testid*="citation" i]'));
+      const allNodes = Array.from(root.querySelectorAll('li,pre,table,blockquote,a[href],img,math,[data-math],[data-testid*="citation" i]'));
+      // The answer DOM can contain non-visible templates, collapsed ancestors or ARIA-hidden
+      // descendants. A child with a nonzero box is still not visible evidence in those cases.
+      const visible = (el) => {
+        for (let node = el; node && node !== root; node = node.parentElement) {
+          try {
+            if (node.hidden === true || node.inert === true || node.getAttribute?.('aria-hidden') === 'true') return false;
+            const style = getComputedStyle(node);
+            if (style.display === 'none' || style.visibility === 'hidden' || style.visibility === 'collapse'
+              || style.contentVisibility === 'hidden') return false;
+            const rect = node.getBoundingClientRect();
+            if (rect.width <= 1 || rect.height <= 1) return false;
+          } catch { return false; }
+        }
+        return true;
+      };
+      const nodes = allNodes.filter(visible);
       const clip = (s,n=512) => String(s ?? '').slice(0,n);
       const safeLink = (href) => {
         if (!href) return null;
@@ -23,7 +39,7 @@ export function richPartReaderSource() {
           return u.toString();
         } catch { return null; }
       };
-      const parts = []; let pageBudget = 8192, skipped = Math.max(0,nodes.length-32);
+      const parts = []; let pageBudget = 8192, skipped = Math.max(0,allNodes.length-nodes.length) + Math.max(0,nodes.length-32);
       for (const el of nodes.slice(0,32)) {
         const rect = el.getBoundingClientRect?.();
         if (!rect || rect.width < 1 || rect.height < 1) { skipped++; continue; }
