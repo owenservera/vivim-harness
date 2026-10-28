@@ -1833,7 +1833,7 @@ function boot() {
     const choices = $('#vivimProviders');
     const sites = Array.isArray(S.targets?.sites) ? S.targets.sites.filter((site) =>
       typeof site?.id === 'string' && /^[a-z0-9-]{1,60}$/.test(site.id)) : [];
-    const signature = sites.map((site) => site.id).join('|');
+    const signature = sites.map((site) => site.id).join('|') + (!sites.length ? ':' + S.targetsState : '');
     if (choices.dataset.signature !== signature) {
       choices.dataset.signature = signature;
       if (!sites.length) {

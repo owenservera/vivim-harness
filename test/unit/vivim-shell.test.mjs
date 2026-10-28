@@ -79,3 +79,11 @@ test('provider chip selection tracks the original site dropdown and mode changes
   assert.match(script, /provider === S\.site && S\.mode === 'new'/);
   assert.match(script, /typeof choices\.querySelectorAll === 'function'/);
 });
+
+
+test('empty provider states invalidate the chooser cache after discovery failures', () => {
+  // Loading -> error -> loaded-empty must update the displayed status, not retain stale "Looking for ..." text.
+  assert.match(script, /const signature = sites\.map\(\(site\) => site\.id\)\.join\('\|'\) \+ \(!sites\.length \? ':' \+ S\.targetsState : ''\)/);
+  assert.match(script, /No supported websites reported by this Studio yet\./);
+  assert.match(script, /Looking for supported AI websites…/);
+});
