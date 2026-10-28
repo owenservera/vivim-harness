@@ -84,6 +84,16 @@ pre{max-height:360px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}
 <div id="selfKnowledge" class="subtle" aria-live="polite"></div>
 </section>
 <section>
+<h2>Session continuity & local export</h2>
+<p class="subtle">SITREP collects your latest user-owned memory and outstanding Work for a new session. It is private to this local Studio and never automatically sent to a model.</p>
+<button id="sitrepRefresh" type="button" class="secondary">Generate private SITREP</button>
+<details><summary>Private continuity packet</summary><pre id="sitrepOutput">Not loaded</pre></details>
+<p class="subtle">Export is a local JSON download. Private memory and Work details are excluded unless selected. The export is not encrypted.</p>
+<label><input id="exportMemory" type="checkbox" style="width:auto;min-height:0"> Include private memory</label>
+<label><input id="exportWork" type="checkbox" style="width:auto;min-height:0"> Include private Work details</label>
+<button id="exportAgent" type="button" class="secondary">Export local snapshot (.json)</button>
+</section>
+<section>
 <h2>My memory</h2>
 <p class="subtle">This writes only to your locally versioned agent data. Use short, non-secret notes that you want the agent to preserve.</p>
 <form id="memoryForm">
