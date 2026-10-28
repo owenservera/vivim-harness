@@ -1,5 +1,14 @@
 # ChatGPT 100 — dependency and adjacent-source map
 
+## 2026-10-28 dependency reconciliation
+
+The [per-scenario status crosswalk](CHATGPT-100-RECONCILED-STATUS.md) records owners and first missing links for 001–100. All **134 distinct source/test paths explicitly referenced across the three maps** were fetched from `main` during this pass; direct imports/exports and additional discovered transitive source were inspected. A full reverse-caller and dynamic-import closure, exhaustive line-by-line certification, and live proof are **not claimed**.
+
+- **Verified existing capability path:** `src/studio/conversation-tools.mjs:conversation_capsule` → `src/capture/conversation-runtime.mjs:capsule` → `src/capture/conversation-capsule.mjs:buildCapabilityCapsule` → measured profile from `src/profiles/sites/index.mjs`. Existing HTTP route: `src/studio/conversation-api.mjs`. Added one-call recipe in `src/recipes/catalog.mjs`; test additions in `test/unit/conversation-tools.test.mjs` / `test/unit/recipe-catalog.test.mjs` are not executed here.
+- **New-chat reuse (already present on latest main):** `create_conversation` → `runtime.connect({site:'chatgpt',freshTab:true})`; one Studio owner, no parallel browser driver.
+- Read-only capabilities are descriptive and are not proof that a native ChatGPT feature is available or that a provider effect succeeded.
+
+
 Generated 2026-10-28 from the repository tree at `c666d3177069f99e1cb39955aec8ad8e2550bae4`. Companion to `CHATGPT-100-SOURCE-MAP.md`.
 
 ## Verified direct and adjacent dependencies (2026-10-28 targeted pass)
