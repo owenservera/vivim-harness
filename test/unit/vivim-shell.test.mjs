@@ -136,3 +136,12 @@ test('World layout changes by the active native view, without replacing its deta
   assert.match(html, /#worldShell\[data-active-view="settings"\] #worldGrid/);
   assert.match(html, /#worldShell\[data-active-view="relations"\] #worldGrid/);
 });
+
+test('chat provider rail reflects real site choices and cannot switch an active native conversation', () => {
+  assert.match(html, /id="vivimChatProviders" role="group"/);
+  assert.match(script, /const strip = \$\('#vivimChatProviders'\)/);
+  assert.match(script, /strip\.hidden = view\.visible/);
+  assert.match(script, /if \(S\.snap && S\.snap\.state !== 'closed'\) return/);
+  assert.match(script, /button\.disabled = active \|\| S\.targetsState !== 'ok'/);
+  assert.match(script, /Choose ' \+ siteName\(site\.id\) \+ ' for a new conversation \(does not connect\)'/);
+});

@@ -707,6 +707,24 @@ body.vivim-app {
   }
 }
 
+
+/* Provider rail follows the screenshot's multi-model chat concept, using only
+   the real supported-site registry. Active conversations cannot be switched. */
+.vivim-app .vivim-chat-provider-strip { display: flex; flex-wrap: wrap; gap: 7px; margin: 0 0 15px; }
+.vivim-app .vivim-chat-provider-strip button {
+  display: inline-flex; align-items: center; gap: 7px; padding: 9px 13px; border-radius: 10px;
+  background: #121f34; color: #c6d5eb; border: 1px solid #2f476a; font-size: 12px; font-weight: 670;
+}
+.vivim-app .vivim-chat-provider-strip button::before {
+  content: "✦"; font-size: 14px; color: #82aff5; }
+.vivim-app .vivim-chat-provider-strip button[aria-pressed="true"] {
+  border-color: #66a6ff; color: #fff; background: #1c457b;
+  box-shadow: inset 0 -2px 0 #68a6ff;
+}
+.vivim-app .vivim-chat-provider-strip button:disabled {
+  cursor: default; opacity: .8; }
+.vivim-app .vivim-chat-provider-strip .note { margin: 0; padding: 7px 0; }
+
 </style>
 </head>
 <body class="vivim-app">
@@ -773,6 +791,7 @@ body.vivim-app {
       </div>
     </section>
     <h2>Chat</h2>
+    <div class="vivim-chat-provider-strip" id="vivimChatProviders" role="group" aria-label="Available AI website choices" hidden></div>
     <p class="lede">Connect to a website you’re logged in to, send a message, and read the reply while Studio records it. You can follow up in the same chat, one turn at a time. Connecting only watches. Nothing is sent until you press Send.</p>
 
     <details class="panel" id="connectBox" open>

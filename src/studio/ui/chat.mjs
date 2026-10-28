@@ -1862,6 +1862,31 @@ function boot() {
       button.setAttribute('aria-pressed', provider === S.site && S.mode === 'new' ? 'true' : 'false');
       button.disabled = view.busy || S.targetsState !== 'ok';
     }
+    const strip = $('#vivimChatProviders');
+    strip.hidden = view.visible;
+    if (strip.dataset.signature !== signature) {
+      strip.dataset.signature = signature;
+      if (!sites.length) strip.replaceChildren(el('p', { class: 'note', text: 'No supported AI websites reported.' }));
+      else strip.replaceChildren(...sites.map((site) => el('button', {
+        type: 'button', 'data-provider': site.id, text: siteName(site.id),
+        'aria-label': 'Choose ' + siteName(site.id) + ' for a new conversation (does not connect)',
+        onclick: () => {
+          if (S.snap && S.snap.state !== 'closed') return;
+          S.mode = 'new'; S.site = site.id; $('#modeNew').checked = true;
+          $('#connectBox').open = true;
+          renderConnect(); renderWelcome(S.snap);
+        },
+      })));
+    }
+    const stripButtons = typeof strip.querySelectorAll === 'function'
+      ? [...strip.querySelectorAll('button[data-provider]')]
+      : [...(strip.children ?? [])].filter((button) => button?.attrs?.['data-provider']);
+    const active = !!snap && snap.state !== 'closed';
+    for (const button of stripButtons) {
+      const provider = button.getAttribute?.('data-provider') ?? button.dataset?.provider ?? button.attrs?.['data-provider'];
+      button.setAttribute('aria-pressed', provider === (active ? snap.site : S.site) ? 'true' : 'false');
+      button.disabled = active || S.targetsState !== 'ok';
+    }
   }
   function render() {
     const snap = S.snap;
