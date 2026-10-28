@@ -8,7 +8,7 @@ const root = `${origin}/`;
 const thread = `/c/11111111-1111-4111-8111-111111111111`;
 const idle = { observed: true, state: 'idle', idleControlPresent: true, stopPresent: false, composerEnabled: true };
 
-function fixture({ urls = [root], pageOrigin = origin, pathname = '/', draftChars = 0 } = {}) {
+function fixture({ urls = [root], pageOrigin = origin, pathname = '/', draftChars = 0, controls = idle, messages = [] } = {}) {
   const calls = [], bound = [];
   let targetReads = 0;
   const forbidden = (name) => () => { calls.push(name); throw new Error(`Forbidden ${name}`); };
@@ -22,8 +22,8 @@ function fixture({ urls = [root], pageOrigin = origin, pathname = '/', draftChar
       evaluate: async (_, expression) => { assert.ok(['location.origin', 'location.pathname'].includes(expression)); return expression === 'location.origin' ? pageOrigin : pathname; },
       findComposer: async () => ({ found: true }), detectAuthWall: async () => ({ blocked: false }),
       detectSiteFailure: async () => ({ failed: false }), sendState: async () => ({ evalOk: true, draftChars }),
-      readTurnPage: async () => ({ pathname, draft: { chars: draftChars }, controls: idle }),
-      sleep: async () => {}, readinessTimeoutMs: 1000, connectGraceMs: 100,
+      readTurnPage: async () => ({ origin: pageOrigin, pathname, messages, draft: { chars: draftChars }, controls }),
+      sleep: async () => {}, readinessTimeoutMs: 50, connectGraceMs: 100,
       Recorder: class { constructor() { forbidden('recorder')(); } },
       focusComposer: forbidden('focus'), typeText: forbidden('type'), sendMessage: forbidden('send'),
     },
@@ -51,6 +51,21 @@ for (const [name, options, reason] of [
   ['different target and page paths block', { pathname: '/different' }, 'BINDING_CHANGED'],
   ['preexisting exact thread blocks', { urls: [`${origin}${thread}`], pathname: thread }, 'PREEXISTING_THREAD'],
   ['draft present blocks', { draftChars: 3 }, 'DRAFT_PRESENT'],
+  ['blank composer with disabled Send is ready for typing (not delivery)', {
+    controls: { observed: false, state: 'unknown', idleControlPresent: false, stopPresent: false, composerEnabled: true }
+  }, null],
+  ['unexpected root transcript does not prove blank creation', {
+    messages: [{ role: 'assistant', id: 'existing', text: 'old' }]
+  }, 'READINESS_TIMEOUT'],
+  ['observed stop control prevents new-chat readiness', {
+    controls: { observed: true, state: 'busy', idleControlPresent: false, stopPresent: true, composerEnabled: true }
+  }, 'READINESS_TIMEOUT'],
+  ['disabled composer prevents new-chat readiness', {
+    controls: { observed: false, state: 'unknown', idleControlPresent: false, stopPresent: false, composerEnabled: false }
+  }, 'READINESS_TIMEOUT'],
+  ['non-home route even with matching target/page paths is refused', {
+    urls: [`${origin}/g/custom-gpt`], pathname: '/g/custom-gpt'
+  }, 'BINDING_CHANGED'],
 ]) {
   test(name, async () => {
     const f = fixture(options);
