@@ -122,3 +122,16 @@ test('recovered/pending snapshots never offer new send, live read or tab-close o
     assert.equal(c.operations.close_tab.reason, 'TAB_OWNERSHIP_NOT_LIVE');
   }
 });
+
+test('failed or pending finalization never promises live reads, sends or late tab close', () => {
+  for (const phase of ['stopping', 'stopped', 'closing', 'failed', 'interrupted', 'done']) {
+    const c = buildCapabilityCapsule({
+      view: view({ state: 'needs-reconciliation', binding: { ownedByStudio: true },
+        diagnostic: { finishPhase: phase } }),
+      profile: chatgptProfile,
+    });
+    assert.equal(c.operations.read_conversation.availability, 'unavailable', phase);
+    assert.equal(c.operations.submit_conversation_turn.availability, 'unavailable', phase);
+    assert.equal(c.operations.close_tab.availability, 'unavailable', phase);
+  }
+});
