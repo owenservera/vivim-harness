@@ -117,3 +117,55 @@ test('missing skill root blocks Stage 04 and resumes after restoring its real so
   assert.equal(resumed.stages['skills-and-capabilities'].status, 'completed');
   assert.equal(resumed.stages['identity-and-sitrep'].updatedAt, partial.stages['identity-and-sitrep'].updatedAt);
 });
+
+test('user-directed Work survives restart, replays lost-response creation safely, and never dispatches', t => {
+  const f = fixture(t), agent = make(f), boot = agent.bootstrap({ expectedVersion: null });
+  const inputs = { expectedVersion: boot.version, title: 'Investigate local tools',
+    objective: 'Enumerate registered capabilities without external calls', idempotencyKey: 'case_1234567890' };
+  const created = agent.createWorkItem(inputs);
+  assert.equal(created.item.status, 'queued');
+  assert.equal(created.work.byStatus.queued, 1);
+  assert.equal(created.replayed, false);
+  const again = make(f).createWorkItem(inputs); // retry with stale version after a lost success response
+  assert.equal(again.replayed, true);
+  assert.equal(again.version, created.version);
+  assert.equal(again.item.id, created.item.id);
+  assert.throws(() => agent.createWorkItem({ ...inputs, title: 'Changed' }),
+    e => e.code === 'PERSONAL_AGENT_WORK_IDEMPOTENCY_CONFLICT');
+  const activated = agent.transitionWorkItem({
+    expectedVersion: created.version, id: created.item.id, to: 'active',
+  });
+  assert.equal(activated.work.byStatus.active, 1);
+  assert.throws(() => agent.transitionWorkItem({
+    expectedVersion: created.version, id: created.item.id, to: 'completed',
+    evidence: ['local:result/1'],
+  }), e => e.code === 'PERSONAL_AGENT_VERSION_CONFLICT');
+  assert.throws(() => agent.transitionWorkItem({
+    expectedVersion: activated.version, id: created.item.id, to: 'completed',
+  }), e => e.code === 'PERSONAL_AGENT_WORK_EVIDENCE_REQUIRED');
+  const completed = agent.transitionWorkItem({
+    expectedVersion: activated.version, id: created.item.id, to: 'completed',
+    evidence: ['local:receipt/manual-acceptance'],
+  });
+  assert.equal(completed.work.byStatus.completed, 1);
+  const restarted = make(f);
+  assert.equal(restarted.workList().items[0].evidence[0].basis,
+    'user-attested; unverified-for-live-execution');
+  assert.equal(restarted.workList().items[0].status, 'completed');
+  assert.equal(restarted.status().work.total, 1);
+  assert.equal(restarted.selfKnowledge('work').answers.work.value.total, 1);
+  assert.equal(restarted.selfKnowledge('identity').answers.identity.value.providerAccountVerified, false);
+  assert.equal(restarted.selfKnowledge('capabilities').answers.capabilities.value.sourceCoverageComplete, true);
+});
+test('Work and memory text are not exposed by default status or global self-knowledge', t => {
+  const f = fixture(t), agent = make(f), boot = agent.bootstrap({ expectedVersion: null });
+  const created = agent.createWorkItem({ expectedVersion: boot.version,
+    title: 'PRIVATE_WORK_TITLE', objective: 'PRIVATE_WORK_OBJECTIVE', idempotencyKey: 'private_key_12345' });
+  const saved = agent.remember({ tier: 'CANON', key: 'private_note',
+    text: 'PRIVATE_MEMORY_CONTENT', expectedVersion: created.version });
+  const publicView = JSON.stringify({ status: agent.status(), self: agent.selfKnowledge('all') });
+  assert.equal(publicView.includes('PRIVATE_WORK_TITLE'), false);
+  assert.equal(publicView.includes('PRIVATE_WORK_OBJECTIVE'), false);
+  assert.equal(publicView.includes('PRIVATE_MEMORY_CONTENT'), false);
+  assert.equal(saved.memoryCounts.CANON, 1);
+});
