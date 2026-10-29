@@ -1971,6 +1971,78 @@ function boot() {
   } catch (err) { console.warn('universal intelligence panel unavailable', err); }
 
   // Saved local world: conversations, projects and notes are peer views in this shell.
+  // Compare is a functional panel in this same chat shell, not another browser owner.
+  const comparePanel = document.getElementById('comparePanel');
+  if (inBrowser && comparePanel) {
+    const el = id => document.getElementById(id);
+    let compareJob = null, compareTimer = null, posting = false;
+    const liveCompare = job => ['queued', 'running'].includes(job?.state);
+    const compareRequest = async (url, body) => {
+      const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 15000);
+      try {
+        const response = await fetch(API + url, { method: body === undefined ? 'GET' : 'POST', credentials: 'same-origin',
+          ...(body === undefined ? {} : { headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }), signal: controller.signal });
+        if (!response.ok) throw new Error('Comparison unavailable');
+        return await response.json();
+      } finally { clearTimeout(timeout); }
+    };
+    const renderCompare = job => {
+      compareJob = job;
+      el('compareStart').disabled = liveCompare(job) || posting;
+      el('compareCancel').disabled = !liveCompare(job);
+      el('compareStatus').textContent = liveCompare(job) ? 'Waiting for your AI… You can leave this page and come back.'
+        : job.state === 'complete' ? 'Your answers are ready.' : job.state === 'cancelled' ? 'Stopped waiting. Already-sent questions may still finish in your browser.' : 'Comparison finished. Check each provider below.';
+      for (const site of ['chatgpt', 'claude']) {
+        const suffix = site === 'chatgpt' ? 'Chatgpt' : 'Claude', result = job.results.find(r => r.site === site);
+        el('compare' + suffix + 'State').textContent = result?.message ?? 'Not selected';
+        el('compare' + suffix + 'Answer').textContent = result?.answer ?? '';
+      }
+    };
+    const pollCompare = async () => {
+      clearTimeout(compareTimer);
+      if (!compareJob?.id) return;
+      try { renderCompare((await compareRequest('/compare/' + encodeURIComponent(compareJob.id))).job); el('compareRefresh').hidden = true; }
+      catch { el('compareStatus').textContent = 'Reconnecting to your saved comparison… Nothing will be sent again.'; el('compareRefresh').hidden = false; }
+      if (liveCompare(compareJob)) compareTimer = setTimeout(pollCompare, 2500);
+    };
+    el('viewCompare').addEventListener('click', () => {
+      el('viewCapture').click();
+      comparePanel.hidden = false;
+      for (const button of el('shellModes').querySelectorAll('button')) button.setAttribute('aria-pressed', String(button.id === 'viewCompare'));
+      el('vivimViewBreadcrumb').textContent = 'Your AI World / Compare';
+      el('compareHeading').focus(); comparePanel.scrollIntoView({ block: 'start' });
+    });
+    el('shellModes').addEventListener('click', event => {
+      if (event.target.closest('[data-view]')) { comparePanel.hidden = true; el('viewCompare').setAttribute('aria-pressed', 'false'); }
+    });
+    el('compareForm').addEventListener('submit', async event => {
+      event.preventDefault();
+      if (posting || liveCompare(compareJob)) return;
+      const sites = [...document.querySelectorAll('input[name="compareSite"]:checked')].map(input => input.value);
+      if (!sites.length) { el('compareStatus').textContent = 'Choose at least one provider.'; return; }
+      posting = true; el('compareStart').disabled = true;
+      try {
+        const data = await compareRequest('/compare', { question: el('compareQuestion').value, sites });
+        renderCompare(data.job);
+        try { localStorage.setItem('vivim.compare.job', data.job.id); } catch { /* storage optional */ }
+        pollCompare();
+      } catch {
+        // Do not repeat a start whose HTTP response was lost. Reloading cannot secretly resend.
+        el('compareStatus').textContent = 'Could not confirm the comparison started. Nothing will be repeated automatically. Check your provider tabs before starting another.';
+      } finally { posting = false; el('compareStart').disabled = liveCompare(compareJob); }
+    });
+    el('compareCancel').addEventListener('click', async () => {
+      if (!compareJob?.id) return;
+      el('compareCancel').disabled = true;
+      try { renderCompare((await compareRequest('/compare/' + encodeURIComponent(compareJob.id) + '/cancel', {})).job); clearTimeout(compareTimer); }
+      catch { el('compareStatus').textContent = 'Could not confirm it stopped. Checking the saved comparison…'; pollCompare(); }
+    });
+    el('compareRefresh').addEventListener('click', pollCompare);
+    try {
+      const id = localStorage.getItem('vivim.compare.job');
+      if (/^cmp-[a-f0-9]{24}$/.test(id ?? '')) { compareJob = { id, state: 'running' }; pollCompare(); }
+    } catch { /* storage optional */ }
+  }
   // Same dynamic-import rule as U1 so the offline page tests never resolve the module.
   if (inBrowser) try {
     import('./world-view.mjs').then((mod) => {

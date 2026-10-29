@@ -26,6 +26,7 @@ import { registerPersonalAgentRoutes } from './personal-agent-routes.mjs';
 import { registerPersonalAppRoutes } from './personal-app-routes.mjs';
 import { registerCommandRoutes } from './commands.mjs';
 import { registerAgenticFileRoutes } from './agentic-files.mjs';
+import { registerCompareRoutes } from './compare-routes.mjs';
 
 const str = { type: 'string' };
 const pagination = { offset: { type: 'integer', minimum: 0, maximum: 1000000 }, limit: { type: 'integer', minimum: 1, maximum: 1000 } };
@@ -113,6 +114,7 @@ export function createIntegrationHub({ paths, profileStore, learner, recorder, c
     routes.push({ method, path: '/api/v1' + routePath, parts: ('/api/v1' + routePath).split('/'), summary, handler, query, body, tool, contentType, annotations, inputSchema, pathParameters, successStatus });
   }
   registerConversationTools({ add, conversationRuntime });
+  registerCompareRoutes({ add, paths, conversationRuntime });
   registerHarnessTools({ add, harnessApi });
   registerRecipeRoutes({ add, harnessApi, conversationRuntime });
   registerWorldRoutes({ add, paths, isSessionActive: (id) => conversationRuntime?.isSessionActive(id) ?? false });
