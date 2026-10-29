@@ -1,6 +1,9 @@
 // Studio: loopback-only local web UI + JSON API. Localhost opens without a token by default.
 // Opt-in token mode retains the HttpOnly SameSite cookie; both modes keep loopback binding,
 // Host and Origin checks, which need no user interaction.
+// Explicit opt-in LAN pairing (`lanPair`) is the single exception to loopback binding: it binds
+// 0.0.0.0, REQUIRES token mode, and widens the Host/Origin allow-list only to this machine's own
+// interface addresses/hostname (never wildcard), so DNS-rebinding names are still refused.
 import http from 'node:http';
 import { readFileSync, createReadStream, mkdtempSync, readdirSync, rmSync, existsSync } from 'node:fs';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
@@ -35,6 +38,7 @@ import { createConversationApi, defaultConversationRuntime } from './conversatio
 import { createConversationEvents } from './conversation-events.mjs';
 import { createHarnessRunStore } from '../capture/harness-runs.mjs';
 import { createHarnessApi, registerHarnessTools, conversationToolExecutor, HARNESS_RETRYABLE_TOOLS } from './harness-api.mjs';
+import { lanAddresses, pickLanAddress, lanHostHeaders, pairingUrl } from './lan-pair.mjs';
 
 const UI = new URL('./ui/index.html', import.meta.url);
 
@@ -69,9 +73,21 @@ function validateAcceptanceContext(body) {
   return c;
 }
 
-export async function startStudio({ paths, profileStore, familyStore, cdpPort = 9222, port = 7878, token, accessMode = process.env.CAPTURE_STUDIO_ACCESS_MODE ?? (token === undefined ? 'local' : 'token'), rawOptions, drive, campaign, conversationRuntime, conversationRuntimeFactory = defaultConversationRuntime } = {}) {
+// `lanPair` is an explicit opt-in (option, `--lan-pair`, or CAPTURE_STUDIO_LAN_PAIR=1). It is the ONLY way the
+// listener binds beyond loopback, and it is only allowed together with token access mode.
+export async function startStudio({ paths, profileStore, familyStore, cdpPort = 9222, port = 7878, token, lanPair = process.env.CAPTURE_STUDIO_LAN_PAIR === '1', lanHost = process.env.CAPTURE_STUDIO_LAN_HOST || undefined, accessMode = process.env.CAPTURE_STUDIO_ACCESS_MODE ?? (token === undefined && !lanPair ? 'local' : 'token'), rawOptions, drive, campaign, conversationRuntime, conversationRuntimeFactory = defaultConversationRuntime } = {}) {
   if (!['local', 'token'].includes(accessMode)) throw new Error('CAPTURE_STUDIO_ACCESS_MODE must be local or token');
   token ??= randomBytes(18).toString('base64url');
+  // LAN pairing validation happens before any runtime is created: never expose the LAN without a token.
+  let lan = null;
+  if (lanPair) {
+    if (accessMode !== 'token') throw new Error('LAN pairing requires token access mode; refusing to expose an unauthenticated Studio to the network');
+    if (typeof token !== 'string' || token.length < 16) throw new Error('LAN pairing requires an access token of at least 16 characters');
+    const chosen = pickLanAddress(lanAddresses(), lanHost);
+    if (!chosen) throw new Error('LAN pairing requested but no non-loopback IPv4 address was found; connect to a network first');
+    lan = { address: chosen.address };
+  }
+  const bindHost = lanPair ? '0.0.0.0' : '127.0.0.1';
   conversationRuntime ??= await conversationRuntimeFactory({ paths, profileStore, familyStore, port: cdpPort });
   const conversationEvents = createConversationEvents({ runtime: conversationRuntime });
   const conversationApi = createConversationApi({ runtime: conversationRuntime, events: conversationEvents });
@@ -141,14 +157,33 @@ const hub = createIntegrationHub({ paths, profileStore, learner, recorder, conve
     return given.length === tokenBuf.length && timingSafeEqual(given, tokenBuf);
   };
 
+  const tokenMatches = (given) => {
+    const buf = Buffer.from(given ?? '');
+    return buf.length === tokenBuf.length && timingSafeEqual(buf, tokenBuf);
+  };
+  // Trusted Host values. Loopback only by default; in LAN-pair mode additionally this machine's own
+  // non-loopback IPv4 addresses and hostname (an attacker-controlled DNS name can never appear here).
+  let hostCache = { at: 0, port: null, hosts: [] };
+  const trustedHosts = () => {
+    const loopback = [`127.0.0.1:${port}`, `localhost:${port}`];
+    if (!lanPair) return loopback;
+    if (hostCache.port !== port || Date.now() - hostCache.at > 10_000) {
+      hostCache = { at: Date.now(), port, hosts: [...loopback, ...lanHostHeaders(port, lanAddresses())] };
+    }
+    return hostCache.hosts;
+  };
+
   const server = http.createServer(async (req, res) => {
     try {
       const url = new URL(req.url, `http://127.0.0.1:${port}`);
       const host = (req.headers.host ?? '').toLowerCase();
-      if (![`127.0.0.1:${port}`, `localhost:${port}`].includes(host)) return send(res, 421, { error: 'bad host' });
-      if (req.headers.origin && ![`http://127.0.0.1:${port}`, `http://localhost:${port}`].includes(req.headers.origin)) return send(res, 403, { error: 'bad origin' });
-      if (accessMode === 'token' && req.method === 'GET' && url.pathname === '/' && url.searchParams.get('token') === token) {
-        res.writeHead(302, { 'set-cookie': `studio_token=${token}; HttpOnly; SameSite=Strict; Path=/`, location: '/' });
+      const trusted = trustedHosts();
+      if (!trusted.includes(host)) return send(res, 421, { error: 'bad host' });
+      if (req.headers.origin && !trusted.some((h) => req.headers.origin.toLowerCase() === `http://${h}`)) return send(res, 403, { error: 'bad origin' });
+      // The tokenized pairing/landing URL sets the cookie and redirects to the same clean path (token dropped).
+      if (accessMode === 'token' && req.method === 'GET' && (url.pathname === '/' || url.pathname === '/mobile') && tokenMatches(url.searchParams.get('token'))) {
+        // LAN pairing is for a phone that installs the PWA, so keep the cookie across browser restarts.
+        res.writeHead(302, { 'set-cookie': `studio_token=${token}; HttpOnly; SameSite=Strict; Path=/${lanPair ? '; Max-Age=2592000' : ''}`, location: url.pathname, 'cache-control': 'no-store' });
         return res.end();
       }
       if (accessMode === 'token' && !authed(req)) return send(res, 401, url.pathname.startsWith('/api') ? { error: 'unauthorized' } : 'Open the studio using the tokenized URL printed in the terminal.');
@@ -189,9 +224,22 @@ const hub = createIntegrationHub({ paths, profileStore, learner, recorder, conve
         res.writeHead(200, {
           'content-type': script ? 'text/javascript; charset=utf-8' : 'text/html; charset=utf-8',
           'cache-control': 'no-store', 'x-content-type-options': 'nosniff',
-          'content-security-policy': "default-src 'none'; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'",
+          'content-security-policy': "default-src 'none'; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'; form-action 'self'",
         });
         return res.end(readFileSync(file));
+      }
+      // Installable-PWA assets for the mobile surface. Both stay behind the same token check above
+      // (the manifest link uses crossorigin="use-credentials"). The service worker caches read-only
+      // shell files only and never intercepts /api/ requests.
+      if (['/mobile.webmanifest', '/mobile-sw.js'].includes(url.pathname)) {
+        if (req.method !== 'GET') { res.setHeader('allow', 'GET'); return send(res, 405, { error: 'GET required' }); }
+        const worker = url.pathname === '/mobile-sw.js';
+        res.writeHead(200, {
+          'content-type': worker ? 'text/javascript; charset=utf-8' : 'application/manifest+json; charset=utf-8',
+          'cache-control': 'no-store', 'x-content-type-options': 'nosniff',
+          ...(worker ? { 'content-security-policy': "default-src 'none'; connect-src 'self'" } : {}),
+        });
+        return res.end(readFileSync(new URL(worker ? './ui/mobile-sw.js' : './ui/manifest.webmanifest', import.meta.url)));
       }
       if (['/personal-agent', '/ui/personal-agent.mjs'].includes(url.pathname)) {
         if (req.method !== 'GET') { res.setHeader('allow', 'GET'); return send(res, 405, { error: 'GET required' }); }
@@ -488,7 +536,7 @@ const hub = createIntegrationHub({ paths, profileStore, learner, recorder, conve
     return send(res, 404, { error: 'unknown endpoint' });
   }
 
-  try { await new Promise((resolve, reject) => { server.once('error', reject); server.listen(port, '127.0.0.1', resolve); }); }
+  try { await new Promise((resolve, reject) => { server.once('error', reject); server.listen(port, bindHost, resolve); }); }
   catch (e) { hub.close(); conversationEvents.close(); await conversationRuntime.close(); throw e; }
   const actualPort = server.address().port;
   port = actualPort;
@@ -501,7 +549,9 @@ const hub = createIntegrationHub({ paths, profileStore, learner, recorder, conve
     try { await conversationRuntime.close(); await driveApi.close(); if (recorder.state === 'recording') await recorder.stop({ reason: 'studio_shutdown' }); }
     finally { await hub.close(); conversationEvents.close(); await new Promise((resolve) => server.close(resolve)); }
   })();
+  const lanInfo = lan ? { bind: bindHost, address: lan.address, addresses: lanAddresses().map((a) => a.address), pairingUrl: pairingUrl({ address: lan.address, port: actualPort, token }) } : null;
   return { server, recorder, conversationRuntime, conversationEvents, integrations: hub, port: actualPort, token, accessMode,
+    lanPair, lan: lanInfo, pairingUrl: lanInfo?.pairingUrl ?? null,
     url: accessMode === 'token' ? `http://127.0.0.1:${actualPort}/?token=${token}` : `http://127.0.0.1:${actualPort}/`, close };
 }
 

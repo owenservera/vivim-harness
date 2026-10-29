@@ -1,5 +1,10 @@
 // VIVIM mobile surface: same owner, same Studio APIs, fixed trusted components only.
-// Phone-shaped working view on the PC's loopback origin. NOT pairing, APK, sync or offline PWA.
+// Phone-shaped working view served by the user's own PC: loopback by default, or reachable from a phone on
+// the same WiFi only when the PC runs `studio start|serve --lan-pair` (explicit opt-in, token required;
+// see docs/architecture/MOBILE-LAN-PAIRING.md). Installable as a PWA (manifest + shell-only service
+// worker; the shell opens offline, but data and every mutation always need the live PC). Chrome only
+// installs/registers the worker in a secure context (https, localhost, or `adb reverse`); over plain
+// http://<LAN-IP> it still works as a normal page. NOT an APK, cloud sync, or offline data/queued writes.
 export const MOBILE_API = '/api/v1/personal-apps';
 const APP_ID = /^app-[a-f0-9]{32}$/;
 const ITEM_ID = /^item-[a-f0-9]{32}$/;
@@ -356,6 +361,14 @@ export function mountMobile({
   if (app) openApp(app); else loadIndex();
   return { loadIndex, openApp, chooseScreen, loadContent, render, state };
 }
+// Registers the shell-only service worker (/mobile-sw.js, scope /mobile). Needs a secure context; resolves
+// false (never throws) when the browser or origin does not allow it.
+export function registerMobileShell(nav = typeof navigator !== 'undefined' ? navigator : null,
+  secure = typeof isSecureContext !== 'undefined' && isSecureContext) {
+  if (!secure || !nav?.serviceWorker) return Promise.resolve(false);
+  return nav.serviceWorker.register('/mobile-sw.js', { scope: '/mobile' }).then(() => true, () => false);
+}
 if (typeof document !== 'undefined' && document.getElementById('mobileRoot')) {
   mountMobile({ document, root: document.getElementById('mobileRoot') });
+  registerMobileShell();
 }

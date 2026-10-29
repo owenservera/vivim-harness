@@ -8,6 +8,7 @@ import { Recorder } from '../../src/capture/recorder.mjs';
 import { Session } from '../../src/store/session.mjs';
 import { derive } from '../../src/replay/derive.mjs';
 import { startStudio } from '../../src/studio/server.mjs';
+import { qrToTerminal } from '../../src/studio/lan-pair.mjs';
 import { exportTranscript, exportReport, exportKnowledge, exportBundle, exportSchemas, exportGraphRanked } from '../../src/export/export.mjs';
 import { define } from '../lib/registry.mjs';
 import { CliError, usageError, envError, fmtBytes } from '../lib/ui.mjs';
@@ -62,17 +63,35 @@ const studioFlags = {
   'studio-port': { type: 'number', valueName: 'N', desc: 'Port for the studio UI (default 7878)' },
   'no-open': { type: 'boolean', desc: 'Do not open the studio in a browser window' },
   url: { type: 'string', valueName: 'URL', desc: 'Page to open in the capture browser (start only)' },
+  'lan-pair': { type: 'boolean', desc: 'OPT-IN: listen on the WiFi/LAN (0.0.0.0) so a phone can open the mobile surface; token required, prints a pairing URL + QR' },
+  'lan-host': { type: 'string', valueName: 'IP', desc: 'With --lan-pair: which of this PC\'s IPv4 addresses to put in the pairing URL (default: best guess)' },
 };
 
 async function runStudio(ctx, { launch }) {
   const { out, flags } = ctx;
+  const lanPair = !!flags['lan-pair'] || process.env.CAPTURE_STUDIO_LAN_PAIR === '1';
+  if (flags['lan-host'] && !lanPair) throw usageError('--lan-host only applies together with --lan-pair.');
   if (launch) {
     // Always validate the ownership marker, even when the CDP port is already listening.
     const r = await launchChrome({ profileDir: ctx.paths.chromeProfile, port: ctx.port, url: flags.url ?? 'about:blank' });
     if (!r.alreadyRunning) out.info(`Capture browser opened (${r.browser}).`);
   }
-  const st = await startStudio({ paths: ctx.paths, profileStore: ctx.profiles(), familyStore: ctx.families(), cdpPort: ctx.port, port: Number(flags['studio-port'] ?? ctx.settings.studioPort) });
-  out.emit({ url: st.url, port: st.port }, (o) => o.result(`Capture Studio is running at\n  ${st.url}\nKeep this window open. Press Ctrl+C to stop (an active recording is saved first).`));
+  // LAN pairing forces token mode (CAPTURE_STUDIO_TOKEN if set, else a fresh random token); the default stays loopback/no-token.
+  const lanOptions = lanPair ? { lanPair: true, accessMode: 'token', lanHost: flags['lan-host'], ...(process.env.CAPTURE_STUDIO_TOKEN ? { token: process.env.CAPTURE_STUDIO_TOKEN } : {}) } : { lanPair: false };
+  let st;
+  try { st = await startStudio({ paths: ctx.paths, profileStore: ctx.profiles(), familyStore: ctx.families(), cdpPort: ctx.port, port: Number(flags['studio-port'] ?? ctx.settings.studioPort), ...lanOptions }); }
+  catch (e) { if (lanPair && /LAN pairing|--lan-host/.test(e.message)) throw envError(e.message, 'Check the network connection, or drop --lan-pair to stay loopback-only.'); throw e; }
+  out.emit({ url: st.url, port: st.port, ...(st.lan ? { lanPair: true, pairingUrl: st.pairingUrl, lanAddresses: st.lan.addresses } : {}) }, (o) => {
+    o.result(`Capture Studio is running at\n  ${st.url}\nKeep this window open. Press Ctrl+C to stop (an active recording is saved first).`);
+    if (!st.lan) return;
+    o.result('');
+    o.result(`LAN pairing is ON (listening on 0.0.0.0:${st.port}, token required). On your phone, joined to the same WiFi, scan this QR code or open:`);
+    o.result(`  ${st.pairingUrl}`);
+    if (process.stdout.isTTY) { try { o.result(`\n${qrToTerminal(st.pairingUrl)}\n`); } catch { /* the URL above is enough */ } }
+    if (st.lan.addresses.length > 1) o.result(`Other addresses of this PC: ${st.lan.addresses.filter((a) => a !== st.lan.address).join(', ')} (use --lan-host IP if the phone cannot reach ${st.lan.address}).`);
+    o.result('Anyone with this URL can control this Studio while it runs; do not share it. Allow the firewall prompt for private networks only.');
+  });
+  // Keep the desktop window on loopback even when the phone gets the LAN URL.
   if (!flags['no-open']) openUrl(st.url);
   // SIGTERM is the normal Linux service/container stop signal; IPC stop is used
   // by Windows supervisors. Both must close the same sole Studio runtime once.
