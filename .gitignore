@@ -18,3 +18,7 @@ ui-preview/dist/
 
 # Local lane scratch: baseline captures, debug probes, gate logs. Never committed.
 .prof/
+
+# Native Android shell: build outputs and local debug signing material.
+android/build/
+android/.keystore
