@@ -2170,6 +2170,114 @@ function boot() {
     } catch { /* storage optional */ }
     refreshFastest();
   }
+
+  // "My AIs" is a read-only health view: one card per AI website, whether its tab is open right now
+  // (the same conversation-targets data Connect already shows) and its own track record from
+  // already-saved job history (provider-performance.mjs). Nothing here sends a message; "Ask this AI"
+  // only switches to the Compare panel above with that one AI preselected, so the explicit Ask action
+  // for a real send stays there, unchanged.
+  const myAisPanel = document.getElementById('myAisPanel');
+  if (inBrowser && myAisPanel) {
+    const el = id => document.getElementById(id);
+    const MYAIS_SITES = [['chatgpt', 'ChatGPT'], ['claude', 'Claude'], ['zai', 'Z.ai'], ['qwen', 'Qwen'], ['deepseek', 'DeepSeek'], ['gemini', 'Gemini']];
+    const myAisGrid = el('myAisGrid');
+    const myAisCards = new Map(); // site -> dom refs, kept and updated in place across refreshes
+    const make = (tag, props = {}) => {
+      const node = document.createElement(tag);
+      for (const [k, v] of Object.entries(props)) { if (k === 'class') node.className = v; else if (k === 'text') node.textContent = v; else node.setAttribute(k, v); }
+      return node;
+    };
+    let myAisTimer = null, myAisVisible = false, myAisLast = null, myAisSeq = 0; // last good data is kept on a failed refresh
+
+    function myAisTrackText(p) {
+      if (!p || !Number.isFinite(p.jobs) || p.jobs <= 0) return 'No activity recorded yet.';
+      const answered = Number.isFinite(p.completed) ? p.completed : 0;
+      const bits = ['Answered ' + answered + ' of ' + p.jobs];
+      if (Number.isFinite(p.medianMs) && p.medianMs > 0) bits.push('usually in ' + Math.max(1, Math.round(p.medianMs / 1000)) + ' s');
+      if (Number.isFinite(p.p90Ms) && p.p90Ms > 0) bits.push('slowest ' + Math.max(1, Math.round(p.p90Ms / 1000)) + ' s');
+      return bits.join(' \u00b7 ');
+    }
+    // The job's own message is already plain language (see provider-performance.mjs). A bare code is
+    // never shown; the rare message-less case falls back to the same word() de-coding used everywhere else.
+    function myAisProblemText(p) {
+      const e = p?.lastError; if (!e) return '';
+      const text = e.message || (e.code ? 'Studio reported: ' + word(e.code).toLowerCase() + '.' : '');
+      return text ? 'Last problem: ' + text : '';
+    }
+    function myAisCard(site, label) {
+      let card = myAisCards.get(site);
+      if (!card) {
+        const root = make('div', { class: 'myais-card', role: 'listitem' });
+        const heading = make('h3', { text: label });
+        const openLine = make('p', { class: 'note' });
+        const trackLine = make('p', { class: 'note' });
+        const problemLine = make('p', { class: 'note' });
+        const ask = make('button', { type: 'button', class: 'mini' });
+        ask.textContent = 'Ask this AI';
+        ask.setAttribute('aria-label', 'Ask ' + label + ' through Compare');
+        ask.addEventListener('click', () => {
+          el('viewCompare').click();
+          for (const input of document.querySelectorAll('input[name="compareSite"]')) input.checked = input.value === site;
+          try { localStorage.setItem('vivim.compare.sites', JSON.stringify([site])); } catch { /* storage optional */ }
+          el('compareQuestion')?.focus();
+        });
+        root.append(heading, openLine, trackLine, problemLine, ask);
+        card = { root, openLine, trackLine, problemLine };
+        myAisCards.set(site, card);
+      }
+      return card;
+    }
+    function renderMyAis(targets, perf, failed) {
+      const bySite = new Map((Array.isArray(perf?.providers) ? perf.providers : []).map(p => [p.site, p]));
+      const nodes = MYAIS_SITES.map(([site, label]) => {
+        const card = myAisCard(site, label);
+        const open = Array.isArray(targets) && targets.some(t => t?.site === site);
+        setText(card.openLine, open ? label + ' is open in a tab right now.' : label + ' isn\u2019t open in a tab right now.');
+        setText(card.trackLine, myAisTrackText(bySite.get(site)));
+        setText(card.problemLine, myAisProblemText(bySite.get(site)));
+        return card.root;
+      });
+      const have = Array.from(myAisGrid.children);
+      if (nodes.length !== have.length || nodes.some((n, i) => n !== have[i])) myAisGrid.replaceChildren(...nodes);
+      el('myAisStatus').textContent = failed ? 'Couldn\u2019t load right now. Showing the last information Studio has.' : '';
+    }
+    async function refreshMyAis() {
+      const seq = ++myAisSeq;
+      try {
+        const [targetsData, perf] = await Promise.all([api('/conversation-targets'), api('/providers/performance')]);
+        if (seq !== myAisSeq) return;
+        myAisLast = { targets: Array.isArray(targetsData?.targets) ? targetsData.targets : [], perf };
+        renderMyAis(myAisLast.targets, myAisLast.perf, false);
+      } catch {
+        if (seq !== myAisSeq) return;
+        if (myAisLast) renderMyAis(myAisLast.targets, myAisLast.perf, true);
+        else renderMyAis([], null, true);
+      }
+    }
+    function stopMyAisPolling() { clearTimeout(myAisTimer); myAisTimer = null; }
+    function startMyAisPolling() {
+      stopMyAisPolling();
+      if (!myAisVisible || document.hidden) return;
+      refreshMyAis().finally(() => { if (myAisVisible && !document.hidden) myAisTimer = setTimeout(startMyAisPolling, 30000); });
+    }
+    el('viewMyAis').addEventListener('click', () => {
+      el('viewCapture').click();
+      comparePanel.hidden = true; el('viewCompare').setAttribute('aria-pressed', 'false');
+      myAisPanel.hidden = false;
+      for (const button of el('shellModes').querySelectorAll('button')) button.setAttribute('aria-pressed', String(button.id === 'viewMyAis'));
+      el('vivimViewBreadcrumb').textContent = 'Your AI World / My AIs';
+      el('myAisHeading').focus(); myAisPanel.scrollIntoView({ block: 'start' });
+      myAisVisible = true; startMyAisPolling();
+    });
+    // Leaving to Compare or to any saved-World (data-view) button closes this view and stops its polling.
+    el('viewCompare').addEventListener('click', () => { myAisVisible = false; stopMyAisPolling(); myAisPanel.hidden = true; el('viewMyAis').setAttribute('aria-pressed', 'false'); });
+    el('shellModes').addEventListener('click', event => {
+      if (event.target.closest('[data-view]')) { myAisVisible = false; stopMyAisPolling(); myAisPanel.hidden = true; el('viewMyAis').setAttribute('aria-pressed', 'false'); }
+    });
+    document.addEventListener('visibilitychange', () => { if (document.hidden) stopMyAisPolling(); else if (myAisVisible) startMyAisPolling(); });
+    window.addEventListener('pagehide', stopMyAisPolling);
+  }
+
   // Same dynamic-import rule as U1 so the offline page tests never resolve the module.
   if (inBrowser) try {
     import('./world-view.mjs').then((mod) => {

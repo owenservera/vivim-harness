@@ -92,6 +92,12 @@ select { width: 100%; max-width: 420px; }
 .compare-card h3 { margin: 0 0 4px; }
 .compare-card .state { margin: 0 0 8px; font-weight: 600; }
 
+/* My AIs: a responsive grid of per-account health cards, plain words only, no sends. */
+.myais-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; margin-top: 14px; }
+.myais-card { border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px 12px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.myais-card h3 { margin: 0 0 4px; }
+.myais-card button { align-self: flex-start; margin-top: 8px; }
+
 /* chips */
 .chips { display: flex; gap: 6px 8px; flex-wrap: wrap; align-items: center; }
 .pill { display: inline-flex; align-items: center; gap: 6px; border: 1px solid currentColor; border-radius: 99px; padding: 0 10px; font-size: 12px; font-weight: 600; white-space: nowrap; line-height: 1.7; }
@@ -792,6 +798,7 @@ body.vivim-app {
   <button type="button" id="viewAgent" data-view="agent" aria-pressed="false" aria-controls="worldShell">Personal Agent</button>
   <button type="button" id="viewCapture" data-view="capture" aria-pressed="true" aria-controls="chatApp">Capture</button>
   <button type="button" id="viewCompare" aria-pressed="false" aria-controls="comparePanel">Compare</button>
+  <button type="button" id="viewMyAis" aria-pressed="false" aria-controls="myAisPanel">My AIs</button>
   <button type="button" id="viewConversations" data-view="conversations" aria-pressed="false" aria-controls="worldShell">Saved conversations</button>
   <button type="button" id="viewProjects" data-view="projects" aria-pressed="false" aria-controls="worldShell">Projects</button>
   <button type="button" id="viewNotes" data-view="notes" aria-pressed="false" aria-controls="worldShell">Notes</button>
@@ -824,6 +831,12 @@ body.vivim-app {
       <p class="note" id="compareStatus" role="status" aria-live="polite"></p>
       <p class="note" id="compareFastest" aria-live="polite"></p>
       <div class="compare-grid" id="compareGrid" role="list" aria-label="Provider answers"></div>
+    </section>
+    <section class="panel pad" id="myAisPanel" hidden aria-labelledby="myAisHeading">
+      <h2 id="myAisHeading" tabindex="-1">My AIs</h2>
+      <p class="note">One card for each AI website you use here: whether its tab is open right now, and its track record from what Studio has already recorded. Nothing on this page sends a message.</p>
+      <p class="note" id="myAisStatus" role="status" aria-live="polite"></p>
+      <div class="myais-grid" id="myAisGrid" role="list" aria-label="Your AI accounts"></div>
     </section>
     <section class="vivim-welcome" id="vivimWelcome" aria-labelledby="vivimWelcomeTitle" aria-busy="false">
       <div class="vivim-welcome-hero">
