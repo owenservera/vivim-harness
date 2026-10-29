@@ -105,7 +105,7 @@ test('read-only snapshot preflight verifies checksum, privacy modes and never cl
 test('preflight rejects mutated payload, forged privacy flags and invalid bootstrap claims', () => {
   const valid = createPortableSnapshot(completeExportState(), { now, includeMemory: true, includeWorkDetails: true });
   const altered = structuredClone(valid);
-  altered.payload.memory.CANON[0].text = 'altered';
+  altered.payload.memory.CANON[0].text = 'X' + altered.payload.memory.CANON[0].text.slice(1);
   assert.throws(() => inspectPortableSnapshot(altered), e => e.code === 'PERSONAL_AGENT_EXPORT_CHECKSUM');
   const size = structuredClone(valid);
   size.bytes++;
