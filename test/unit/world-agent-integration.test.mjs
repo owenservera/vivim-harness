@@ -102,6 +102,17 @@ function fixture() {
       }
       return reply(200, { version: state.version, item });
     }
+    if (route.startsWith('/work/') && route.endsWith('/next-action') && method === 'POST') {
+      const item = state.work.find(w => route.includes(w.id));
+      if (!item) return reply(404, { code: 'PERSONAL_AGENT_WORK_NOT_FOUND' });
+      if (data.expectedVersion !== state.version) return reply(409, { code: 'PERSONAL_AGENT_VERSION_CONFLICT' });
+      if (!['queued', 'active', 'blocked'].includes(item.status)) return reply(409, { code: 'PERSONAL_AGENT_WORK_TRANSITION' });
+      if (item.status === 'blocked' && !data.nextAction) return reply(400, { code: 'PERSONAL_AGENT_WORK_INVALID' });
+      const changed = (item.nextAction ?? null) !== data.nextAction;
+      item.nextAction = data.nextAction;
+      if (changed) state.version++;
+      return reply(200, { version: state.version, item, replayed: !changed });
+    }
     if (route.startsWith('/work/') && route.endsWith('/transition') && method === 'POST') {
       const item = state.work.find(w => route.includes(w.id));
       if (!item) return reply(404, { code: 'PERSONAL_AGENT_WORK_NOT_FOUND' });
@@ -254,4 +265,50 @@ test('late private SITREP response is discarded after navigating away', async ()
     'late private data may not reappear when the user returns');
   assert.equal(byId(f.root, 'worldAgentInspect_continuity').disabled, false,
     'a discarded request may not permanently lock the inspector');
+});
+
+test('native Work supports next-action editing and manual status changes with CAS', async () => {
+  const f = fixture(); await f.world.choose('agent'); await byId(f.root, 'worldAgentStart').click();
+  const form = byId(f.root, 'worldAgentWorkForm');
+  const [name, objective] = inputs(form);
+  await type(name, 'Plan next step');
+  await type(objective, 'Capture user-authored next action locally');
+  await form.fire('submit');
+  const work = byId(f.root, 'worldAgentWork');
+  const field = nodes(work, n => n.tag === 'textarea' && (n.attrs['aria-label'] ?? '').startsWith('Next action for'))[0];
+  assert.ok(field, 'next action input is available for queued Work');
+  await type(field, 'Inspect saved evidence');
+  const save = nodes(work, n => n.tag === 'button' && n.textContent === 'Save next action')[0];
+  assert.ok(save);
+  await save.click();
+  assert.equal(f.state.work[0].nextAction, 'Inspect saved evidence');
+  assert.match(byId(f.root, 'worldAgentWork').textContent, /Next: Inspect saved evidence/);
+  const posts = f.calls.filter(c => c.url.endsWith('/next-action'));
+  assert.equal(posts.length, 1);
+  assert.deepEqual(posts[0].data, { expectedVersion: 3, nextAction: 'Inspect saved evidence' });
+  assert.equal(f.calls.some(c => /submit_conversation_turn|conversation.ask/.test(c.url)), false);
+});
+
+test('Work list filters open/closed records and progressively exposes older local tasks', async () => {
+  const f = fixture(); await f.world.choose('agent'); await byId(f.root, 'worldAgentStart').click();
+  f.state.work = Array.from({ length: 64 }, (_, i) => ({
+    id: 'work-' + i.toString(16).padStart(32, '0'), title: 'Task ' + i,
+    objective: 'User directed', status: i < 3 ? 'completed' : 'queued',
+    nextAction: null, updatedAt: '2026-10-29',
+  }));
+  await f.world.choose('agent');
+  const summary = () => byId(f.root, 'worldAgentWorkCoverage').textContent;
+  const filter = () => byId(f.root, 'worldAgentWorkFilter');
+  assert.match(summary(), /Showing 50 of 61 matching local Work items \(64 total\)/);
+  assert.equal(nodes(byId(f.root, 'worldAgentWork'), n => n.tag === 'article').length, 50);
+  await byId(f.root, 'worldAgentWorkMore').click();
+  assert.match(summary(), /Showing 61 of 61 matching/);
+  assert.equal(nodes(byId(f.root, 'worldAgentWork'), n => n.tag === 'article').length, 61);
+  filter().value = 'completed'; await filter().fire('change');
+  assert.match(summary(), /Showing 3 of 3 matching/);
+  assert.equal(nodes(byId(f.root, 'worldAgentWork'), n => n.tag === 'article').length, 3);
+  assert.equal(byId(f.root, 'worldAgentWorkMore'), null);
+  filter().value = 'all'; await filter().fire('change');
+  assert.match(summary(), /Showing 50 of 64 matching/);
+  assert.equal(nodes(byId(f.root, 'worldAgentWork'), n => n.tag === 'article').length, 50);
 });

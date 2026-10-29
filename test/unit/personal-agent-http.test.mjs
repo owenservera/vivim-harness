@@ -87,8 +87,21 @@ test('personal agent survives a real Studio HTTP restart with local-only effects
       'POST', { expectedVersion: createdWork.data.version, to: 'active' });
     assert.equal(transitioned.status, 200);
     assert.equal(transitioned.data.work.byStatus.active, 1);
+    const planned = await api('/api/v1/personal-agent/work/' + createdWork.data.item.id + '/next-action',
+      'POST', { expectedVersion: transitioned.data.version, nextAction: 'Review local receipts' });
+    assert.equal(planned.status, 200);
+    assert.equal(planned.data.item.nextAction, 'Review local receipts');
+    assert.equal(planned.data.replayed, false);
+    const sameAction = await api('/api/v1/personal-agent/work/' + createdWork.data.item.id + '/next-action',
+      'POST', { expectedVersion: planned.data.version, nextAction: 'Review local receipts' });
+    assert.equal(sameAction.data.replayed, true);
+    assert.equal(sameAction.data.version, planned.data.version);
+    assert.equal((await api('/api/v1/personal-agent/work/' + createdWork.data.item.id + '/next-action',
+      'POST', { expectedVersion: transitioned.data.version, nextAction: 'Stale action' })).status, 409);
+    assert.equal((await api('/api/v1/personal-agent/work/' + createdWork.data.item.id + '/next-action',
+      'POST', { expectedVersion: planned.data.version, nextAction: 'x'.repeat(1001) })).status, 400);
     const invalidCompletion = await api('/api/v1/personal-agent/work/' + createdWork.data.item.id + '/transition',
-      'POST', { expectedVersion: transitioned.data.version, to: 'completed' });
+      'POST', { expectedVersion: planned.data.version, to: 'completed' });
     assert.equal(invalidCompletion.status, 400);
     assert.equal(invalidCompletion.data.code, 'PERSONAL_AGENT_WORK_EVIDENCE_REQUIRED');
     const sitrep = await api('/api/v1/personal-agent/sitrep');

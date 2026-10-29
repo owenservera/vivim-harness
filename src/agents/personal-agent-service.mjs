@@ -3,7 +3,7 @@ import path from 'node:path';
 import { existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { TOOL_ROOT } from '../config.mjs';
-import { createWork, transitionWork, workSummary } from './personal-agent-work.mjs';
+import { createWork, transitionWork, setWorkNextAction, workSummary } from './personal-agent-work.mjs';
 import { buildSelfKnowledge, SELF_KNOWLEDGE_TOPICS } from './personal-agent-self-knowledge.mjs';
 import { createContinuityPacket, createPortableSnapshot } from './personal-agent-continuity.mjs';
 import { VersionedStore } from '../store/versioned.mjs';
@@ -267,5 +267,11 @@ export function createPersonalAgentService({ paths, skillsRoot = TOOL_ROOT, getT
     versioned(result.state, state.version, `User Work transition: ${to}`);
     return { ...status(), item: result.item };
   }
-  return { status, initialize, bootstrap, capabilities, selfKnowledge, continuity, exportSnapshot, memories, remember, forget, workList, createWorkItem, transitionWorkItem };
+  function updateWorkNextAction({ expectedVersion, id, nextAction } = {}) {
+    const state = requireWorkVersion(expectedVersion);
+    const result = setWorkNextAction(state, { id, nextAction, now: clock() });
+    if (result.changed) versioned(result.state, state.version, 'User-updated Work next action');
+    return { ...status(), item: result.item, replayed: !result.changed };
+  }
+  return { status, initialize, bootstrap, capabilities, selfKnowledge, continuity, exportSnapshot, memories, remember, forget, workList, createWorkItem, transitionWorkItem, updateWorkNextAction };
 }

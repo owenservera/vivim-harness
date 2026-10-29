@@ -52,6 +52,14 @@ export function registerPersonalAgentRoutes({ add, paths, getTools } = {}) {
       note: { type: 'string', maxLength: 2000 },
       evidence: { type: 'array', maxItems: 20, items: { type: 'string', maxLength: 256 } },
     }, required: ['expectedVersion', 'to'], additionalProperties: false } });
+  add('POST', '/personal-agent/work/{id}/next-action',
+    'Set a next action on open local Work, without dispatching it or claiming execution',
+    ({ p, body }) => agent.updateWorkNextAction({
+      ...ensureBody(body, ['expectedVersion', 'nextAction']), id: p.id,
+    }), { body: { type: 'object', properties: {
+      expectedVersion: { type: 'integer', minimum: 1 },
+      nextAction: { type: ['string', 'null'], maxLength: 1000 },
+    }, required: ['expectedVersion', 'nextAction'], additionalProperties: false } });
   add('GET', '/personal-agent/capabilities', 'Inspect bounded skill sources and registered Studio tools (no runtime proof)',
     () => agent.capabilities(), { tool: 'personal_agent_capabilities',
       annotations: { readOnlyHint: true, openWorldHint: false, idempotentHint: true } });

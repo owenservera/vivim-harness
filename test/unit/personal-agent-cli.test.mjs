@@ -38,7 +38,16 @@ test('native personal-agent CLI is a resumable local lifecycle with no Studio or
   const found = run(dir, 'work');
   assert.equal(found.items[0].status, 'queued');
   assert.equal(found.items[0].title, 'Local CLI task');
+  const planned = run(dir, 'plan', found.items[0].id, '--next', 'Review offline evidence');
+  assert.equal(planned.item.nextAction, 'Review offline evidence');
+  assert.equal(run(dir, 'work').items[0].nextAction, 'Review offline evidence');
+  const plannedAgain = run(dir, 'plan', found.items[0].id, '--next', 'Review offline evidence');
+  assert.equal(plannedAgain.replayed, true);
+  assert.equal(plannedAgain.version, planned.version);
   const advanced = run(dir, 'advance', found.items[0].id, '--to', 'active');
   assert.equal(advanced.work.byStatus.active, 1);
+  assert.equal(advanced.item.nextAction, 'Review offline evidence');
+  const cleared = run(dir, 'plan', found.items[0].id, '--clear');
+  assert.equal(cleared.item.nextAction, null);
   assert.equal(run(dir, 'status').work.byStatus.active, 1);
 });
