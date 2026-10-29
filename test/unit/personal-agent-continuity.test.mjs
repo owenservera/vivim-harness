@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import {
-  createContinuityPacket, createPortableSnapshot, CONTINUITY_SCHEMA, EXPORT_SCHEMA,
+  createContinuityPacket, createPortableSnapshot, inspectPortableSnapshot,
+  CONTINUITY_SCHEMA, EXPORT_SCHEMA,
 } from '../../src/agents/personal-agent-continuity.mjs';
 
 const state = {
@@ -67,4 +68,62 @@ test('invalid flags and excessive export refuse instead of emitting unbounded pr
   huge.memory.Immediate = Array.from({ length: 200 }, (_, i) => ({ key: 'a' + i, text: 'x'.repeat(8000) }));
   assert.throws(() => createPortableSnapshot(huge, { now, includeMemory: true }),
     e => e.code === 'PERSONAL_AGENT_EXPORT_LIMIT' && e.status === 413);
+});
+
+
+function completeExportState() {
+  const copy = structuredClone(state);
+  for (const [name, stage] of Object.entries({
+    'shared-intelligence': { status: 'completed', evidence: ['local:world/index'], updatedAt: now, blocker: null },
+    'personal-memory': { status: 'completed', evidence: ['local:memory/tiers'], updatedAt: now, blocker: null },
+  })) copy.stages[name] = stage;
+  copy.work[0].id = 'work-' + 'a'.repeat(32);
+  copy.work[0].source = 'user-authored';
+  copy.work[0].events = [{ type: 'created', at: now, basis: 'explicit-user-request' }];
+  copy.work[0].createdAt = now;
+  return copy;
+}
+
+test('read-only snapshot preflight verifies checksum, privacy modes and never claims import', () => {
+  const good = completeExportState();
+  for (const [includeMemory, includeWorkDetails] of [[false, false], [true, false], [false, true], [true, true]]) {
+    const envelope = createPortableSnapshot(good, { now, includeMemory, includeWorkDetails });
+    const report = inspectPortableSnapshot(envelope);
+    assert.equal(report.checksumVerified, true);
+    assert.equal(report.sourceAuthenticated, false);
+    assert.equal(report.importSupported, false);
+    assert.equal(report.imported, false);
+    assert.equal(report.includesPrivateMemory, includeMemory);
+    assert.equal(report.includesPrivateWorkDetails, includeWorkDetails);
+    assert.equal(report.workCount, 1);
+    assert.equal(report.memoryCounts.CANON, 1);
+    assert.equal(report.memoryCounts.Immediate, 1);
+    assert.equal(JSON.stringify(report).includes('PRIVATE_'), false, 'preflight never prints sensitive entry data');
+  }
+});
+
+test('preflight rejects mutated payload, forged privacy flags and invalid bootstrap claims', () => {
+  const valid = createPortableSnapshot(completeExportState(), { now, includeMemory: true, includeWorkDetails: true });
+  const altered = structuredClone(valid);
+  altered.payload.memory.CANON[0].text = 'X' + altered.payload.memory.CANON[0].text.slice(1);
+  assert.throws(() => inspectPortableSnapshot(altered), e => e.code === 'PERSONAL_AGENT_EXPORT_CHECKSUM');
+  const size = structuredClone(valid);
+  size.bytes++;
+  assert.throws(() => inspectPortableSnapshot(size), e => e.code === 'PERSONAL_AGENT_EXPORT_SIZE');
+  const flags = structuredClone(valid);
+  flags.includesPrivateMemory = false;
+  assert.throws(() => inspectPortableSnapshot(flags), e => e.code === 'PERSONAL_AGENT_EXPORT_INVALID');
+  const identity = structuredClone(valid);
+  identity.payload.identity.providerAccountVerified = true;
+  identity.bytes = Buffer.byteLength(JSON.stringify(identity.payload), 'utf8');
+  identity.checksum = 'sha256:' + createHash('sha256').update(JSON.stringify(identity.payload)).digest('hex');
+  assert.throws(() => inspectPortableSnapshot(identity), e => e.code === 'PERSONAL_AGENT_EXPORT_INVALID');
+  const invalidWork = structuredClone(valid);
+  invalidWork.payload.work[0].source = 'provider-executed';
+  invalidWork.bytes = Buffer.byteLength(JSON.stringify(invalidWork.payload), 'utf8');
+  invalidWork.checksum = 'sha256:' + createHash('sha256').update(JSON.stringify(invalidWork.payload)).digest('hex');
+  assert.throws(() => inspectPortableSnapshot(invalidWork), e => e.code === 'PERSONAL_AGENT_EXPORT_INVALID');
+  const unsupported = structuredClone(valid);
+  unsupported.importSupported = true;
+  assert.throws(() => inspectPortableSnapshot(unsupported), e => e.code === 'PERSONAL_AGENT_EXPORT_INVALID');
 });

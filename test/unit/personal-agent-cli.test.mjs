@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -35,6 +35,23 @@ test('native personal-agent CLI is a resumable local lifecycle with no Studio or
   const exported = run(dir, 'export');
   assert.equal(exported.payload.work.detailsOmitted, true);
   assert.equal(exported.payload.memory.detailsOmitted, true);
+  const snapshot = path.join(dir, 'agent-export.json');
+  writeFileSync(snapshot, JSON.stringify(exported, null, 2));
+  const checked = run(dir, 'inspect-export', snapshot);
+  assert.equal(checked.checksumVerified, true);
+  assert.equal(checked.importSupported, false);
+  assert.equal(checked.sourceAuthenticated, false);
+  assert.equal(checked.workCount, 1);
+  assert.equal(JSON.stringify(checked).includes('Local CLI task'), false);
+  const tampered = path.join(dir, 'tampered-export.json');
+  const changed = structuredClone(exported);
+  changed.payload.work.count = 99;
+  writeFileSync(tampered, JSON.stringify(changed, null, 2));
+  const failed = spawnSync(process.execPath, [entry, 'personal-agent', 'inspect-export', tampered,
+    '--data-dir', dir, '--json'], { encoding: 'utf8', cwd: repo, timeout: 15000 });
+  assert.notEqual(failed.status, 0, 'tampered export must exit with a failure');
+  assert.equal(failed.stdout.includes('Local CLI task'), false, 'errors never emit user Work details');
+
   const found = run(dir, 'work');
   assert.equal(found.items[0].status, 'queued');
   assert.equal(found.items[0].title, 'Local CLI task');
