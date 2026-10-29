@@ -742,7 +742,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     custody: 'observed',
     settings: { tab: 'providers', sites: [], loaded: false, loading: false, error: '' },
     agent: { status: null, work: null, loading: false, busy: false, error: '', notice: '', title: '', objective: '', pendingKey: null,
-      tier: 'Immediate', memoryKey: '', memoryText: '', memoryEntries: [],
+      tier: 'Immediate', memoryKey: '', memoryText: '', memoryEntries: [], workFilter: 'open', workLimit: 50,
       insightKind: null, insight: null, insightBusy: false, insightError: '' },
     relations: { id: '', typed: '', map: null, error: '', status: '', loading: false, recordId: null },
     workspace: { id: '', typed: '', map: null, error: '', status: '', loading: false, item: null, readingId: '', readingNode: null, readingError: '', readingLoading: false },
@@ -1123,8 +1123,28 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
       });
       tasks.append(form);
       const items = a.work?.items ?? [];
-      if (!a.loading && !items.length) tasks.append(el('p', { class: 'empty', text: 'No local Work yet.' }));
-      for (const item of [...items].reverse().slice(0, 50)) {
+      const filters = [
+        ['open', 'Open Work'], ['all', 'All Work'],
+        ['queued', 'Queued'], ['active', 'Active'], ['blocked', 'Blocked'],
+        ['completed', 'Completed'], ['cancelled', 'Cancelled'],
+      ];
+      const filter = el('select', { id: 'worldAgentWorkFilter', 'aria-label': 'Filter local Work by status' });
+      for (const [value, label] of filters) filter.append(el('option', { value, text: label }));
+      filter.value = a.workFilter;
+      on(filter, 'change', () => {
+        a.workFilter = filter.value; a.workLimit = 50; renderAgent();
+      });
+      tasks.append(filter);
+      const selected = items.filter(item => a.workFilter === 'all' ||
+        (a.workFilter === 'open'
+          ? ['queued', 'active', 'blocked'].includes(item.status)
+          : item.status === a.workFilter));
+      tasks.append(el('p', { class: 'note', id: 'worldAgentWorkCoverage',
+        text: 'Showing ' + Math.min(selected.length, a.workLimit) + ' of ' + selected.length +
+          ' matching local Work items (' + items.length + ' total). Records are not provider executions.' }));
+      if (!a.loading && !selected.length) tasks.append(el('p', { class: 'empty',
+        text: items.length ? 'No Work matches this filter.' : 'No local Work yet.' }));
+      for (const item of [...selected].reverse().slice(0, a.workLimit)) {
         const row = el('article', { class: 'vivim-agent-work-row' }, [
           el('strong', { text: item.title }),
           el('p', { class: 'note', text: item.objective }),
@@ -1166,6 +1186,12 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
           row.append(next, note, refs, update);
         }
         tasks.append(row);
+      }
+      if (selected.length > a.workLimit) {
+        const more = el('button', { type: 'button', id: 'worldAgentWorkMore',
+          text: 'Show older Work (' + (selected.length - a.workLimit) + ' remaining)' });
+        on(more, 'click', () => { a.workLimit += 50; renderAgent(); });
+        tasks.append(more);
       }
     } else tasks.append(el('p', { class: 'empty', text: 'Initialize your agent to manage Work.' }));
     detailPane.replaceChildren(tasks);
