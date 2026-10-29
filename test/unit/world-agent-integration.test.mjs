@@ -288,3 +288,27 @@ test('native Work supports next-action editing and manual status changes with CA
   assert.deepEqual(posts[0].data, { expectedVersion: 3, nextAction: 'Inspect saved evidence' });
   assert.equal(f.calls.some(c => /submit_conversation_turn|conversation.ask/.test(c.url)), false);
 });
+
+test('Work list filters open/closed records and progressively exposes older local tasks', async () => {
+  const f = fixture(); await f.world.choose('agent'); await byId(f.root, 'worldAgentStart').click();
+  f.state.work = Array.from({ length: 64 }, (_, i) => ({
+    id: 'work-' + i.toString(16).padStart(32, '0'), title: 'Task ' + i,
+    objective: 'User directed', status: i < 3 ? 'completed' : 'queued',
+    nextAction: null, updatedAt: '2026-10-29',
+  }));
+  await f.world.choose('agent');
+  const summary = () => byId(f.root, 'worldAgentWorkCoverage').textContent;
+  const filter = () => byId(f.root, 'worldAgentWorkFilter');
+  assert.match(summary(), /Showing 50 of 61 matching local Work items \(64 total\)/);
+  assert.equal(nodes(byId(f.root, 'worldAgentWork'), n => n.tag === 'article').length, 50);
+  await byId(f.root, 'worldAgentWorkMore').click();
+  assert.match(summary(), /Showing 61 of 61 matching/);
+  assert.equal(nodes(byId(f.root, 'worldAgentWork'), n => n.tag === 'article').length, 61);
+  filter().value = 'completed'; await filter().fire('change');
+  assert.match(summary(), /Showing 3 of 3 matching/);
+  assert.equal(nodes(byId(f.root, 'worldAgentWork'), n => n.tag === 'article').length, 3);
+  assert.equal(byId(f.root, 'worldAgentWorkMore'), null);
+  filter().value = 'all'; await filter().fire('change');
+  assert.match(summary(), /Showing 50 of 64 matching/);
+  assert.equal(nodes(byId(f.root, 'worldAgentWork'), n => n.tag === 'article').length, 50);
+});
