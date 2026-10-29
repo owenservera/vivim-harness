@@ -504,7 +504,10 @@ export function createConversationRuntime({ paths, profileStore, familyStore, po
       const targets = [];
       const discovered = await tabs();
       const ownedTargetIds = ownedFreshTargetIds(entries.values(), discovered);
-      const recordings = d.listSessions(paths.sessions).filter((s) => ['recording', 'stopping'].includes(s.status));
+      // Target discovery needs recording ownership metadata, never raw capture sizes.
+      // A newly reopened browser with no AI tabs needs no session-disk scan at all.
+      const recordings = discovered.some(t => String(t.url ?? '').startsWith('https:'))
+        ? d.listSessions(paths.sessions, { includeRawBytes: false }).filter((s) => ['recording', 'stopping'].includes(s.status)) : [];
       for (const t of discovered) {
         if (t.type && t.type !== 'page') continue;
         let url; try { url = new URL(t.url); } catch { continue; }

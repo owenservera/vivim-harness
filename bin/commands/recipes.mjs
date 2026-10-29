@@ -127,7 +127,10 @@ export async function runAgentStatus(ctx, dependencies = {}) {
     studioPort: ctx.flags['studio-port'] ?? ctx.settings.studioPort,
     dataDir, chromeProfile: dataDir ? path.join(dataDir, 'chrome-profile') : null,
     cdpPort: status.cdpPort ?? null, chromeReachable: !!status.chrome,
-    browserProfileVerified: 'not-proven-by-status',
+    browserProfileVerified: status.browserConnection?.verified === true ? true : 'not-proven-by-status',
+    browserState: status.browserConnection?.state ?? (status.chrome ? 'available-profile-unverified' : 'not-running'),
+    nextStep: status.browserConnection?.nextStep ?? (status.chrome ? 'Choose an AI in Chat. Account sign-in has not been checked.' : 'Open your dedicated VIVIM AI browser, then check status again.'),
+    ...(status.browserConnection?.recoveryCommand ? { recoveryCommand: status.browserConnection.recoveryCommand } : {}),
     browserAccountState: 'unverified', recipeDiscovery: 'studio recipe list' });
 }
 
@@ -171,4 +174,4 @@ define({ name: 'agent context', noData: true, section: 'Get started', summary: '
   description: 'Read this CLI checkout’s context.md offline. Real-user measured probes must not read it during a scenario; follow AGENTS.md.',
   run: runAgentContext });
 define({ name: 'agent status', noData: true, section: 'Get started', summary: 'Read running Studio health without browser effects',
-  flags: shared, run: runAgentStatus });
+  flags: { ...shared, timeout: { ...shared.timeout, default: 5 } }, run: runAgentStatus });

@@ -12,6 +12,7 @@ import path from 'node:path';
 import { Recorder } from '../capture/recorder.mjs';
 import { listTargets, browserVersion, isReachable } from '../cdp/discovery.mjs';
 import { launchChrome } from '../chrome/launch.mjs';
+import { verifyBrowserOwner } from '../chrome/browser-ownership.mjs';
 import { Session, listSessions } from '../store/session.mjs';
 import { derive, streamBytes, stateAt, search } from '../replay/derive.mjs';
 import { readAcceptance, evaluateAcceptance, writeAcceptance, reuseAcceptedContext } from '../capture/acceptance.mjs';
@@ -304,8 +305,22 @@ const hub = createIntegrationHub({ paths, profileStore, learner, recorder, conve
     };
 
     if (a === 'status') {
-      const reachable = await isReachable({ port: cdpPort });
-      return send(res, 200, { version: VERSION, cdpPort, chrome: reachable ? (await browserVersion({ port: cdpPort })).Browser : null, recorder: recorder.status(), dataDir: paths.root });
+      // One bounded discovery request, no retries, tab enumeration or session scans.
+      // Reuse the live browser identity rather than treating a cached adapter as readiness.
+      let browser = null, verified = false;
+      try {
+        const version = await browserVersion({ port: cdpPort });
+        browser = version.Browser;
+        try { verified = (await verifyBrowserOwner({ profileDir: paths.chromeProfile, port: cdpPort, version })).verified; }
+        catch { /* A reachable foreign/unmarked browser is not ready for VIVIM. */ }
+      } catch { /* A stopped browser is a normal, readable not-ready state. */ }
+      const state = !browser ? 'not-running' : verified ? 'available' : 'profile-unverified';
+      return send(res, 200, { version: VERSION, cdpPort, chrome: browser, recorder: recorder.status(), dataDir: paths.root,
+        browserConnection: { state, verified,
+          nextStep: state === 'available' ? 'Your dedicated AI browser is ready. Choose an AI in Chat; existing tabs will be reused. Sign in there only if your AI asks.'
+            : state === 'not-running' ? 'Open your dedicated VIVIM AI browser with the recovery command, then check status again. Studio can stay open.'
+              : 'The browser on this port is not verified for your VIVIM profile. Do not send. Save your work and close only the dedicated VIVIM browser, then reopen it with the recovery command.',
+          ...(state !== 'available' ? { recoveryCommand: `node bin/studio.mjs launch --data-dir ${JSON.stringify(paths.root.replaceAll('\\', '/'))} --port ${cdpPort}` } : {}) } });
     }
     if (a === 'live' && req.method === 'GET' && !b) {
       hub.feed.subscribe(req, res, q, { legacy: true, status: recorder.status() });

@@ -1,0 +1,226 @@
+{
+  "schema": "vivim.browser-recovery/1",
+  "at": "2026-10-29T21:58:32.565Z",
+  "before": {
+    "studioPid": 1520,
+    "studioHealth": 200,
+    "cdp": "38702 unreachable; no dedicated Chrome process found",
+    "nativeStatus": {
+      "command": "node bin/studio.mjs agent status --studio-port 38730 --json",
+      "ms": 9574,
+      "exitCode": 0,
+      "chromeReachable": false
+    },
+    "probeReported": {
+      "statusShellDeadlineMs": 20000,
+      "targets": "503 BROWSER_UNAVAILABLE"
+    }
+  },
+  "cause": "Dedicated Chrome had stopped. Studio remained healthy. Native targets additionally performed an unnecessary synchronous raw-session-size scan, including when there were no AI tabs. Status performed duplicate discovery and had a 60s default client deadline.",
+  "recoveryCommand": "node bin/studio.mjs launch --data-dir <actual Studio data root> --port 38702 --json",
+  "after": {
+    "studio": {
+      "pid": 8340,
+      "studioPort": 38730,
+      "cdpPort": 38702,
+      "dataRoot": "C:\\Users\\VIVIM.inc\\AppData\\Local/AION/capture-studio",
+      "sourceBase": "ce2016a53508bd58a5c8d86d4870d73dc45631e4",
+      "sourceChanges": "This evidence commit; existing-file runtime/status repairs loaded by restart."
+    },
+    "browser": {
+      "pid": 9048,
+      "profilePath": "C:\\Users\\VIVIM.inc\\AppData\\Local\\AION\\capture-studio\\chrome-profile",
+      "verified": true,
+      "browserIdentity": "/devtools/browser/ea0f638e-98d6-4012-9f41-4b0ef31e2af3",
+      "repeatedNativeLaunch": "alreadyRunning:true, verified:true, same browser identity; no second browser launched"
+    },
+    "nativeReceipts": [
+      {
+        "command": "node bin/studio.mjs agent status --studio-port 38730 --json",
+        "ms": 1032,
+        "code": 0,
+        "output": {
+          "studio": "reachable",
+          "version": "0.1.0",
+          "studioPort": 38730,
+          "dataDir": "C:\\Users\\VIVIM.inc\\AppData\\Local\\AION\\capture-studio",
+          "chromeProfile": "C:\\Users\\VIVIM.inc\\AppData\\Local\\AION\\capture-studio\\chrome-profile",
+          "cdpPort": 38702,
+          "chromeReachable": true,
+          "browserProfileVerified": true,
+          "browserState": "available",
+          "nextStep": "Your dedicated AI browser is ready. Choose an AI in Chat; existing tabs will be reused. Sign in there only if your AI asks.",
+          "browserAccountState": "unverified",
+          "recipeDiscovery": "studio recipe list"
+        },
+        "stderr": ""
+      },
+      {
+        "command": "node bin/studio.mjs tools call conversation_targets --input - --studio-port 38730 --timeout 12 --json",
+        "ms": 1191,
+        "code": 0,
+        "output": {
+          "sites": [
+            {
+              "id": "chatgpt",
+              "adapter": "chatgpt",
+              "url": "https://chatgpt.com/"
+            },
+            {
+              "id": "claude",
+              "adapter": "claude",
+              "url": "https://claude.ai/"
+            },
+            {
+              "id": "gemini",
+              "adapter": "gemini",
+              "url": "https://gemini.google.com/app"
+            },
+            {
+              "id": "deepseek",
+              "adapter": "deepseek",
+              "url": "https://chat.deepseek.com/"
+            },
+            {
+              "id": "zai",
+              "adapter": "zai",
+              "url": "https://chat.z.ai/"
+            },
+            {
+              "id": "qwen",
+              "adapter": "qwen",
+              "url": "https://chat.qwen.ai/"
+            },
+            {
+              "id": "lmarena",
+              "adapter": "lmarena",
+              "url": "https://arena.ai/"
+            },
+            {
+              "id": "minimax",
+              "adapter": "minimax",
+              "url": "https://agent.minimax.cn/"
+            },
+            {
+              "id": "kimi",
+              "adapter": "kimi",
+              "url": "https://www.kimi.com/"
+            },
+            {
+              "id": "duck-ai",
+              "adapter": "duck-ai",
+              "url": "https://duck.ai/"
+            }
+          ],
+          "targets": []
+        },
+        "stderr": ""
+      }
+    ]
+  },
+  "jobs": [
+    {
+      "id": "aid-2aee16652a04321f503a5463",
+      "appId": "app-ea8674db844f4db10ebd641dc9fc2818",
+      "state": "failed",
+      "site": "claude",
+      "key": "vivim-ai-design-aid-2aee16652a04321f503a5463",
+      "conversationId": "f385bbca-c44a-445d-8aa8-4d93355dc627",
+      "turnId": "6a66a20e-4886-4820-87e7-38e433a63b13",
+      "errorCode": "DRAFT_PRESENT",
+      "replyDigest": null,
+      "applied": null,
+      "sendCertainty": [
+        {
+          "id": "6a66a20e-4886-4820-87e7-38e433a63b13",
+          "key": "vivim-ai-design-aid-2aee16652a04321f503a5463",
+          "phase": "blocked",
+          "reason": "DRAFT_PRESENT",
+          "sendState": "not-attempted"
+        }
+      ],
+      "snapshotState": "blocked",
+      "finish": {
+        "requested": false,
+        "phase": "idle",
+        "error": null
+      }
+    },
+    {
+      "id": "aid-34dcb3a008c0cfeaa3805324",
+      "appId": "app-ea8674db844f4db10ebd641dc9fc2818",
+      "state": "discarded",
+      "site": "claude",
+      "key": "vivim-ai-design-aid-34dcb3a008c0cfeaa3805324",
+      "conversationId": "139f6b0d-5d6f-408a-b24d-76e64f210aee",
+      "turnId": "a7fd41e3-14a0-4683-9c37-9379b11ec97a",
+      "errorCode": "REPLY_TIMEOUT",
+      "replyDigest": null,
+      "applied": null,
+      "sendCertainty": [
+        {
+          "id": "a7fd41e3-14a0-4683-9c37-9379b11ec97a",
+          "key": "vivim-ai-design-aid-34dcb3a008c0cfeaa3805324",
+          "phase": "uncertain",
+          "reason": "CREATION_UNPINNED",
+          "sendState": "uncertain"
+        }
+      ],
+      "snapshotState": "closed",
+      "finish": {
+        "requested": true,
+        "phase": "done",
+        "error": null,
+        "captureStopped": true
+      }
+    },
+    {
+      "id": "aid-4202c39125a934fe60dd58ad",
+      "appId": "app-ea8674db844f4db10ebd641dc9fc2818",
+      "state": "failed",
+      "site": "claude",
+      "key": "vivim-ai-design-aid-4202c39125a934fe60dd58ad",
+      "conversationId": null,
+      "turnId": null,
+      "errorCode": "BROWSER_UNAVAILABLE",
+      "replyDigest": null,
+      "applied": null,
+      "sendCertainty": "no conversation created"
+    },
+    {
+      "id": "aid-4fd408398e6d7c982a9db6fe",
+      "appId": "app-ea8674db844f4db10ebd641dc9fc2818",
+      "state": "failed",
+      "site": "claude",
+      "key": "vivim-ai-design-aid-4fd408398e6d7c982a9db6fe",
+      "conversationId": null,
+      "turnId": null,
+      "errorCode": "ATTACHMENT_FAILED",
+      "replyDigest": null,
+      "applied": null,
+      "sendCertainty": "no conversation created"
+    },
+    {
+      "id": "aid-b2406c6d3091dd8e9974ea67",
+      "appId": "app-ea8674db844f4db10ebd641dc9fc2818",
+      "state": "failed",
+      "site": "claude",
+      "key": "vivim-ai-design-aid-b2406c6d3091dd8e9974ea67",
+      "conversationId": null,
+      "turnId": null,
+      "errorCode": "BROWSER_UNAVAILABLE",
+      "replyDigest": null,
+      "applied": null,
+      "sendCertainty": "no conversation created"
+    }
+  ],
+  "handoff": {
+    "readyForLiveDesign": true,
+    "providerTabs": 0,
+    "accountSignIn": "not inspected; do not infer signed out from absent tabs",
+    "noResend": "Discarded aid-34dcb3a008c0cfeaa3805324 remains send-uncertain CREATION_UNPINNED. Preserve original key; never replay. All jobs were read only and none restarted.",
+    "newEffects": 0,
+    "unitTests": "not run per owner",
+    "remaining": "Live design lane owns any new authorized provider request; stop for human sign-in only if provider actually requests it."
+  }
+}
