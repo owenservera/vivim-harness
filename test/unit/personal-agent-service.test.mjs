@@ -171,3 +171,27 @@ test('Work and memory text are not exposed by default status or global self-know
   assert.equal(publicView.includes('PRIVATE_MEMORY_CONTENT'), false);
   assert.equal(saved.memoryCounts.CANON, 1);
 });
+
+test('next actions remain local, CAS guarded, idempotent and durable after re-instantiation', t => {
+  const f = fixture(t), agent = make(f);
+  const boot = agent.bootstrap({ expectedVersion: null });
+  const work = agent.createWorkItem({ expectedVersion: boot.version, title: 'Verify Work plan',
+    objective: 'Make a local plan without triggering provider actions', idempotencyKey: 'next_action_case_123456' });
+  const updated = agent.updateWorkNextAction({ expectedVersion: work.version,
+    id: work.item.id, nextAction: ' Inspect the real source ' });
+  assert.equal(updated.item.nextAction, 'Inspect the real source');
+  assert.equal(updated.replayed, false);
+  assert.equal(updated.version, work.version + 1);
+  assert.equal(make(f).workList().items[0].nextAction, 'Inspect the real source');
+  const repeat = agent.updateWorkNextAction({ expectedVersion: updated.version,
+    id: work.item.id, nextAction: 'Inspect the real source' });
+  assert.equal(repeat.replayed, true);
+  assert.equal(repeat.version, updated.version, 'same action must not consume a version');
+  assert.throws(() => agent.updateWorkNextAction({ expectedVersion: work.version,
+    id: work.item.id, nextAction: 'stale update' }),
+  e => e.code === 'PERSONAL_AGENT_VERSION_CONFLICT');
+  const sitrep = make(f).continuity();
+  assert.equal(sitrep.work[0].nextAction, 'Inspect the real source');
+  assert.equal(sitrep.execution.permittedByThisPacket, false);
+  assert.equal(JSON.stringify(make(f).status()).includes('Inspect the real source'), false);
+});
