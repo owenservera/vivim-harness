@@ -8,6 +8,8 @@ import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.InputType;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -54,6 +56,7 @@ public class MainActivity extends Activity {
     private static final String KEY_URL = "pair_url";
     private static final String EXTRA_PAIR_URL = "pairUrl";
     private static final int ERROR_RED = Color.rgb(161, 40, 48);
+    private static final long CONNECT_WAIT_MS = 20000;
 
     private WebView web;
     private SharedPreferences prefs;
@@ -61,6 +64,8 @@ public class MainActivity extends Activity {
     private boolean showingWeb;
     /** Last main-frame load of the paired origin failed; Back must not return to that error page. */
     private boolean loadFailed;
+    private final Handler handler = new Handler(Looper.getMainLooper());
+    private final ConnectionWait connectionWait = new ConnectionWait(this);
 
     @Override
     protected void onCreate(Bundle state) {
@@ -88,7 +93,7 @@ public class MainActivity extends Activity {
         super.onNewIntent(intent);
         setIntent(intent);
         String incoming = incomingUrl(intent);
-        if (incoming != null && !incoming.equals(savedUrl())) {
+        if (incoming != null && (!incoming.equals(savedUrl()) || loadFailed || !showingWeb)) {
             showPairScreen(incoming, confirmNotice(incoming), false);
         }
     }
@@ -126,14 +131,48 @@ public class MainActivity extends Activity {
     }
 
     private void loadWorld(String url) {
+        web.stopLoading();
         showingWeb = true;
         loadFailed = false;
         setContentView(web);
+        startConnectionWait();
         web.loadUrl(url);
+    }
+
+    private void startConnectionWait() {
+        handler.removeCallbacks(connectionWait);
+        handler.postDelayed(connectionWait, CONNECT_WAIT_MS);
+    }
+
+    private void connectionFailed(String notice) {
+        if (!showingWeb) {
+            return;
+        }
+        loadFailed = true;
+        showPairScreen(savedUrl(), notice, true);
+    }
+
+    private static final class ConnectionWait implements Runnable {
+        private final MainActivity host;
+
+        ConnectionWait(MainActivity host) {
+            this.host = host;
+        }
+
+        @Override
+        public void run() {
+            host.connectionFailed("Your PC isn't responding yet. Check that VIVIM is open on your PC "
+                    + "and both devices are on the same Wi-Fi, then tap Connect to try again. "
+                    + "Your pairing link is still saved.");
+        }
     }
 
     /** Back from the pairing screen returns to a working page instead of closing the app. */
     private void showWorldAgain() {
+        if (web.getProgress() < 100) {
+            loadWorld(savedUrl());
+            return;
+        }
         showingWeb = true;
         setContentView(web);
     }
@@ -171,6 +210,9 @@ public class MainActivity extends Activity {
 
         @Override
         public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+            if (!request.isForMainFrame()) {
+                return false;
+            }
             Uri uri = request.getUrl();
             if (uri != null && host.isPairedOrigin(uri)) {
                 return false;
@@ -181,7 +223,19 @@ public class MainActivity extends Activity {
 
         @Override
         public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
-            host.loadFailed = false;
+            if (host.showingWeb) {
+                host.loadFailed = false;
+                host.startConnectionWait();
+            }
+        }
+
+        @Override
+        public void onPageFinished(WebView view, String url) {
+            if (host.showingWeb && !host.loadFailed && host.isPairedOrigin(Uri.parse(url))) {
+                host.handler.removeCallbacks(host.connectionWait);
+                // Persist the PC's pairing cookie now, not only when Android pauses the app.
+                CookieManager.getInstance().flush();
+            }
         }
 
         // Consumer-facing failure: the PC is off, Studio is stopped, or the phone left the WiFi.
@@ -189,11 +243,9 @@ public class MainActivity extends Activity {
         @Override
         public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
             if (request != null && request.isForMainFrame() && host.isPairedOrigin(request.getUrl())) {
-                host.loadFailed = true;
-                host.showPairScreen(host.savedUrl(),
-                        "Can't reach VIVIM on your PC. Make sure the PC is on, Studio is running "
-                                + "with --lan-pair, and this phone is on the same WiFi. Then tap Connect to retry.",
-                        true);
+                host.connectionFailed("Can't reach VIVIM on your PC. Make sure VIVIM is open on the PC "
+                        + "and this phone is on the same Wi-Fi. Then tap Connect to try again. "
+                        + "If the PC's address changed, paste its new phone pairing link.");
             }
         }
 
@@ -211,10 +263,12 @@ public class MainActivity extends Activity {
             } else if (code == 421 || code == 403) {
                 notice = "Your PC no longer answers at this address (its WiFi address may have changed). "
                         + "Scan or paste the new pairing URL from your PC.";
+            } else if (code >= 400) {
+                notice = "VIVIM on your PC couldn't open this page. Check VIVIM on the PC, then tap "
+                        + "Connect to try again. If this keeps happening, paste a new phone pairing link.";
             }
             if (notice != null) {
-                host.loadFailed = true;
-                host.showPairScreen(host.savedUrl(), notice, true);
+                host.connectionFailed(notice);
             }
         }
 
@@ -238,7 +292,8 @@ public class MainActivity extends Activity {
         web = createWebView();
         String saved = savedUrl();
         if (saved != null && showingWeb) {
-            loadWorld(saved);
+            connectionFailed("VIVIM needs to reopen this page. Tap Connect to continue with your saved PC. "
+                    + "If you were writing a message, check it before sending.");
         } else if (saved == null) {
             showPairScreen(null, null, false);
         }
@@ -267,6 +322,8 @@ public class MainActivity extends Activity {
 
     private void showPairScreen(String currentUrl, String notice, boolean isError) {
         showingWeb = false;
+        handler.removeCallbacks(connectionWait);
+        web.stopLoading();
         int pad = dp(24);
 
         LinearLayout root = new LinearLayout(this);
@@ -282,9 +339,9 @@ public class MainActivity extends Activity {
         root.addView(title);
 
         TextView hint = new TextView(this);
-        hint.setText("On your PC run Studio with --lan-pair. Paste the pairing URL it prints "
-                + "(tip: scan its QR code with the camera app and copy the link), then tap Connect. "
-                + "The URL is remembered, so this screen normally appears only once.");
+        hint.setText("On your Windows PC, open 'VIVIM phone pairing' and find its phone pairing link. "
+                + "Paste that link here, or scan the PC's QR code with your camera and copy the link. "
+                + "Keep both devices on the same Wi-Fi, then tap Connect. Your PC is remembered next time.");
         hint.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
         hint.setTextColor(Color.DKGRAY);
         hint.setPadding(0, dp(10), 0, dp(18));
@@ -337,7 +394,7 @@ public class MainActivity extends Activity {
             if (url == null) {
                 message.setTextColor(ERROR_RED);
                 message.setText("That doesn't look like a pairing URL. It starts with http:// and "
-                        + "contains your PC's address, for example http://192.168.1.20:7878/mobile?token=...");
+                        + "contains your PC's address, for example http://192.168.1.20:38703/mobile?token=...");
                 return;
             }
             host.savePairUrl(url);
@@ -348,7 +405,7 @@ public class MainActivity extends Activity {
     // ------------------------------------------------------------------ helpers
 
     private void showShellMenu() {
-        final String[] items = {"Reload page", "Re-pair (enter a new URL)", "Cancel"};
+        final String[] items = {"Reload page", "Re-pair (enter a new URL)", "Close VIVIM", "Cancel"};
         new AlertDialog.Builder(this)
                 .setTitle("VIVIM")
                 .setItems(items, new MenuClick(this))
@@ -365,9 +422,12 @@ public class MainActivity extends Activity {
         @Override
         public void onClick(DialogInterface dialog, int which) {
             if (which == 0 && host.web != null) {
-                host.web.reload();
+                // Start from the saved pairing link, not a failed page or an expired history entry.
+                host.loadWorld(host.savedUrl());
             } else if (which == 1) {
                 host.showPairScreen(host.savedUrl(), null, false);
+            } else if (which == 2) {
+                host.finish();
             }
         }
     }
@@ -416,6 +476,14 @@ public class MainActivity extends Activity {
             return null;
         }
         Uri uri = Uri.parse(v);
+        if ("vivim".equalsIgnoreCase(uri.getScheme()) && "pair".equalsIgnoreCase(uri.getHost())) {
+            // Accept the same app link when pasted that Android accepts through ACTION_VIEW.
+            String nested = uri.getQueryParameter(EXTRA_PAIR_URL);
+            if (nested == null || !(nested.startsWith("http://") || nested.startsWith("https://"))) {
+                return null;
+            }
+            return normalizePairUrl(nested);
+        }
         String scheme = uri.getScheme();
         String hostName = uri.getHost();
         if (scheme == null || !("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme))) {
@@ -513,11 +581,17 @@ public class MainActivity extends Activity {
             showWorldAgain();
             return;
         }
+        if (showingWeb) {
+            // A normal Back press makes recovery discoverable without a hidden long-press gesture.
+            showShellMenu();
+            return;
+        }
         super.onBackPressed();
     }
 
     @Override
     protected void onDestroy() {
+        handler.removeCallbacks(connectionWait);
         if (web != null) {
             ViewGroup parent = (ViewGroup) web.getParent();
             if (parent != null) {
