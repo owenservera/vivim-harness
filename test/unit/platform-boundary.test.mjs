@@ -77,6 +77,10 @@ const ALLOWLIST = {
   'scripts/gate.mjs': [
     { match: 'process.platform', kind: 'report', reason: 'The gate header names the host so a pasted receipt cannot be attributed to the wrong OS.' },
   ],
+  'scripts/local-verify.mjs': [
+    { match: 'platform: process.platform', kind: 'report', reason: 'Verification receipts record the host for provenance, without branching on it.' },
+    { match: "process.platform === 'win32' ? 'bun.exe' : 'bun'", kind: 'decision', domain: 'process-control', reason: 'Shell-free child process execution uses the Windows executable name instead of relying on shell resolution.' },
+  ],
   'scripts/always-on.mjs': [
     { match: "if (process.platform === 'win32') {", kind: 'decision', domain: 'process-control', reason: 'Windows has no POSIX signals; a supervised child is torn down with taskkill /T.' },
     { match: "if (process.platform === 'win32') killTree(pid", kind: 'decision', domain: 'process-control', reason: 'The stop path must kill the tree on Windows, not just the parent, or the daemon survives.' },
@@ -108,7 +112,7 @@ const ALLOWLIST = {
 
 // Growth requires a deliberate edit here, which is the review conversation.
 const SHIPPED_DECISION_BUDGET = 17;
-const TOOLING_DECISION_BUDGET = 6;
+const TOOLING_DECISION_BUDGET = 7;
 
 function sourceFiles() {
   const out = [];

@@ -376,9 +376,9 @@ test('summary: complete passed / incomplete', () => {
 
 // ---------------------------------------------------------------------------------------------
 // QA-S1-F1: family eligibility. A derived session (SHAPES present) with no acceptance verdict must
-// not be consolidated into a family. Known failing today: no evaluator exists yet.
+// not be consolidated into a family. Inspection must still expose withheld sessions.
 // ---------------------------------------------------------------------------------------------
-const S1F1 = 'QA-S1-F1: family build must exclude sessions without a passing acceptance verdict; no evaluator exists yet';
+const S1F1 = 'QA-S1-F1: family build must exclude sessions without a passing acceptance verdict';
 
 function makeDerivedSession(sessionsDir) {
   const s = Session.create(sessionsDir, { site: 'chat.example.test', meta: { target: { url: 'https://chat.example.test/' }, synthetic: true } });
@@ -399,12 +399,15 @@ test('control: a derived SHAPES-only session is visible to collectSessions (fixt
   assert.equal(hit.hasDerived, true);
 });
 
-test(S1F1, { todo: S1F1 }, async () => {
+test(S1F1, async () => {
   const dir = path.join(ROOT, 's1f1');
   const s = makeDerivedSession(dir);
   await s.raw.close();
-  const listed = collectSessions({ sessionsDir: dir, host: 'chat.example.test' }).map((x) => x.id);
-  assert.equal(listed.includes(s.id), false, 'collectSessions accepted a SHAPES-only session with no acceptance verdict');
+  const listed = collectSessions({ sessionsDir: dir, host: 'chat.example.test' });
+  const inspected = listed.find((x) => x.id === s.id);
+  assert.ok(inspected, 'withheld session remains visible for inspection');
+  assert.equal(inspected.eligible, false, 'SHAPES-only session must not be eligible');
+  assert.equal(inspected.acceptance, 'unassessed');
   const built = buildFamily({ sessionsDir: dir, host: 'chat.example.test' });
   assert.equal(built.family.members.includes(s.id), false, 'buildFamily consolidated a session with no acceptance verdict');
 });

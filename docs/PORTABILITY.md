@@ -30,6 +30,8 @@ Everything else that mentions the platform only reports it. `process.platform` m
 
 `test/unit/platform-boundary.test.mjs` enforces the budget. Platform branching may appear only in allowlisted lines, each carrying a reason and one of the domains above; a new branch fails, and so does an allowlisted branch that disappears — deleting the Windows data root "because only Linux was tested" is exactly the regression the test exists to catch. One capability probe replaced an OS check while this test was introduced: `readRegular()` in `src/studio/agentic-files.mjs` now uses `constants.O_NOFOLLOW || 0` instead of a `win32` branch, which is the same behaviour on both hosts.
 
+Developer tooling has a separate seven-line decision budget, including process control: `scripts/local-verify.mjs` selects `bun.exe` on Windows for shell-free child execution and `bun` elsewhere. Its platform receipt is provenance only.
+
 `scripts/chrome-cdp.ps1` is an accepted exception, not an oversight: it repeats browser discovery and launch, and it is the only place where a real decision is duplicated in a second language. Collapsing it into `studio launch --profile-dir` was considered and declined, because the live proof would have to launch the operator's real Chrome profile and a wrong junction claim costs every sign-in. It is Windows maintenance tooling, it is asserted by `test/unit/platform-parity.test.mjs`, and it is not part of the cross-platform surface — so do not "clean it up" as a refactor without a live browser receipt on the Windows host.
 
 ## Evidence tiers

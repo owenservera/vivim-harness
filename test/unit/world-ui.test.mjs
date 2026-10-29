@@ -494,7 +494,8 @@ test('VIVIM Home, Settings and project gallery use existing local World API and 
   assert.equal(mounted.view(), 'home');
   assert.equal(root.getAttribute('data-active-view'), 'home');
   assert.match(root.textContent, /Good to see you/);
-  assert.equal(all(root, (node) => node.className === 'vivim-overview-card').length, 3);
+  assert.equal(all(root, (node) => node.className === 'vivim-overview-card').length, 4);
+  assert.match(root.textContent, /Personal Agent/);
   assert.match(root.textContent, /Saved locally in this Harness/);
   await buttons.settings.click();
   assert.equal(mounted.view(), 'settings');
