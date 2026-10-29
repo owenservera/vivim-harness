@@ -50,7 +50,7 @@ const button = (root, label) => all(root, n => n.tag === 'button' && n.textConte
 function fixture(search = '?app=' + id) {
   const calls = [], content = { schema: 'vivim.personal-app-content/1', appId: id,
     version: 0, items: [] };
-  const state = { lost: false }, copy = value => structuredClone(value);
+  const state = { lost: false, deferCreate: false, releaseCreate: null }, copy = value => structuredClone(value);
   const reply = (status, data) => ({ status, json: async () => data });
   const fetchImpl = async (url, options = {}) => {
     const body = options.body ? JSON.parse(options.body) : null;
@@ -68,6 +68,10 @@ function fixture(search = '?app=' + id) {
         key: body.idempotencyKey, kind: body.kind, title: body.title,
         body: body.body ?? '', completed: false };
       content.items.push(item); content.version++;
+      if (state.deferCreate) {
+        state.deferCreate = false;
+        await new Promise(resolve => { state.releaseCreate = resolve; });
+      }
       if (state.lost) { state.lost = false; return reply(503, { code: 'LOST_LOCAL_REPLY' }); }
       return reply(200, { item, content: copy(content), replayed: false });
     }
@@ -162,4 +166,37 @@ test('invalid app id triggers no API read, and library selection loads a legitim
   assert.equal(library.calls.length, 1);
   await button(library.root, 'My AI World · 6 screens').click();
   assert.equal(library.mobile.state.scaffold.appId, id);
+});
+
+test('editing a note while its save is in flight preserves the newer unsaved draft', async () => {
+  const f = fixture(); await settle();
+  await button(f.root, 'Private Notes').click();
+  const form = all(f.root, n => n.tag === 'form')[0];
+  await type(all(form, n => n.tag === 'input')[0], 'First title');
+  f.state.deferCreate = true;
+  await form.fire('submit');
+  assert.equal(f.content.items.length, 1, 'server has written before its reply');
+  const inFlight = all(f.root, n => n.tag === 'input')[0];
+  await type(inFlight, 'A later draft');
+  f.state.releaseCreate();
+  await settle();
+  assert.equal(f.content.items[0].title, 'First title');
+  assert.equal(f.mobile.state.draftTitle, 'A later draft');
+  assert.equal(f.mobile.state.pendingKey, null);
+});
+
+test('a late mobile save reply cannot repaint the app library after navigating away', async () => {
+  const f = fixture(); await settle();
+  await button(f.root, 'Private Notes').click();
+  const form = all(f.root, n => n.tag === 'form')[0];
+  await type(all(form, n => n.tag === 'input')[0], 'Save then switch');
+  f.state.deferCreate = true;
+  await form.fire('submit');
+  await button(f.root, 'My apps').click();
+  f.state.releaseCreate();
+  await settle();
+  assert.equal(f.mobile.state.appId, null);
+  assert.equal(f.mobile.state.content, null);
+  assert.match(f.root.textContent, /My local apps/);
+  assert.equal(f.content.items.length, 1, 'write is durable, but old response never repaints another view');
 });
