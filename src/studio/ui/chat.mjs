@@ -1975,7 +1975,37 @@ function boot() {
   const comparePanel = document.getElementById('comparePanel');
   if (inBrowser && comparePanel) {
     const el = id => document.getElementById(id);
-    let compareJob = null, compareTimer = null, posting = false, compareVersion = 0;
+    // Six providers the backend accepts (COMPARE_SITES in compare-service.mjs). Kept as plain words only.
+    const SITES = [['chatgpt', 'ChatGPT'], ['claude', 'Claude'], ['zai', 'Z.ai'], ['qwen', 'Qwen'], ['deepseek', 'DeepSeek'], ['gemini', 'Gemini']];
+    const SITE_LABELS = Object.fromEntries(SITES);
+    const SITES_KEY = 'vivim.compare.sites';
+    const grid = el('compareGrid');
+    const compareCards = new Map(); // site -> { root, state, body }, kept and updated in place across polls
+    const make = (tag, props = {}) => {
+      const node = document.createElement(tag);
+      for (const [k, v] of Object.entries(props)) { if (k === 'class') node.className = v; else if (k === 'text') node.textContent = v; else node.setAttribute(k, v); }
+      return node;
+    };
+    // Which providers were last asked, remembered across visits. Never applied without the user's own earlier choice.
+    function loadSavedSites() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(SITES_KEY) || 'null');
+        if (Array.isArray(saved) && saved.length && saved.every(s => Object.hasOwn(SITE_LABELS, s))) return saved;
+      } catch { /* storage optional */ }
+      return null;
+    }
+    function applySavedSites() {
+      const saved = loadSavedSites(); if (!saved) return;
+      const wanted = new Set(saved);
+      for (const input of document.querySelectorAll('input[name="compareSite"]')) input.checked = wanted.has(input.value);
+    }
+    function saveSites() {
+      const sites = [...document.querySelectorAll('input[name="compareSite"]:checked')].map(i => i.value);
+      try { localStorage.setItem(SITES_KEY, JSON.stringify(sites)); } catch { /* storage optional */ }
+    }
+    applySavedSites();
+    for (const input of document.querySelectorAll('input[name="compareSite"]')) input.addEventListener('change', saveSites);
+    let compareJob = null, compareTimer = null, posting = false, compareVersion = 0, fastestVersion = 0, fastestDoneFor = null;
     const liveCompare = job => ['queued', 'running'].includes(job?.state);
     const compareRequest = async (url, body) => {
       const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 15000);
@@ -1990,6 +2020,55 @@ function boot() {
       } finally { clearTimeout(timeout); }
     };
     const missingCompare = error => error?.status === 404 && error?.code === 'COMPARE_NOT_FOUND';
+    // "Fastest so far" is a read-only courtesy line from already-saved history. A failed or missing
+    // response leaves the line as it was (or empty); it is never treated as an error in this panel.
+    async function refreshFastest() {
+      const version = ++fastestVersion;
+      let data;
+      try { data = await compareRequest('/providers/performance'); } catch { return; }
+      if (version !== fastestVersion) return;
+      const fastest = (Array.isArray(data?.providers) ? data.providers : [])
+        .filter(p => Number.isFinite(p?.medianMs) && p.completed > 0)
+        .sort((a, b) => a.medianMs - b.medianMs)[0];
+      el('compareFastest').textContent = fastest
+        ? 'Fastest so far: ' + (fastest.label || SITE_LABELS[fastest.site] || fastest.site) + ' usually answers in about ' + Math.max(1, Math.round(fastest.medianMs / 1000)) + ' s.'
+        : '';
+    }
+    function maybeRefreshFastest(job) {
+      if (job && !liveCompare(job) && fastestDoneFor !== job.id) { fastestDoneFor = job.id; refreshFastest(); }
+    }
+    // One answer card per asked provider, in plain words: waiting, answering, answered-in-N-seconds, or why not.
+    function compareCard(site) {
+      let card = compareCards.get(site);
+      if (!card) {
+        const root = make('div', { class: 'compare-card', role: 'listitem' });
+        const heading = make('h3', { text: SITE_LABELS[site] ?? site });
+        const state = make('p', { class: 'state' });
+        const body = make('div', { class: 'body' });
+        root.append(heading, state, body);
+        card = { root, state, body };
+        compareCards.set(site, card);
+      }
+      return card;
+    }
+    function compareStatusWords(result) {
+      const label = SITE_LABELS[result.site] ?? result.site;
+      if (result.state === 'ready') {
+        const ms = Date.parse(result.answeredAt ?? '') - Date.parse(result.startedAt ?? '');
+        if (Number.isFinite(ms) && ms >= 0) return 'Answered in ' + Math.max(1, Math.round(ms / 1000)) + ' s';
+      }
+      return result.message || 'Waiting for ' + label + '…';
+    }
+    function renderCompareGrid(job) {
+      const nodes = (Array.isArray(job?.results) ? job.results : []).map(result => {
+        const card = compareCard(result.site);
+        setText(card.state, compareStatusWords(result));
+        setText(card.body, result.answer || '');
+        return card.root;
+      });
+      const have = Array.from(grid.children);
+      if (nodes.length !== have.length || nodes.some((n, i) => n !== have[i])) grid.replaceChildren(...nodes);
+    }
     const forgetCompare = () => {
       clearTimeout(compareTimer);
       compareVersion++;
@@ -2000,6 +2079,7 @@ function boot() {
       el('compareRefresh').hidden = true;
       el('compareRefresh').disabled = false;
       el('compareStatus').textContent = 'This saved comparison is no longer available. Nothing will be sent again automatically. Check your provider tabs for any answers before starting a new comparison.';
+      grid.replaceChildren();
     };
     const renderCompare = job => {
       compareJob = job;
@@ -2007,11 +2087,8 @@ function boot() {
       el('compareCancel').disabled = !liveCompare(job);
       el('compareStatus').textContent = liveCompare(job) ? 'Waiting for your AI… You can leave this page and come back.'
         : job.state === 'complete' ? 'Your answers are ready.' : job.state === 'cancelled' ? 'Stopped waiting. Already-sent questions may still finish in your browser.' : 'Comparison finished. Check each provider below.';
-      for (const site of ['chatgpt', 'claude']) {
-        const suffix = site === 'chatgpt' ? 'Chatgpt' : 'Claude', result = job.results.find(r => r.site === site);
-        el('compare' + suffix + 'State').textContent = result?.message ?? 'Not selected';
-        el('compare' + suffix + 'Answer').textContent = result?.answer ?? '';
-      }
+      renderCompareGrid(job);
+      maybeRefreshFastest(job);
     };
     const pollCompare = async () => {
       clearTimeout(compareTimer);
@@ -2041,6 +2118,7 @@ function boot() {
       for (const button of el('shellModes').querySelectorAll('button')) button.setAttribute('aria-pressed', String(button.id === 'viewCompare'));
       el('vivimViewBreadcrumb').textContent = 'Your AI World / Compare';
       el('compareHeading').focus(); comparePanel.scrollIntoView({ block: 'start' });
+      refreshFastest();
     });
     el('shellModes').addEventListener('click', event => {
       if (event.target.closest('[data-view]')) { comparePanel.hidden = true; el('viewCompare').setAttribute('aria-pressed', 'false'); }
@@ -2090,6 +2168,7 @@ function boot() {
         pollCompare();
       }
     } catch { /* storage optional */ }
+    refreshFastest();
   }
   // Same dynamic-import rule as U1 so the offline page tests never resolve the module.
   if (inBrowser) try {

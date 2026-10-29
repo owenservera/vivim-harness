@@ -86,6 +86,12 @@ select { width: 100%; max-width: 420px; }
 .target .t-sub { color: var(--muted); font-size: 12.5px; overflow-wrap: anywhere; }
 .target.off { opacity: .55; cursor: not-allowed; }
 
+/* Compare: a responsive grid of per-provider answer cards, 1 to 6 columns depending on space. */
+.compare-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; margin-top: 14px; }
+.compare-card { border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px 12px; min-width: 0; }
+.compare-card h3 { margin: 0 0 4px; }
+.compare-card .state { margin: 0 0 8px; font-weight: 600; }
+
 /* chips */
 .chips { display: flex; gap: 6px 8px; flex-wrap: wrap; align-items: center; }
 .pill { display: inline-flex; align-items: center; gap: 6px; border: 1px solid currentColor; border-radius: 99px; padding: 0 10px; font-size: 12px; font-weight: 600; white-space: nowrap; line-height: 1.7; }
@@ -808,13 +814,16 @@ body.vivim-app {
         <fieldset id="compareProviders"><legend>Ask</legend><div class="row">
           <label class="pick"><input type="checkbox" name="compareSite" value="chatgpt" checked>ChatGPT</label>
           <label class="pick"><input type="checkbox" name="compareSite" value="claude" checked>Claude</label>
+          <label class="pick"><input type="checkbox" name="compareSite" value="zai">Z.ai</label>
+          <label class="pick"><input type="checkbox" name="compareSite" value="qwen">Qwen</label>
+          <label class="pick"><input type="checkbox" name="compareSite" value="deepseek">DeepSeek</label>
+          <label class="pick"><input type="checkbox" name="compareSite" value="gemini">Gemini</label>
         </div></fieldset>
         <div class="row"><button class="primary" id="compareStart" type="submit">Ask selected providers</button><button type="button" id="compareCancel" disabled>Stop waiting</button><button type="button" id="compareRefresh" hidden>Check saved comparison</button></div>
       </form>
       <p class="note" id="compareStatus" role="status" aria-live="polite"></p>
-      <div class="tablewrap"><table aria-label="Provider answers"><thead><tr><th scope="col">ChatGPT</th><th scope="col">Claude</th></tr></thead>
-        <tbody><tr><td><p id="compareChatgptState"></p><div class="body" id="compareChatgptAnswer"></div></td><td><p id="compareClaudeState"></p><div class="body" id="compareClaudeAnswer"></div></td></tr></tbody>
-      </table></div>
+      <p class="note" id="compareFastest" aria-live="polite"></p>
+      <div class="compare-grid" id="compareGrid" role="list" aria-label="Provider answers"></div>
     </section>
     <section class="vivim-welcome" id="vivimWelcome" aria-labelledby="vivimWelcomeTitle" aria-busy="false">
       <div class="vivim-welcome-hero">
