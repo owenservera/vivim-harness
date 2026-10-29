@@ -84,6 +84,27 @@ define({ name: 'personal-agent advance', section: 'System', usage: '<work-id>',
   },
 });
 
+define({ name: 'personal-agent plan', section: 'System', usage: '<work-id>',
+  summary: 'Set or clear a user-authored next action for open local Work (no execution)',
+  flags: {
+    next: { type: 'string', valueName: 'TEXT', desc: 'Next local action (1..1000 characters)' },
+    clear: { type: 'boolean', desc: 'Clear the next action (not allowed for blocked Work)' },
+  },
+  examples: ['studio personal-agent plan work-0123456789abcdef0123456789abcdef --next "Review receipts" --json',
+    'studio personal-agent plan work-0123456789abcdef0123456789abcdef --clear --json'],
+  run(ctx) {
+    if (ctx.args.length !== 1 || (!!ctx.flags.clear === !!ctx.flags.next)) {
+      throw usageError('Usage: studio personal-agent plan <work-id> (--next <text> | --clear)');
+    }
+    const agent = service(ctx), current = agent.status();
+    if (!current.initialized) throw usageError('Bootstrap the Personal Agent first');
+    emit(ctx, agent.updateWorkNextAction({
+      expectedVersion: current.version, id: ctx.args[0],
+      nextAction: ctx.flags.clear ? null : ctx.flags.next,
+    }));
+  },
+});
+
 define({ name: 'personal-agent sitrep', section: 'System',
   summary: 'Private, bounded continuity packet: bootstrap, recent memory and outstanding Work',
   examples: ['studio personal-agent sitrep --json'],
