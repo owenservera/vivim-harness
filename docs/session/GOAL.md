@@ -16,16 +16,16 @@ Build and fully integrate the first functional, local-first VIVIM prototype acro
 6. **No tests, just code.** Don't write or run unit-test suites. Short live runtime checks are the evidence.
 7. **Never idle.** Keep independent work moving while downloads or subagents run.
 8. **Full authority.** Proceed without asking permission. Ask only for things only the owner can do, such as a provider sign-in.
-9. **New code file upgrade pass.** Every new full code file in core/risky code gets a complete read-and-upgrade pass by Opus 5.5 (`cliproxy-claude/claude-opus-5-5`) after its writer lane finishes. Tactical new files (scripts, launchers, docs tooling, simple UI glue) get the same pass from `openai/gpt-6.1-sol` instead — never Opus. See `AGENTS.md` for core/risky scope and review requirements.
-10. **Model routing (updated by owner).** Use `openai/gpt-6.1-sol` for all implementation lanes, including subagents. Reserve Opus 5.5 for whole-new-file core/risky review/upgrade passes only, never tactical files. (Free-tier models hit usage limits mid-task — don't route lanes to them.)
-11. **Scenario-driven continuous build.** `docs/product/USER-SCENARIOS-100.json` holds 100 user scenarios, a file map and a 3-lane process. Lanes have non-overlapping write scopes:
+9. **New code file upgrade pass.** Every new full code file in core/risky code gets a complete read-and-upgrade pass by Opus 5.5 (`cliproxy-claude/claude-opus-5-5`) after its writer lane finishes. Tactical new files (scripts, launchers, docs tooling, simple UI glue) get the same pass from `cliproxy-claude/claude-sonnet-5` instead — never Opus. See `AGENTS.md` for core/risky scope and review requirements.
+10. **Model routing (updated by owner).** GPT-6.1 Sol is usage-limited. Use `cliproxy-claude/claude-sonnet-5` for all implementation lanes, including subagents. If Claude is unavailable, use `cliproxy-grok/grok-4.7`. Do not route lanes to `openai/gpt-6.1-sol` until its quota resets, and do not use free-tier models. Reserve Opus 5.5 for whole-new-file core/risky review/upgrade passes only, never tactical files.
+11. **Scenario-driven continuous build.** Keep six active independent lanes working against unfinished scenarios in `docs/product/USER-SCENARIOS-100.json`. Its three ownership groups define the boundaries within which the six lanes receive explicit non-overlapping write scopes:
     - A — providers and conversation runtime;
     - B — product surfaces (UI, mobile, Android);
     - C — Personal Agent, app builder and platform services.
 
-    Work the P0 backlog in each lane and update each scenario's status with evidence as it changes.
+    Work eligible unfinished P0 scenarios first, then P1 and P2. Reconcile each lane's completed change, commit and observed evidence before refilling it with the next real unfinished scenario. Implementation or offline checks alone never establish live WORKS. Keep one live browser/effect owner across all six lanes and one coordinated scenario/evidence writer. A scenario assignment is not authorization for sends or other unsafe effects; preserve drafts and original uncertain-send keys. Do not fabricate lanes or busywork to fill slots: if dependencies, authorization or exclusive ownership prevent six useful assignments, report the concrete blocker and keep the remaining independent feature work moving.
 
-12. **Features first; privacy and security last.** Defer privacy/security audits and hardening lanes until the feature scenarios are built. Up to 6 parallel lanes with non-overlapping write scopes.
+12. **Features first; privacy and security last.** Defer privacy/security audits and hardening lanes until the feature scenarios are built. Maintain six useful parallel lanes with non-overlapping write scopes under rule 11; do not substitute audit or busywork lanes for unfinished features.
 
 ## Done means
 Each objective area has a live-observed outcome on the owner's real accounts and devices, recorded with evidence.

@@ -1,7 +1,7 @@
 ---
-description: GPT-6.1 Sol — Personal Agent service, memory, Work and restart durability
+description: Claude Sonnet 5 — Personal Agent service, memory, Work and restart durability
 mode: subagent
-model: openai/gpt-6.1-sol
+model: cliproxy-claude/claude-sonnet-5
 ---
 # Lane B — Personal Agent backend
 

@@ -1,7 +1,7 @@
 ---
 description: Git management for VIVIM Harness, including scoped staging and requested commits or pushes
 mode: subagent
-model: openai/gpt-6.1-sol
+model: cliproxy-claude/claude-sonnet-5
 ---
 # Git manager
 

@@ -1,7 +1,7 @@
 ---
-description: GPT-6.1 Sol — offline ChatGPT browser-adapter source tracing and regressions
+description: Claude Sonnet 5 — offline ChatGPT browser-adapter source tracing and regressions
 mode: subagent
-model: openai/gpt-6.1-sol
+model: cliproxy-claude/claude-sonnet-5
 ---
 # Lane D — ChatGPT Harness offline hardening
 

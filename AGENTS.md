@@ -23,10 +23,10 @@ This repository is the runnable VIVIM product. Take initiative: do useful work, 
 ## Active goal
 Read `docs/session/GOAL.md` first: the owner's current objective and specifics (consumer grade, user's own AI webapp accounts, never freeze, build on what works, no tests, Opus upgrade pass, model routing, 3-lane scenario build from `docs/product/USER-SCENARIOS-100.json`).
 
-**Model routing (owner override):** Use `openai/gpt-6.1-sol` for all implementation lanes, including subagents. Free-tier models failed mid-task; do not route lanes to them. Reserve Opus 5.5 for the whole-new-file core/risky review below, never tactical files. This project-specific directive supersedes older free-tier routing guidance.
+**Model routing (owner override):** GPT-6.1 Sol is usage-limited. Use `cliproxy-claude/claude-sonnet-5` for all implementation lanes, including subagents. If Claude is unavailable, use `cliproxy-grok/grok-4.7`. Do not route lanes to free-tier models or to `openai/gpt-6.1-sol` until its quota resets. Reserve Opus 5.5 for the whole-new-file core/risky review below, never tactical files.
 
 ## New code file review (owner rule)
-Every **new full code file** in **core/risky code** (conversation runtime, browser/CDP ownership, send/no-resend and draft protection, job runners, persistence/CAS, auth/LAN pairing) gets a complete read-and-upgrade pass by **Opus 5.5** (`cliproxy-claude/claude-opus-5-5`) once its writing lane finishes, before the work is reported done. Tactical new files (scripts, launchers, docs tooling, simple UI glue) get the same pass from `openai/gpt-6.1-sol` instead — never Opus.
+Every **new full code file** in **core/risky code** (conversation runtime, browser/CDP ownership, send/no-resend and draft protection, job runners, persistence/CAS, auth/LAN pairing) gets a complete read-and-upgrade pass by **Opus 5.5** (`cliproxy-claude/claude-opus-5-5`) once its writing lane finishes, before the work is reported done. Tactical new files (scripts, launchers, docs tooling, simple UI glue) get the same pass from `cliproxy-claude/claude-sonnet-5` instead — never Opus.
 - The pass reads the whole file plus the callers/contracts it depends on, fixes real bugs (correctness, security, edge cases, consumer UX), simplifies, and preserves public exports used elsewhere.
 - Run it only after the file's writer lane has finished; never while another lane is still editing that file.
 - It commits its own focused change and reports per file: bugs found (severity), changes made, what was deliberately left.

@@ -1,7 +1,7 @@
 ---
-description: GPT-6.1 Sol — existing VIVIM World shell, Agent panel and UI integration
+description: Claude Sonnet 5 — existing VIVIM World shell, Agent panel and UI integration
 mode: subagent
-model: openai/gpt-6.1-sol
+model: cliproxy-claude/claude-sonnet-5
 ---
 # Lane C — VIVIM World UI
 

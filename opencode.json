@@ -1,5 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
+  "model": "cliproxy-claude/claude-sonnet-5",
   "instructions": [
     "context.md"
   ]

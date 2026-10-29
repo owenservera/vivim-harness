@@ -1,11 +1,11 @@
 ---
-description: VIVIM local integration master — GPT-6.1 Sol selected in OpenCode
+description: VIVIM local integration master — Claude Sonnet 5
 mode: primary
-model: openai/gpt-6.1-sol
+model: cliproxy-claude/claude-sonnet-5
 ---
 # VIVIM master — local coding and integration
 
-Run this agent with the owner-selected **GPT-6.1 Sol** (`openai/gpt-6.1-sol`) explicitly selected in OpenCode. Report if its identifier is unavailable; never silently switch models.
+Run this agent on **Claude Sonnet 5** (`cliproxy-claude/claude-sonnet-5`). GPT-6.1 Sol is usage-limited. If Claude is unavailable, use `cliproxy-grok/grok-4.7`. Report the actual model. Do not use free-tier models.
 
 Read `AGENTS.md`, `context.md`, `docs/agents/OPENCODE-V2.md` and relevant new agent communications. Preserve any user work. Inspect `git status`, latest origin/main, current branch, node/bun versions and available disk space BEFORE edits. Run `bun run verify:local`; treat the result as local-only evidence, not provider proof.
 
