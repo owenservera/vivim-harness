@@ -27,12 +27,20 @@ export function lanAddresses(interfaces = os.networkInterfaces()) {
 
 /** The preferred address (must be one of this machine's own addresses) or the best candidate. */
 export function pickLanAddress(addresses, preferred) {
-  if (preferred) {
-    const match = addresses.find((a) => a.address === preferred);
-    if (!match) throw new Error(`--lan-host ${preferred} is not a non-loopback IPv4 address of this machine (${addresses.map((a) => a.address).join(', ') || 'none found'})`);
+  const wanted = typeof preferred === 'string' ? preferred.trim() : preferred;
+  if (wanted) {
+    const match = addresses.find((a) => a.address === wanted);
+    if (!match) throw new Error(`--lan-host ${wanted} is not a non-loopback IPv4 address of this machine (available: ${addresses.map((a) => a.address).join(', ') || 'none found'})`);
     return match;
   }
   return addresses[0] ?? null;
+}
+
+/** True when a token is long enough for LAN exposure and can travel verbatim in the Set-Cookie header
+ *  (RFC 6265 cookie-octets subset: base64/base64url/hex). Spaces, quotes, `;`, `,`, `\` or control
+ *  characters would split or break the cookie, so the phone could never stay signed in. */
+export function isCookieSafeToken(token) {
+  return typeof token === 'string' && /^[A-Za-z0-9._~+/=-]{16,512}$/.test(token);
 }
 
 /** Host header values this machine legitimately answers to in LAN-pair mode (exact matches, no wildcards). */
@@ -204,8 +212,10 @@ export function qrEncode(text) {
   return modules;
 }
 
-/** Terminal rendering with half-block glyphs; forced black-on-white so dark terminal themes still scan. */
-export function qrToTerminal(text, { quiet = 2, ansi = true } = {}) {
+/** Terminal rendering with half-block glyphs; forced black-on-white so dark terminal themes still scan.
+ *  The default 4-module quiet zone is the ISO minimum; a narrower white border fails on some phone scanners
+ *  because the terminal background around it is dark. */
+export function qrToTerminal(text, { quiet = 4, ansi = true } = {}) {
   const m = qrEncode(text), n = m.length, total = n + quiet * 2;
   const dark = (x, y) => x >= quiet && y >= quiet && x < n + quiet && y < n + quiet && m[y - quiet][x - quiet];
   const lines = [];

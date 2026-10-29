@@ -13,13 +13,25 @@ export const PROVIDER_REPLY_SOURCE = 'provider-reply';
 export const PROVIDER_REPLY_TAGS = Object.freeze(['ai-proposed', 'provider-reply', 'unverified']);
 const CONVERSATION_ID = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}$/;
 const TITLE_MAX = 160, OBJECTIVE_MAX = 4000, TRUNCATED = '\n…[truncated]';
+const CONTROL = /[\u0000-\u001f\u007f]/;
+const DIGEST = /^[a-f0-9]{64}$/;
 const digestOf = text => createHash('sha256').update(text, 'utf8').digest('hex');
+// Cut to at most `max` UTF-16 units without leaving a lone high surrogate (a split emoji) at the end.
+const cut = (text, max) => {
+  const head = text.slice(0, Math.max(0, max));
+  return /[\uD800-\uDBFF]$/.test(head) ? head.slice(0, -1) : head;
+};
 
-// First meaningful line, stripped of markdown decoration, bounded to the Work title limit.
+// First meaningful line with markdown decoration removed (quote/heading/list markers, emphasis, code
+// ticks), bounded to the Work title limit. Code-fence lines and rules are skipped, and a title that
+// merely starts with a number ("3 ideas for…", "2027 plan") keeps it; only "1." / "2)" list markers go.
 function titleFrom(replyText) {
-  const line = replyText.split(/\r?\n/).map(row => row.replace(/^[\s>#*\-+`\d.)]+/, '').replace(/[*_`]+/g, '').trim())
-    .find(row => row.length > 0) ?? 'Provider reply';
-  return line.length > TITLE_MAX ? line.slice(0, TITLE_MAX - 1).trimEnd() + '…' : line;
+  const line = replyText.split(/\r?\n/)
+    .filter(row => !/^\s*(```|~~~)/.test(row))
+    .map(row => row.replace(/^\s*(?:>\s*)*(?:#{1,6}\s+|[-*+]\s+|\d{1,3}[.)]\s+)?/, '')
+      .replace(/\*\*|__|[*`]/g, '').replace(/\s+/g, ' ').trim())
+    .find(row => row.length > 0 && !/^[-=_*\s]+$/.test(row)) ?? 'Provider reply';
+  return line.length > TITLE_MAX ? cut(line, TITLE_MAX - 1).trimEnd() + '…' : line;
 }
 
 function objectiveFrom(replyText, provenance) {
@@ -28,7 +40,7 @@ function objectiveFrom(replyText, provenance) {
     'Not human-authored; no provider request was made.\n\n';
   const room = OBJECTIVE_MAX - header.length;
   const body = replyText.trim();
-  return header + (body.length <= room ? body : body.slice(0, room - TRUNCATED.length) + TRUNCATED);
+  return header + (body.length <= room ? body : cut(body, room - TRUNCATED.length).trimEnd() + TRUNCATED);
 }
 
 export function createProviderReplyWork({ agent, readStoredConversation } = {}) {
@@ -42,7 +54,8 @@ export function createProviderReplyWork({ agent, readStoredConversation } = {}) 
     if (typeof conversation !== 'string' || !CONVERSATION_ID.test(conversation)) {
       throw problem(400, 'Invalid conversation id', 'PROVIDER_REPLY_INVALID');
     }
-    if (typeof turnId !== 'string' || !turnId || turnId.length > 200) {
+    // Control characters would forge extra lines in the objective header that cites this turn.
+    if (typeof turnId !== 'string' || !turnId || turnId.length > 200 || CONTROL.test(turnId)) {
       throw problem(400, 'An explicit turn id is required', 'PROVIDER_REPLY_INVALID');
     }
     const stored = await readStoredConversation(conversation);
@@ -69,15 +82,26 @@ export function createProviderReplyWork({ agent, readStoredConversation } = {}) 
   async function preview({ conversation, turnId } = {}) {
     const { proposal, provenance } = await observedReply({ conversation, turnId });
     const current = agent.status();
+    const ready = current.initialized === true;
+    // Re-previewing an already-saved reply should say so (apply would just replay the same item).
+    const saved = ready && typeof agent.workList === 'function'
+      ? (agent.workList().items ?? []).find(item => item?.title === proposal.title && item?.objective === proposal.objective) ?? null
+      : null;
     return {
       source: PROVIDER_REPLY_SOURCE, provenance, proposal, effects: 'none', approvalRequired: true,
-      canApply: current.initialized === true, baseVersion: current.initialized ? current.version : null,
-      note: current.initialized ? 'Preview only: nothing was saved. Apply requires explicit approval.' : 'Initialize the Personal Agent before applying.',
+      canApply: ready, baseVersion: ready ? current.version : null,
+      alreadySaved: saved ? { id: saved.id, status: saved.status } : null,
+      note: !ready ? 'Initialize the Personal Agent before applying.'
+        : saved ? 'This reply is already saved as Work; applying again changes nothing.'
+          : 'Preview only: nothing was saved. Apply requires explicit approval.',
     };
   }
   async function apply({ conversation, turnId, replyDigest, expectedVersion, approval } = {}) {
     if (approval !== 'user-confirmed') {
       throw problem(400, 'Explicit user-confirmed approval required', 'PROVIDER_REPLY_APPROVAL_REQUIRED');
+    }
+    if (typeof replyDigest !== 'string' || !DIGEST.test(replyDigest)) {
+      throw problem(400, 'replyDigest from the preview is required; preview the reply first', 'PROVIDER_REPLY_INVALID');
     }
     const { proposal, provenance, idempotencyKey } = await observedReply({ conversation, turnId });
     if (replyDigest !== provenance.replyDigest) {

@@ -9,27 +9,53 @@ import { problem } from './http.mjs';
 export const PROVIDER_REPLY_SOURCE = 'provider-reply';
 const CONVERSATION_ID = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}$/;
 const FENCE = /```[ \t]*([A-Za-z0-9_-]*)[ \t]*\r?\n([\s\S]*?)\r?\n?```/g;
+const CONTROL = /[\u0000-\u001f\u007f]/;
+const DIGEST = /^[a-f0-9]{64}$/;
 const digestOf = text => createHash('sha256').update(text, 'utf8').digest('hex');
+const ambiguous = () => problem(400, 'Provider reply contains more than one JSON block; refusing to guess', 'PROVIDER_REPLY_AMBIGUOUS');
 
-// Providers usually wrap JSON in a markdown fence. Accept exactly one bare/json fence, else the
-// whole reply. The result is only a candidate string: the compiler remains the sole judge.
+// Top-level {...} spans of prose that parse as JSON objects. Quotes are only tracked INSIDE a brace span,
+// so apostrophes/quotes in the surrounding prose cannot desynchronise the scan.
+function jsonObjectsIn(text) {
+  const found = [];
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] !== '{') continue;
+    let depth = 0, inString = false, end = -1;
+    for (let j = i; j < text.length && end < 0; j++) {
+      const c = text[j];
+      if (inString) { if (c === '\\') j++; else if (c === '"') inString = false; }
+      else if (c === '"') inString = true;
+      else if (c === '{') depth++;
+      else if (c === '}' && --depth === 0) end = j;
+    }
+    if (end < 0) break; // unbalanced from here on: nothing further can close
+    const slice = text.slice(i, end + 1);
+    try {
+      const value = JSON.parse(slice);
+      if (value && typeof value === 'object' && !Array.isArray(value) && !found.includes(slice)) found.push(slice);
+      i = end; // a valid object's inner braces are never separate candidates
+    } catch { /* not JSON: keep scanning from the next brace (it may open the real object) */ }
+  }
+  return found;
+}
+
+// Providers usually wrap JSON in a markdown fence. A ```json fence always counts; a bare ``` fence counts
+// only when it holds an object (so an extra shell/code snippet next to the JSON is not "ambiguous").
+// More than one candidate is refused rather than guessed. Without fences: a reply that starts with '{' is
+// passed whole (so the compiler reports the real JSON error); otherwise exactly one embedded JSON object
+// (page-captured replies render a code block as "json Copy code {...}"). The compiler stays the sole judge.
 export function extractProposalText(replyText) {
-  const blocks = [...replyText.matchAll(FENCE)]
-    .filter(match => ['', 'json'].includes(match[1].toLowerCase())).map(match => match[2].trim());
-  if (blocks.length > 1) {
-    throw problem(400, 'Provider reply contains more than one JSON block; refusing to guess', 'PROVIDER_REPLY_AMBIGUOUS');
-  }
+  const text = String(replyText ?? '');
+  const blocks = [...text.matchAll(FENCE)]
+    .filter(([, tag, body]) => (tag ? tag.toLowerCase() === 'json' : body.trim().startsWith('{')))
+    .map(match => match[2].trim());
+  if (blocks.length > 1) throw ambiguous();
   if (blocks.length === 1) return blocks[0];
-  const whole = replyText.trim();
+  const whole = text.trim();
   if (whole.startsWith('{')) return whole;
-  // A page-captured reply often renders the JSON code block as "json <copy label> {...}" without fences.
-  // Candidate = outermost braces only, and only when that slice is itself valid JSON; the compiler still judges it.
-  const open = whole.indexOf('{'), close = whole.lastIndexOf('}');
-  if (open >= 0 && close > open) {
-    const slice = whole.slice(open, close + 1);
-    try { JSON.parse(slice); return slice; } catch { /* fall through to the whole reply */ }
-  }
-  return whole;
+  const objects = whole.length <= 100_000 ? jsonObjectsIn(whole) : []; // bounded scan; huge replies fail the compiler size cap anyway
+  if (objects.length > 1) throw ambiguous();
+  return objects[0] ?? whole;
 }
 
 export function createProviderReplyBuilder({ apps, readStoredConversation } = {}) {
@@ -43,7 +69,7 @@ export function createProviderReplyBuilder({ apps, readStoredConversation } = {}
     if (typeof conversation !== 'string' || !CONVERSATION_ID.test(conversation)) {
       throw problem(400, 'Invalid conversation id', 'PROVIDER_REPLY_INVALID');
     }
-    if (typeof turnId !== 'string' || !turnId || turnId.length > 200) {
+    if (typeof turnId !== 'string' || !turnId || turnId.length > 200 || CONTROL.test(turnId)) {
       throw problem(400, 'An explicit turn id is required', 'PROVIDER_REPLY_INVALID');
     }
     const stored = await readStoredConversation(conversation);
@@ -73,6 +99,9 @@ export function createProviderReplyBuilder({ apps, readStoredConversation } = {}
     return { ...result, source: PROVIDER_REPLY_SOURCE, provenance };
   }
   async function apply({ id, conversation, turnId, replyDigest, expectedVersion, approval } = {}) {
+    if (typeof replyDigest !== 'string' || !DIGEST.test(replyDigest)) {
+      throw problem(400, 'replyDigest from the preview is required; preview the reply first', 'PROVIDER_REPLY_INVALID');
+    }
     const { proposal, provenance } = await observedReply({ conversation, turnId });
     if (replyDigest !== provenance.replyDigest) {
       throw problem(409, 'Stored reply changed since it was previewed; preview again', 'PROVIDER_REPLY_CHANGED');

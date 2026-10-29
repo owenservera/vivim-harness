@@ -38,7 +38,7 @@ import { createConversationApi, defaultConversationRuntime } from './conversatio
 import { createConversationEvents } from './conversation-events.mjs';
 import { createHarnessRunStore } from '../capture/harness-runs.mjs';
 import { createHarnessApi, registerHarnessTools, conversationToolExecutor, HARNESS_RETRYABLE_TOOLS } from './harness-api.mjs';
-import { lanAddresses, pickLanAddress, lanHostHeaders, pairingUrl } from './lan-pair.mjs';
+import { lanAddresses, pickLanAddress, lanHostHeaders, pairingUrl, isCookieSafeToken } from './lan-pair.mjs';
 
 const UI = new URL('./ui/index.html', import.meta.url);
 
@@ -82,7 +82,7 @@ export async function startStudio({ paths, profileStore, familyStore, cdpPort = 
   let lan = null;
   if (lanPair) {
     if (accessMode !== 'token') throw new Error('LAN pairing requires token access mode; refusing to expose an unauthenticated Studio to the network');
-    if (typeof token !== 'string' || token.length < 16) throw new Error('LAN pairing requires an access token of at least 16 characters');
+    if (!isCookieSafeToken(token)) throw new Error('LAN pairing requires an access token of 16-512 characters using only letters, digits and . _ ~ + / = - (CAPTURE_STUDIO_TOKEN)');
     const chosen = pickLanAddress(lanAddresses(), lanHost);
     if (!chosen) throw new Error('LAN pairing requested but no non-loopback IPv4 address was found; connect to a network first');
     lan = { address: chosen.address };
