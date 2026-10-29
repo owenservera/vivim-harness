@@ -1,0 +1,72 @@
+{
+  "schemaVersion": "1.0",
+  "objective": "Live LOCAL check of personal-app content HTTP routes (notes/tasks) on the existing app-ea8674db844f4db10ebd641dc9fc2818 (Study Planner, v2, custom-study-sessions screen present): add 1 note + 2 tasks with stable idempotency keys, complete 1 task, read back exact items + version, replay a create key, attempt a stale-version update, re-read blueprint + content.",
+  "appId": "app-ea8674db844f4db10ebd641dc9fc2818",
+  "classification": "PASS",
+  "agent": "fixer (subagent)",
+  "model": "cliproxy-claude/claude-sonnet-5",
+  "authorization": "Assigned: Studio native HTTP content routes only (personal-app-routes.mjs / personal-app-content.mjs), no browser, no AI sends. Another lane owns the browser/Studio process.",
+  "testedSourceRevision": "84cc5694a4c1bd52d5b803f199b95ad61ee3748a",
+  "transport": "Invoke-RestMethod against http://127.0.0.1:38730/api/v1/personal-apps/... (native Studio HTTP, not a model tool)",
+  "preState": {
+    "blueprint": {"version": 2, "screens": ["home", "agent", "builder", "custom-study-sessions"]},
+    "content": {"version": 2, "itemCount": 2, "note": "2 pre-existing items from an earlier lane's run (Orchard task/note knowledge check); left untouched"}
+  },
+  "commands": [
+    {"step": "S060 read blueprint", "command": "GET /api/v1/personal-apps/app-ea8674db844f4db10ebd641dc9fc2818", "result": "200, version 2, 4 screens including custom-study-sessions. No restart/connection-refused encountered."},
+    {"step": "S071a create note", "command": "POST /content/items {expectedVersion:2, idempotencyKey:'s060-note-ea8674-01', kind:'note', title:'Live check note A'}", "result": "200, replayed:false, content.version 2->3, item-7f99ba78b582a34a824ae4c2a683dfb2 created"},
+    {"step": "S071b create task A", "command": "POST /content/items {expectedVersion:3, idempotencyKey:'s060-task-ea8674-01', kind:'task', title:'Live check task A'}", "result": "200, replayed:false, version 3->4, item-464ae8f26e1a1b87471b4137f27b5038 created"},
+    {"step": "S071c create task B", "command": "POST /content/items {expectedVersion:4, idempotencyKey:'s060-task-ea8674-02', kind:'task', title:'Live check task B'}", "result": "200, replayed:false, version 4->5, item-485acc0a7aa0e5622fec23c56a3c4ccf created"},
+    {"step": "S071d complete task A", "command": "POST /content/items/item-464ae8f26e1a1b87471b4137f27b5038/completion {expectedVersion:5, completed:true}", "result": "200, changed:true, version 5->6, item.completed=true"},
+    {"step": "S071e read back content", "command": "GET /content", "result": "200, version 6, exactly 5 items (2 pre-existing + 3 new), task A completed:true, task B completed:false, note A present verbatim; confirms exact items + version"},
+    {"step": "S071f replay create key", "command": "POST /content/items {expectedVersion:6, idempotencyKey:'s060-task-ea8674-01', kind:'task', title:'Live check task A', body: same}", "result": "200, replayed:true, version stayed 6, item count stayed 5, same item returned unchanged -- no duplicate"},
+    {"step": "stale-version update attempt", "command": "POST /content/items {expectedVersion:3 (stale; true version is 6), idempotencyKey:'s060-stale-ea8674-01', kind:'note', title:'Should be refused stale write'}", "result": "HTTP 409 {\"error\":\"App content changed; reload before saving\",\"code\":\"PERSONAL_APP_CONTENT_VERSION_CONFLICT\"} -- refused, plain wording, no raw revision numbers/jargon, no mutation"},
+    {"step": "post-stale-attempt verify no duplicate/no corruption", "command": "GET /content, GET blueprint", "result": "content version still 6, item count still 5; blueprint still version 2 with custom-study-sessions intact"},
+    {"step": "S072 reopen after restart", "command": "All requests above answered immediately on first try with no connection-refused errors throughout the run", "result": "No Studio restart was observed during this session. Not applicable to re-verify post-restart state; current state already re-confirmed by the final read below."},
+    {"step": "final re-read", "command": "GET blueprint; GET content; Get-Date -AsUTC", "result": "Blueprint version 2 (4 screens) and content version 6 (5 items) both match all prior reads exactly. Clock 2026-10-29T23:30:01.0678253Z."}
+  ],
+  "commandCount": {"httpReadRequests": 5, "httpWriteRequests": 5, "httpWritesAccepted": 4, "httpWritesRefused": 1, "browserEffects": 0, "aiSends": 0},
+  "contentAfter": {
+    "version": 6,
+    "items": [
+      {"id": "item-992bcfa2cd26e8fb817d9507418645f9", "kind": "task", "title": "Orchard task knowledge check", "completed": false, "origin": "pre-existing"},
+      {"id": "item-4b92eca6ca034393302b6dfc9f6a0909", "kind": "note", "title": "Orchard app note knowledge check", "completed": false, "origin": "pre-existing"},
+      {"id": "item-7f99ba78b582a34a824ae4c2a683dfb2", "kind": "note", "title": "Live check note A", "completed": false, "origin": "this-run; synthetic test string"},
+      {"id": "item-464ae8f26e1a1b87471b4137f27b5038", "kind": "task", "title": "Live check task A", "completed": true, "origin": "this-run; synthetic test string"},
+      {"id": "item-485acc0a7aa0e5622fec23c56a3c4ccf", "kind": "task", "title": "Live check task B", "completed": false, "origin": "this-run; synthetic test string"}
+    ]
+  },
+  "blueprintAfter": {"version": 2, "unchanged": true, "screens": ["home", "agent", "builder", "custom-study-sessions"]},
+  "bugFound": false,
+  "fixApplied": false,
+  "gitStatusBeforeEdit": "git status --short --branch was clean (main ahead 61) before this run; no uncommitted changes in personal-app-content.mjs / personal-app-service.mjs / personal-app-routes.mjs from another lane. No edits were needed: idempotent create, task completion, and CAS version-conflict refusal all behaved exactly as the source contract (personal-app-content.mjs) specifies, with plain-language error wording already in place.",
+  "scenarios": {
+    "S060": {"title": "Open existing app", "outcome": "PASS", "evidence": "GET blueprint returned app-ea8674db844f4db10ebd641dc9fc2818 at version 2 with the custom-study-sessions screen from the prior Claude-designed change, read repeatedly throughout the run with identical results."},
+    "S071": {"title": "Save app content", "outcome": "PASS", "evidence": "1 note + 2 tasks created with stable idempotency keys (version 2->5), 1 task completed (version 5->6), exact item set and version confirmed on read-back, replay of a create key returned replayed:true with no duplicate, and a stale-version write was refused with a plain-language 409 and no mutation."},
+    "S072": {"title": "Reopen after restart", "outcome": "NOT_OBSERVED", "evidence": "No Studio restart occurred during this run (all 10 HTTP calls succeeded on the first attempt with no connection-refused errors), so there was no restart boundary to re-verify across. Final re-read of blueprint+content after the full write sequence matches all prior reads exactly, which is the strongest available substitute evidence."},
+    "S069": {"title": "Not directly assigned; naturally covered only incidentally", "outcome": "NOT_TESTED", "evidence": "No app-create-from-template flow was exercised in this run (the app already existed); out of scope for this content-route check."},
+    "S067": {"title": "Not directly assigned; naturally covered only incidentally", "outcome": "NOT_TESTED", "evidence": "No scaffold/preview-change flow was exercised in this run; out of scope for this content-route check."}
+  },
+  "verified": [
+    "Idempotent creation via stable idempotencyKey: 3 distinct creates (1 note, 2 tasks) each advanced version by exactly 1 and returned replayed:false",
+    "Task completion via /completion with CAS expectedVersion advanced version by exactly 1 and returned changed:true",
+    "Read-back after all writes shows exactly 5 items (2 pre-existing + 3 new) at version 6, matching every field written",
+    "Replaying the same create key with identical kind/title/body returned replayed:true, left version at 6, and created no duplicate item",
+    "A create attempt with a stale expectedVersion (3, true version 6) was refused with HTTP 409 PERSONAL_APP_CONTENT_VERSION_CONFLICT and the plain-language message \"App content changed; reload before saving\" -- no raw revision numbers or internal jargon in the message, and no item was created or corrupted",
+    "The app blueprint (version 2, custom-study-sessions screen) was unaffected by any content write",
+    "No Studio connection-refused / restart was encountered during the entire run"
+  ],
+  "unproven": [
+    "Behavior across an actual Studio restart mid-run (none occurred to observe)",
+    "Any browser or AI-provider interaction (explicitly out of scope for this check)",
+    "Concurrent-writer races on the content store beyond the single-threaded sequence exercised here"
+  ],
+  "friction": ["None -- every native HTTP content route behaved exactly per its source contract on the first attempt."],
+  "evidenceRefs": [
+    "src/studio/personal-app-routes.mjs:49-72 (content route registrations)",
+    "src/studio/personal-app-content.mjs:74-115 (createItem idempotency/CAS, setTaskComplete CAS)",
+    "Sanitized native HTTP command/response transcript retained in this receipt; item titles are synthetic test strings authored for this check"
+  ],
+  "privacy": "No credentials, account identifiers, or raw private provider conversations recorded. All note/task titles and bodies are synthetic test strings written by this check, safe to retain verbatim.",
+  "handoff": "No bug found, no fix needed. The 2 pre-existing items from an earlier lane were left in place. The 3 new synthetic items added by this check (1 note, 2 tasks, 1 completed) remain in the live content store at version 6; a future lane may clean them up or leave them as continued fixtures."
+}
