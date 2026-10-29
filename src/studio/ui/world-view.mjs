@@ -741,6 +741,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     find: { query: '', kind: '', items: [], total: null, nextOffset: null, coverage: null, error: '', status: '', loading: false, recordId: null },
     custody: 'observed',
     settings: { tab: 'providers', sites: [], loaded: false, loading: false, error: '' },
+    agentHome: { status: null, loading: false, error: '' },
     agent: { status: null, work: null, loading: false, busy: false, error: '', notice: '', title: '', objective: '', pendingKey: null,
       tier: 'Immediate', memoryKey: '', memoryText: '', memoryEntries: [], workFilter: 'open', workLimit: 50,
       insightKind: null, insight: null, insightBusy: false, insightError: '' },
@@ -761,6 +762,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
   let workspaceReadAbort = null;
   let readerHeadNode = null, readerStatusNode = null, readerBodyNode = null;
 
+  let agentHomeTicket = 0;
   let agentTicket = 0;
   let agentInsightTicket = 0;
   let searchTicket = 0;
@@ -839,6 +841,24 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     return result.data?.code
       ? String(result.data.code) + ': ' + problemText(result.data)
       : (result.status ? 'Agent request failed (HTTP ' + result.status + ')' : 'Local Studio is unreachable');
+  }
+  // Home reads ONLY status counts; memory, Work titles, SITREP and skills stay private
+  // until the user explicitly enters the Agent view or chooses an inspection action.
+  async function loadAgentHomeStatus() {
+    const ticket = ++agentHomeTicket, home = state.agentHome;
+    home.loading = true;
+    home.error = '';
+    if (state.view === 'home') renderHome();
+    const result = await agentCall('/status');
+    if (ticket !== agentHomeTicket) return;
+    if (result.status === 200 && typeof result.data?.initialized === 'boolean') {
+      home.status = result.data;
+    } else {
+      home.status = null;
+      home.error = agentError(result);
+    }
+    home.loading = false;
+    if (state.view === 'home') renderHome();
   }
   async function agentRefresh() {
     const ticket = ++agentTicket, a = state.agent;
@@ -930,8 +950,8 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     root.replaceChildren(grid);
   }
 
-  // Home is a read-only projection of the SAME local World lists. No new store or
-  // default project, account identity, provider operation or network actor.
+  // Home is a read-only projection of the SAME local World lists and local Agent
+  // status counts. No new store, login inference, provider effect or network actor.
   function renderHome() {
     ensureFrame();
     const heading = el('div', { class: 'vivim-section-head' }, [
@@ -956,6 +976,28 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
       on(card, 'click', () => choose(kind));
       cards.append(card);
     }
+    const agentHome = state.agentHome, agentStatus = agentHome.status;
+    const localOpen = agentStatus?.initialized ? ['queued', 'active', 'blocked']
+      .reduce((sum, key) => {
+        const value = agentStatus.work?.byStatus?.[key];
+        return sum + (Number.isSafeInteger(value) && value >= 0 ? value : 0);
+      }, 0) : null;
+    const agentCard = el('button', { type: 'button', class: 'vivim-overview-card',
+      id: 'vivimAgentHomeCard' }, [
+      el('span', { class: 'vivim-overview-icon', 'aria-hidden': 'true', text: '✦' }),
+      el('span', { class: 'vivim-overview-number',
+        text: agentHome.loading || agentHome.error || !agentStatus ? '—'
+          : agentStatus.initialized ? String(localOpen) : '0' }),
+      el('strong', { text: 'Personal Agent' }),
+      el('span', { class: 'note', text: agentHome.loading ? 'Checking local agent status…'
+        : agentHome.error ? 'Local agent status unavailable'
+          : !agentStatus ? 'Local agent not inspected yet'
+            : !agentStatus.initialized ? 'Initialize your local agent'
+              : agentStatus.nextStage ? 'Bootstrap needs attention: ' + agentStatus.nextStage
+                : 'Open local Work; not provider execution' }),
+    ]);
+    on(agentCard, 'click', () => choose('agent'));
+    cards.append(agentCard);
     const actions = el('div', { class: 'vivim-home-actions' }, [
       el('h3', { text: 'Quick actions' }),
     ]);
@@ -3315,7 +3357,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     if (view === 'capture') { if (!quiet) announce('Capture.'); return; }
     if (view === 'home') {
       renderHome();
-      await Promise.all([loadNamespace(), fetchList('conversations'), fetchList('projects'), fetchList('notes')]);
+      await Promise.all([loadNamespace(), fetchList('conversations'), fetchList('projects'), fetchList('notes'), loadAgentHomeStatus()]);
       if (state.view === 'home') renderHome();
       if (!quiet) announce('Home.');
       return;
