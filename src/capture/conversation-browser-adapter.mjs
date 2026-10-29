@@ -173,9 +173,12 @@ export function createConversationBrowserAdapter({ paths, profileStore, familySt
   // After a typing/insert failure (or a proven-not-dispatched send): remove what VIVIM typed so the
   // provider cannot persist it. Only when the composer text is a prefix of (or equal to) our prompt.
   async function cleanupTypedFailure(prompt) {
-    if (!freshTab || typeof prompt !== 'string') return false;
+    if (!freshTab || binding?.thread || typeof prompt !== 'string') return false;
     try {
       const page = await d.readTurnPage(livePage(), siteAdapter);
+      // The tab moved into a conversation (sent after all, or navigated): that composer's draft may be
+      // the user's own for that thread. Never clear there.
+      if (typeof page?.pathname !== 'string' || parseThread(siteAdapter.id, `${binding.origin}${page.pathname}`)) return false;
       const text = page?.draft?.text;
       if (typeof text !== 'string' || !text.trim() || !isPrefixOfTyped(text, prompt)) return false;
       return await clearOwnText();

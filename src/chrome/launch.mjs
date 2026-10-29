@@ -61,7 +61,7 @@ export async function launchChrome({ profileDir, port = 9222, url = 'about:blank
   }
   // Not reachable, about to spawn. A caller that is not the CDP-port owner (chat/drive passing dataRoot)
   // must not start a second Chrome on the owner's profile; the owner Studio or `studio launch` does that.
-  if (dataRoot) assertNoForeignCdpOwner(dataRoot, port);
+  if (dataRoot) await assertNoForeignCdpOwner(dataRoot, port);
   // Chrome 136+ refuses remote debugging on the default profile.
   mkdirSync(profileDir, { recursive: true });
   const exe = findChrome();

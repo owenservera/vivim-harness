@@ -77,7 +77,10 @@ async function runStudio(ctx, { launch }) {
   const studioPort = Number(flags['studio-port'] ?? ctx.settings.studioPort);
   let cdpLock;
   try { cdpLock = await acquireCdpOwnerLock({ root: ctx.paths.root, cdpPort: ctx.port, studioPort }); }
-  catch (e) { if (e.code === 'CDP_OWNED') throw envError(e.message, `Only one VIVIM Studio may drive browser port ${ctx.port}. Open ${e.owner.url}, or stop that process (pid ${e.owner.pid}) first.`); throw e; }
+  catch (e) {
+    if (e.code === 'CDP_OWNED') throw envError(e.message, `Only one VIVIM can use the browser at a time. ${e.owner.url ? `Open ${e.owner.url}` : 'Use the VIVIM window that is already open'}, or close it (process ${e.owner.pid}) and try again.`);
+    throw envError(e.message, 'Check that the VIVIM data folder is writable, then try again.');
+  }
   if (launch) {
     // Always validate the ownership marker, even when the CDP port is already listening.
     let r;
@@ -90,6 +93,7 @@ async function runStudio(ctx, { launch }) {
   let st;
   try { st = await startStudio({ paths: ctx.paths, profileStore: ctx.profiles(), familyStore: ctx.families(), cdpPort: ctx.port, port: Number(flags['studio-port'] ?? ctx.settings.studioPort), ...lanOptions }); }
   catch (e) { cdpLock.release(); if (lanPair && /LAN pairing|--lan-host/.test(e.message)) throw envError(e.message, 'Check the network connection, or drop --lan-pair to stay loopback-only.'); throw e; }
+  cdpLock.update(st.port); // the real listening port is what a second Studio probes and names
   out.emit({ url: st.url, port: st.port, ...(st.lan ? { lanPair: true, pairingUrl: st.pairingUrl, lanAddresses: st.lan.addresses } : {}) }, (o) => {
     o.result(`Capture Studio is running at\n  ${st.url}\nKeep this window open. Press Ctrl+C to stop (an active recording is saved first).`);
     if (!st.lan) return;
