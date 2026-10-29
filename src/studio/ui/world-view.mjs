@@ -743,7 +743,9 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     custody: 'observed',
     settings: { tab: 'providers', sites: [], loaded: false, loading: false, error: '' },
     agentHome: { status: null, loading: false, error: '' },
-    builder: { apps: [], selected: null, title: '', intent: '', pendingKey: null, kind: 'notes', label: '', busy: false, loading: false, error: '', notice: '' },
+    builder: { apps: [], selected: null, title: '', intent: '', pendingKey: null, kind: 'notes', label: '',
+      proposalText: '', proposalPreview: null, previewSource: null,
+      busy: false, loading: false, error: '', notice: '' },
     agent: { status: null, work: null, loading: false, busy: false, error: '', notice: '', title: '', objective: '', pendingKey: null,
       tier: 'Immediate', memoryKey: '', memoryText: '', memoryEntries: [], workFilter: 'open', workLimit: 50, actionDrafts: new Map(),
       insightKind: null, insight: null, insightBusy: false, insightError: '',
@@ -1348,6 +1350,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     });
     if (result.status === 200 && result.data?.app) {
       b.selected = result.data.app;
+      b.proposalText = ''; b.proposalPreview = null; b.previewSource = null;
       b.title = ''; b.intent = ''; b.pendingKey = null;
       b.notice = result.data.replayed
         ? 'Reconnected to the same locally saved blueprint.'
@@ -1364,8 +1367,11 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     renderBuilder();
     const result = await builderCall('/' + encodeURIComponent(id));
     b.loading = false;
-    if (result.status === 200 && result.data?.id === id) b.selected = result.data;
-    else b.error = result.data?.code || 'Saved app could not be read.';
+    if (result.status === 200 && result.data?.id === id) {
+      if (b.selected?.id !== id) b.proposalText = '';
+      b.selected = result.data;
+      b.proposalPreview = null; b.previewSource = null;
+    } else b.error = result.data?.code || 'Saved app could not be read.';
     if (state.view === 'builder') renderBuilder();
   }
   async function addBuilderScreen() {
@@ -1378,10 +1384,69 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     });
     if (result.status === 200 && result.data?.app) {
       b.selected = result.data.app;
+      b.proposalPreview = null; b.previewSource = null;
       b.label = '';
       b.notice = 'Declarative screen added to your local blueprint. No code or provider effects executed.';
     } else b.error = result.data?.code || 'Screen edit was not confirmed. Refresh before retrying.';
     b.busy = false;
+    if (state.view === 'builder') renderBuilder();
+    if (result.status === 200) await refreshBuilder();
+  }
+  // Proposal results are untrusted until Studio's strict data-only compiler accepts them.
+  // Preview cannot mutate saved state; a second explicit user click is required to apply.
+  async function previewBuilderProposal() {
+    const b = state.builder;
+    if (!b.selected || b.busy || !b.proposalText.trim()) return;
+    const input = b.proposalText, id = b.selected.id, version = b.selected.version;
+    b.proposalPreview = null; b.previewSource = null;
+    b.busy = true; b.error = ''; b.notice = '';
+    renderBuilder();
+    const result = await builderCall('/' + encodeURIComponent(id) + '/preview-change', {
+      method: 'POST', body: { proposal: input },
+    });
+    b.busy = false;
+    if (b.selected?.id !== id || b.selected?.version !== version || b.proposalText !== input) {
+      b.error = 'App or proposal changed while checking. Preview the current draft again.';
+    } else if (result.status === 200 && result.data?.canApply === true &&
+      result.data?.effects === 'none' && result.data?.appId === id &&
+      result.data?.baseVersion === version && Array.isArray(result.data?.diff) &&
+      result.data?.approvalRequired === true) {
+      b.proposalPreview = result.data;
+      b.previewSource = input;
+      b.notice = 'Validated locally; saved app unchanged. Review the difference before applying.';
+    } else {
+      b.error = result.data?.code || 'No verified preview. Nothing was changed.';
+    }
+    if (state.view === 'builder') renderBuilder();
+  }
+  async function applyBuilderProposal() {
+    const b = state.builder, preview = b.proposalPreview, current = b.selected;
+    if (b.busy || !current || !preview || b.previewSource !== b.proposalText ||
+      preview.appId !== current.id || preview.baseVersion !== current.version ||
+      preview.canApply !== true || preview.effects !== 'none') return;
+    const id = current.id, version = current.version;
+    // Only the user's click here confers approval. Nothing received from a model can do so.
+    b.busy = true; b.error = ''; b.notice = '';
+    renderBuilder();
+    const result = await builderCall('/' + encodeURIComponent(id) + '/apply-change', {
+      method: 'POST', body: {
+        expectedVersion: version, proposal: preview.change, approval: 'user-confirmed',
+      },
+    });
+    b.busy = false;
+    b.proposalPreview = null; b.previewSource = null;
+    if (result.status === 200 && result.data?.app?.id === id &&
+        Number.isSafeInteger(result.data.app.version) &&
+        result.data.app.version > version) {
+      b.selected = result.data.app;
+      b.proposalText = '';
+      b.notice = 'Approved changes saved locally. No AI provider was contacted and no app was deployed.';
+    } else {
+      // On an uncertain response, NEVER re-send an approved edit. Preserve the draft,
+      // and let the owner re-read the saved blueprint before deciding what happened.
+      b.error = (result.data?.code || 'APP_APPLY_NOT_CONFIRMED') +
+        ' — not confirmed. Reload the blueprint before deciding whether to try again.';
+    }
     if (state.view === 'builder') renderBuilder();
     if (result.status === 200) await refreshBuilder();
   }
@@ -1453,6 +1518,59 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
       on(add, 'submit', event => { event.preventDefault(); addBuilderScreen(); });
       add.append(el('h3', { text: 'Evolve your app' }), kind, label, button);
       preview.append(add);
+      const propose = el('form', { id: 'worldBuilderProposalForm' });
+      propose.append(el('h3', { text: 'Review a proposed app change' }),
+        el('p', { class: 'note', text: 'Paste a JSON screen proposal from an AI response or edit the example. Preview is read-only; nothing executes or saves until you approve.' }));
+      const draft = el('textarea', { id: 'worldBuilderProposalText', rows: '8', maxlength: '12000',
+        'aria-label': 'JSON change proposal', placeholder: 'vivim.personal-app-change/1 JSON' });
+      draft.value = b.proposalText;
+      const diffArea = el('div', { id: 'worldBuilderProposalDiff', role: 'status' });
+      const apply = el('button', { type: 'button', id: 'worldBuilderApplyProposal',
+        text: 'Approve and apply these changes' });
+      apply.disabled = locked || !b.proposalPreview || b.previewSource !== b.proposalText ||
+        b.proposalPreview.appId !== b.selected.id ||
+        b.proposalPreview.baseVersion !== b.selected.version;
+      on(draft, 'input', () => {
+        b.proposalText = draft.value;
+        b.proposalPreview = null; b.previewSource = null;
+        apply.disabled = true;
+        diffArea.replaceChildren(el('p', { class: 'note', text: 'Draft changed. Preview again to review the updated proposal.' }));
+      });
+      const example = el('button', { type: 'button', text: 'Insert editable example' });
+      example.disabled = locked;
+      on(example, 'click', () => {
+        b.proposalText = JSON.stringify({ schema: 'vivim.personal-app-change/1',
+          appId: b.selected.id, baseVersion: b.selected.version,
+          operations: [{ type: 'add-screen', kind: 'tasks', label: 'My next screen' }] }, null, 2);
+        b.proposalPreview = null; b.previewSource = null;
+        renderBuilder();
+      });
+      const check = el('button', { type: 'submit', id: 'worldBuilderPreviewProposal',
+        text: 'Preview without saving' });
+      check.disabled = locked || !b.proposalText.trim();
+      on(propose, 'submit', event => { event.preventDefault(); previewBuilderProposal(); });
+      on(apply, 'click', () => applyBuilderProposal());
+      propose.append(draft, example, check);
+      if (b.proposalPreview) {
+        diffArea.append(el('p', { class: 'note', text:
+          'Read-only preview · from revision ' + b.proposalPreview.baseVersion +
+          ' · no code execution or provider effects.' }));
+        const changes = el('ul');
+        for (const change of b.proposalPreview.diff) {
+          changes.append(el('li', { text: 'Add ' + change.kind + ' screen: ' + change.label }));
+        }
+        diffArea.append(changes);
+        const screenPreview = el('div', { class: 'vivim-builder-screen-grid',
+          id: 'worldBuilderProposedScreens' });
+        for (const screen of b.proposalPreview.scaffold?.screens ?? []) {
+          screenPreview.append(el('div', { class: 'vivim-builder-screen', text: screen.label }));
+        }
+        diffArea.append(screenPreview, apply);
+      } else if (b.proposalText.trim()) {
+        diffArea.append(el('p', { class: 'note', text:
+          'No current validated preview. The local blueprint has not been changed.' }));
+      }
+      preview.append(propose, diffArea);
     }
     detailPane.replaceChildren(preview);
   }
