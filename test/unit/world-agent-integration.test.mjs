@@ -44,7 +44,7 @@ async function type(node, value) { node.value = value; await node.fire('input');
 
 function fixture() {
   const calls = [], state = { initialized: false, version: 1, memory: [], work: [], errors: [], failNextWork: false,
-    apps: [], failNextApp: false };
+    apps: [], failNextApp: false, failNextProposalApply: false };
   const document = { createElement: tag => new Node(tag) };
   const root = new Node('main'), chat = new Node('main'), modes = new Node('nav');
   for (const view of ['capture', 'home', 'agent', 'builder', 'conversations', 'settings']) {
@@ -106,6 +106,35 @@ function fixture() {
         app.version++;
         app.screens.push({ key, label: data.label, kind: data.kind, origin: 'explicit-user-customization' });
         return reply(200, { app: structuredClone(app) });
+      }
+
+      // Local proposal compiler fake: model output is never authority to apply.
+      const proposal = typeof data?.proposal === 'string'
+        ? (() => { try { return JSON.parse(data.proposal); } catch { return null; } })()
+        : data?.proposal;
+      if (route === '/' + id + '/preview-change' || route === '/' + id + '/apply-change') {
+        if (method !== 'POST' || !proposal || proposal.schema !== 'vivim.personal-app-change/1' ||
+            proposal.appId !== id || !Array.isArray(proposal.operations) ||
+            proposal.operations.length < 1 || proposal.operations.some(op =>
+              op.type !== 'add-screen' || !['notes', 'tasks', 'dashboard', 'blank'].includes(op.kind) ||
+              typeof op.label !== 'string')) return reply(400, { code: 'PERSONAL_APP_INVALID' });
+        if (proposal.baseVersion !== app.version) return reply(409, { code: 'PERSONAL_APP_VERSION_CONFLICT' });
+        const changes = proposal.operations.map(op => ({ type: 'add-screen', kind: op.kind,
+          label: op.label, key: 'custom-' + op.label.toLowerCase().replace(/\\s+/g, '-') }));
+        if (route.endsWith('/preview-change')) return reply(200, {
+          appId: id, baseVersion: app.version, canApply: true, approvalRequired: true,
+          effects: 'none', change: proposal, diff: changes,
+          scaffold: { screens: [...app.screens, ...changes] },
+        });
+        if (data.approval !== 'user-confirmed') return reply(403, { code: 'PERSONAL_APP_APPROVAL_REQUIRED' });
+        if (data.expectedVersion !== app.version) return reply(409, { code: 'PERSONAL_APP_VERSION_CONFLICT' });
+        app.version++;
+        for (const op of changes) app.screens.push({ key: op.key, kind: op.kind, label: op.label,
+          origin: 'explicit-user-customization' });
+        if (state.failNextProposalApply) {
+          state.failNextProposalApply = false; return reply(503, { code: 'UNCERTAIN_APPLY_RESPONSE' });
+        }
+        return reply(200, { app: structuredClone(app), deployed: false, providerExecution: 'not-attempted' });
       }
       return reply(404, { code: 'NOT_FOUND' });
     }
@@ -568,4 +597,81 @@ test('builder preview renders arbitrary user text as DOM text, not generated HTM
   assert.match(byId(f.root, 'worldBuilderPhone').textContent, /<img src=x onerror=alert\(1\)>/);
   assert.equal(nodes(byId(f.root, 'worldBuilderPhone'), n => n.tag === 'img').length, 0);
   assert.equal(f.calls.some(c => /openai|claude|gemini/.test(c.url)), false);
+});
+
+test('a model-like JSON proposal needs preview and a separate explicit approval click', async () => {
+  const f = fixture(); await f.world.choose('builder');
+  const form = byId(f.root, 'worldBuilderCreateForm');
+  await type(inputs(form)[0], 'My local builder');
+  await type(inputs(form)[1], 'Grow my phone UI without executing unknown code');
+  await form.fire('submit');
+  const initialVersion = f.state.apps[0].version;
+  assert.equal(byId(f.root, 'worldBuilderApplyProposal'), null);
+  const sample = nodes(f.root, n => n.tag === 'button' && n.textContent === 'Insert editable example')[0];
+  await sample.click();
+  const draft = byId(f.root, 'worldBuilderProposalText');
+  assert.match(draft.value, /vivim.personal-app-change\/1/);
+  assert.match(draft.value, new RegExp(f.state.apps[0].id));
+  await byId(f.root, 'worldBuilderProposalForm').fire('submit');
+  assert.equal(f.state.apps[0].version, initialVersion, 'preview must not write');
+  assert.match(byId(f.root, 'worldBuilderProposalDiff').textContent, /Add tasks screen/);
+  assert.match(byId(f.root, 'worldBuilderProposedScreens').textContent, /My next screen/);
+  assert.equal(byId(f.root, 'worldBuilderApplyProposal').disabled, false);
+  assert.equal(f.calls.filter(c => c.url.endsWith('/apply-change')).length, 0,
+    'preview does not imply approval');
+  await byId(f.root, 'worldBuilderApplyProposal').click();
+  assert.equal(f.state.apps[0].version, initialVersion + 1);
+  assert.equal(f.state.apps[0].screens[3].label, 'My next screen');
+  assert.equal(f.calls.filter(c => c.url.endsWith('/apply-change')).length, 1);
+  assert.equal(f.calls.filter(c => c.url.endsWith('/apply-change'))[0].data.approval, 'user-confirmed');
+  assert.equal(f.calls.some(c => /api\.openai|chatgpt\.com|claude\.ai|gemini\.google/.test(c.url)), false);
+  assert.equal(byId(f.root, 'worldBuilderProposalText').value, '');
+});
+
+test('editing a preview invalidates prior approval, and malformed drafts remain unsaved', async () => {
+  const f = fixture(); await f.world.choose('builder');
+  const create = byId(f.root, 'worldBuilderCreateForm');
+  await type(inputs(create)[0], 'My notes');
+  await type(inputs(create)[1], 'A local app with proposal guardrails');
+  await create.fire('submit');
+  await nodes(f.root, n => n.tag === 'button' && n.textContent === 'Insert editable example')[0].click();
+  await byId(f.root, 'worldBuilderProposalForm').fire('submit');
+  const draft = byId(f.root, 'worldBuilderProposalText');
+  await type(draft, '{broken JSON');
+  assert.equal(byId(f.root, 'worldBuilderApplyProposal').disabled, true);
+  await byId(f.root, 'worldBuilderProposalForm').fire('submit');
+  assert.match(byId(f.root, 'worldBuilderNotice').textContent, /PERSONAL_APP_INVALID/);
+  assert.equal(byId(f.root, 'worldBuilderProposalText').value, '{broken JSON');
+  assert.equal(f.state.apps[0].version, 1);
+  assert.equal(f.calls.filter(c => c.url.endsWith('/apply-change')).length, 0);
+});
+
+test('a stale proposal or uncertain apply never auto-retries and preserves the draft for review', async () => {
+  const f = fixture(); await f.world.choose('builder');
+  const create = byId(f.root, 'worldBuilderCreateForm');
+  await type(inputs(create)[0], 'A careful agent');
+  await type(inputs(create)[1], 'Private local apps');
+  await create.fire('submit');
+  await nodes(f.root, n => n.tag === 'button' && n.textContent === 'Insert editable example')[0].click();
+  await byId(f.root, 'worldBuilderProposalForm').fire('submit');
+  f.state.apps[0].version = 8;
+  await byId(f.root, 'worldBuilderApplyProposal').click();
+  assert.match(byId(f.root, 'worldBuilderNotice').textContent, /PERSONAL_APP_VERSION_CONFLICT/);
+  assert.ok(byId(f.root, 'worldBuilderProposalText').value.length > 0);
+  assert.equal(f.calls.filter(c => c.url.endsWith('/apply-change')).length, 1);
+  assert.equal(byId(f.root, 'worldBuilderApplyProposal'), null, 'the stale approval is removed');
+  const selection = nodes(f.root, n => n.tag === 'button' && n.textContent.includes('A careful agent'))[0];
+  await selection.click();
+  assert.equal(byId(f.root, 'worldBuilderProposalText').value.length > 0, 'draft survives refresh');
+  assert.equal(f.state.apps[0].version, 8);
+  // Rebase is a new user action, never implicit: reinsert a current-version example.
+  await nodes(f.root, n => n.tag === 'button' && n.textContent === 'Insert editable example')[0].click();
+  await byId(f.root, 'worldBuilderProposalForm').fire('submit');
+  f.state.failNextProposalApply = true;
+  await byId(f.root, 'worldBuilderApplyProposal').click();
+  assert.equal(f.state.apps[0].version, 9, 'server applied despite a lost success response');
+  assert.match(byId(f.root, 'worldBuilderNotice').textContent, /UNCERTAIN_APPLY_RESPONSE/);
+  assert.ok(byId(f.root, 'worldBuilderProposalText').value.length > 0);
+  assert.equal(byId(f.root, 'worldBuilderApplyProposal'), null, 'must not double-send after uncertainty');
+  assert.equal(f.calls.filter(c => c.url.endsWith('/apply-change')).length, 2);
 });
