@@ -58,9 +58,11 @@ No emulator or physical-device runtime outcome is implied by a successful build.
   Java compilation, d8, packaging and alignment completed; the foreground
   command hit its 120-second deadline during signing. Java emitted only the
   existing deprecated-API notice. This attempt did **not** establish a verified APK.
-- A second invocation uses the same build script in the background to avoid
-  the foreground deadline. Final signing/build outcome is recorded below when
-  it completes.
+- Second invocation of the same build script in the background: **passed all
+  seven stages**, including `apksigner verify --print-certs`. Output:
+  `android/build/vivim.apk` (20.6 KB), debug-signed with certificate SHA-256
+  `7c9172356e2a288f354c3094bf929f2bd7f6bb36fe72ec84de58f3dc83ea0b32`.
+  This is a built and signature-verified APK, not an installed or device-tested APK.
 - No unit-test suite run (owner directive). No emulator started. No APK
   installed, no phone UI observed, and no Studio/Chrome lifecycle changed.
 - Still needs device observation: reopening after pairing, offline Connect,
