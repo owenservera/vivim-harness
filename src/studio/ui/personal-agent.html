@@ -69,6 +69,13 @@ pre{max-height:360px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}
 <button id="workCreate" type="submit" disabled>Add Work item</button>
 </form>
 <div id="workSummary" class="subtle" aria-live="polite"></div>
+<label><span>Filter Work</span><select id="workFilter" aria-label="Filter local Work by status">
+<option value="open">Open Work</option><option value="all">All Work</option>
+<option value="queued">Queued</option><option value="active">Active</option>
+<option value="blocked">Blocked</option><option value="completed">Completed</option>
+<option value="cancelled">Cancelled</option>
+</select></label>
+<p id="workCoverage" class="subtle" role="status">No local Work loaded yet.</p>
 <div id="workList" aria-live="polite"></div>
 </section>
 <section>
