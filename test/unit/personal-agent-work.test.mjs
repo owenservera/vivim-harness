@@ -120,3 +120,17 @@ test('Work next actions reject invalid input, closed Work, and blocked reason re
     id: initial.item.id, nextAction: 'Oops', now,
   }), e => e.code === 'PERSONAL_AGENT_WORK_TRANSITION');
 });
+
+test('queued next action survives activation and a blocker reason clears when resumed', () => {
+  const first = add();
+  const planned = setWorkNextAction(first.state, { id: first.item.id,
+    nextAction: 'Compare local snapshots', now });
+  const active = transitionWork(planned.state, { id: first.item.id, to: 'active', now });
+  assert.equal(active.item.nextAction, 'Compare local snapshots');
+  const blocked = transitionWork(active.state, {
+    id: first.item.id, to: 'blocked', note: 'Await owner approval', now,
+  });
+  assert.equal(blocked.item.nextAction, 'Await owner approval');
+  const resumed = transitionWork(blocked.state, { id: first.item.id, to: 'active', now });
+  assert.equal(resumed.item.nextAction, null, 'a resolved blocker must not linger as next action');
+});
