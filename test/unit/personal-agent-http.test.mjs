@@ -71,12 +71,28 @@ test('personal agent survives a real Studio HTTP restart with local-only effects
     assert.equal(saved.data.memoryCounts.Immediate, 1);
     assert.equal(JSON.stringify(saved.data).includes('Resume local skill review'), false);
     assert.equal((await api('/api/v1/personal-agent/memory/Immediate')).data.entries[0].text, 'Resume local skill review');
+    const searched = await api('/api/v1/personal-agent/search-memory', 'POST', {
+      query: 'skill', tier: 'Immediate', limit: 5,
+    });
+    assert.equal(searched.status, 200);
+    assert.equal(searched.data.total, 1);
+    assert.equal(searched.data.items[0].key, 'task');
+    assert.equal(searched.data.items[0].match, 'text');
+    assert.equal((await api('/api/v1/personal-agent/search-memory', 'POST', { query: 's' })).status, 400);
+    assert.equal((await api('/api/v1/personal-agent/search-memory', 'POST', { query: 'skill', extra: true })).status, 400);
+    assert.equal((await api('/api/v1/personal-agent/search-memory', 'POST', { query: 'skill' }, false)).status, 401);
+    const badOriginSearch = await fetch(url('/api/v1/personal-agent/search-memory'), {
+      method: 'POST', headers: { ...headers, origin: 'https://attacker.example' },
+      body: JSON.stringify({ query: 'skill' }),
+    });
+    assert.equal(badOriginSearch.status, 403);
     const removed = await api('/api/v1/personal-agent/memory/Immediate/task/remove', 'POST', {
       expectedVersion: saved.data.version,
     });
     assert.equal(removed.status, 200);
     assert.equal(removed.data.memoryCounts.Immediate, 0);
     assert.equal((await api('/api/v1/personal-agent/memory/Immediate')).data.entries.length, 0);
+    assert.equal((await api('/api/v1/personal-agent/search-memory', 'POST', { query: 'skill' })).data.total, 0);
     assert.equal((await api('/api/v1/personal-agent/memory/Immediate/task', 'PUT', {
       text: 'stale attempt', expectedVersion: revision,
     })).status, 409);
@@ -99,8 +115,21 @@ test('personal agent survives a real Studio HTTP restart with local-only effects
       'POST', { expectedVersion: createdWork.data.version, to: 'active' });
     assert.equal(transitioned.status, 200);
     assert.equal(transitioned.data.work.byStatus.active, 1);
+    const planned = await api('/api/v1/personal-agent/work/' + createdWork.data.item.id + '/next-action',
+      'POST', { expectedVersion: transitioned.data.version, nextAction: 'Review local receipts' });
+    assert.equal(planned.status, 200);
+    assert.equal(planned.data.item.nextAction, 'Review local receipts');
+    assert.equal(planned.data.replayed, false);
+    const sameAction = await api('/api/v1/personal-agent/work/' + createdWork.data.item.id + '/next-action',
+      'POST', { expectedVersion: planned.data.version, nextAction: 'Review local receipts' });
+    assert.equal(sameAction.data.replayed, true);
+    assert.equal(sameAction.data.version, planned.data.version);
+    assert.equal((await api('/api/v1/personal-agent/work/' + createdWork.data.item.id + '/next-action',
+      'POST', { expectedVersion: transitioned.data.version, nextAction: 'Stale action' })).status, 409);
+    assert.equal((await api('/api/v1/personal-agent/work/' + createdWork.data.item.id + '/next-action',
+      'POST', { expectedVersion: planned.data.version, nextAction: 'x'.repeat(1001) })).status, 400);
     const invalidCompletion = await api('/api/v1/personal-agent/work/' + createdWork.data.item.id + '/transition',
-      'POST', { expectedVersion: transitioned.data.version, to: 'completed' });
+      'POST', { expectedVersion: planned.data.version, to: 'completed' });
     assert.equal(invalidCompletion.status, 400);
     assert.equal(invalidCompletion.data.code, 'PERSONAL_AGENT_WORK_EVIDENCE_REQUIRED');
     const sitrep = await api('/api/v1/personal-agent/sitrep');
@@ -125,6 +154,7 @@ test('personal agent survives a real Studio HTTP restart with local-only effects
     assert.equal(toolNames.some(name => name.startsWith('personal_agent_work')), false);
     assert.equal(toolNames.some(name => name.includes('sitrep') || name.includes('export')), false);
     assert.equal(toolNames.some(name => name.includes('memory')), false);
+    assert.equal(toolNames.some(name => name.includes('search-memory')), false);
 
     await studio.close(); studio = await start();
     const recovered = await api('/api/v1/personal-agent/status');

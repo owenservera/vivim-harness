@@ -182,6 +182,17 @@ const hub = createIntegrationHub({ paths, profileStore, learner, recorder, conve
         res.writeHead(200, { 'content-type': script ? 'text/javascript; charset=utf-8' : 'text/html; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'none'; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'" });
         return res.end(content);
       }
+      if (['/mobile', '/ui/mobile.mjs'].includes(url.pathname)) {
+        if (req.method !== 'GET') { res.setHeader('allow', 'GET'); return send(res, 405, { error: 'GET required' }); }
+        const script = url.pathname.endsWith('.mjs');
+        const file = new URL(script ? './ui/mobile.mjs' : './ui/mobile.html', import.meta.url);
+        res.writeHead(200, {
+          'content-type': script ? 'text/javascript; charset=utf-8' : 'text/html; charset=utf-8',
+          'cache-control': 'no-store', 'x-content-type-options': 'nosniff',
+          'content-security-policy': "default-src 'none'; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'",
+        });
+        return res.end(readFileSync(file));
+      }
       if (['/personal-agent', '/ui/personal-agent.mjs'].includes(url.pathname)) {
         if (req.method !== 'GET') { res.setHeader('allow', 'GET'); return send(res, 405, { error: 'GET required' }); }
         const script = url.pathname.endsWith('.mjs');

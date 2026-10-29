@@ -69,6 +69,13 @@ pre{max-height:360px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}
 <button id="workCreate" type="submit" disabled>Add Work item</button>
 </form>
 <div id="workSummary" class="subtle" aria-live="polite"></div>
+<label><span>Filter Work</span><select id="workFilter" aria-label="Filter local Work by status">
+<option value="open">Open Work</option><option value="all">All Work</option>
+<option value="queued">Queued</option><option value="active">Active</option>
+<option value="blocked">Blocked</option><option value="completed">Completed</option>
+<option value="cancelled">Cancelled</option>
+</select></label>
+<p id="workCoverage" class="subtle" role="status">No local Work loaded yet.</p>
 <div id="workList" aria-live="polite"></div>
 </section>
 <section>
@@ -103,6 +110,19 @@ pre{max-height:360px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}
 <button type="submit" id="saveMemory" disabled>Save to local memory</button>
 </form>
 <details><summary>Review saved entries in selected tier</summary><div id="entries" class="subtle">Choose a tier to load its entries.</div></details>
+</section>
+<section id="privateMemorySearch">
+<h2>Find personal memory</h2>
+<p class="subtle">Search only user-authored local memory by key or note text. Your query is sent to this Studio in the request body, not to an AI provider.</p>
+<form id="memorySearchForm">
+<label><span>Search terms</span><input id="memorySearchQuery" type="search" minlength="2" maxlength="120" required placeholder="Your local memory terms"></label>
+<label><span>Tier</span><select id="memorySearchTier">
+<option value="all">All tiers</option><option value="CANON">CANON</option>
+<option value="Immediate">Immediate</option><option value="Curated">Curated</option>
+</select></label>
+<button type="submit" id="memorySearchButton">Search local memory</button>
+</form>
+<div id="memorySearchResults" role="status" aria-live="polite">Search only when you choose.</div>
 </section>
 </main>
 </body>

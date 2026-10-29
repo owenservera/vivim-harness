@@ -117,6 +117,7 @@ async function readMemory() {
             method: 'POST', body: JSON.stringify({ expectedVersion: current.version }),
           });
           message('Entry removed from current local memory.');
+          $('memorySearchResults').replaceChildren(element('p', 'Memory changed. Search again to see current results.'));
           await refresh(); await readMemory();
         } catch (e) { message(`Remove: ${e.code} — ${e.message}`, true); remove.disabled = false; }
       });
@@ -136,6 +137,7 @@ async function saveMemory(event) {
       method: 'PUT', body: JSON.stringify({ text, expectedVersion: current.version }),
     });
     $('memoryText').value = '';
+    $('memorySearchResults').replaceChildren(element('p', 'Memory changed. Search again to see current results.'));
     message('Saved in locally versioned Personal Agent memory.');
     await refresh(); await readMemory();
   } catch (e) { message(`Memory: ${e.code} — ${e.message}`, true); await refresh(); }
@@ -154,20 +156,62 @@ const workTransitions = {
   completed: [], cancelled: [],
 };
 let pendingWorkKey = null;
+const workActionDrafts = new Map();
 async function loadWork() {
   const area = $('workList');
   if (!snapshot?.initialized) { area.replaceChildren(element('p', 'No local agent yet.')); return; }
   try {
     const data = await request('/work');
     area.replaceChildren();
-    if (!data.items.length) area.append(element('p', 'No Work items yet.', 'subtle'));
-    for (const item of data.items.slice().reverse()) {
+    const filter = $('workFilter').value;
+    const visible = data.items.filter(item => filter === 'all' ||
+      (filter === 'open' ? ['queued', 'active', 'blocked'].includes(item.status)
+        : item.status === filter));
+    $('workCoverage').textContent = 'Showing ' + visible.length + ' of ' + data.items.length +
+      ' locally saved Work records; no provider execution inferred.';
+    if (!visible.length) area.append(element('p', data.items.length
+      ? 'No Work matches this status filter.' : 'No Work items yet.', 'subtle'));
+    for (const item of visible.slice().reverse()) {
       const card = element('article');
       card.style.borderTop = '1px solid var(--border)';
       card.style.padding = '12px 0';
       card.append(element('strong', item.title), element('p', item.objective),
         element('p', `State: ${item.status} · Last updated ${item.updatedAt}`, 'subtle'));
       if (item.nextAction) card.append(element('p', 'Next: ' + item.nextAction, 'subtle'));
+      if (['queued', 'active', 'blocked'].includes(item.status)) {
+        const next = element('textarea');
+        next.maxLength = 1000;
+        next.rows = 2;
+        next.value = workActionDrafts.has(item.id) ? workActionDrafts.get(item.id) : (item.nextAction ?? '');
+        next.setAttribute('aria-label', 'Next action for ' + item.title);
+        next.placeholder = 'User-authored next local action; not automatic execution';
+        next.addEventListener('input', () => { workActionDrafts.set(item.id, next.value); });
+        const save = element('button', 'Save next action', 'secondary');
+        save.type = 'button';
+        save.addEventListener('click', async () => {
+          const planned = next.value.trim();
+          if (!planned && item.status === 'blocked') {
+            message('Blocked Work requires a next action or reason.', true); return;
+          }
+          save.disabled = true;
+          try {
+            const status = await request('/status');
+            await request('/work/' + encodeURIComponent(item.id) + '/next-action', {
+              method: 'POST', body: JSON.stringify({ expectedVersion: status.version, nextAction: planned || null }),
+            });
+            workActionDrafts.delete(item.id);
+            message('Next action saved in local Work history. Nothing was executed.');
+            await refresh(); await loadWork();
+          } catch (error) {
+            message('Plan: ' + error.code + ' — ' + error.message, true);
+            save.disabled = false; // keep the user's unsaved draft
+          }
+        });
+        const plan = element('div');
+        plan.style.display = 'grid'; plan.style.gap = '8px';
+        plan.append(next, save);
+        card.append(plan);
+      }
       const transitions = workTransitions[item.status] ?? [];
       if (transitions.length) {
         const select = element('select');
@@ -290,6 +334,37 @@ async function exportAgent() {
 $('sitrepRefresh').addEventListener('click', showSitrep);
 $('exportAgent').addEventListener('click', exportAgent);
 $('workForm').addEventListener('submit', createWork);
+$('workFilter').addEventListener('change', loadWork);
 $('knowledgeRefresh').addEventListener('click', showKnowledge);
+async function searchPrivateMemory(event) {
+  event.preventDefault();
+  const area = $('memorySearchResults'), button = $('memorySearchButton');
+  const query = $('memorySearchQuery').value.trim(), tier = $('memorySearchTier').value || 'all';
+  if (query.length < 2) {
+    area.replaceChildren(element('p', 'Enter at least two characters.'));
+    return;
+  }
+  button.disabled = true;
+  area.replaceChildren(element('p', 'Searching user-authored local memory…'));
+  try {
+    const data = await request('/search-memory', {
+      method: 'POST',
+      body: JSON.stringify({ query, tier, limit: 20 }),
+    });
+    area.replaceChildren(element('p', 'Showing ' + data.shown + ' of ' + data.total +
+      ' local matches' + (data.truncated ? ' (more exist)' : '') + '.'));
+    if (!data.items.length) area.append(element('p', 'No matching local memory entries.'));
+    for (const hit of data.items) {
+      const card = element('article');
+      card.append(element('strong', hit.tier + ' / ' + hit.key),
+        element('p', hit.preview), element('p', 'Local source: ' + hit.source + ' · matched ' + hit.match, 'subtle'));
+      area.append(card);
+    }
+  } catch (error) {
+    area.replaceChildren(element('p', 'Memory search: ' + error.code + ' — ' + error.message));
+  } finally { button.disabled = false; }
+}
+
 $('memoryForm').addEventListener('submit', saveMemory);
+$('memorySearchForm').addEventListener('submit', searchPrivateMemory);
 void refresh().then(async () => { await readMemory(); await loadWork(); await showKnowledge(); });

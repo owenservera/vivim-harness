@@ -5,11 +5,14 @@
  */
 
 export const WORLD_API = '/api/v1/world';
+export const AGENT_API = '/api/v1/personal-agent';
+export const PERSONAL_APPS_API = '/api/v1/personal-apps';
 export const PAGE_LIMIT = 50;
 export const VIEWS = Object.freeze(['conversations', 'projects', 'notes']);
 export const FIND_KINDS = Object.freeze(['message', 'project', 'note', 'source-reference', 'selection']);
 const FIND_LABELS = { message: 'Messages', project: 'Projects', note: 'Notes', 'source-reference': 'Local objects', selection: 'Selections' };
-const SHELL_VIEWS = new Set(['capture', 'home', 'settings', 'find', 'transfer', 'relations', 'workspace', ...VIEWS]);
+const SHELL_VIEWS = new Set(['capture', 'home', 'agent', 'builder', 'settings', 'find', 'transfer', 'relations', 'workspace', ...VIEWS]);
+export const AGENT_TRANSITIONS = Object.freeze({ queued: ['active','blocked','cancelled'], active: ['blocked','completed','cancelled'], blocked: ['active','cancelled'], completed: [], cancelled: [] });
 const STANDARD_RELATION_BASIS = 'local association; not native equality';
 const EXPORT_MODE_LABEL = { references: 'References only — no message text', transcript: 'Transcript — saved message text and simple formatting', 'full-saved': 'Full saved — every recorded block' };
 const EXPORT_OMIT_LABEL = { 'reasoning-blocks-excluded': 'Saved reasoning blocks left out', 'tool-activity-blocks-excluded': 'Tool and status activity blocks left out', 'non-transcript-blocks-excluded': 'Blocks Studio does not recognize left out' };
@@ -739,6 +742,14 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     find: { query: '', kind: '', items: [], total: null, nextOffset: null, coverage: null, error: '', status: '', loading: false, recordId: null },
     custody: 'observed',
     settings: { tab: 'providers', sites: [], loaded: false, loading: false, error: '' },
+    agentHome: { status: null, loading: false, error: '' },
+    builder: { apps: [], selected: null, title: '', intent: '', pendingKey: null, kind: 'notes', label: '',
+      proposalText: '', proposalPreview: null, previewSource: null,
+      busy: false, loading: false, error: '', notice: '' },
+    agent: { status: null, work: null, loading: false, busy: false, error: '', notice: '', title: '', objective: '', pendingKey: null,
+      tier: 'Immediate', memoryKey: '', memoryText: '', memoryEntries: [], workFilter: 'open', workLimit: 50, actionDrafts: new Map(),
+      insightKind: null, insight: null, insightBusy: false, insightError: '',
+      memorySearch: { query: '', tier: 'all', busy: false, error: '', result: null } },
     relations: { id: '', typed: '', map: null, error: '', status: '', loading: false, recordId: null },
     workspace: { id: '', typed: '', map: null, error: '', status: '', loading: false, item: null, readingId: '', readingNode: null, readingError: '', readingLoading: false },
     transfer: {
@@ -756,6 +767,10 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
   let workspaceReadAbort = null;
   let readerHeadNode = null, readerStatusNode = null, readerBodyNode = null;
 
+  let agentHomeTicket = 0;
+  let agentTicket = 0;
+  let agentInsightTicket = 0;
+  let agentMemorySearchTicket = 0;
   let searchTicket = 0;
   let searchAbort = null;
   const tickets = {
@@ -815,6 +830,129 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
       return { status: 0, data: null };
     }
   }
+
+  // One owner, one local store. Never request a provider or browser effect from this view.
+  async function agentCall(route, method = 'GET', body = null) {
+    try {
+      const response = await fetchImpl(AGENT_API + route, {
+        method, credentials: 'same-origin', cache: 'no-store',
+        headers: body ? { 'content-type': 'application/json' } : undefined,
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      let data = null;
+      try { data = await response.json(); } catch { /* non-JSON error stays an error */ }
+      return { status: response.status, data };
+    } catch { return { status: 0, data: null }; }
+  }
+  function agentError(result) {
+    return result.data?.code
+      ? String(result.data.code) + ': ' + problemText(result.data)
+      : (result.status ? 'Agent request failed (HTTP ' + result.status + ')' : 'Local Studio is unreachable');
+  }
+  // Home reads ONLY status counts; memory, Work titles, SITREP and skills stay private
+  // until the user explicitly enters the Agent view or chooses an inspection action.
+  async function loadAgentHomeStatus() {
+    const ticket = ++agentHomeTicket, home = state.agentHome;
+    home.loading = true;
+    home.error = '';
+    if (state.view === 'home') renderHome();
+    const result = await agentCall('/status');
+    if (ticket !== agentHomeTicket) return;
+    if (result.status === 200 && typeof result.data?.initialized === 'boolean') {
+      home.status = result.data;
+    } else {
+      home.status = null;
+      home.error = agentError(result);
+    }
+    home.loading = false;
+    if (state.view === 'home') renderHome();
+  }
+  async function agentRefresh() {
+    const ticket = ++agentTicket, a = state.agent;
+    a.loading = true; a.error = '';
+    if (state.view === 'agent') renderAgent();
+    const status = await agentCall('/status');
+    if (ticket !== agentTicket) return;
+    if (status.status !== 200 || typeof status.data?.initialized !== 'boolean') {
+      a.status = null; a.work = null; a.memoryEntries = []; a.error = agentError(status);
+    } else {
+      a.status = status.data; a.work = null; a.memoryEntries = [];
+      if (status.data.initialized) {
+        const work = await agentCall('/work');
+        if (ticket !== agentTicket) return;
+        if (work.status === 200 && Array.isArray(work.data?.items)) a.work = work.data;
+        else a.error = agentError(work);
+        const memory = await agentCall('/memory/' + encodeURIComponent(a.tier));
+        if (ticket !== agentTicket) return;
+        if (memory.status === 200 && Array.isArray(memory.data?.entries)) a.memoryEntries = memory.data.entries;
+        else a.error = agentError(memory);
+      }
+    }
+    a.loading = false;
+    if (state.view === 'agent') renderAgent();
+  }
+  async function agentWrite(route, method, body, success, onSuccess = () => {}) {
+    const a = state.agent;
+    if (a.busy || a.loading) return;
+    a.busy = true; a.error = ''; a.notice = '';
+    if (state.view === 'agent') renderAgent();
+    const response = await agentCall(route, method, body);
+    if (response.status === 200) {
+      onSuccess(response.data);
+      if (route.startsWith('/memory/')) {
+        agentMemorySearchTicket++;
+        a.memorySearch.busy = false;
+        a.memorySearch.result = null;
+        a.memorySearch.error = '';
+      }
+      a.notice = success;
+      await agentRefresh();
+    } else {
+      a.error = agentError(response);
+    }
+    a.busy = false;
+    if (state.view === 'agent') renderAgent();
+  }
+  // Explicit, read-only inspection of existing local Personal Agent projections.
+  // SITREP includes private user-authored memory: never auto-load it on navigation.
+  async function agentInspect(kind) {
+    const a = state.agent;
+    const paths = {
+      capabilities: '/capabilities',
+      knowledge: '/self-knowledge?topic=all',
+      continuity: '/sitrep',
+    };
+    if (a.insightBusy || !Object.hasOwn(paths, kind)) return;
+    const ticket = ++agentInsightTicket;
+    a.insightBusy = true; a.insightError = ''; a.insightKind = kind; a.insight = null;
+    if (state.view === 'agent') renderAgent();
+    const result = await agentCall(paths[kind]);
+    if (ticket !== agentInsightTicket || state.view !== 'agent') return;
+    if (result.status === 200 && result.data && typeof result.data === 'object') a.insight = result.data;
+    else a.insightError = agentError(result);
+    a.insightBusy = false;
+    if (state.view === 'agent') renderAgent();
+  }
+  async function searchAgentMemory() {
+    const a = state.agent, form = a.memorySearch;
+    if (form.busy || a.loading || !a.status?.initialized) return;
+    if (form.query.trim().length < 2) {
+      form.error = 'Enter at least two characters for local memory search.';
+      if (state.view === 'agent') renderAgent();
+      return;
+    }
+    const ticket = ++agentMemorySearchTicket;
+    form.busy = true; form.error = ''; form.result = null;
+    if (state.view === 'agent') renderAgent();
+    // POST keeps sensitive search terms out of URL query strings and access logs.
+    const response = await agentCall('/search-memory', 'POST',
+      { query: form.query.trim(), tier: form.tier, limit: 20 });
+    if (ticket !== agentMemorySearchTicket || state.view !== 'agent') return;
+    if (response.status === 200 && Array.isArray(response.data?.items)) form.result = response.data;
+    else form.error = agentError(response);
+    form.busy = false;
+    renderAgent();
+  }
   function applyVisibility() {
     const world = state.view !== 'capture';
     chat.hidden = world;
@@ -830,7 +968,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     const breadcrumb = doc.getElementById?.('vivimViewBreadcrumb');
     if (breadcrumb) {
       const titles = {
-        capture: 'Chat', home: 'Home', settings: 'Settings', conversations: 'Saved conversations', projects: 'Projects',
+        capture: 'Chat', home: 'Home', agent: 'Personal Agent', builder: 'Build my VIVIM', settings: 'Settings', conversations: 'Saved conversations', projects: 'Projects',
         notes: 'Notes', find: 'Find', transfer: 'Transfer',
         relations: 'Relations', workspace: 'Workspace',
       };
@@ -847,8 +985,8 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     root.replaceChildren(grid);
   }
 
-  // Home is a read-only projection of the SAME local World lists. No new store or
-  // default project, account identity, provider operation or network actor.
+  // Home is a read-only projection of the SAME local World lists and local Agent
+  // status counts. No new store, login inference, provider effect or network actor.
   function renderHome() {
     ensureFrame();
     const heading = el('div', { class: 'vivim-section-head' }, [
@@ -873,11 +1011,33 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
       on(card, 'click', () => choose(kind));
       cards.append(card);
     }
+    const agentHome = state.agentHome, agentStatus = agentHome.status;
+    const localOpen = agentStatus?.initialized ? ['queued', 'active', 'blocked']
+      .reduce((sum, key) => {
+        const value = agentStatus.work?.byStatus?.[key];
+        return sum + (Number.isSafeInteger(value) && value >= 0 ? value : 0);
+      }, 0) : null;
+    const agentCard = el('button', { type: 'button', class: 'vivim-overview-card',
+      id: 'vivimAgentHomeCard' }, [
+      el('span', { class: 'vivim-overview-icon', 'aria-hidden': 'true', text: '✦' }),
+      el('span', { class: 'vivim-overview-number',
+        text: agentHome.loading || agentHome.error || !agentStatus ? '—'
+          : agentStatus.initialized ? String(localOpen) : '0' }),
+      el('strong', { text: 'Personal Agent' }),
+      el('span', { class: 'note', text: agentHome.loading ? 'Checking local agent status…'
+        : agentHome.error ? 'Local agent status unavailable'
+          : !agentStatus ? 'Local agent not inspected yet'
+            : !agentStatus.initialized ? 'Initialize your local agent'
+              : agentStatus.nextStage ? 'Bootstrap needs attention: ' + agentStatus.nextStage
+                : 'Open local Work; not provider execution' }),
+    ]);
+    on(agentCard, 'click', () => choose('agent'));
+    cards.append(agentCard);
     const actions = el('div', { class: 'vivim-home-actions' }, [
       el('h3', { text: 'Quick actions' }),
     ]);
     for (const [view, title] of [
-      ['capture', 'Start a conversation'], ['find', 'Find saved content'],
+      ['capture', 'Start a conversation'], ['builder', 'Build my VIVIM'], ['agent', 'Your Personal Agent'], ['find', 'Find saved content'],
       ['workspace', 'Explore workspace'], ['relations', 'Explore relationships'],
     ]) {
       const action = el('button', { type: 'button', text: title });
@@ -904,6 +1064,523 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
         el('h3', { text: 'Your AI, your data' }),
         el('p', { class: 'note', text: 'Conversations belong to the providers where they were created. VIVIM keeps observed and imported local records separate and never assumes a verified provider account.' }),
       ]));
+  }
+
+
+  function renderAgent() {
+    ensureFrame();
+    const a = state.agent, status = a.status, busy = a.loading || a.busy;
+    const head = el('div', { class: 'vivim-section-head' }, [
+      el('span', { class: 'vivim-eyebrow', text: 'OWN YOUR AI' }),
+      el('h2', { text: 'Your Personal Agent' }),
+      el('p', { class: 'note', text: 'Your local agent inside VIVIM World. No provider send, model call or background execution is started here.' }),
+    ]);
+    const bootstrap = el('section', { class: 'vivim-info-card', id: 'worldAgentBootstrap' }, [
+      el('h3', { text: 'Local bootstrap' }),
+    ]);
+    if (status) {
+      bootstrap.append(el('p', { text: status.initialized
+        ? (status.nextStage ? 'Next stage: ' + status.nextStage : 'Local bootstrap completed')
+        : 'Personal Agent not initialized' }));
+      if (status.initialized) {
+        bootstrap.append(el('p', { class: 'note', text: 'Local revision ' + status.version + '; remote account not verified.' }));
+        for (const [stage, value] of Object.entries(status.stages ?? {})) {
+          bootstrap.append(el('p', { class: 'note', text: stage + ': ' + value.status + (value.blocker ? ' — ' + value.blocker : '') }));
+        }
+      }
+      const start = el('button', { type: 'button', id: 'worldAgentStart', text: status.initialized ? 'Resume bootstrap' : 'Initialize and bootstrap' });
+      start.disabled = busy;
+      on(start, 'click', () => agentWrite('/bootstrap', 'POST', {
+        expectedVersion: status.initialized ? status.version : null,
+      }, 'Local bootstrap checked without provider activity.'));
+      bootstrap.append(start);
+    } else bootstrap.append(el('p', { class: 'note', text: a.loading ? 'Reading local agent status…' : 'Agent status unavailable.' }));
+    const refresh = el('button', { type: 'button', id: 'worldAgentRefresh', text: 'Refresh agent' });
+    refresh.disabled = busy;
+    on(refresh, 'click', () => agentRefresh());
+    const notice = el('div', { id: 'worldAgentNotice', role: a.error ? 'alert' : 'status' });
+    if (a.error) notice.append(el('p', { class: 'err', text: a.error }));
+    if (a.notice) notice.append(el('p', { class: 'note', text: a.notice }));
+    const memory = el('section', { class: 'vivim-info-card', id: 'worldAgentMemory' }, [
+      el('h3', { text: 'Memory' }),
+      el('p', { class: 'note', text: 'Local and user-authored. Current removal does not erase version history.' }),
+    ]);
+    if (status?.initialized) {
+      for (const [tier, count] of Object.entries(status.memoryCounts ?? {})) {
+        memory.append(el('p', { class: 'note', text: tier + ': ' + count + ' entries' }));
+      }
+      const form = el('form', { id: 'worldAgentMemoryForm' });
+      const tier = el('select', { 'aria-label': 'Memory tier' });
+      for (const value of ['CANON','Immediate','Curated']) tier.append(el('option', { value, text: value }));
+      tier.value = a.tier; on(tier, 'change', () => { a.tier = tier.value; agentRefresh(); });
+      const key = el('input', { type: 'text', required: true, maxlength: '64', placeholder: 'Memory key', 'aria-label': 'Memory key' });
+      key.value = a.memoryKey; on(key, 'input', () => { a.memoryKey = key.value; });
+      const value = el('textarea', { required: true, maxlength: '8000', rows: '3', placeholder: 'What should your agent remember?', 'aria-label': 'Memory text' });
+      value.value = a.memoryText; on(value, 'input', () => { a.memoryText = value.value; });
+      const save = el('button', { type: 'submit', text: 'Save memory locally' }); save.disabled = busy;
+      form.append(tier, key, value, save);
+      on(form, 'submit', event => {
+        event.preventDefault();
+        if (!a.memoryKey.trim() || !a.memoryText.trim()) return;
+        agentWrite('/memory/' + encodeURIComponent(a.tier) + '/' + encodeURIComponent(a.memoryKey.trim()), 'PUT',
+          { text: a.memoryText, expectedVersion: a.status.version },
+          'Memory saved in local version history.', () => { a.memoryKey = ''; a.memoryText = ''; });
+      });
+      memory.append(form);
+      const existing = el('section', { id: 'worldAgentMemoryEntries' }, [
+        el('h3', { text: 'Saved ' + a.tier + ' memory' }),
+      ]);
+      if (a.loading) existing.append(el('p', { class: 'note', text: 'Reading local memory…' }));
+      else if (!a.memoryEntries.length) existing.append(el('p', { class: 'note', text: 'No entries in this tier.' }));
+      for (const entry of a.memoryEntries.slice().reverse().slice(0, 50)) {
+        const note = el('article', { class: 'vivim-agent-work-row' }, [
+          el('strong', { text: entry.key }),
+          el('p', { class: 'note', text: entry.text }),
+        ]);
+        const remove = el('button', { type: 'button', text: 'Remove from current memory' });
+        remove.disabled = busy;
+        on(remove, 'click', () => agentWrite(
+          '/memory/' + encodeURIComponent(a.tier) + '/' + encodeURIComponent(entry.key) + '/remove',
+          'POST', { expectedVersion: a.status.version },
+          'Removed from current local memory; prior versions remain in history.',
+        ));
+        note.append(remove);
+        existing.append(note);
+      }
+      memory.append(existing);
+      const search = a.memorySearch;
+      const searchBox = el('section', { id: 'worldAgentMemorySearch' }, [
+        el('h3', { text: 'Find personal memory' }),
+        el('p', { class: 'note', text: 'Explicit private local search of user-authored memory. No provider conversations are queried.' }),
+      ]);
+      const searchForm = el('form', { id: 'worldAgentMemorySearchForm' });
+      const term = el('input', { type: 'search', minlength: '2', maxlength: '120', required: true,
+        'aria-label': 'Search local agent memory', placeholder: 'Search your memory notes' });
+      term.value = search.query; on(term, 'input', () => { search.query = term.value; });
+      const searchTier = el('select', { 'aria-label': 'Memory search tier' });
+      for (const choice of ['all', 'CANON', 'Immediate', 'Curated']) searchTier.append(el('option', { value: choice, text: choice }));
+      searchTier.value = search.tier; on(searchTier, 'change', () => { search.tier = searchTier.value; });
+      const searchButton = el('button', { type: 'submit', text: 'Search local memory' });
+      searchButton.disabled = busy || search.busy;
+      on(searchForm, 'submit', event => { event.preventDefault(); searchAgentMemory(); });
+      searchForm.append(term, searchTier, searchButton);
+      searchBox.append(searchForm);
+      const resultArea = el('div', { id: 'worldAgentMemorySearchResults', role: 'status' });
+      if (search.busy) resultArea.append(el('p', { class: 'note', text: 'Searching local memory…' }));
+      else if (search.error) resultArea.append(el('p', { class: 'err', text: search.error }));
+      else if (search.result) {
+        resultArea.append(el('p', { class: 'note', text: 'Showing ' + search.result.shown +
+          ' of ' + search.result.total + ' local matches' + (search.result.truncated ? ' (more exist)' : '') + '.' }));
+        if (!search.result.items.length) resultArea.append(el('p', { class: 'empty', text: 'No matching user-authored memory.' }));
+        for (const hit of search.result.items) resultArea.append(el('article', { class: 'vivim-agent-work-row' }, [
+          el('strong', { text: hit.tier + ' / ' + hit.key }),
+          el('p', { class: 'note', text: hit.preview }),
+          el('p', { class: 'note', text: 'Local source: ' + hit.source + ' · matched ' + hit.match }),
+        ]));
+      }
+      searchBox.append(resultArea);
+      memory.append(searchBox);
+    } else memory.append(el('p', { class: 'note', text: 'Initialize your agent to save memory.' }));
+    const insights = el('section', { class: 'vivim-info-card', id: 'worldAgentInsights' }, [
+      el('h3', { text: 'Agent knowledge and continuity' }),
+      el('p', { class: 'note', text: 'Read local evidence on demand. Capability registration is not execution proof. SITREP can contain private memory.' }),
+    ]);
+    for (const [kind, title] of [
+      ['capabilities', 'Inspect skills and tools'],
+      ['knowledge', 'Inspect grounded self-knowledge'],
+      ['continuity', 'Read private SITREP'],
+    ]) {
+      const button = el('button', { type: 'button', id: 'worldAgentInspect_' + kind, text: title });
+      button.disabled = a.insightBusy || busy || !status?.initialized;
+      on(button, 'click', () => agentInspect(kind));
+      insights.append(button);
+    }
+    if (a.insightBusy) insights.append(el('p', { class: 'note', text: 'Reading local agent evidence…' }));
+    if (a.insightError) insights.append(el('p', { class: 'err', text: a.insightError }));
+    if (a.insight) {
+      insights.append(el('p', { class: 'note', text: 'Local inspection: ' + a.insightKind + ' · not a live provider result' }));
+      insights.append(el('pre', { id: 'worldAgentInsightOutput', text: JSON.stringify(a.insight, null, 2) }));
+    }
+    listPane.replaceChildren(head, bootstrap, notice, refresh, memory, insights,
+      el('a', { href: '/personal-agent', class: 'hit', text: 'Advanced agent inspector' }));
+
+    const tasks = el('section', { class: 'vivim-info-card', id: 'worldAgentWork' }, [
+      el('h3', { text: 'Your Work' }),
+      el('p', { class: 'note', text: 'User-directed local records, not automated model execution.' }),
+    ]);
+    if (status?.initialized) {
+      const form = el('form', { id: 'worldAgentWorkForm' });
+      const title = el('input', { type: 'text', required: true, maxlength: '160', placeholder: 'Task title', 'aria-label': 'Work title' });
+      title.value = a.title; on(title, 'input', () => { a.title = title.value; });
+      const objective = el('textarea', { required: true, maxlength: '4000', rows: '3', placeholder: 'Task objective', 'aria-label': 'Work objective' });
+      objective.value = a.objective; on(objective, 'input', () => { a.objective = objective.value; });
+      const queue = el('button', { type: 'submit', text: 'Queue local Work' }); queue.disabled = busy;
+      form.append(title, objective, queue);
+      on(form, 'submit', event => {
+        event.preventDefault();
+        if (!a.title.trim() || !a.objective.trim()) return;
+        if (!a.pendingKey) {
+          if (typeof globalThis.crypto?.randomUUID !== 'function') {
+            a.error = 'Secure idempotency key unavailable; no Work queued.'; renderAgent(); return;
+          }
+          a.pendingKey = 'vivim:' + globalThis.crypto.randomUUID();
+        }
+        agentWrite('/work', 'POST', { expectedVersion: a.status.version,
+          title: a.title, objective: a.objective, idempotencyKey: a.pendingKey },
+          'Work queued locally; not dispatched to a provider.',
+          () => { a.pendingKey = null; a.title = ''; a.objective = ''; });
+      });
+      tasks.append(form);
+      const items = a.work?.items ?? [];
+      const filters = [
+        ['open', 'Open Work'], ['all', 'All Work'],
+        ['queued', 'Queued'], ['active', 'Active'], ['blocked', 'Blocked'],
+        ['completed', 'Completed'], ['cancelled', 'Cancelled'],
+      ];
+      const filter = el('select', { id: 'worldAgentWorkFilter', 'aria-label': 'Filter local Work by status' });
+      for (const [value, label] of filters) filter.append(el('option', { value, text: label }));
+      filter.value = a.workFilter;
+      on(filter, 'change', () => {
+        a.workFilter = filter.value; a.workLimit = 50; renderAgent();
+      });
+      tasks.append(filter);
+      const selected = items.filter(item => a.workFilter === 'all' ||
+        (a.workFilter === 'open'
+          ? ['queued', 'active', 'blocked'].includes(item.status)
+          : item.status === a.workFilter));
+      tasks.append(el('p', { class: 'note', id: 'worldAgentWorkCoverage',
+        text: 'Showing ' + Math.min(selected.length, a.workLimit) + ' of ' + selected.length +
+          ' matching local Work items (' + items.length + ' total). Records are not provider executions.' }));
+      if (!a.loading && !selected.length) tasks.append(el('p', { class: 'empty',
+        text: items.length ? 'No Work matches this filter.' : 'No local Work yet.' }));
+      for (const item of [...selected].reverse().slice(0, a.workLimit)) {
+        const row = el('article', { class: 'vivim-agent-work-row' }, [
+          el('strong', { text: item.title }),
+          el('p', { class: 'note', text: item.objective }),
+          el('p', { class: 'note', text: 'State: ' + item.status + ' · updated ' + item.updatedAt }),
+        ]);
+        if (item.nextAction) row.append(el('p', { class: 'note', text: 'Next: ' + item.nextAction }));
+        const canPlan = ['queued', 'active', 'blocked'].includes(item.status);
+        if (canPlan) {
+          const action = el('textarea', {
+            rows: '2', maxlength: '1000', 'aria-label': 'Next action for ' + item.title,
+            placeholder: 'What is the next local step? No automatic execution.',
+          });
+          action.value = a.actionDrafts.has(item.id) ? a.actionDrafts.get(item.id) : (item.nextAction ?? '');
+          on(action, 'input', () => { a.actionDrafts.set(item.id, action.value); });
+          const saveAction = el('button', { type: 'button', text: 'Save next action' });
+          saveAction.disabled = busy;
+          on(saveAction, 'click', () => {
+            const trimmed = action.value.trim();
+            if (!trimmed && item.status === 'blocked') {
+              a.error = 'Blocked Work requires a next action or reason.'; renderAgent(); return;
+            }
+            agentWrite('/work/' + encodeURIComponent(item.id) + '/next-action', 'POST', {
+              expectedVersion: a.status.version, nextAction: trimmed || null,
+            }, 'Next action saved locally; no execution or provider send occurred.',
+              () => { a.actionDrafts.delete(item.id); });
+          });
+          row.append(action, saveAction);
+        }
+        const allowed = AGENT_TRANSITIONS[item.status] ?? [];
+        if (allowed.length) {
+          const next = el('select', { 'aria-label': 'Next work state' });
+          for (const to of allowed) next.append(el('option', { value: to, text: to }));
+          next.value = allowed[0];
+          const note = el('input', { type: 'text', maxlength: '2000', placeholder: 'Reason if blocked', 'aria-label': 'Work reason' });
+          const refs = el('input', { type: 'text', maxlength: '1200', placeholder: 'Evidence references if completed', 'aria-label': 'Work evidence' });
+          const update = el('button', { type: 'button', text: 'Update Work' }); update.disabled = busy;
+          on(update, 'click', () => agentWrite('/work/' + encodeURIComponent(item.id) + '/transition', 'POST', {
+            expectedVersion: a.status.version, to: next.value, note: note.value,
+            evidence: refs.value.split(',').map(v => v.trim()).filter(Boolean),
+          }, 'Work state updated locally, not executed externally.'));
+          row.append(next, note, refs, update);
+        }
+        tasks.append(row);
+      }
+      if (selected.length > a.workLimit) {
+        const more = el('button', { type: 'button', id: 'worldAgentWorkMore',
+          text: 'Show older Work (' + (selected.length - a.workLimit) + ' remaining)' });
+        on(more, 'click', () => { a.workLimit += 50; renderAgent(); });
+        tasks.append(more);
+      }
+    } else tasks.append(el('p', { class: 'empty', text: 'Initialize your agent to manage Work.' }));
+    detailPane.replaceChildren(tasks);
+  }
+
+  // A small real product loop: explicit intent -> durable local blueprint ->
+  // declarative mobile preview -> user-directed revision. No model result is fabricated.
+  async function builderCall(route, { method = 'GET', body } = {}) {
+    try {
+      const response = await fetchImpl(PERSONAL_APPS_API + route, {
+        method, credentials: 'same-origin', cache: 'no-store',
+        headers: body ? { 'content-type': 'application/json' } : undefined,
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      let data = null;
+      try { data = await response.json(); } catch { /* keep actual HTTP failure */ }
+      return { status: response.status, data };
+    } catch { return { status: 0, data: null }; }
+  }
+  async function refreshBuilder() {
+    const b = state.builder;
+    if (b.loading || b.busy) return;
+    b.loading = true; b.error = '';
+    if (state.view === 'builder') renderBuilder();
+    const result = await builderCall('');
+    b.loading = false;
+    if (result.status === 200 && Array.isArray(result.data?.items)) {
+      b.apps = result.data.items;
+      if (!b.apps.some(item => item.id === b.selected?.id)) b.selected = null;
+    } else b.error = result.data?.code || 'Local app blueprint service is unavailable.';
+    if (state.view === 'builder') renderBuilder();
+  }
+  async function createBuilderApp() {
+    const b = state.builder;
+    if (b.busy || !b.title.trim() || !b.intent.trim()) return;
+    if (!b.pendingKey) {
+      if (typeof globalThis.crypto?.randomUUID !== 'function') {
+        b.error = 'Secure idempotency key unavailable. No app was created.';
+        renderBuilder(); return;
+      }
+      b.pendingKey = 'vivim-build:' + globalThis.crypto.randomUUID();
+    }
+    b.busy = true; b.error = ''; b.notice = '';
+    renderBuilder();
+    const result = await builderCall('', {
+      method: 'POST', body: { title: b.title, intent: b.intent, idempotencyKey: b.pendingKey },
+    });
+    if (result.status === 200 && result.data?.app) {
+      b.selected = result.data.app;
+      b.proposalText = ''; b.proposalPreview = null; b.previewSource = null;
+      b.title = ''; b.intent = ''; b.pendingKey = null;
+      b.notice = result.data.replayed
+        ? 'Reconnected to the same locally saved blueprint.'
+        : 'Your personal app blueprint is saved locally. No provider was called.';
+    } else b.error = result.data?.code || 'App creation was not confirmed; retry uses the same request key.';
+    b.busy = false;
+    if (state.view === 'builder') renderBuilder();
+    if (result.status === 200) await refreshBuilder();
+  }
+  async function selectBuilderApp(id) {
+    const b = state.builder;
+    if (b.busy || b.loading) return;
+    b.loading = true; b.error = '';
+    renderBuilder();
+    const result = await builderCall('/' + encodeURIComponent(id));
+    b.loading = false;
+    if (result.status === 200 && result.data?.id === id) {
+      if (b.selected?.id !== id) b.proposalText = '';
+      b.selected = result.data;
+      b.proposalPreview = null; b.previewSource = null;
+    } else b.error = result.data?.code || 'Saved app could not be read.';
+    if (state.view === 'builder') renderBuilder();
+  }
+  async function addBuilderScreen() {
+    const b = state.builder;
+    if (!b.selected || b.busy || !b.label.trim()) return;
+    b.busy = true; b.error = ''; b.notice = '';
+    renderBuilder();
+    const result = await builderCall('/' + encodeURIComponent(b.selected.id) + '/screens', {
+      method: 'POST', body: { expectedVersion: b.selected.version, kind: b.kind, label: b.label },
+    });
+    if (result.status === 200 && result.data?.app) {
+      b.selected = result.data.app;
+      b.proposalPreview = null; b.previewSource = null;
+      b.label = '';
+      b.notice = 'Declarative screen added to your local blueprint. No code or provider effects executed.';
+    } else b.error = result.data?.code || 'Screen edit was not confirmed. Refresh before retrying.';
+    b.busy = false;
+    if (state.view === 'builder') renderBuilder();
+    if (result.status === 200) await refreshBuilder();
+  }
+  // Proposal results are untrusted until Studio's strict data-only compiler accepts them.
+  // Preview cannot mutate saved state; a second explicit user click is required to apply.
+  async function previewBuilderProposal() {
+    const b = state.builder;
+    if (!b.selected || b.busy || !b.proposalText.trim()) return;
+    const input = b.proposalText, id = b.selected.id, version = b.selected.version;
+    b.proposalPreview = null; b.previewSource = null;
+    b.busy = true; b.error = ''; b.notice = '';
+    renderBuilder();
+    const result = await builderCall('/' + encodeURIComponent(id) + '/preview-change', {
+      method: 'POST', body: { proposal: input },
+    });
+    b.busy = false;
+    if (b.selected?.id !== id || b.selected?.version !== version || b.proposalText !== input) {
+      b.error = 'App or proposal changed while checking. Preview the current draft again.';
+    } else if (result.status === 200 && result.data?.canApply === true &&
+      result.data?.effects === 'none' && result.data?.appId === id &&
+      result.data?.baseVersion === version && Array.isArray(result.data?.diff) &&
+      result.data?.approvalRequired === true) {
+      b.proposalPreview = result.data;
+      b.previewSource = input;
+      b.notice = 'Validated locally; saved app unchanged. Review the difference before applying.';
+    } else {
+      b.error = result.data?.code || 'No verified preview. Nothing was changed.';
+    }
+    if (state.view === 'builder') renderBuilder();
+  }
+  async function applyBuilderProposal() {
+    const b = state.builder, preview = b.proposalPreview, current = b.selected;
+    if (b.busy || !current || !preview || b.previewSource !== b.proposalText ||
+      preview.appId !== current.id || preview.baseVersion !== current.version ||
+      preview.canApply !== true || preview.effects !== 'none') return;
+    const id = current.id, version = current.version;
+    // Only the user's click here confers approval. Nothing received from a model can do so.
+    b.busy = true; b.error = ''; b.notice = '';
+    renderBuilder();
+    const result = await builderCall('/' + encodeURIComponent(id) + '/apply-change', {
+      method: 'POST', body: {
+        expectedVersion: version, proposal: preview.change, approval: 'user-confirmed',
+      },
+    });
+    b.busy = false;
+    b.proposalPreview = null; b.previewSource = null;
+    if (result.status === 200 && result.data?.app?.id === id &&
+        Number.isSafeInteger(result.data.app.version) &&
+        result.data.app.version > version) {
+      b.selected = result.data.app;
+      b.proposalText = '';
+      b.notice = 'Approved changes saved locally. No AI provider was contacted and no app was deployed.';
+    } else {
+      // On an uncertain response, NEVER re-send an approved edit. Preserve the draft,
+      // and let the owner re-read the saved blueprint before deciding what happened.
+      b.error = (result.data?.code || 'APP_APPLY_NOT_CONFIRMED') +
+        ' — not confirmed. Reload the blueprint before deciding whether to try again.';
+    }
+    if (state.view === 'builder') renderBuilder();
+    if (result.status === 200) await refreshBuilder();
+  }
+  function renderBuilder() {
+    ensureFrame();
+    const b = state.builder, locked = b.busy || b.loading;
+    const head = el('div', { class: 'vivim-section-head' }, [
+      el('span', { class: 'vivim-eyebrow', text: 'YOUR PERSONAL APP FACTORY' }),
+      el('h2', { text: 'Build my VIVIM' }),
+      el('p', { class: 'note', text: 'Describe your personal mobile app. Start with a tiny blueprint; evolve it safely. AI construction and APK installation are not yet connected.' }),
+    ]);
+    const notice = el('div', { id: 'worldBuilderNotice', role: b.error ? 'alert' : 'status' });
+    if (b.error) notice.append(el('p', { class: 'err', text: b.error }));
+    if (b.notice) notice.append(el('p', { class: 'note', text: b.notice }));
+    const form = el('form', { id: 'worldBuilderCreateForm' });
+    const name = el('input', { type: 'text', required: true, maxlength: '80',
+      'aria-label': 'Your app name', placeholder: 'My personal AI world' });
+    name.value = b.title;
+    on(name, 'input', () => { b.title = name.value; });
+    const intent = el('textarea', { required: true, rows: '5', maxlength: '2000',
+      'aria-label': 'What should your app become?', placeholder: 'I want an assistant that...' });
+    intent.value = b.intent;
+    on(intent, 'input', () => { b.intent = intent.value; });
+    const create = el('button', { type: 'submit', text: 'Create local starter app' });
+    create.disabled = locked;
+    on(form, 'submit', event => { event.preventDefault(); createBuilderApp(); });
+    form.append(name, intent, create);
+    const library = el('section', { id: 'worldBuilderLibrary', class: 'vivim-info-card' }, [
+      el('h3', { text: 'My app blueprints' }),
+      el('p', { class: 'note', text: 'Saved in the local VIVIM data directory, not in provider accounts.' }),
+    ]);
+    if (b.loading) library.append(el('p', { class: 'note', text: 'Reading saved blueprints…' }));
+    for (const item of b.apps) {
+      const select = el('button', { type: 'button', text: item.title + ' · ' + item.screenCount + ' screens' });
+      select.disabled = locked;
+      on(select, 'click', () => selectBuilderApp(item.id));
+      library.append(select);
+    }
+    if (!b.loading && !b.apps.length) library.append(el('p', { class: 'empty', text: 'No personal app blueprints saved yet.' }));
+    listPane.replaceChildren(head, notice, form, library);
+    const preview = el('section', { id: 'worldBuilderPreview', class: 'vivim-info-card' }, [
+      el('h3', { text: b.selected ? b.selected.title + ' — mobile starter' : 'Your mobile starter' }),
+    ]);
+    if (!b.selected) {
+      preview.append(el('p', { class: 'note', text: 'Start with Home, My Agent and Build. Your own screens will appear here after you create an app.' }));
+    } else {
+      preview.append(el('p', { class: 'note', text: 'Blueprint revision ' + b.selected.version +
+        ' · source: user-authored · AI execution: not attempted · APK: not built · phone pairing: not configured.' }));
+      const phone = el('div', { class: 'vivim-builder-phone', id: 'worldBuilderPhone' });
+      phone.append(el('strong', { text: b.selected.title }));
+      const nav = el('div', { class: 'vivim-builder-screen-grid' });
+      for (const screen of b.selected.screens) nav.append(el('div', { class: 'vivim-builder-screen' }, [
+        el('strong', { text: screen.label }),
+        el('p', { class: 'note', text: screen.kind + ' · ' +
+          (screen.origin === 'base-scaffold' ? 'starter screen' : 'user-added screen') }),
+      ]));
+      phone.append(nav);
+      preview.append(phone, el('p', { class: 'note', text: 'Blueprint-only representation. No model or generated code ran.' }));
+      preview.append(el('a', { id: 'worldBuilderOpenMobile', class: 'hit',
+        href: '/mobile?app=' + encodeURIComponent(b.selected.id),
+        target: '_blank', rel: 'noopener noreferrer',
+        text: 'Open working mobile view on this PC' }));
+      preview.append(el('p', { class: 'note',
+        text: 'This local view supports saved notes and tasks. It is not yet reachable from a separate phone.' }));
+      const add = el('form', { id: 'worldBuilderAddScreenForm' });
+      const kind = el('select', { 'aria-label': 'New screen kind' });
+      for (const type of ['notes', 'tasks', 'dashboard', 'blank']) kind.append(el('option', { value: type, text: type }));
+      kind.value = b.kind;
+      on(kind, 'change', () => { b.kind = kind.value; });
+      const label = el('input', { type: 'text', required: true, maxlength: '64',
+        'aria-label': 'New screen label', placeholder: 'My Tasks' });
+      label.value = b.label; on(label, 'input', () => { b.label = label.value; });
+      const button = el('button', { type: 'submit', text: 'Add screen to blueprint' });
+      button.disabled = locked;
+      on(add, 'submit', event => { event.preventDefault(); addBuilderScreen(); });
+      add.append(el('h3', { text: 'Evolve your app' }), kind, label, button);
+      preview.append(add);
+      const propose = el('form', { id: 'worldBuilderProposalForm' });
+      propose.append(el('h3', { text: 'Review a proposed app change' }),
+        el('p', { class: 'note', text: 'Paste a JSON screen proposal from an AI response or edit the example. Preview is read-only; nothing executes or saves until you approve.' }));
+      const draft = el('textarea', { id: 'worldBuilderProposalText', rows: '8', maxlength: '12000',
+        'aria-label': 'JSON change proposal', placeholder: 'vivim.personal-app-change/1 JSON' });
+      draft.value = b.proposalText;
+      const diffArea = el('div', { id: 'worldBuilderProposalDiff', role: 'status' });
+      const apply = el('button', { type: 'button', id: 'worldBuilderApplyProposal',
+        text: 'Approve and apply these changes' });
+      apply.disabled = locked || !b.proposalPreview || b.previewSource !== b.proposalText ||
+        b.proposalPreview.appId !== b.selected.id ||
+        b.proposalPreview.baseVersion !== b.selected.version;
+      on(draft, 'input', () => {
+        b.proposalText = draft.value;
+        b.proposalPreview = null; b.previewSource = null;
+        apply.disabled = true;
+        diffArea.replaceChildren(el('p', { class: 'note', text: 'Draft changed. Preview again to review the updated proposal.' }));
+      });
+      const example = el('button', { type: 'button', text: 'Insert editable example' });
+      example.disabled = locked;
+      on(example, 'click', () => {
+        b.proposalText = JSON.stringify({ schema: 'vivim.personal-app-change/1',
+          appId: b.selected.id, baseVersion: b.selected.version,
+          operations: [{ type: 'add-screen', kind: 'tasks', label: 'My next screen' }] }, null, 2);
+        b.proposalPreview = null; b.previewSource = null;
+        renderBuilder();
+      });
+      const check = el('button', { type: 'submit', id: 'worldBuilderPreviewProposal',
+        text: 'Preview without saving' });
+      check.disabled = locked || !b.proposalText.trim();
+      on(propose, 'submit', event => { event.preventDefault(); previewBuilderProposal(); });
+      on(apply, 'click', () => applyBuilderProposal());
+      propose.append(draft, example, check);
+      if (b.proposalPreview) {
+        diffArea.append(el('p', { class: 'note', text:
+          'Read-only preview · from revision ' + b.proposalPreview.baseVersion +
+          ' · no code execution or provider effects.' }));
+        const changes = el('ul');
+        for (const change of b.proposalPreview.diff) {
+          changes.append(el('li', { text: 'Add ' + change.kind + ' screen: ' + change.label }));
+        }
+        diffArea.append(changes);
+        const screenPreview = el('div', { class: 'vivim-builder-screen-grid',
+          id: 'worldBuilderProposedScreens' });
+        for (const screen of b.proposalPreview.scaffold?.screens ?? []) {
+          screenPreview.append(el('div', { class: 'vivim-builder-screen', text: screen.label }));
+        }
+        diffArea.append(screenPreview, apply);
+      } else if (b.proposalText.trim()) {
+        diffArea.append(el('p', { class: 'note', text:
+          'No current validated preview. The local blueprint has not been changed.' }));
+      }
+      preview.append(propose, diffArea);
+    }
+    detailPane.replaceChildren(preview);
   }
 
   function renderSettings() {
@@ -3003,6 +3680,14 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
   async function choose(view, { quiet = false } = {}) {
     if (!SHELL_VIEWS.has(view)) return;
     if (state.view !== view) {
+      if (state.view === 'agent' && view !== 'agent') {
+        agentInsightTicket++;
+        agentMemorySearchTicket++;
+        state.agent.memorySearch = { query: '', tier: 'all', busy: false, error: '', result: null };
+        state.agent.insightBusy = false;
+        // Explicitly loaded private continuity must not survive navigation in UI state.
+        state.agent.insight = null; state.agent.insightKind = null; state.agent.insightError = '';
+      }
       relationsAbort?.abort(); relationsTicket += 1;
       state.relations.loading = false;
       state.workspace.loading = false;
@@ -3019,9 +3704,21 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     if (view === 'capture') { if (!quiet) announce('Capture.'); return; }
     if (view === 'home') {
       renderHome();
-      await Promise.all([loadNamespace(), fetchList('conversations'), fetchList('projects'), fetchList('notes')]);
+      await Promise.all([loadNamespace(), fetchList('conversations'), fetchList('projects'), fetchList('notes'), loadAgentHomeStatus()]);
       if (state.view === 'home') renderHome();
       if (!quiet) announce('Home.');
+      return;
+    }
+    if (view === 'builder') {
+      renderBuilder();
+      await refreshBuilder();
+      if (!quiet) announce('Build my VIVIM.');
+      return;
+    }
+    if (view === 'agent') {
+      renderAgent();
+      await agentRefresh();
+      if (!quiet) announce('Personal Agent.');
       return;
     }
     if (view === 'settings') {

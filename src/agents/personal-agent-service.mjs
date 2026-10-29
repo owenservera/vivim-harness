@@ -3,7 +3,8 @@ import path from 'node:path';
 import { existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { TOOL_ROOT } from '../config.mjs';
-import { createWork, transitionWork, workSummary } from './personal-agent-work.mjs';
+import { createWork, transitionWork, setWorkNextAction, workSummary } from './personal-agent-work.mjs';
+import { searchPersonalAgentMemory } from './personal-agent-memory-search.mjs';
 import { buildSelfKnowledge, SELF_KNOWLEDGE_TOPICS } from './personal-agent-self-knowledge.mjs';
 import { createContinuityPacket, createPortableSnapshot } from './personal-agent-continuity.mjs';
 import { VersionedStore } from '../store/versioned.mjs';
@@ -208,6 +209,11 @@ export function createPersonalAgentService({ paths, skillsRoot = TOOL_ROOT, getT
     return { tier, version: state.version, updatedAt: state.updatedAt, entries: structuredClone(tierOf(state.memory, tier)),
       disclosure: 'User-authored local data; not injected into provider requests automatically' };
   }
+  function searchMemory(options = {}) {
+    const state = read();
+    if (!state) throw problem(404, 'Initialize Personal Agent first', 'PERSONAL_AGENT_NOT_INITIALIZED');
+    return { version: state.version, ...searchPersonalAgentMemory(state, options) };
+  }
   function remember({ tier, key, text, expectedVersion } = {}) {
     if (!MEMORY_TIERS.includes(tier)) throw bad('Unknown memory tier');
     if (!token(key)) throw bad('Memory key must be a short token');
@@ -283,5 +289,11 @@ export function createPersonalAgentService({ paths, skillsRoot = TOOL_ROOT, getT
     versioned(result.state, state.version, `User Work transition: ${to}`);
     return { ...status(), item: result.item };
   }
-  return { status, initialize, bootstrap, capabilities, selfKnowledge, continuity, exportSnapshot, memories, remember, forget, workList, createWorkItem, transitionWorkItem };
+  function updateWorkNextAction({ expectedVersion, id, nextAction } = {}) {
+    const state = requireWorkVersion(expectedVersion);
+    const result = setWorkNextAction(state, { id, nextAction, now: clock() });
+    if (result.changed) versioned(result.state, state.version, 'User-updated Work next action');
+    return { ...status(), item: result.item, replayed: !result.changed };
+  }
+  return { status, initialize, bootstrap, capabilities, selfKnowledge, continuity, exportSnapshot, memories, remember, forget, workList, createWorkItem, transitionWorkItem, updateWorkNextAction, searchMemory };
 }

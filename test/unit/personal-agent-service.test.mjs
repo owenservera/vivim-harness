@@ -74,6 +74,24 @@ test('memory updates are user-authored, CAS guarded, and absent from status proj
   const independent = make({ ...f, paths: { root: path.join(path.dirname(f.paths.root), 'other') } });
   assert.equal(independent.status().initialized, false, 'no cross-data-directory identity leakage');
 });
+test('private memory search uses persisted user-authored state, tier scopes and bound previews', t => {
+  const f = fixture(t), agent = make(f);
+  const boot = agent.bootstrap({ expectedVersion: null });
+  const saved = agent.remember({ tier: 'Immediate', key: 'focus', text: 'Verify local source receipts',
+    expectedVersion: boot.version });
+  const result = make(f).searchMemory({ query: 'source', tier: 'Immediate', limit: 5 });
+  assert.equal(result.total, 1);
+  assert.equal(result.items[0].key, 'focus');
+  assert.equal(result.items[0].source, 'user-authored');
+  assert.equal(result.execution.includes('no provider'), true);
+  assert.equal(result.version, saved.version);
+  assert.equal(JSON.stringify(agent.status()).includes('Verify local source'), false);
+  assert.throws(() => agent.searchMemory({ query: '..', tier: 'wrong' }),
+    e => e.code === 'PERSONAL_AGENT_MEMORY_SEARCH_INVALID');
+  const removed = make(f).forget({ tier: 'Immediate', key: 'focus', expectedVersion: saved.version });
+  assert.equal(make(f).searchMemory({ query: 'source' }).total, 0);
+  assert.equal(removed.memoryCounts.Immediate, 0);
+});
 test('capability inventory distinguishes source discovery from verified runtime execution', t => {
   const agent = make(fixture(t), { getTools: () => [
     { name: 'send', http: { method: 'POST', path: '/send' }, annotations: { readOnlyHint: false } },
@@ -233,4 +251,28 @@ test('corrupt stored state and memory tiers fail with a stable code, never a raw
   // A schema-invalid snapshot is reported as corrupt local state, not an uncaught validation TypeError.
   corrupt({ memory: { CANON: [], Immediate: [], Curated: [] }, stages: {} });
   assert.throws(() => make(f).status(), e => e.code === 'PERSONAL_AGENT_STATE_CORRUPT');
+});
+
+test('next actions remain local, CAS guarded, idempotent and durable after re-instantiation', t => {
+  const f = fixture(t), agent = make(f);
+  const boot = agent.bootstrap({ expectedVersion: null });
+  const work = agent.createWorkItem({ expectedVersion: boot.version, title: 'Verify Work plan',
+    objective: 'Make a local plan without triggering provider actions', idempotencyKey: 'next_action_case_123456' });
+  const updated = agent.updateWorkNextAction({ expectedVersion: work.version,
+    id: work.item.id, nextAction: ' Inspect the real source ' });
+  assert.equal(updated.item.nextAction, 'Inspect the real source');
+  assert.equal(updated.replayed, false);
+  assert.equal(updated.version, work.version + 1);
+  assert.equal(make(f).workList().items[0].nextAction, 'Inspect the real source');
+  const repeat = agent.updateWorkNextAction({ expectedVersion: updated.version,
+    id: work.item.id, nextAction: 'Inspect the real source' });
+  assert.equal(repeat.replayed, true);
+  assert.equal(repeat.version, updated.version, 'same action must not consume a version');
+  assert.throws(() => agent.updateWorkNextAction({ expectedVersion: work.version,
+    id: work.item.id, nextAction: 'stale update' }),
+  e => e.code === 'PERSONAL_AGENT_VERSION_CONFLICT');
+  const sitrep = make(f).continuity();
+  assert.equal(sitrep.work[0].nextAction, 'Inspect the real source');
+  assert.equal(sitrep.execution.permittedByThisPacket, false);
+  assert.equal(JSON.stringify(make(f).status()).includes('Inspect the real source'), false);
 });

@@ -52,6 +52,14 @@ export function registerPersonalAgentRoutes({ add, paths, getTools } = {}) {
       note: { type: 'string', maxLength: 2000 },
       evidence: { type: 'array', maxItems: 20, items: { type: 'string', maxLength: 256 } },
     }, required: ['expectedVersion', 'to'], additionalProperties: false } });
+  add('POST', '/personal-agent/work/{id}/next-action',
+    'Set a next action on open local Work, without dispatching it or claiming execution',
+    ({ p, body }) => agent.updateWorkNextAction({
+      ...ensureBody(body, ['expectedVersion', 'nextAction']), id: p.id,
+    }), { body: { type: 'object', properties: {
+      expectedVersion: { type: 'integer', minimum: 1 },
+      nextAction: { type: ['string', 'null'], maxLength: 1000 },
+    }, required: ['expectedVersion', 'nextAction'], additionalProperties: false } });
   add('GET', '/personal-agent/capabilities', 'Inspect bounded skill sources and registered Studio tools (no runtime proof)',
     () => agent.capabilities(), { tool: 'personal_agent_capabilities',
       annotations: { readOnlyHint: true, openWorldHint: false, idempotentHint: true } });
@@ -61,6 +69,14 @@ export function registerPersonalAgentRoutes({ add, paths, getTools } = {}) {
   add('POST', '/personal-agent/bootstrap', 'Run remaining local evidence-backed bootstrap stages; no external effects',
     ({ body }) => agent.bootstrap(ensureBody(body, ['expectedVersion'])),
     { body: { type: 'object', properties: { expectedVersion: versionSchema }, required: ['expectedVersion'], additionalProperties: false } });
+  // Search body stays out of URLs/access logs. Private previews are never tool-exposed.
+  add('POST', '/personal-agent/search-memory', 'Explicit private read-only local memory search',
+    ({ body }) => agent.searchMemory(ensureBody(body, ['query', 'tier', 'limit'])),
+    { body: { type: 'object', properties: {
+      query: { type: 'string', minLength: 2, maxLength: 120 },
+      tier: { type: 'string', enum: ['all', 'CANON', 'Immediate', 'Curated'] },
+      limit: { type: 'integer', minimum: 1, maximum: 50 },
+    }, required: ['query'], additionalProperties: false } });
   add('GET', '/personal-agent/memory/{tier}', 'Read one local Personal Agent memory tier; private values not exposed as a tool',
     ({ p }) => agent.memories(p.tier));
   add('PUT', '/personal-agent/memory/{tier}/{key}', 'Save explicit user-authored Personal Agent memory with CAS',
