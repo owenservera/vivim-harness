@@ -10,6 +10,13 @@ export const PROVIDER_REPLY_SOURCE = 'provider-reply';
 const CONVERSATION_ID = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}$/;
 const FENCE = /```[ \t]*([A-Za-z0-9_-]*)[ \t]*\r?\n([\s\S]*?)\r?\n?```/g;
 const CONTROL = /[\u0000-\u001f\u007f]/;
+// Providers/pages sometimes render plain-prose JSON with typographic ("smart") quotes
+// (U+2018/'/U+2019, U+201C/"/U+201D) instead of the straight ASCII quotes JSON requires.
+// Straightening them is lossless for JSON structure and only changes incidental styling
+// inside any label text, so it is applied unconditionally before any parse attempt.
+const SMART_SINGLE = /[\u2018\u2019\u201A\u201B]/g;
+const SMART_DOUBLE = /[\u201C\u201D\u201E\u201F]/g;
+const straightenQuotes = text => text.replace(SMART_SINGLE, "'").replace(SMART_DOUBLE, '"');
 const DIGEST = /^[a-f0-9]{64}$/;
 const digestOf = text => createHash('sha256').update(text, 'utf8').digest('hex');
 const ambiguous = () => problem(400,
@@ -64,7 +71,7 @@ function jsonObjectsIn(text) {
 // passed whole (so the compiler reports the real JSON error); otherwise exactly one embedded JSON object
 // (page-captured replies render a code block as "json Copy code {...}"). The compiler stays the sole judge.
 export function extractProposalText(replyText) {
-  const text = String(replyText ?? '');
+  const text = straightenQuotes(String(replyText ?? ''));
   const blocks = [...text.matchAll(FENCE)]
     .filter(([, tag, body]) => (tag ? tag.toLowerCase() === 'json' : body.trim().startsWith('{')))
     .map(match => match[2].trim());

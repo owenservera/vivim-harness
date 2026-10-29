@@ -81,7 +81,8 @@ export function buildAiDesignPrompt({ app, request }) {
     operations: [{ type: 'add-screen', kind: 'notes', label: 'Study Notes' }] });
   return 'You are helping design a small personal mobile app called "' + clip(app.title, 80).replace(/"/g, "'") + '". Purpose: ' +
     clip(app.intent, 300).replace(/"/g, "'") + ' It already has these screens: ' + screens + '. The owner wants: ' + wish +
-    ' Reply with ONLY one JSON object, no explanation and no markdown, using exactly the keys schema, appId, baseVersion and operations. ' +
+    ' Put your entire reply inside one fenced code block: a line with three backtick characters then the word json, then one JSON object, then a line with three backtick characters, nothing else before or after the fence. ' +
+    'Inside that JSON use only plain straight double-quote characters for all keys and string values, never curly or typographic quotes, and use exactly the keys schema, appId, baseVersion and operations. ' +
     'Propose 1 to 4 NEW screens and never repeat an existing one. Each operation is {"type":"add-screen","kind":"<kind>","label":"<name>"} where kind is exactly one of ' +
     PERSONAL_APP_KINDS.map(k => '"' + k + '"').join(', ') + ' and label is a short plain-text name of 1 to 64 characters. ' +
     'Copy schema, appId and baseVersion exactly. Exact shape: ' + shape;
