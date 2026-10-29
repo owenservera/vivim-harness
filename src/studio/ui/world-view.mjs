@@ -743,7 +743,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     settings: { tab: 'providers', sites: [], loaded: false, loading: false, error: '' },
     agentHome: { status: null, loading: false, error: '' },
     agent: { status: null, work: null, loading: false, busy: false, error: '', notice: '', title: '', objective: '', pendingKey: null,
-      tier: 'Immediate', memoryKey: '', memoryText: '', memoryEntries: [], workFilter: 'open', workLimit: 50,
+      tier: 'Immediate', memoryKey: '', memoryText: '', memoryEntries: [], workFilter: 'open', workLimit: 50, actionDrafts: new Map(),
       insightKind: null, insight: null, insightBusy: false, insightError: '' },
     relations: { id: '', typed: '', map: null, error: '', status: '', loading: false, recordId: null },
     workspace: { id: '', typed: '', map: null, error: '', status: '', loading: false, item: null, readingId: '', readingNode: null, readingError: '', readingLoading: false },
@@ -1199,7 +1199,8 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
             rows: '2', maxlength: '1000', 'aria-label': 'Next action for ' + item.title,
             placeholder: 'What is the next local step? No automatic execution.',
           });
-          action.value = item.nextAction ?? '';
+          action.value = a.actionDrafts.has(item.id) ? a.actionDrafts.get(item.id) : (item.nextAction ?? '');
+          on(action, 'input', () => { a.actionDrafts.set(item.id, action.value); });
           const saveAction = el('button', { type: 'button', text: 'Save next action' });
           saveAction.disabled = busy;
           on(saveAction, 'click', () => {
@@ -1209,7 +1210,8 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
             }
             agentWrite('/work/' + encodeURIComponent(item.id) + '/next-action', 'POST', {
               expectedVersion: a.status.version, nextAction: trimmed || null,
-            }, 'Next action saved locally; no execution or provider send occurred.');
+            }, 'Next action saved locally; no execution or provider send occurred.',
+              () => { a.actionDrafts.delete(item.id); });
           });
           row.append(action, saveAction);
         }
