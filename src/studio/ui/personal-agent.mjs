@@ -1,6 +1,13 @@
 // Studio Personal Agent inspector. No browser/provider operations; user actions are explicit.
 // (The saved-reply section only reads already-stored replies; it never sends.)
 const API = '/api/v1/personal-agent';
+// "Ask my AI about this" posts through the EXISTING /api/v1/compare route (owner's own signed-in AI
+// webapp accounts). This file only wires the button: it never applies an answer to Work automatically.
+const COMPARE_API = '/api/v1/compare';
+const COMPARE_SITES = [
+  { id: 'chatgpt', label: 'ChatGPT' }, { id: 'claude', label: 'Claude' }, { id: 'zai', label: 'Z.ai' },
+  { id: 'qwen', label: 'Qwen' }, { id: 'deepseek', label: 'DeepSeek' }, { id: 'gemini', label: 'Gemini' },
+];
 const $ = id => document.getElementById(id);
 let snapshot = null;
 const stageLabels = {
@@ -23,6 +30,25 @@ async function request(endpoint, options = {}) {
         ? 'Open Personal Agent from your paired Studio to continue.'
         : response.status >= 500 ? 'Studio could not complete this. Your draft is still here; try again shortly.'
           : 'This could not be saved. Check the details you entered and try again.';
+    const error = new Error(friendly);
+    error.code = data.code || String(response.status);
+    throw error;
+  }
+  return data;
+}
+// Separate base: /api/v1/compare is not under the Personal Agent prefix.
+async function compareRequest(path, options = {}) {
+  const response = await fetch(COMPARE_API + path, {
+    credentials: 'same-origin',
+    cache: 'no-store',
+    headers: { 'content-type': 'application/json' }, ...options,
+  }).catch(() => { throw new Error('Studio is unavailable right now. Keep this page open and try again shortly.'); });
+  const data = await response.json();
+  if (!response.ok) {
+    const friendly = response.status === 409
+      ? 'This comparison is already running in another VIVIM window. Check that window.'
+      : response.status >= 500 ? 'Studio could not start this. Try again shortly.'
+        : 'Could not ask your AI with these details. Check your question and choices, then try again.';
     const error = new Error(friendly);
     error.code = data.code || String(response.status);
     throw error;
@@ -152,7 +178,7 @@ async function saveMemory(event) {
   } catch (e) { message(`Could not save your note. ${e.message}`, true); await refresh(); }
   finally { $('saveMemory').disabled = !snapshot?.initialized; }
 }
-$('refresh').addEventListener('click', async () => { await refresh(); await loadWork(); await restoreReplyPreview(); });
+$('refresh').addEventListener('click', async () => { await refresh(); await loadWork(); await resumeAskJobs(); await restoreReplyPreview(); });
 $('bootstrap').addEventListener('click', bootstrap);
 $('discover').addEventListener('click', discover);
 $('tier').addEventListener('change', readMemory);
@@ -187,6 +213,152 @@ function rememberUpdate(id, update) {
   if (update) workUpdates.set(id, update);
   else workUpdates.delete(id);
   writeContinuity('work-updates', Object.fromEntries(workUpdates));
+}
+/* Per-Work "Find saved context" reads already-saved local memory by Work keywords (read-only,
+   GET /personal-agent/work/{id}/relevant-memory). Per-Work "Ask my AI about this" asks the owner's
+   own signed-in AI accounts through the existing /api/v1/compare route; answers are shown as plain
+   status and text and are NEVER applied to Work automatically. Saving one reuses the existing
+   explicit stored-reply review path below (previewReply), with its own CAS + digest confirmation. */
+const contextResults = new Map(); // workId -> relevant-memory response, or { error }
+const askDrafts = new Map(); // workId -> user-edited question text (lost on reload, like other drafts)
+const askSiteSelections = new Map(); // workId -> Set of chosen site ids
+const askOpenPanels = new Set(); // workId whose Ask panel is expanded
+const askPolling = new Set(); // workId with a running poll loop (at most one per Work item)
+const askPanelRefs = new Map(); // workId -> live DOM refs for the CURRENT render of its card
+const askJobViews = new Map(); // workId -> latest read comparison job (in-memory only)
+const savedAskJobs = readContinuity('ask-jobs', {});
+const askJobRefs = new Map(Object.entries(savedAskJobs && typeof savedAskJobs === 'object' ? savedAskJobs : {}));
+function rememberAskJob(workId, ref) {
+  askJobRefs.set(workId, ref);
+  writeContinuity('ask-jobs', Object.fromEntries(askJobRefs));
+}
+const compareResultLabels = { queued: 'Waiting to start', waiting: 'Waiting for the answer',
+  ready: 'Answer ready', skipped: 'Skipped', failed: 'Could not finish', cancelled: 'Stopped' };
+function compareStateMessage(state) {
+  return state === 'complete' ? 'All answers are ready.'
+    : state === 'cancelled' ? 'Stopped. Any already-sent question may still finish in your browser.'
+      : state === 'failed' ? 'Could not finish. See details above.'
+        : 'Some answers finished; see details above.';
+}
+async function fetchRelevantMemory(workId) {
+  try {
+    const data = await request('/work/' + encodeURIComponent(workId) + '/relevant-memory?tier=all');
+    contextResults.set(workId, data);
+    return data;
+  } catch (e) { contextResults.set(workId, { error: e.message }); throw e; }
+}
+function renderContext(workId, area) {
+  const data = contextResults.get(workId);
+  area.replaceChildren();
+  if (!data) return;
+  if (data.error) { area.append(element('p', `Could not check your saved notes. ${data.error}`)); return; }
+  if (!data.items.length) { area.append(element('p', 'No saved notes matched this task yet.', 'subtle')); return; }
+  for (const hit of data.items) {
+    const note = element('article');
+    note.append(element('span', hit.tier, 'chip'), element('strong', ' ' + hit.key), element('p', hit.preview));
+    area.append(note);
+  }
+  if (data.truncated) area.append(element('p', 'More saved notes matched; search your memory below to see the rest.', 'subtle'));
+}
+function defaultAskQuestion(item) {
+  const context = contextResults.get(item.id);
+  const parts = ['Help me with this task: ' + item.title + '.'];
+  if (item.objective) parts.push('Goal: ' + item.objective);
+  if (item.nextAction) parts.push('Planned next step: ' + item.nextAction);
+  if (context?.items?.length) parts.push('My saved notes say: ' + context.items.slice(0, 3).map(hit => hit.preview).join(' | '));
+  return parts.join('\n');
+}
+function renderAskAnswers(workId, area) {
+  const job = askJobViews.get(workId);
+  area.replaceChildren();
+  if (!job) return;
+  for (const result of job.results) {
+    const row = element('article');
+    row.style.borderTop = '1px solid var(--border)';
+    row.style.padding = '10px 0';
+    row.append(element('strong', result.label), element('span', ' · ' + (compareResultLabels[result.state] ?? result.state), 'chip'));
+    if (result.message) row.append(element('p', result.message, 'subtle'));
+    if (result.answer) row.append(element('pre', result.answer));
+    if (result.state === 'ready' && typeof result.conversationId === 'string' && typeof result.turnId === 'string') {
+      const review = element('button', 'Review this answer to save it to Work', 'secondary');
+      review.type = 'button';
+      review.addEventListener('click', () => {
+        previewReply({ conversation: result.conversationId, turnId: result.turnId, site: result.site });
+        $('providerReplyWork').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+      row.append(review);
+    }
+    area.append(row);
+  }
+}
+async function pollAsk(workId) {
+  if (askPolling.has(workId)) return;
+  askPolling.add(workId);
+  try {
+    for (;;) {
+      const ref = askJobRefs.get(workId);
+      if (!ref) break;
+      let job;
+      try { job = (await compareRequest('/' + encodeURIComponent(ref.jobId))).job; }
+      catch (e) {
+        const refs = askPanelRefs.get(workId);
+        if (refs) refs.statusEl.textContent = `Could not check your AI's answer. ${e.message}`;
+        break;
+      }
+      askJobViews.set(workId, job);
+      const refs = askPanelRefs.get(workId);
+      if (refs) renderAskAnswers(workId, refs.answersEl);
+      if (!['queued', 'running'].includes(job.state)) {
+        if (refs) refs.statusEl.textContent = compareStateMessage(job.state);
+        break;
+      }
+      if (refs) refs.statusEl.textContent = 'Waiting for your AI…';
+      await new Promise(resolve => setTimeout(resolve, 2500));
+    }
+  } finally {
+    askPolling.delete(workId);
+    const refs = askPanelRefs.get(workId);
+    if (refs) refs.button.disabled = false;
+  }
+}
+async function startAsk(workId, questionBox, selectedSites, button, statusEl) {
+  const question = questionBox.value.trim();
+  if (!question) { message('Write a question before asking your AI.', true); return; }
+  if (!selectedSites.size) { message('Choose at least one AI to ask.', true); return; }
+  if (askPolling.has(workId)) return;
+  button.disabled = true;
+  statusEl.textContent = 'Starting your question…';
+  askDrafts.set(workId, question);
+  try {
+    const sites = COMPARE_SITES.map(site => site.id).filter(id => selectedSites.has(id));
+    const data = await compareRequest('', { method: 'POST', body: JSON.stringify({ question, sites }) });
+    rememberAskJob(workId, { jobId: data.job.id, question, sites });
+    askJobViews.set(workId, data.job);
+    const refs = askPanelRefs.get(workId);
+    if (refs) renderAskAnswers(workId, refs.answersEl);
+    await pollAsk(workId);
+  } catch (e) {
+    statusEl.textContent = `Could not ask your AI. ${e.message}`;
+    button.disabled = false;
+  }
+}
+async function resumeAskJobs() {
+  for (const [workId, ref] of askJobRefs) {
+    if (!ref?.jobId || askPolling.has(workId)) continue;
+    const refs = askPanelRefs.get(workId);
+    try {
+      const job = (await compareRequest('/' + encodeURIComponent(ref.jobId))).job;
+      askJobViews.set(workId, job);
+      if (refs) {
+        askOpenPanels.add(workId);
+        refs.panel.hidden = false;
+        refs.toggle.setAttribute('aria-expanded', 'true');
+        renderAskAnswers(workId, refs.answersEl);
+        refs.statusEl.textContent = ['queued', 'running'].includes(job.state) ? 'Waiting for your AI…' : compareStateMessage(job.state);
+      }
+      if (['queued', 'running'].includes(job.state)) pollAsk(workId);
+    } catch { /* A lost or unknown comparison stays as continuity; start a fresh ask if needed. */ }
+  }
 }
 async function loadWork() {
   const area = $('workList');
@@ -229,12 +401,84 @@ async function loadWork() {
       card.append(history);
       const context = element('button', 'Find saved context', 'secondary');
       context.type = 'button';
-      context.addEventListener('click', () => {
-        $('memorySearchQuery').value = item.title.slice(0, 120);
-        $('memorySearchQuery').focus();
-        $('memorySearchForm').requestSubmit();
+      const contextArea = element('div');
+      contextArea.setAttribute('aria-live', 'polite');
+      context.addEventListener('click', async () => {
+        context.disabled = true;
+        contextArea.replaceChildren(element('p', 'Checking your saved notes for this task…'));
+        try { await fetchRelevantMemory(item.id); renderContext(item.id, contextArea); }
+        catch (e) { contextArea.replaceChildren(element('p', `Could not check your saved notes. ${e.message}`)); }
+        finally { context.disabled = false; }
       });
-      card.append(context);
+      card.append(context, contextArea);
+      if (contextResults.has(item.id)) renderContext(item.id, contextArea);
+
+      const askToggle = element('button', 'Ask my AI about this', 'secondary');
+      askToggle.type = 'button';
+      const askPanel = element('div');
+      askPanel.hidden = !askOpenPanels.has(item.id);
+      askToggle.setAttribute('aria-expanded', askOpenPanels.has(item.id) ? 'true' : 'false');
+      const questionLabel = element('label');
+      questionLabel.append(element('span', 'Question for your AI'));
+      const questionBox = element('textarea');
+      questionBox.maxLength = 4000;
+      questionBox.rows = 4;
+      questionBox.setAttribute('aria-label', 'Question to ask your AI about ' + item.title);
+      questionBox.value = askDrafts.has(item.id) ? askDrafts.get(item.id) : defaultAskQuestion(item);
+      questionBox.addEventListener('input', () => askDrafts.set(item.id, questionBox.value));
+      questionLabel.append(questionBox);
+      askPanel.append(questionLabel);
+      const siteFieldset = element('fieldset');
+      siteFieldset.style.border = 'none';
+      siteFieldset.style.padding = '0';
+      siteFieldset.style.margin = '8px 0';
+      siteFieldset.append(element('legend', 'Choose one or more of your AI accounts'));
+      const selectedSites = askSiteSelections.get(item.id) ?? new Set();
+      askSiteSelections.set(item.id, selectedSites);
+      for (const site of COMPARE_SITES) {
+        const siteLabel = element('label');
+        siteLabel.style.display = 'inline-flex';
+        siteLabel.style.alignItems = 'center';
+        siteLabel.style.minHeight = '44px';
+        siteLabel.style.gap = '6px';
+        siteLabel.style.marginRight = '10px';
+        siteLabel.style.marginTop = '8px';
+        siteLabel.style.fontWeight = '500';
+        const siteBox = element('input');
+        siteBox.type = 'checkbox';
+        siteBox.value = site.id;
+        siteBox.style.width = 'auto';
+        siteBox.style.minHeight = '0';
+        siteBox.checked = selectedSites.has(site.id);
+        siteBox.addEventListener('change', () => {
+          if (siteBox.checked) selectedSites.add(site.id); else selectedSites.delete(site.id);
+        });
+        siteLabel.append(siteBox, element('span', ' ' + site.label));
+        siteFieldset.append(siteLabel);
+      }
+      askPanel.append(siteFieldset);
+      const askButton = element('button', 'Ask my AI');
+      askButton.type = 'button';
+      const askStatus = element('p', '', 'subtle');
+      askStatus.setAttribute('role', 'status');
+      const askAnswers = element('div');
+      askAnswers.setAttribute('aria-live', 'polite');
+      askPanel.append(askButton, askStatus, askAnswers);
+      askButton.addEventListener('click', () => startAsk(item.id, questionBox, selectedSites, askButton, askStatus));
+      askToggle.addEventListener('click', async () => {
+        const opening = askPanel.hidden;
+        askPanel.hidden = !opening;
+        askToggle.setAttribute('aria-expanded', opening ? 'true' : 'false');
+        if (opening) askOpenPanels.add(item.id); else askOpenPanels.delete(item.id);
+        if (opening && !askDrafts.has(item.id) && !contextResults.has(item.id)) {
+          try { await fetchRelevantMemory(item.id); renderContext(item.id, contextArea); }
+          catch { /* No saved context available; the plain question still works. */ }
+          questionBox.value = defaultAskQuestion(item);
+        }
+      });
+      card.append(askToggle, askPanel);
+      askPanelRefs.set(item.id, { panel: askPanel, toggle: askToggle, statusEl: askStatus, answersEl: askAnswers, button: askButton });
+      if (askJobViews.has(item.id)) renderAskAnswers(item.id, askAnswers);
       if (['queued', 'active', 'blocked'].includes(item.status)) {
         const next = element('textarea');
         next.maxLength = 1000;
@@ -558,4 +802,4 @@ async function searchPrivateMemory(event) {
 
 $('memoryForm').addEventListener('submit', saveMemory);
 $('memorySearchForm').addEventListener('submit', searchPrivateMemory);
-void refresh().then(async () => { await readMemory(); await loadWork(); await restoreReplyPreview(); await showKnowledge(); });
+void refresh().then(async () => { await readMemory(); await loadWork(); await resumeAskJobs(); await restoreReplyPreview(); await showKnowledge(); });
