@@ -53,29 +53,7 @@ export function registerPersonalAppRoutes({ add, paths } = {}) {
     }, required: ['expectedVersion', 'completed'], additionalProperties: false },
     pathParameters: {
       id: { type: 'string', pattern: idPattern },
-      itemId: { type: 'string', pattern: '^item-[a-f0-9]{32}
-  add('POST', '/personal-apps/{id}/preview-change', 'Validate and preview an untrusted declarative app proposal',
-    ({ p, body }) => apps.previewChange({ id: p.id, ...strict(body, ['proposal']) }),
-    { body: { type: 'object', properties: {
-      proposal: { type: ['string', 'object'], description: 'Strict JSON screen-change proposal' },
-    }, required: ['proposal'], additionalProperties: false } });
-  add('POST', '/personal-apps/{id}/apply-change', 'Apply an explicit user-approved declarative change with CAS',
-    ({ p, body }) => apps.applyChange({ id: p.id, ...strict(body, ['expectedVersion', 'proposal', 'approval']) }),
-    { body: { type: 'object', properties: {
-      expectedVersion: { type: 'integer', minimum: 1 },
-      proposal: { type: ['string', 'object'] },
-      approval: { type: 'string', enum: ['user-confirmed'] },
-    }, required: ['expectedVersion', 'proposal', 'approval'], additionalProperties: false } });
-  add('POST', '/personal-apps/{id}/screens', 'Add one validated user-directed mobile screen; no provider or code execution',
-    ({ p, body }) => apps.addScreen({ id: p.id, ...strict(body, ['expectedVersion', 'kind', 'label']) }),
-    { body: { type: 'object', properties: {
-      expectedVersion: { type: 'integer', minimum: 1 },
-      kind: { type: 'string', enum: ['notes', 'tasks', 'dashboard', 'blank'] },
-      label: { type: 'string', minLength: 1, maxLength: 64 },
-    }, required: ['expectedVersion', 'kind', 'label'], additionalProperties: false },
-    pathParameters: { id: { type: 'string', pattern: idPattern } } });
-}
- },
+      itemId: { type: 'string', pattern: '^item-[a-f0-9]{32}$' },
     } });
   // This is a nonexecuting compiler boundary, not a model API and not a browser effect.
   add('POST', '/personal-apps/{id}/preview-change', 'Validate and preview an untrusted declarative app proposal',
