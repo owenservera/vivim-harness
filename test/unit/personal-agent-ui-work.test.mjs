@@ -63,6 +63,12 @@ function fixture() {
       stages: {}, memoryCounts: { CANON: 0, Immediate: 0, Curated: 0 },
       work: { total: state.items.length, byStatus: { active: 0, blocked: 0, completed: 1 } },
     });
+    if (pathname === '/search-memory' && method === 'POST') {
+      return response(200, { total: 1, shown: 1, truncated: false, items: [{
+        key: 'local_note', tier: body.tier === 'all' ? 'CANON' : body.tier,
+        preview: 'PRIVATE_MEMORY_SEARCH_MATCH', match: 'text', source: 'user-authored',
+      }] });
+    }
     if (pathname === '/work' && method === 'GET') return response(200,
       { version: state.version, items: structuredClone(state.items) });
     if (pathname === '/capabilities') return response(200,
@@ -125,4 +131,22 @@ test('standalone Work plan writes only when explicitly saved; failures preserve 
   assert.equal(f.calls.filter(call => call.pathname.endsWith('/next-action')).length, 2);
   assert.match(f.get('notice').textContent, /Nothing was executed/);
   assert.equal(f.calls.some(call => /conversation.ask|submit_conversation_turn|chatgpt/.test(call.pathname)), false);
+});
+
+test('standalone private memory search is explicit, local-only, and avoids query-string leaks', async () => {
+  assert.match(html, /id="memorySearchForm"/);
+  assert.match(html, /id="memorySearchResults"/);
+  const f = fixture(); await settle();
+  assert.equal(f.calls.some(c => c.pathname.includes('search-memory')), false);
+  f.get('memorySearchQuery').value = 'PRIVATE';
+  f.get('memorySearchTier').value = 'CANON';
+  await f.get('memorySearchForm').fire('submit');
+  assert.equal(f.calls.filter(c => c.pathname.includes('search-memory')).length, 1);
+  const call = f.calls.find(c => c.pathname.includes('search-memory'));
+  assert.equal(call.pathname, '/search-memory');
+  assert.equal(call.method, 'POST');
+  assert.deepEqual(JSON.parse(JSON.stringify(call.body)),
+    { query: 'PRIVATE', tier: 'CANON', limit: 20 });
+  assert.match(f.get('memorySearchResults').textContent, /PRIVATE_MEMORY_SEARCH_MATCH/);
+  assert.equal(f.calls.some(c => /chatgpt|conversation\.ask/.test(c.pathname)), false);
 });
