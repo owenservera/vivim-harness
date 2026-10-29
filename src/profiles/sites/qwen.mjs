@@ -6,6 +6,8 @@ export default {
   url: 'https://chat.qwen.ai/',
   composer: {
     selectors: [
+      // Measured 2026-10-29 on the current Qwen landing page (guest session).
+      'textarea.message-input-textarea',
       'textarea#chat-input',
       'textarea[placeholder*="How can I help you today" i]',
       'div[contenteditable="true"][role="textbox"]',
@@ -42,6 +44,9 @@ export default {
   },
   preflight: {
     authWallSelectors: [
+      // Both "Log in" and "Sign up" are buttons with this class, not links.
+      // A guest composer can still be visible; its presence is not sign-in proof.
+      'button.header-right-auth-button',
       'a[href*="/auth"]',
       'a[href*="/login"]',
       'form[action*="login"]',

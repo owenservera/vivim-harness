@@ -6,6 +6,9 @@ export default {
   url: 'https://www.kimi.com/',
   composer: {
     selectors: [
+      // Measured 2026-10-29: .chat-input-editor is the composer. Only select
+      // its editable state; the landing shell also renders it contenteditable=false.
+      'div.chat-input-editor[contenteditable="true"]',
       'form div[contenteditable="true"]',
       'div[contenteditable="true"][role="textbox"]',
       'div.ProseMirror[contenteditable="true"]',

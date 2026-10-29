@@ -17,6 +17,8 @@ export default {
   url: 'https://duck.ai/',
   composer: {
     selectors: [
+      // Re-measured in dedicated capture Chrome, 2026-10-29 (guest landing).
+      'textarea[aria-label="Ask anything privately"]',
       'form textarea[aria-label*="Duck.ai" i]',
       'form textarea[aria-label*="Ask anything" i]',
       'form textarea[placeholder*="Reply" i]',
@@ -32,6 +34,7 @@ export default {
   send: {
     strategy: 'both',
     buttonSelectors: [
+      'button[type="submit"][aria-label="Ask"]',
       'form button[type="submit"]',
       'button[aria-label="Send"]',
       'button[type="submit"]',

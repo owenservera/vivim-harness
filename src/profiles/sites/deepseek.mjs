@@ -46,6 +46,10 @@ export default {
   },
   preflight: {
     authWallSelectors: [
+      // Dedicated capture Chrome, 2026-10-29: / redirects to /sign_in. The
+      // login actions are divs, not links or a form[action="login"].
+      'input.ds-input__input[type="password"][placeholder="Password"]',
+      '.ds-sign-in-form__social-link',
       'a[href*="/sign_in"]',
       'a[href*="/login"]',
       'form[action*="login"]',

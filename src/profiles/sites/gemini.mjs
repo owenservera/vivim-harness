@@ -6,6 +6,8 @@ export default {
   url: 'https://gemini.google.com/app',
   composer: {
     selectors: [
+      // Dedicated capture Chrome, 2026-10-29: the new-chat composer is now a textarea.
+      'textarea[placeholder="Ask Gemini"]',
       'div[data-placeholder="Ask Gemini"]',
       'rich-textarea div[contenteditable="true"]',
       'div.ql-editor[contenteditable="true"]',
