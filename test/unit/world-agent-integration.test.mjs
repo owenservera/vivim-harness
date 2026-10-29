@@ -80,11 +80,14 @@ function fixture() {
       schema: 'vivim.personal-agent.self-knowledge/1',
       answers: { privacy: { providerSendsDuringBootstrap: false } },
     });
-    if (route === '/sitrep' && method === 'GET') return reply(200, {
+    if (route === '/sitrep' && method === 'GET') {
+      if (state.deferSitrep) await new Promise(resolve => { state.releaseSitrep = resolve; });
+      return reply(200, {
       schema: 'vivim.personal-agent.continuity/1',
       memory: { Immediate: [{ text: 'PRIVATE_LOCAL_MEMORY' }] },
       execution: { permittedByThisPacket: false },
     });
+    }
     if (route === '/work' && method === 'GET') return reply(200, { version: state.version, items: structuredClone(state.work) });
     if (route === '/work' && method === 'POST') {
       const same = state.work.find(w => w.key === data.idempotencyKey);
@@ -233,4 +236,22 @@ test('self-knowledge, capability discovery and private SITREP require explicit u
     'private SITREP is cleared when leaving and returning to the native Agent view');
   assert.equal(f.calls.filter(c => c.url.endsWith('/sitrep')).length, 1,
     'the view must not fetch the private packet again without a new explicit request');
+});
+
+test('late private SITREP response is discarded after navigating away', async () => {
+  const f = fixture(); await f.world.choose('agent'); await byId(f.root, 'worldAgentStart').click();
+  f.state.deferSitrep = true;
+  const pending = byId(f.root, 'worldAgentInspect_continuity').click();
+  // The request is explicitly in flight but the user leaves the private view.
+  for (let i = 0; i < 5; i++) await Promise.resolve();
+  assert.equal(typeof f.state.releaseSitrep, 'function');
+  await f.world.choose('capture');
+  f.state.deferSitrep = false;
+  f.state.releaseSitrep();
+  await pending;
+  await f.world.choose('agent');
+  assert.equal(byId(f.root, 'worldAgentInsightOutput'), null,
+    'late private data may not reappear when the user returns');
+  assert.equal(byId(f.root, 'worldAgentInspect_continuity').disabled, false,
+    'a discarded request may not permanently lock the inspector');
 });
