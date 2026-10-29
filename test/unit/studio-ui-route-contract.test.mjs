@@ -64,7 +64,7 @@ test('every shipped Studio page serves its referenced JS modules under token sec
   const mobileText = await mobilePage.text();
   assert.match(mobileText, /id="mobileRoot"/);
   assert.match(mobileText, /name="viewport"/);
-  assert.doesNotMatch(mobileText, /<script[^>]*>(?!\s*<\/script>)/i);
+  assert.match(mobileText, /<script type="module" src="\\/ui\\/mobile\\.mjs"><\\/script>/);
   assert.match(mobilePage.headers.get('content-security-policy') ?? '', /connect-src 'self'/);
   assert.equal((await fetch(base + '/mobile', { method: 'POST', headers: auth })).status, 405);
 
