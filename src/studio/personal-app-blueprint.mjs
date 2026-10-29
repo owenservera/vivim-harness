@@ -97,3 +97,54 @@ export function personalAppScaffold(app) {
     scope: 'JSON blueprint and renderer contract; not an APK or installed PWA',
   };
 }
+
+
+export const PERSONAL_APP_CHANGE_SCHEMA = 'vivim.personal-app-change/1';
+// The Harness may eventually supply this from a real observed provider reply.
+// This compiler never trusts a JSON field claiming that a provider ran or a user approved.
+export function parsePersonalAppChange(value) {
+  let raw = value;
+  if (typeof value === 'string') {
+    if (value.length > 12000) throw invalid('Proposed change exceeds input limit');
+    try { raw = JSON.parse(value); } catch { throw invalid('Proposed change must be valid JSON'); }
+  }
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw) ||
+      Object.keys(raw).some(key => !['schema', 'appId', 'baseVersion', 'operations'].includes(key)) ||
+      raw.schema !== PERSONAL_APP_CHANGE_SCHEMA || !isPersonalAppId(raw.appId) ||
+      !Number.isSafeInteger(raw.baseVersion) || raw.baseVersion < 1 ||
+      !Array.isArray(raw.operations) || !raw.operations.length || raw.operations.length > 4) {
+    throw invalid('Unsupported personal app change proposal');
+  }
+  const operations = raw.operations.map(op => {
+    if (!op || typeof op !== 'object' || Array.isArray(op) ||
+        Object.keys(op).some(key => !['type', 'kind', 'label'].includes(key)) ||
+        op.type !== 'add-screen' || !PERSONAL_APP_KINDS.includes(op.kind)) {
+      throw invalid('Proposals may only add supported data-only screens');
+    }
+    return { type: 'add-screen', kind: op.kind, label: clean(op.label, 'screen label', 64) };
+  });
+  return { schema: PERSONAL_APP_CHANGE_SCHEMA, appId: raw.appId,
+    baseVersion: raw.baseVersion, operations };
+}
+
+export function previewPersonalAppChange(app, proposal, { now } = {}) {
+  assertPersonalAppBlueprint(app);
+  const change = parsePersonalAppChange(proposal);
+  if (change.appId !== app.id || change.baseVersion !== app.version) {
+    throw invalid('Change targets another app or an outdated version', 'PERSONAL_APP_VERSION_CONFLICT', 409);
+  }
+  let next = app;
+  const diff = [];
+  for (const op of change.operations) {
+    next = addPersonalAppScreen(next, { kind: op.kind, label: op.label, now });
+    diff.push({ type: 'add-screen', key: next.screens.at(-1).key,
+      label: op.label, kind: op.kind });
+  }
+  return {
+    schema: 'vivim.personal-app-preview/1', appId: app.id,
+    baseVersion: app.version, change, diff, scaffold: personalAppScaffold(next),
+    canApply: true, effects: 'none', externalProvenance: 'not-verified',
+    approvalRequired: true,
+    qualification: 'Validated data-only proposal. No provider response was authenticated, no code ran, and nothing was deployed.',
+  };
+}
