@@ -436,3 +436,19 @@ test('late private memory search reply is dropped after leaving World Agent', as
   assert.equal(byId(f.root, 'worldAgentMemorySearchResults').textContent.includes('ONLY_WHEN_SEARCHED'), false);
   assert.equal(byId(f.root, 'worldAgentMemorySearchForm').textContent.includes('ONLY_WHEN'), false);
 });
+
+test('private memory search results are invalidated after an explicit local memory change', async () => {
+  const f = fixture(); await f.world.choose('agent'); await byId(f.root, 'worldAgentStart').click();
+  f.state.memory.push({ key: 'old', text: 'OLD_SEARCH_RESULT', tier: 'Immediate' });
+  const search = byId(f.root, 'worldAgentMemorySearchForm');
+  await type(nodes(search, n => n.tag === 'input')[0], 'OLD_SEARCH');
+  await search.fire('submit');
+  assert.match(byId(f.root, 'worldAgentMemorySearchResults').textContent, /OLD_SEARCH_RESULT/);
+  const memory = byId(f.root, 'worldAgentMemoryForm');
+  const [key, text] = inputs(memory);
+  await type(key, 'new_note'); await type(text, 'Replace prior work note');
+  await memory.fire('submit');
+  assert.equal(byId(f.root, 'worldAgentMemorySearchResults').textContent.includes('OLD_SEARCH_RESULT'), false);
+  assert.equal(f.calls.filter(c => c.url.endsWith('/search-memory')).length, 1,
+    'a memory mutation never silently reruns a private search');
+});
