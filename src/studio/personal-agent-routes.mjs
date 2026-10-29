@@ -1,12 +1,14 @@
 // Same-owner Studio v1 routes for the local Personal Agent. No new server or effect owner.
 import { createPersonalAgentService } from '../agents/personal-agent-service.mjs';
+import { createProviderReplyWork } from '../agents/personal-agent-provider-reply.mjs';
 import { problem } from './http.mjs';
 
 const versionSchema = { type: ['integer', 'null'], description: 'CAS version: null only for first initialization' };
 const stringSchema = { type: 'string' };
-export function registerPersonalAgentRoutes({ add, paths, getTools } = {}) {
+export function registerPersonalAgentRoutes({ add, paths, getTools, readStoredConversation } = {}) {
   if (typeof add !== 'function') throw new TypeError('Studio add() required');
   const agent = createPersonalAgentService({ paths, getTools });
+  const providerReply = createProviderReplyWork({ agent, readStoredConversation });
   const ensureBody = (body, allowed) => {
     if (!body || typeof body !== 'object' || Array.isArray(body) ||
         Object.keys(body).some(k => !allowed.includes(k))) {
@@ -44,6 +46,23 @@ export function registerPersonalAgentRoutes({ add, paths, getTools } = {}) {
       expectedVersion: { type: 'integer', minimum: 1 }, title: { type: 'string', maxLength: 160 },
       objective: { type: 'string', maxLength: 4000 }, idempotencyKey: { type: 'string', minLength: 8, maxLength: 128 },
     }, required: ['expectedVersion', 'title', 'objective', 'idempotencyKey'], additionalProperties: false } });
+  // Opt-in: propose Work from an already-stored settled provider reply (stored snapshot only; never sends/reads live).
+  const replyBody = (extra = {}, required = []) => ({ type: 'object', properties: {
+    conversation: { type: 'string', minLength: 1, maxLength: 128, pattern: '^[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}$' },
+    turnId: { type: 'string', minLength: 1, maxLength: 200 }, ...extra,
+  }, required: ['conversation', 'turnId', ...required], additionalProperties: false });
+  add('POST', '/personal-agent/work/preview-provider-reply',
+    'Preview a Work item proposed from an already-stored provider reply; read-only, nothing saved, no provider call',
+    ({ body }) => providerReply.preview(ensureBody(body, ['conversation', 'turnId'])),
+    { body: replyBody() });
+  add('POST', '/personal-agent/work/apply-provider-reply',
+    'Save a previewed provider-reply Work item after explicit user approval with CAS; no provider call',
+    ({ body }) => providerReply.apply(ensureBody(body, ['conversation', 'turnId', 'replyDigest', 'expectedVersion', 'approval'])),
+    { body: replyBody({
+      replyDigest: { type: 'string', pattern: '^[a-f0-9]{64}$' },
+      expectedVersion: { type: 'integer', minimum: 1 },
+      approval: { type: 'string', enum: ['user-confirmed'] },
+    }, ['replyDigest', 'expectedVersion', 'approval']) });
   add('POST', '/personal-agent/work/{id}/transition', 'Explicit local Work status update; completion references are user-attested',
     ({ p, body }) => agent.transitionWorkItem({ ...ensureBody(body, ['expectedVersion', 'to', 'note', 'evidence']), id: p.id }),
     { body: { type: 'object', properties: {

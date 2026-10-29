@@ -78,6 +78,13 @@ pre{max-height:360px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}
 <p id="workCoverage" class="subtle" role="status">No local Work loaded yet.</p>
 <div id="workList" aria-live="polite"></div>
 </section>
+<section id="providerReplyWork">
+<h2>Propose Work from a saved AI reply</h2>
+<p class="subtle">Optional. Lists replies the Harness has already stored. Loading, previewing and saving never send anything to an AI provider. A proposed item is AI-written and unverified; nothing is saved until you click Save.</p>
+<button id="replyLoad" type="button" class="secondary" disabled>Load saved replies</button>
+<div id="replyChoices" aria-live="polite"></div>
+<div id="replyPreview" aria-live="polite"></div>
+</section>
 <section>
 <h2>Self-knowledge</h2>
 <p class="subtle">What the local Agent can actually establish from its own state—claim, basis, evidence, freshness and limits.</p>

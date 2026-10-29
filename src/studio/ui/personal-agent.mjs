@@ -1,4 +1,5 @@
 // Studio Personal Agent inspector. No browser/provider operations; user actions are explicit.
+// (The saved-reply section only reads already-stored replies; it never sends.)
 const API = '/api/v1/personal-agent';
 const $ = id => document.getElementById(id);
 let snapshot = null;
@@ -43,6 +44,7 @@ function showStatus(status) {
   $('bootstrap').disabled = false;
   $('saveMemory').disabled = !status.initialized;
   $('workCreate').disabled = !status.initialized;
+  $('replyLoad').disabled = !status.initialized;
   const w = status.work;
   $('workSummary').textContent = w ? `Total ${w.total} · Active ${w.byStatus.active} · Blocked ${w.byStatus.blocked} · Completed (user-attested) ${w.byStatus.completed}` : 'Initialize the Personal Agent to use Work.';
   $('bootstrap').textContent = status.initialized ? 'Resume / Verify bootstrap' : 'Initialize and bootstrap';
@@ -277,6 +279,90 @@ async function createWork(event) {
   } catch (e) { message(`Create Work: ${e.code} — ${e.message}`, true); }
   finally { $('workCreate').disabled = !snapshot?.initialized; }
 }
+/* Opt-in: propose Work from an ALREADY-STORED settled reply. Read-only list (never a send); the
+   item is AI-proposed/unverified and is saved only by the explicit Save click below. */
+const CONVERSATIONS_API = '/api/v1/conversations';
+let replyPreviewToken = 0;
+async function loadReplyChoices() {
+  const area = $('replyChoices'), button = $('replyLoad');
+  button.disabled = true;
+  $('replyPreview').replaceChildren();
+  area.replaceChildren(element('p', 'Reading saved replies…'));
+  try {
+    const response = await fetch(CONVERSATIONS_API, { method: 'GET', credentials: 'same-origin', cache: 'no-store' });
+    const data = await response.json();
+    if (response.status !== 200 || !Array.isArray(data?.conversations)) {
+      throw Object.assign(new Error('Stored conversations are unavailable'), { code: data?.code || String(response.status) });
+    }
+    const items = [];
+    for (const conversation of data.conversations) {
+      for (const turn of Array.isArray(conversation?.turns) ? conversation.turns : []) {
+        if (turn?.reply?.state === 'ready' && typeof conversation.id === 'string' && typeof turn.id === 'string') {
+          items.push({ conversation: conversation.id, turnId: turn.id,
+            site: typeof conversation.site === 'string' ? conversation.site : 'provider',
+            chars: Number.isSafeInteger(turn.reply.chars) ? turn.reply.chars : null });
+        }
+      }
+    }
+    area.replaceChildren();
+    if (!items.length) area.append(element('p', 'No settled replies are stored yet.', 'subtle'));
+    for (const choice of items.slice(0, 12)) {
+      const row = element('div');
+      const pick = element('button', `Preview ${choice.site} reply${choice.chars === null ? '' : ' (' + choice.chars + ' chars)'}`, 'secondary');
+      pick.type = 'button';
+      pick.setAttribute('aria-label', `Preview Work from ${choice.site} reply ${choice.turnId}`);
+      pick.addEventListener('click', () => previewReply(choice));
+      row.append(pick);
+      area.append(row);
+    }
+  } catch (e) { area.replaceChildren(element('p', `Saved replies: ${e.code ?? 'ERROR'} — ${e.message}`)); }
+  finally { button.disabled = !snapshot?.initialized; }
+}
+async function previewReply(choice) {
+  const area = $('replyPreview'), token = ++replyPreviewToken;
+  area.replaceChildren(element('p', 'Checking the saved reply (read-only)…'));
+  try {
+    const data = await request('/work/preview-provider-reply', {
+      method: 'POST', body: JSON.stringify({ conversation: choice.conversation, turnId: choice.turnId }),
+    });
+    if (token !== replyPreviewToken) return;
+    const from = data.provenance;
+    if (data.source !== 'provider-reply' || from?.source !== 'provider-reply' || from.humanAuthored !== false ||
+        from.providerCalled !== false || from.conversationId !== choice.conversation || from.turnId !== choice.turnId ||
+        data.effects !== 'none' || data.approvalRequired !== true) {
+      area.replaceChildren(element('p', 'The preview did not carry the expected provenance. Nothing was saved.')); return;
+    }
+    const card = element('article');
+    card.style.borderTop = '1px solid var(--border)';
+    card.style.padding = '12px 0';
+    card.append(element('span', 'AI-proposed · unverified · not human-authored', 'chip'),
+      element('strong', data.proposal.title), element('pre', data.proposal.objective),
+      element('p', `Source: stored ${choice.site} reply · digest ${from.replyDigest.slice(0, 16)} · tags ${data.proposal.tags.join(', ')}`, 'subtle'),
+      element('p', data.note, 'subtle'));
+    const save = element('button', 'Save as Work item (I approve)');
+    save.type = 'button';
+    save.disabled = data.canApply !== true;
+    save.addEventListener('click', async () => {
+      if (!window.confirm('Save this AI-proposed, unverified text as a local queued Work item? Nothing will be sent or executed.')) return;
+      save.disabled = true;
+      try {
+        const latest = await request('/status');
+        await request('/work/apply-provider-reply', { method: 'POST', body: JSON.stringify({
+          conversation: choice.conversation, turnId: choice.turnId, replyDigest: from.replyDigest,
+          expectedVersion: latest.version, approval: 'user-confirmed',
+        }) });
+        area.replaceChildren();
+        message('AI-proposed Work saved locally (unverified). No provider request was made and nothing was executed.');
+        await refresh(); await loadWork();
+      } catch (e) {
+        message(`Save proposed Work: ${e.code} — ${e.message}`, true);
+        save.disabled = false;
+      }
+    });
+    card.append(save);
+    area.replaceChildren(card);
+  } catch (e) { if (token === replyPreviewToken) area.replaceChildren(element('p', `Preview: ${e.code} — ${e.message}`)); }
+}
 async function showKnowledge() {
   const area = $('selfKnowledge');
   area.replaceChildren(element('p', 'Reading grounded local projections…'));
@@ -335,6 +421,7 @@ $('sitrepRefresh').addEventListener('click', showSitrep);
 $('exportAgent').addEventListener('click', exportAgent);
 $('workForm').addEventListener('submit', createWork);
 $('workFilter').addEventListener('change', loadWork);
+$('replyLoad').addEventListener('click', loadReplyChoices);
 $('knowledgeRefresh').addEventListener('click', showKnowledge);
 async function searchPrivateMemory(event) {
   event.preventDefault();
