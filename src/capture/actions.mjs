@@ -936,6 +936,9 @@ export async function detectAuthWall(page, adapter = null) {
       }
     }
 
+    // Account-required adapters explicitly identify signed-out UI. A guest composer (Qwen)
+    // must not override that evidence; guest-enabled adapters retain the usable-composer path.
+    if (${JSON.stringify(adapter?.preflight?.requiresAuth === true)} && hits.length) return { blocked: true, reason: 'auth wall selector matched, sign-in required: ' + hits.slice(0, 3).join(', ') };
     if (composerUsable && !urlWall && !modalWall) return { blocked: false, reason: hits.length ? 'auth-like selectors present but a composer is usable' : 'composer available' };
     if (urlWall) return { blocked: true, reason: 'login URL: ' + url };
     if (modalWall) return { blocked: true, reason: 'login modal open: ' + modalWall };
