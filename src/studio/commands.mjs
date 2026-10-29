@@ -13,6 +13,13 @@
 //
 // Symbols (`/find`, `+/project`, ...) cannot be route path tokens; they resolve as data via
 // GET /commands?symbol=%2Ffind, which returns the route-safe command id for describe/preview.
+//
+// Symbols are grouped into semantic families (COMMAND_FAMILIES): a family is one intent vocabulary
+// (query text, attach to project, export selection, ...) that resolves to exactly one of the same
+// seven previewed commands. Families add vocabulary and interpretation, never authority: a family
+// may suggest argument values, but it can not merge them into a caller's arguments, and the preview
+// gate validates only what the caller actually passes. interpretCommandInput is a pure lookup over
+// frozen data: symbol/intent -> candidate command(s), with no store, network, browser, or mutation.
 import { problem } from './http.mjs';
 
 const DEFERRED_EFFECT = 'deferred: no live provider/browser work';
@@ -33,26 +40,164 @@ const IMPORT_FORMATS = Object.freeze(['json', 'jsonl']);
 const stringField = (maxLength, extra = {}) => ({ type: 'string', minLength: 1, maxLength, ...extra });
 const schema = (properties, required) => Object.freeze({ type: 'object', properties, required: Object.freeze(required), additionalProperties: false });
 
-/** Explicit symbol -> command id. Lookup is exact after normalization. Unknown text is never coerced into one of these. */
-export const COMMAND_SYMBOLS = Object.freeze({
-  '/find': 'find',
-  '?find': 'find',
-  '?/find': 'find',
-  '/open-conversation': 'open-conversation',
-  '/conversation': 'open-conversation',
-  '@project': 'add-to-project',
-  '+project': 'add-to-project',
-  '+/project': 'add-to-project',
-  '+note': 'add-note',
-  '+/note': 'add-note',
-  '/export': 'export-selection',
-  '/export-selection': 'export-selection',
-  '/import-check': 'import-check',
-  '?import': 'import-check',
-  '/send': 'provider-send',
-  // `!` names the command. It does not authorize it and cannot make an external effect runnable.
-  '!/send': 'provider-send',
-});
+const CATEGORIES = Object.freeze(['navigation', 'query', 'creation', 'organization', 'transfer', 'effect']);
+const FAMILY_ID_RE = /^[a-z0-9][a-z0-9-]{0,63}$/;
+// A symbol always opens with punctuation, so it can never be read as a command id or as free text:
+// `?` asks, `+` creates, `@` attaches, `!` names, `/` opens, `~` recalls.
+const SYMBOL_RE = /^[?+/@!~^=$%*][a-z0-9-]*(?:\/[a-z0-9-]+)*$/;
+
+// 17 semantic families over the seven previewed commands. `suggests` is presentation only: it names
+// argument values a future caller might pass, and is never merged into an argument object here.
+const COMMAND_FAMILIES = deepFreeze([
+  // navigation
+  {
+    id: 'open-saved-conversation',
+    category: 'navigation',
+    commandId: 'open-conversation',
+    summary: 'Open one saved conversation by its world id.',
+    symbols: ['/open-conversation', '/conversation', '@conversation'],
+    suggests: {},
+  },
+  {
+    id: 'open-imported-conversation',
+    category: 'navigation',
+    commandId: 'open-conversation',
+    summary: 'Open a conversation that arrived through a local import.',
+    symbols: ['/open-imported', '?imported-conversation'],
+    suggests: {},
+  },
+  // query
+  {
+    id: 'find-text',
+    category: 'query',
+    commandId: 'find',
+    summary: 'Find saved local records by free query text.',
+    symbols: ['/find', '?find', '?/find'],
+    suggests: {},
+  },
+  {
+    id: 'find-by-kind',
+    category: 'query',
+    commandId: 'find',
+    summary: 'Find saved local records of a chosen record family.',
+    symbols: ['/find-kind', '?kind'],
+    suggests: {},
+  },
+  {
+    id: 'find-notes',
+    category: 'query',
+    commandId: 'find',
+    summary: 'Find saved notes matching query text.',
+    symbols: ['/find-notes', '?notes'],
+    suggests: { kind: 'note' },
+  },
+  {
+    id: 'find-conversations',
+    category: 'query',
+    commandId: 'find',
+    summary: 'Find saved conversation messages matching query text.',
+    symbols: ['/find-conversations', '?conversations'],
+    suggests: { kind: 'message' },
+  },
+  {
+    id: 'find-sources',
+    category: 'query',
+    commandId: 'find',
+    summary: 'Find saved source references matching query text.',
+    symbols: ['/find-sources', '?sources'],
+    suggests: { kind: 'source-reference' },
+  },
+  {
+    id: 'find-project-records',
+    category: 'query',
+    commandId: 'find',
+    summary: 'Find saved project records matching query text.',
+    symbols: ['/find-in-project', '?/project-find'],
+    suggests: { kind: 'project' },
+  },
+  // creation
+  {
+    id: 'draft-note',
+    category: 'creation',
+    commandId: 'add-note',
+    summary: 'Draft a note for the local world.',
+    symbols: ['+note', '+/note'],
+    suggests: {},
+  },
+  {
+    id: 'draft-project-note',
+    category: 'creation',
+    commandId: 'add-note',
+    summary: 'Draft a note that names a local project.',
+    symbols: ['+project-note', '?note-project'],
+    suggests: {},
+  },
+  // organization
+  {
+    id: 'attach-record-to-project',
+    category: 'organization',
+    commandId: 'add-to-project',
+    summary: 'Attach a local record to a local project.',
+    symbols: ['@project', '+project', '+/project'],
+    suggests: {},
+  },
+  {
+    id: 'attach-conversation-to-project',
+    category: 'organization',
+    commandId: 'add-to-project',
+    summary: 'Attach a saved conversation to a local project.',
+    symbols: ['@project-conversation', '?/project-attach'],
+    suggests: {},
+  },
+  {
+    id: 'attach-note-to-project',
+    category: 'organization',
+    commandId: 'add-to-project',
+    summary: 'Attach a saved note to a local project.',
+    symbols: ['@project-note', '?/note-attach'],
+    suggests: {},
+  },
+  // transfer
+  {
+    id: 'export-saved-selection',
+    category: 'transfer',
+    commandId: 'export-selection',
+    summary: 'Export one saved local selection.',
+    symbols: ['/export', '/export-selection'],
+    suggests: {},
+  },
+  {
+    id: 'import-check-json',
+    category: 'transfer',
+    commandId: 'import-check',
+    summary: 'Check a local import source declared as json.',
+    symbols: ['/import-check', '?import'],
+    suggests: { format: 'json' },
+  },
+  {
+    id: 'import-check-jsonl',
+    category: 'transfer',
+    commandId: 'import-check',
+    summary: 'Check a local import source declared as jsonl.',
+    symbols: ['/import-jsonl', '?import-jsonl'],
+    suggests: { format: 'jsonl' },
+  },
+  // effect (deferred)
+  {
+    id: 'deferred-provider-send',
+    category: 'effect',
+    commandId: 'provider-send',
+    summary: 'Name the deferred provider send.',
+    // `!` names the family. It does not authorize it and cannot make an external effect runnable.
+    symbols: ['/send', '!/send'],
+    suggests: {},
+  },
+]);
+
+/** Explicit symbol -> command id, derived from the families. Lookup is exact after normalization. Unknown text is never coerced into one of these. */
+export const COMMAND_SYMBOLS = deepFreeze(Object.fromEntries(
+  COMMAND_FAMILIES.flatMap((family) => family.symbols.map((symbol) => [symbol, family.commandId])),
+));
 
 const COMMANDS = deepFreeze([
   {
@@ -181,6 +326,38 @@ for (const command of COMMANDS) {
   if (command.scope !== 'external-effect' && command.unavailableReason !== null) throw new Error(`Local command ${command.id} cannot be deferred`);
   if (command.scope === 'local-write' && command.requiresConfirmation !== true) throw new Error(`Local write ${command.id} requires confirmation`);
 }
+const knownCategories = new Set(CATEGORIES);
+const familyIds = new Set();
+const familyOwners = new Map();
+const familyById = new Map();
+for (const family of COMMAND_FAMILIES) {
+  if (!FAMILY_ID_RE.test(family.id)) throw new Error(`Invalid family id: ${family.id}`);
+  if (familyIds.has(family.id)) throw new Error(`Duplicate family: ${family.id}`);
+  if (COMMANDS.some((command) => command.id === family.id)) throw new Error(`Family ${family.id} shadows a command id`);
+  if (!knownCategories.has(family.category)) throw new Error(`Invalid category for family ${family.id}`);
+  const command = COMMANDS.find((entry) => entry.id === family.commandId);
+  if (!command) throw new Error(`Family ${family.id} points at unknown command ${family.commandId}`);
+  if (typeof family.summary !== 'string' || family.summary.length === 0) throw new Error(`Family ${family.id} needs a summary`);
+  if (!Array.isArray(family.symbols) || family.symbols.length === 0) throw new Error(`Family ${family.id} needs at least one symbol`);
+  familyIds.add(family.id);
+  familyById.set(family.id, family);
+  for (const symbol of family.symbols) {
+    if (!SYMBOL_RE.test(symbol)) throw new Error(`Invalid symbol ${symbol} in family ${family.id}`);
+    const key = normalizeCommandInput(symbol);
+    if (familyOwners.has(key)) throw new Error(`Duplicate symbol: ${symbol}`);
+    familyOwners.set(key, family);
+  }
+  // A suggestion may only name a real field of that family's own command schema, with a real enum value.
+  for (const [key, value] of Object.entries(family.suggests)) {
+    if (!Object.hasOwn(command.inputs.properties, key)) throw new Error(`Family ${family.id} suggests unknown field ${key}`);
+    const spec = command.inputs.properties[key];
+    if (spec.enum && !spec.enum.includes(value)) throw new Error(`Family ${family.id} suggests a value outside ${key}`);
+  }
+}
+for (const command of COMMANDS) {
+  if (!COMMAND_FAMILIES.some((family) => family.commandId === command.id)) throw new Error(`Command ${command.id} has no family`);
+}
+
 const symbolOwners = new Map();
 for (const [symbol, id] of Object.entries(COMMAND_SYMBOLS)) {
   if (!COMMANDS.some((command) => command.id === id)) throw new Error(`Symbol ${symbol} points at unknown command ${id}`);
@@ -221,7 +398,41 @@ function publicCommand(command) {
     preconditions: snapshot(command.preconditions),
     unavailableReason: command.unavailableReason,
     symbols: snapshot(Object.entries(COMMAND_SYMBOLS).filter(([, id]) => id === command.id).map(([symbol]) => symbol)),
+    families: snapshot(COMMAND_FAMILIES.filter((family) => family.commandId === command.id).map((family) => ({
+      id: family.id,
+      category: family.category,
+      summary: family.summary,
+    }))),
   });
+}
+
+function publicFamily(family) {
+  const command = commandById(family.commandId);
+  return Object.freeze({
+    id: family.id,
+    category: family.category,
+    summary: family.summary,
+    commandId: family.commandId,
+    scope: command.scope,
+    requiresConfirmation: command.requiresConfirmation,
+    unavailableReason: command.unavailableReason,
+    symbols: snapshot(family.symbols),
+    suggests: snapshot(family.suggests),
+    // A suggestion is advisory data. The preview gate never merges it into caller arguments.
+    suggestionNote: 'Suggested argument values only; not applied. Preview validates exactly the arguments passed.',
+  });
+}
+
+/** Deep-frozen copy of every semantic family, in catalog order. Pure data; nothing is performed. */
+export function listCommandFamilies() {
+  return COMMAND_FAMILIES.map(publicFamily);
+}
+
+function familyFor(input) {
+  if (typeof input !== 'string') return null;
+  const normalized = normalizeCommandInput(input);
+  if (!normalized || normalized.length > 64) return null;
+  return familyById.get(normalized) ?? familyOwners.get(normalized) ?? null;
 }
 
 function commandById(id) {
@@ -232,7 +443,8 @@ function exactCommand(input) {
   if (typeof input !== 'string') return null;
   const normalized = normalizeCommandInput(input);
   if (!normalized || normalized.length > 64) return null;
-  return commandById(normalized) ?? commandById(symbolOwners.get(normalized)) ?? null;
+  const family = familyFor(normalized);
+  return commandById(normalized) ?? commandById(symbolOwners.get(normalized)) ?? (family ? commandById(family.commandId) : null) ?? null;
 }
 
 function scoreCommand(normalized, command) {
@@ -256,6 +468,98 @@ function candidatesFor(input) {
     .filter((candidate) => candidate.score > 0)
     .sort((a, b) => b.score - a.score || a.id.localeCompare(b.id))
     .slice(0, 8);
+}
+
+function scoreFamily(normalized, family) {
+  let score = 0;
+  if (family.id === normalized) score += 100;
+  if (familyOwners.get(normalized)?.id === family.id) score += 100;
+  if (normalized.length >= 2 && (family.id.startsWith(normalized) || normalized.startsWith(family.id))) score += 10;
+  const tokens = normalized.split(/[^a-z0-9]+/).filter((token) => token.length >= 2);
+  for (const token of tokens) {
+    if (family.id.includes(token)) score += 5;
+    if (family.category === token) score += 5;
+    if (family.summary.toLowerCase().includes(token)) score += 2;
+  }
+  return score;
+}
+
+// Family ranking mirrors command ranking: exact family id or symbol beats prefix overlap beats
+// token overlap, ties break on id, and a token that overlaps nothing yields no candidates at all.
+function familyCandidatesFor(normalized) {
+  return COMMAND_FAMILIES.map((family) => ({ family, score: scoreFamily(normalized, family) }))
+    .filter((candidate) => candidate.score > 0)
+    .sort((a, b) => b.score - a.score || a.family.id.localeCompare(b.family.id))
+    .slice(0, 8)
+    .map(({ family, score }) => ({ familyId: family.id, commandId: family.commandId, category: family.category, score }));
+}
+
+/**
+ * Pure interpretation of a symbol, a family id, a command id, or loose intent text into candidate
+ * commands. Reads frozen catalog data only: no store, no network, no browser, no mutation, and no
+ * run-now claim. An exact hit answers with one candidate at score 100; otherwise ranked candidates
+ * (families first, then commands) or an empty list. Selecting a candidate is still not permission to
+ * act: the caller must go through the preview gate, which validates arguments and explains effects.
+ */
+export function interpretCommandInput(input) {
+  const normalized = typeof input === 'string' ? normalizeCommandInput(input) : '';
+  if (!normalized) {
+    return snapshot({
+      input: '',
+      exact: false,
+      family: null,
+      command: null,
+      candidates: [],
+      reason: 'No symbol, family, or command was named.',
+    });
+  }
+  if (normalized.length > 64) {
+    return snapshot({
+      input: normalized.slice(0, 64),
+      exact: false,
+      family: null,
+      command: null,
+      candidates: [],
+      reason: 'Interpretation input is longer than any catalog id or symbol.',
+    });
+  }
+  const family = familyFor(normalized);
+  if (family) {
+    const command = commandById(family.commandId);
+    return snapshot({
+      input: normalized,
+      exact: true,
+      family: publicFamily(family),
+      command: { id: command.id, summary: command.summary, scope: command.scope, requiresConfirmation: command.requiresConfirmation },
+      candidates: [{ familyId: family.id, commandId: command.id, category: family.category, score: 100 }],
+      reason: null,
+    });
+  }
+  const exactCommandMatch = exactCommand(normalized);
+  if (exactCommandMatch) {
+    return snapshot({
+      input: normalized,
+      exact: true,
+      family: null,
+      command: { id: exactCommandMatch.id, summary: exactCommandMatch.summary, scope: exactCommandMatch.scope, requiresConfirmation: exactCommandMatch.requiresConfirmation },
+      candidates: [{ familyId: null, commandId: exactCommandMatch.id, category: null, score: 100 }],
+      reason: null,
+    });
+  }
+  const familyCandidates = familyCandidatesFor(normalized);
+  const candidates = familyCandidates.length
+    ? familyCandidates
+    : candidatesFor(normalized).map((candidate) => ({ familyId: null, commandId: candidate.id, category: null, score: candidate.score }));
+  return snapshot({
+    input: normalized,
+    exact: false,
+    family: null,
+    command: null,
+    candidates,
+    reason: candidates.length
+      ? 'No exact family; ranked candidates only. Nothing was selected or performed.'
+      : 'Input did not match a family, symbol, or command. Nothing was selected or performed.',
+  });
 }
 
 const CONTROL_RE = /[\u0000-\u001f\u007f]/;
@@ -414,7 +718,7 @@ export function registerCommandRoutes(router) {
       return { symbol: resolved.input, exact: resolved.exact, id: resolved.id, command: resolved.exact ? catalog.describe(resolved.id) : null, candidates: resolved.candidates };
     }
     if (q?.input !== undefined) return catalog.resolve(gateInput(q.input));
-    return { commands: catalog.list() };
+    return { commands: catalog.list(), families: listCommandFamilies(), categories: snapshot(CATEGORIES) };
   });
   add('GET', '/commands/{id}', 'Describe one semantic command by route-safe token (resolve symbols via GET /commands?symbol=...). Unknown ids resolve as data: { found: false, candidates }. Nothing is performed.', ({ p } = {}) => {
     const id = gateRouteId(p?.id);
