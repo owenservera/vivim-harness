@@ -78,20 +78,25 @@ function observedAvailability(value) {
 }
 const cleanSnippet = (value) => String(value ?? '').replace(/\s+/gu, ' ').trim();
 // Part refs follow the same top-level [blockIndex] convention as selection part refs and the UI
-// planFrames: path [i] names message.blocks[i]. Attribution reuses the already-flattened block text.
+// planFrames: path [i] names message.blocks[i], rendered as data-part-path="i". Attribution reuses
+// the already-flattened block text.
 const tokenSet = (value) => new Set(textTokens(value));
-// Attribute a ranked message hit to exactly one top-level block. Matches that also live in the
-// message's own text, span several blocks, or belong to a blockless message stay message-level.
+// Attribute a ranked message hit to exactly one top-level block. Only a single block that holds
+// every matched term is specific enough to be called a part. The message's own saved text usually
+// repeats its blocks, so a term found in that text is not by itself a reason to stay message-level;
+// matches spread across several blocks, matching several blocks, or landing in a blockless message
+// stay message-level instead of guessing.
 function attributedPartPath(record, row) {
-  if (!record?.blockTokens || !record?.plainTokens || !Array.isArray(record.blockTokens)) return null;
+  if (!record?.blockTokens || !Array.isArray(record.blockTokens)) return null;
   const terms = row?.matchedTerms ?? [];
   if (!terms.length) return null;
-  if (terms.every((term) => record.plainTokens.has(term))) return null;
-  const candidates = [];
+  let candidate = null;
   for (const [blockIndex, tokens] of record.blockTokens.entries()) {
-    if (terms.every((term) => tokens.has(term))) candidates.push(blockIndex);
+    if (!terms.every((term) => tokens.has(term))) continue;
+    if (candidate !== null) return null;
+    candidate = blockIndex;
   }
-  return candidates.length === 1 ? [candidates[0]] : null;
+  return candidate === null ? null : [candidate];
 }
 const clip = (value, max = 280) => {
   const snippet = cleanSnippet(value);
@@ -196,11 +201,14 @@ export function createWorldSearch({ service, limits } = {}) {
             // Block attribution inputs (internal; never surfaced in hits): per-block token sets keep
             // partPath attribution bounded within the same per-message caps the scan already paid.
             ...(Array.isArray(message?.blocks)
-              ? { blockTokens: message.blocks.map((block) => tokenSet(richText(block))), plainTokens: tokenSet(message?.text ?? '') }
+              ? { blockTokens: message.blocks.map((block) => tokenSet(richText(block))) }
               : {}),
           }, content, {
             ...recorded,
             conversationId: meta.id, messageId: id,
+            // Navigation coordinate: the reader keys its message row and part frames by this local
+            // projection position, not by any recorded origin index.
+            index: position,
             ...(imported ? { importedFrom } : {}),
             identityScope: imported ? 'imported snapshot; not observed; not durable part identity' : 'source-observation-alias; not durable part identity',
           });
