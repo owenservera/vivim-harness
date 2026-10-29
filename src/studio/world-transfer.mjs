@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { stableStringify } from '../intel/similarity.mjs';
+import { detectSecrets } from '../security/patterns.mjs';
 import { validateStoreName } from '../store/versioned.mjs';
 import { storeProblem } from './http.mjs';
 import { legacySelectionFingerprint } from './world-relations.mjs';
@@ -8,6 +9,9 @@ import { sanitizedSource, providerUrlRemovalReason } from './world-url.mjs';
 export const WORLD_EXPORT_LIMITS = Object.freeze({ maxSelected: 100, maxRecords: 256,
   maxDependenciesPerRecord: 3000, maxRecordBytes: 2 * 1024 * 1024, maxTotalBytes: 8 * 1024 * 1024 });
 export const IMPORT_CONTENT_LIMITS = Object.freeze({ maxMessages: 200, maxBlocks: 200, maxNodes: 2000, maxDepth: 12, maxTextChars: 262144, maxBlockBytes: 512 * 1024, maxErrors: 100, maxDeps: 1000 });
+// Bounded scan budget for the export secret check. Findings are warnings with a location, never the
+// matched value; nothing is redacted, masked or removed and export is not blocked by a finding.
+export const EXPORT_SECRET_SCAN_LIMITS = Object.freeze({ maxChars: 512 * 1024, maxValueChars: 16 * 1024, maxValues: 2048, maxFindings: 40, maxPerLocation: 4 });
 const BLOCK_TYPE_RE = /^[a-z][a-z0-9_+#-]{0,63}$/;
 const FORBIDDEN_KEY = new Set(['__proto__', 'constructor', 'prototype']);
 const fail = (code, message) => Object.assign(new Error(message), { code, status: code === 'WORLD_EXPORT_LIMIT' ? 413 : 400 });
@@ -108,6 +112,89 @@ const reduceMessages = (data, keep, omitted, id) => {
   for (const [reason, bin] of stats.bins) omitted.push({ id, reason, aspect: 'content', expected: true, count: bin.count });
 };
 
+// Field names that are sensitive by name alone (a non-empty value is reported even when it does not
+// match a token shape). Normalized by lowercasing and dropping separators so sessionToken,
+// session_token and Session-Token all land on the same key.
+const SENSITIVE_KEY = new Set(['password', 'passwd', 'passphrase', 'cookie', 'cookies', 'setcookie',
+  'authorization', 'sessiontoken', 'apikey', 'accesstoken', 'refreshtoken', 'idtoken', 'clientsecret',
+  'secret', 'secretkey', 'privatekey', 'csrf', 'csrftoken', 'authtoken', 'apitoken', 'token']);
+// Structural fields that are digests/identifiers by construction: their values are not run through
+// the token-shape engine (a record's own sha256 must not read as a credential). Name rules still apply.
+const STRUCTURAL_KEY = new Set(['sha256', 'sha1', 'md5', 'digest', 'id', 'namespaceid', 'originalid',
+  'revision', 'key', 'fingerprint', 'algorithm', 'canonicalization', 'schema', 'kind', 'mode']);
+const normalizeKey = (key) => String(key).toLowerCase().replace(/[^a-z0-9]/g, '');
+// Cheap prefilter: only strings that could carry a credential shape pay for the full pattern engine.
+const SECRET_SHAPE = /(?:AKIA|ASIA)[A-Z0-9]{16}|-----BEGIN(?: [A-Z0-9]+)? PRIVATE KEY-----|bearer\s+[A-Za-z0-9._~+/=-]{8,}|gh[pousr]_[A-Za-z0-9]{36}|xox[baprs]-[A-Za-z0-9-]{10,}|ey[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.|sk-[A-Za-z0-9_-]{16,}|(?:session|auth|token|secret|csrf|api_?key)[\w.-]*\s*=\s*[^\s;"',}{]{6,}|(?:password|passwd|client_secret|access_token|refresh_token|api_?key|secret|token)\s*["']?\s*[:=]\s*["']?[^\s"',;\]}]{3,}|[A-Za-z0-9+/_-]{40,}/i;
+// Cookie-like key=value where the key names session/auth/token/secret (what a browser cookie header
+// or a stored credential blob looks like inside captured text).
+const COOKIE_PAIR = /(?:^|[;,\s"{])((?:[A-Za-z0-9_.-]*(?:session|auth|token|secret|csrf|api_?key)[A-Za-z0-9_.-]*))\s*=\s*([^\s;"',}{)]{6,})/gi;
+const BENIGN_BLOB = /^(?:[a-f0-9]{32,}|[cnposi]-[A-Za-z0-9-]{16,})$/i;
+const PLACEHOLDER_VALUE = /^(?:null|true|false|none|undefined|nan|redacted|\[redacted[^\]]*\]|<[^>]*>|\$\{[^}]*\}|x{4,}|\*{3,})$/i;
+const scanBundleSecrets = (payload) => {
+  const limits = EXPORT_SECRET_SCAN_LIMITS, findings = [], seen = new Set(), perLocation = new Map();
+  const state = { values: 0, chars: 0, truncated: false };
+  const add = (finding) => {
+    if (findings.length >= limits.maxFindings) { state.truncated = true; return; }
+    const key = `${finding.where}|${finding.rule}|${finding.field ?? ''}`;
+    if (seen.has(key)) return;
+    const count = perLocation.get(finding.where) ?? 0;
+    if (count >= limits.maxPerLocation) { state.truncated = true; return; }
+    seen.add(key); perLocation.set(finding.where, count + 1); findings.push(finding);
+  };
+  const walk = (value, where, context, key, depth) => {
+    if (depth > IMPORT_CONTENT_LIMITS.maxDepth + 4) { state.truncated = true; return; }
+    if (typeof value === 'string') {
+      if (!value.length) return;
+      if (state.values >= limits.maxValues || state.chars >= limits.maxChars) { state.truncated = true; return; }
+      const normalized = key === null ? '' : normalizeKey(key);
+      const nameRule = normalized !== '' && SENSITIVE_KEY.has(normalized) && !PLACEHOLDER_VALUE.test(value.trim());
+      if (nameRule) {
+        add({ rule: 'sensitive-field-name', kind: 'field', where, record: context.id, recordKind: context.kind,
+          field: String(key), length: value.length, confidence: 0.6 });
+      }
+      if (STRUCTURAL_KEY.has(normalized)) return;
+      const text = value.length > limits.maxValueChars ? value.slice(0, limits.maxValueChars) : value;
+      if (value.length > limits.maxValueChars) state.truncated = true;
+      state.values++; state.chars += text.length;
+      if (!SECRET_SHAPE.test(text)) return;
+      for (const hit of detectSecrets(text, { extended: true })) {
+        const matched = text.slice(hit.start, hit.end);
+        if (matched.includes('[REDACTED')) continue;
+        if (hit.name === 'high_entropy_token' && BENIGN_BLOB.test(matched)) continue;
+        add({ rule: hit.name, kind: 'pattern', where, record: context.id, recordKind: context.kind,
+          field: key === null ? null : String(key), length: matched.length, confidence: hit.confidence });
+      }
+      for (const match of text.matchAll(COOKIE_PAIR)) {
+        if (PLACEHOLDER_VALUE.test(match[2])) continue;
+        add({ rule: 'cookie-pair', kind: 'pattern', where, record: context.id, recordKind: context.kind,
+          field: match[1], length: match[2].length, confidence: 0.7 });
+      }
+      return;
+    }
+    if (!value || typeof value !== 'object') return;
+    if (Array.isArray(value)) {
+      for (let index = 0; index < Math.min(value.length, limits.maxValues); index += 1) walk(value[index], `${where}[${index}]`, context, null, depth + 1);
+      return;
+    }
+    for (const [childKey, child] of Object.entries(value)) walk(child, where ? `${where}.${childKey}` : childKey, context, childKey, depth + 1);
+  };
+  const anonymous = { id: null, kind: null };
+  walk(payload.namespace, 'namespace', anonymous, null, 0);
+  walk(payload.omitted, 'omitted', anonymous, null, 0);
+  const records = Array.isArray(payload.records) ? payload.records : [];
+  for (let index = 0; index < Math.min(records.length, WORLD_EXPORT_LIMITS.maxRecords); index += 1) {
+    const record = records[index];
+    walk(record, `records[${index}]`, { id: record?.id ?? null, kind: record?.kind ?? null }, null, 0);
+  }
+  const byRule = {};
+  for (const finding of findings) byRule[finding.rule] = (byRule[finding.rule] ?? 0) + 1;
+  return { findingCount: findings.length, findings, byRule, blocking: false,
+    scanned: { values: state.values, chars: state.chars, truncated: state.truncated,
+      scope: 'string content of namespace, records and omitted; envelope descriptors are not scanned' },
+    limits: EXPORT_SECRET_SCAN_LIMITS,
+    note: 'Heuristic scan of exported string content only. A finding is a warning about a secret-shaped location, not proof that a credential is present; matched values are never included and nothing was redacted or removed. Zero findings is not a guarantee that this bundle holds no secrets, and a finding does not block export.' };
+};
+
 // Local JSON export only. Reads through world owners, never opens paths, writes state or contacts providers.
 export function createWorldTransfer({ service }) {
   if (!service || typeof service.namespace !== 'function') throw new TypeError('World service required');
@@ -194,7 +281,8 @@ export function createWorldTransfer({ service }) {
           : kind === 'note' ? data.commentsOn ?? [] : kind === 'selection' ? [data.objectId]
             : kind === 'source-reference' ? [data.conversationId] : [];
         if (!Array.isArray(dependencies)) throw fail('WORLD_EXPORT_INVALID_RECORD', 'Invalid dependency list');
-        enqueue(dependencies);
+        // A unit reference (n-<id>#u-<unit>) depends on its note record, which already carries every unit.
+        enqueue(dependencies.map((dep) => typeof dep === 'string' ? dep.split('#')[0] : dep));
         const record = { id, kind, custody, data }, size = bytes(record);
         if (size > WORLD_EXPORT_LIMITS.maxRecordBytes || payloadBytes + size > WORLD_EXPORT_LIMITS.maxTotalBytes) {
           throw fail('WORLD_EXPORT_LIMIT', 'Export payload exceeds byte limit');
@@ -225,6 +313,10 @@ export function createWorldTransfer({ service }) {
           sourceSnapshotsIncluded: records.filter((r) => r.custody === 'saved-observation').length,
           referenceOnlyRevision: includeSources ? 'not-applicable' : 'selection revisions may point to content absent from this bundle',
           qualification: 'User overlays are not provider assertions; source snapshots retain observed uncertainty. Selected content is not automatically redacted. providerUrl is projected as origin plus pathname only: userinfo, query strings and fragments are removed at read time; the pathname itself is kept and is not scanned for secret-looking segments.' } };
+      // Bounded secret scan of the content that is about to be serialized. Runs before hashing so the
+      // bundle digest covers the warnings it reports; findings are warnings (location + rule, never
+      // the value) and never block or alter the export.
+      payload.warnings = { secrets: scanBundleSecrets(payload) };
       if (bytes(payload) > WORLD_EXPORT_LIMITS.maxTotalBytes) throw fail('WORLD_EXPORT_LIMIT', 'Export envelope exceeds byte limit');
       const bundle = { ...payload, integrity: { algorithm: 'sha256', canonicalization: 'stableStringify',
         recordScope: 'record excluding sha256', bundleScope: 'bundle excluding integrity', sha256: hash(payload),
@@ -254,8 +346,10 @@ export function createWorldTransfer({ service }) {
       const idMap = {};
       for (const record of records) if (validId(record?.id) && !Object.hasOwn(idMap, record.id)) idMap[record.id] = localId(digest, record.id);
       const rewrite = (id) => {
-        if (!validId(id) || !ids.has(id)) { unresolved.push({ id: id ?? null, reason: 'NOT_IN_BUNDLE' }); return null; }
-        return idMap[id];
+        // Unit references (n-<id>#u-<unit>) remap their note; the unit fragment is content-derived and is kept.
+        const [base, fragment] = typeof id === 'string' ? id.split('#') : [id];
+        if (!validId(base) || !ids.has(base)) { unresolved.push({ id: id ?? null, reason: 'NOT_IN_BUNDLE' }); return null; }
+        return fragment ? `${idMap[base]}#${fragment}` : idMap[base];
       };
       for (const record of records) {
         const hashed = (({ observed, sha256, ...stored }) => stored)(record ?? {});

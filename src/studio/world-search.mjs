@@ -5,6 +5,7 @@
 import { CorpusSearchIndex } from '../intel/search.mjs';
 import { textTokens } from '../intel/similarity.mjs';
 import { problem, integer, text, storeProblem } from './http.mjs';
+import { noteUnits, noteUnitRef } from './world-note-units.mjs';
 
 // Kinds are the actual local record families; messages are saved DOM_TURNS projections.
 export const WORLD_SEARCH_KINDS = Object.freeze(['message', 'project', 'note', 'source-reference', 'selection']);
@@ -230,9 +231,13 @@ export function createWorldSearch({ service, limits } = {}) {
       for (const record of collectRows('notes', 'note-scan-limit', service.notes, bounds.notes, (entry) => entry)) {
         scanned.notes++;
         const version = Number.isSafeInteger(record?.version) ? record.version : null;
+        // Structured notes attribute a hit to one block exactly like message parts (partPath [blockIndex]);
+        // a plain note is one implicit unit whose address is the note itself, so it carries no block attribution.
+        const structured = Array.isArray(record?.blocks) && record.blocks.length > 0 ? noteUnits(record) : null;
         put(record?.id, {
           id: record.id, kind: 'note', title: record.title ?? record.id, version,
           commentsOn: Array.isArray(record?.commentsOn) ? [...record.commentsOn] : [],
+          ...(structured ? { blockTokens: structured.map((unit) => tokenSet(unit.text)), unitIds: structured.map((unit) => unit.id) } : {}),
         }, [record?.title, record?.body].filter((part) => typeof part === 'string' && part).join('\n'),
         { provenance: record?.provenance ?? 'user-authored', recordId: record.id, version });
       }
@@ -303,8 +308,9 @@ export function createWorldSearch({ service, limits } = {}) {
       const record = hitMeta.get(row.id);
       if (!record) continue;
       const partPath = attributedPartPath(record, row);
+      const unitRef = partPath && Array.isArray(record.unitIds) ? noteUnitRef(record.id, record.unitIds[partPath[0]]) : null;
       hits.push({ id: record.id, kind: record.kind, title: record.title, score: row.score,
-        snippet: clip(row.snippet), source: { ...record.source, ...(partPath ? { partPath } : {}) },
+        snippet: clip(row.snippet), source: { ...record.source, ...(partPath ? { partPath } : {}), ...(unitRef ? { unitRef } : {}) },
         ...(record.role !== undefined ? { role: record.role } : {}),
         ...(record.conversation !== undefined ? { conversation: record.conversation } : {}),
         ...(record.custody !== undefined ? { custody: record.custody } : {}),

@@ -8,6 +8,7 @@ import { sanitizeProviderUrl, sanitizedSource } from './world-url.mjs';
 import { createWorldRelations } from './world-relations.mjs';
 import { registerWorldSearchRoutes } from './world-search.mjs';
 import { registerWorldTransferRoutes, importedConversationId } from './world-transfer.mjs';
+import { noteUnits, noteUnitAddressing, noteUnitRef, resolveNoteUnit, validateNoteBlocks, noteBodyFromBlocks } from './world-note-units.mjs';
 
 const digest = (s) => createHash('sha256').update(s).digest('hex').slice(0, 40);
 const conversationId = (session) => `c-${digest(session)}`;
@@ -150,15 +151,44 @@ export function createWorldService({ paths, isSessionActive = () => false }) {
       return save(id, { ...old, title: body.title === undefined ? old.title : title(body.title), conversationIds, noteIds, memberIds }, body.expectedVersion);
     },
     notes: (q = {}) => list('note', q),
-    note: (id) => publicRecord(load(id, 'note')),
+    // A note keeps its stored shape by default (export/reload byte stability). Units are an
+    // opt-in read projection: `?units=1` adds the addressable units and their addressing rules.
+    note(id, q = {}) {
+      const record = publicRecord(load(id, 'note'));
+      if (!q || !(q.units === true || q.units === 1 || q.units === '1' || q.units === 'true')) return record;
+      return { ...record, units: noteUnits(record), addressing: noteUnitAddressing(record) };
+    },
+    noteUnits(id) {
+      const record = publicRecord(load(id, 'note'));
+      return { id: record.id, title: record.title, version: record.version ?? null,
+        addressing: noteUnitAddressing(record), units: noteUnits(record) };
+    },
+    // Resolve one atomic unit inside a note: unit id, [blockIndex] path, bare index or b<index>.
+    noteUnit(id, address) {
+      const record = publicRecord(load(id, 'note'));
+      const unit = resolveNoteUnit(noteUnits(record), address);
+      if (!unit || !record.id) throw problem(404, 'Note unit not found', 'WORLD_NOT_FOUND');
+      return { ...unit, ref: noteUnitRef(record.id, unit.id), version: record.version ?? null,
+        qualification: 'local address inside one user-authored note; not a provider identity' };
+    },
     writeNote(id, body) {
-      fields(body, ['title', 'body', 'commentsOn', 'expectedVersion']);
+      // `body` stays the one authoritative plain text. `blocks` is optional authored structure:
+      // when only blocks are supplied the body is derived from them, and a save without blocks
+      // clears stored structure so unit addresses can never disagree with the saved text.
+      fields(body, ['title', 'body', 'blocks', 'commentsOn', 'expectedVersion']);
       const old = id ? load(id, 'note') : null;
       check(old ? Number.isInteger(body.expectedVersion) && body.expectedVersion > 0 : body.expectedVersion === null, 'Invalid expectedVersion');
-      check(typeof body.body === 'string' && body.body.length <= 200000, 'Note body must be a string of at most 200000 characters');
+      const blocks = body.blocks === undefined || body.blocks === null ? null : validateNoteBlocks(body.blocks);
+      const derived = blocks ? noteBodyFromBlocks(blocks) : null;
+      if (blocks && body.body !== undefined && body.body !== derived) throw problem(400, 'Note body and blocks disagree', 'WORLD_INVALID_INPUT');
+      const text = body.body === undefined ? derived : body.body;
+      check(typeof text === 'string' && text.length <= 200000, 'Note body must be a string of at most 200000 characters');
       id ??= `n-${randomUUID()}`;
       const commentsOn = body.commentsOn === undefined ? old?.commentsOn ?? [] : relations.validateSelections(body.commentsOn, old?.commentsOn ?? []);
-      return save(id, { id, namespaceId: relations.namespace().id, kind: 'note', title: title(body.title), body: body.body, provenance: 'user-authored', commentsOn }, body.expectedVersion);
+      return save(id, { id, namespaceId: relations.namespace().id, kind: 'note', title: title(body.title), body: text,
+        ...(blocks ? { blocks: blocks.map((block) => ({ ...(block.unitId ? { unitId: block.unitId } : {}), type: block.type, text: block.text,
+          ...(block.label ? { label: block.label } : {}) })) } : {}),
+        provenance: 'user-authored', commentsOn }, body.expectedVersion);
     },
   };
   const relations = createWorldRelations({ store, service, save });
@@ -179,7 +209,9 @@ export function registerWorldRoutes({ add, paths, isSessionActive }) {
   route('POST', '/projects', ({ body }) => service.createProject(body));
   route('PUT', '/projects/{id}', ({ p, body }) => service.updateProject(p.id, body));
   route('GET', '/notes', ({ q }) => service.notes(q));
-  route('GET', '/notes/{id}', ({ p }) => service.note(p.id));
+  route('GET', '/notes/{id}', ({ p, q }) => service.note(p.id, q));
+  route('GET', '/notes/{id}/units', ({ p }) => service.noteUnits(p.id));
+  route('GET', '/notes/{id}/units/{address}', ({ p }) => service.noteUnit(p.id, p.address));
   route('POST', '/notes', ({ body }) => service.writeNote(null, body));
   route('PUT', '/notes/{id}', ({ p, body }) => service.writeNote(p.id, body));
   route('GET', '/namespace', () => service.namespace());

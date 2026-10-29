@@ -2,6 +2,7 @@ import { randomUUID, createHash } from 'node:crypto';
 import { problem, page } from './http.mjs';
 import { TemporalGraph } from '../intel/graph.mjs';
 import { sanitizedSource } from './world-url.mjs';
+import { parseNoteUnitRef } from './world-note-units.mjs';
 
 const check = (ok, message) => { if (!ok) throw problem(400, message, 'WORLD_INVALID_INPUT'); };
 const clean = ({ name, changeNote, ...value }) => value;
@@ -74,6 +75,12 @@ export function createWorldRelations({ store, service, save }) {
   };
   const ref = (id) => {
     if (typeof id !== 'string') throw problem(400, 'Invalid reference', 'WORLD_INVALID_INPUT');
+    // n-<id>#u-<unit> addresses one atomic unit inside a note (see world-note-units.mjs).
+    if (id.startsWith('n-') && id.includes('#')) {
+      const parsed = parseNoteUnitRef(id);
+      check(parsed, 'Invalid note unit reference');
+      return service.noteUnit(parsed.noteId, parsed.unitId);
+    }
     if (id.startsWith('c-')) return service.conversation(id);
     if (id.startsWith('p-')) return service.project(id);
     if (id.startsWith('n-')) return service.note(id);
@@ -82,7 +89,7 @@ export function createWorldRelations({ store, service, save }) {
     throw problem(400, 'Unknown reference kind', 'WORLD_INVALID_INPUT');
   };
   const validate = (values, previous, selectionsOnly = false) => {
-    check(Array.isArray(values) && values.length <= 1000 && values.every((v) => typeof v === 'string' && /^[cnpos]-[a-z0-9-]{1,60}$/.test(v)), 'Invalid references');
+    check(Array.isArray(values) && values.length <= 1000 && values.every((v) => typeof v === 'string' && /^[cnpos]-[a-z0-9-]{1,60}(?:#u-[a-z0-9]{1,60}(?:-[0-9]{1,6})?)?$/.test(v)), 'Invalid references');
     if (selectionsOnly) check(values.every((v) => v.startsWith('s-')), 'commentsOn requires selection IDs');
     for (const id of values) if (!previous.includes(id)) ref(id);
     return [...new Set(values)];
@@ -148,7 +155,12 @@ export function createWorldRelations({ store, service, save }) {
           placeholders++;
           const targetKind = ({ c: 'conversation', p: 'project', n: 'note', o: 'source-reference', s: 'selection' })[to[0]] ?? 'unresolved-reference';
           let target = { id: to, kind: targetKind, availability: 'unresolved', availabilityReason: 'NOT_SCANNED' };
-          if (targetKind === 'conversation') {
+          if (to.includes('#')) {
+            // A unit reference is its own node: the edge points at the addressed unit, not the whole note.
+            try { const unit = ref(to); target = { id: to, kind: 'note-unit', noteId: unit.noteId, unitId: unit.id, path: unit.path,
+              provenance: 'user-authored', availability: 'locally-available', availabilityReason: null }; }
+            catch (e) { if (!['WORLD_NOT_FOUND', 'WORLD_INVALID_INPUT'].includes(e.code)) throw e; target = { ...target, kind: 'note-unit', availability: 'missing', availabilityReason: 'UNIT_MISSING' }; }
+          } else if (targetKind === 'conversation') {
             try { target = { ...target, ...service.conversationMetadata(to, metadataRequest) }; }
             catch (e) { if (e.code !== 'WORLD_NOT_FOUND') throw e; target = { ...target, availability: 'missing', availabilityReason: 'SOURCE_MISSING' }; }
           }
