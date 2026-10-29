@@ -93,8 +93,51 @@ test('same-owner app factory survives Studio restart with token and origin guard
     assert.equal(content.includes('/personal-apps'), false,
       'model tool list must not silently expose app mutation');
   }
+  // The mobile view runs on the existing authenticated Studio service.
+  const emptyContent = await request('/' + id + '/content');
+  assert.equal(emptyContent.status, 200);
+  assert.equal(emptyContent.data.version, 0);
+  const noteInput = { expectedVersion: 0, idempotencyKey: 'mobile-note-123456',
+    kind: 'note', title: 'My private note', body: 'Only stored locally' };
+  const firstNote = await request('/' + id + '/content/items', 'POST', noteInput);
+  assert.equal(firstNote.status, 200, JSON.stringify(firstNote.data));
+  assert.equal(firstNote.data.content.version, 1);
+  assert.equal((await request('/' + id + '/content/items', 'POST', noteInput)).data.replayed, true);
+  assert.equal((await request('/' + id + '/content')).data.items.length, 1);
+  assert.equal((await request('/' + id + '/content/items', 'POST',
+    { ...noteInput, idempotencyKey: 'another-note-123456' })).status, 409);
+  const task = await request('/' + id + '/content/items', 'POST', {
+    expectedVersion: 1, idempotencyKey: 'mobile-task-123456',
+    kind: 'task', title: 'Verify phone screen',
+  });
+  assert.equal(task.status, 200);
+  assert.equal(task.data.content.version, 2);
+  const complete = await request('/' + id + '/content/items/' + task.data.item.id + '/completion',
+    'POST', { expectedVersion: 2, completed: true });
+  assert.equal(complete.status, 200);
+  assert.equal(complete.data.content.version, 3);
+  assert.equal(complete.data.item.completed, true);
+  assert.equal((await request('/' + id + '/content/items/' + task.data.item.id + '/completion',
+    'POST', { expectedVersion: 2, completed: false })).status, 409);
+  assert.equal((await request('/' + id + '/content/items', 'POST', {
+    ...noteInput, idempotencyKey: 'script-note-123456', kind: 'javascript',
+    expectedVersion: 3,
+  })).status, 400);
+  assert.equal((await request('/' + id + '/content', 'GET', undefined, false)).status, 401);
+  const hostile = await fetch(base() + '/api/v1/personal-apps/' + id + '/content/items', {
+    method: 'POST', headers: { ...headers, origin: 'https://outside.example' },
+    body: JSON.stringify({ ...noteInput, expectedVersion: 3, idempotencyKey: 'cross-origin-123456' }),
+  });
+  assert.equal(hostile.status, 403);
+  assert.equal((await request('/' + id + '/content')).data.version, 3);
   await studio.close(); studio = await start();
   assert.equal((await request('')).data.total, 1);
   assert.equal((await request('/' + id)).data.screens.length, 5);
   assert.equal((await request('/' + id + '/scaffold')).data.scaffold.intelligence.dispatch, 'disabled');
+  const contentAfterRestart = await request('/' + id + '/content');
+  assert.equal(contentAfterRestart.status, 200);
+  assert.equal(contentAfterRestart.data.version, 3);
+  assert.equal(contentAfterRestart.data.items.length, 2);
+  assert.equal(contentAfterRestart.data.items.find(item => item.kind === 'task').completed, true);
+
 });
