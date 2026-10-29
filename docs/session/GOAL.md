@@ -25,5 +25,7 @@ Build and fully integrate the first functional, local-first VIVIM prototype acro
 
     Work the P0 backlog in each lane and update each scenario's status with evidence as it changes.
 
+12. **Features first; privacy and security last.** Defer privacy/security audits and hardening lanes until the feature scenarios are built. Up to 6 parallel lanes with non-overlapping write scopes.
+
 ## Done means
 Each objective area has a live-observed outcome on the owner's real accounts and devices, recorded with evidence.
