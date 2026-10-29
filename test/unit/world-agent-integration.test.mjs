@@ -354,3 +354,30 @@ test('Home falls back to unknown rather than inventing Agent status when Studio 
   assert.match(card.textContent, /—Personal Agent/);
   assert.equal(f.calls.filter(c => c.url.startsWith(AGENT_API)).length, 1);
 });
+
+test('unsaved Work next-action drafts survive inspector refresh, filters and status reload', async () => {
+  const f = fixture(); await f.world.choose('agent'); await byId(f.root, 'worldAgentStart').click();
+  const form = byId(f.root, 'worldAgentWorkForm');
+  const [name, objective] = inputs(form);
+  await type(name, 'Draft-safe local Work');
+  await type(objective, 'No autosend or autoexecute');
+  await form.fire('submit');
+  const actionInput = () => nodes(byId(f.root, 'worldAgentWork'),
+    n => n.tag === 'textarea' && (n.attrs['aria-label'] ?? '').startsWith('Next action for'))[0];
+  await type(actionInput(), 'UNSAVED_LOCAL_PLAN');
+  await byId(f.root, 'worldAgentInspect_capabilities').click();
+  assert.equal(actionInput().value, 'UNSAVED_LOCAL_PLAN');
+  const filter = byId(f.root, 'worldAgentWorkFilter');
+  filter.value = 'all'; await filter.fire('change');
+  assert.equal(actionInput().value, 'UNSAVED_LOCAL_PLAN');
+  await byId(f.root, 'worldAgentRefresh').click();
+  assert.equal(actionInput().value, 'UNSAVED_LOCAL_PLAN');
+  assert.equal(f.calls.filter(c => c.url.endsWith('/next-action')).length, 0,
+    'draft is not written implicitly during any rerender');
+  const save = nodes(byId(f.root, 'worldAgentWork'),
+    n => n.tag === 'button' && n.textContent === 'Save next action')[0];
+  await save.click();
+  assert.equal(f.state.work[0].nextAction, 'UNSAVED_LOCAL_PLAN');
+  assert.equal(actionInput().value, 'UNSAVED_LOCAL_PLAN');
+  assert.equal(f.calls.filter(c => c.url.endsWith('/next-action')).length, 1);
+});
