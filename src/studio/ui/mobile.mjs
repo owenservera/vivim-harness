@@ -17,9 +17,9 @@ const ASK_POLL_MS = 2500;
 // All six signed-in AI websites the phone may ask directly (same set the backend's create and compare
 // routes accept). "Ask my AI" lets the user pick any one of these, remembered on this phone.
 const ASK_SITES = { chatgpt: 'ChatGPT', claude: 'Claude', zai: 'Z.ai', qwen: 'Qwen', deepseek: 'DeepSeek', gemini: 'Gemini' };
-// "Design with my AI" only reuses the two sites personal-app-ai-design.mjs accepts today; it is not
-// widened here even though Ask my AI now offers six.
-const DESIGN_SITES = { chatgpt: 'ChatGPT', claude: 'Claude' };
+// "Design with my AI" accepts the same six signed-in AI websites as Ask my AI and Ask several
+// (personal-app-ai-design.mjs AI_DESIGN_SITES === conversation-api.mjs CREATE_SITES).
+const DESIGN_SITES = ASK_SITES;
 // "Ask several": one question sent to more than one AI at once, through the shared compare job runner
 // (src/studio/compare-service.mjs). Same no-resend rule as a single chat: polling only ever re-reads the
 // SAME job id; a new question is the only thing that starts a new job.
@@ -229,6 +229,14 @@ export function mountMobile({
     attr(label, 'required', ''); form.append(preview); box.append(form);
     box.append(el('h3', 'Design with my AI'), el('p',
       'Ask your own AI account to suggest screens. This sends a request through your PC. You review everything before adding it.', 'muted'));
+    const designFailed = b.job?.state === 'failed';
+    if (designFailed && b.site === b.job.site) {
+      // A nudge toward a different signed-in AI, never a resend: this only changes which site shows
+      // as preselected below. Starting again still needs the user's own tap on the button, and it
+      // always gets a brand-new job id and key — the failed job's key is never reused.
+      const alt = Object.keys(DESIGN_SITES).find(site => site !== b.job.site);
+      if (alt) b.site = alt;
+    }
     const sites = el('div', undefined, 'row');
     for (const site of Object.keys(DESIGN_SITES)) {
       const choice = btn(DESIGN_SITES[site], () => { b.site = site; render(); });
@@ -236,7 +244,7 @@ export function mountMobile({
     }
     box.append(sites);
     builderField(box, 'What would you like to add? (optional)', b.wish, 500, value => { b.wish = value; }, true);
-    const design = btn('Design with my AI', () => designAction('start'), 'primary');
+    const design = btn(designFailed ? 'Try with another AI' : 'Design with my AI', () => designAction('start'), 'primary');
     design.disabled = state.busy || !b.designChecked || ['queued', 'asking', 'waiting-reply', 'ready-to-review'].includes(b.job?.state);
     box.append(design);
     if (!b.designChecked) {

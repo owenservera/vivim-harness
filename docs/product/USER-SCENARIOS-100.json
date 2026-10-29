@@ -2512,8 +2512,8 @@
         }
       ],
       "expectedOutcome": "Its app and screens open",
-      "status": "PARTIAL",
-      "evidence": "b3c82ba offline reload",
+      "status": "WORKS",
+      "evidence": "2026-10-30 live local HTTP on app-ea8674db844f4db10ebd641dc9fc2818: note+2 tasks created (v2->5), task completed (v6), same-key replay no duplicate, stale write 409 plain wording. Receipt docs/session/APP-CONTENT-LIVE-2026-10-30.json (d1d4960). | earlier: b3c82ba offline reload",
       "files": {
         "existing": [
           "src/studio/personal-app-blueprint.mjs",
@@ -2945,8 +2945,8 @@
         }
       ],
       "expectedOutcome": "The content is stored with the app",
-      "status": "UNKNOWN",
-      "evidence": "Source fix 2026-10-29 (2549e21, src/studio/personal-app-content.mjs, S071-S072): a corrupt/missing content pointer now fails loudly (PERSONAL_APP_CONTENT_CORRUPT) instead of silently resetting to an empty app, preserving damaged saved content on reopen; source-only, no live save/reopen cycle run — status remains UNKNOWN.",
+      "status": "WORKS",
+      "evidence": "2026-10-30 live local HTTP on app-ea8674db844f4db10ebd641dc9fc2818: note+2 tasks created (v2->5), task completed (v6), same-key replay no duplicate, stale write 409 plain wording. Receipt docs/session/APP-CONTENT-LIVE-2026-10-30.json (d1d4960). | earlier: Source fix 2026-10-29 (2549e21, src/studio/personal-app-content.mjs, S071-S072): a corrupt/missing content pointer now fails loudly (PERSONAL_APP_CONTENT_CORRUPT) instead of silently resetting to an empty app, preserving damaged saved content on reopen; source-only, no live save/reopen cycle run — status remains UNKNOWN.",
       "files": {
         "existing": [
           "src/studio/personal-app-blueprint.mjs",
@@ -4363,9 +4363,9 @@
   },
   "summary": {
     "byStatus": {
-      "PARTIAL": 28,
-      "WORKS": 34,
-      "UNKNOWN": 36,
+      "PARTIAL": 27,
+      "WORKS": 36,
+      "UNKNOWN": 35,
       "BROKEN": 2
     },
     "byPriority": {
