@@ -154,20 +154,62 @@ const workTransitions = {
   completed: [], cancelled: [],
 };
 let pendingWorkKey = null;
+const workActionDrafts = new Map();
 async function loadWork() {
   const area = $('workList');
   if (!snapshot?.initialized) { area.replaceChildren(element('p', 'No local agent yet.')); return; }
   try {
     const data = await request('/work');
     area.replaceChildren();
-    if (!data.items.length) area.append(element('p', 'No Work items yet.', 'subtle'));
-    for (const item of data.items.slice().reverse()) {
+    const filter = $('workFilter').value;
+    const visible = data.items.filter(item => filter === 'all' ||
+      (filter === 'open' ? ['queued', 'active', 'blocked'].includes(item.status)
+        : item.status === filter));
+    $('workCoverage').textContent = 'Showing ' + visible.length + ' of ' + data.items.length +
+      ' locally saved Work records; no provider execution inferred.';
+    if (!visible.length) area.append(element('p', data.items.length
+      ? 'No Work matches this status filter.' : 'No Work items yet.', 'subtle'));
+    for (const item of visible.slice().reverse()) {
       const card = element('article');
       card.style.borderTop = '1px solid var(--border)';
       card.style.padding = '12px 0';
       card.append(element('strong', item.title), element('p', item.objective),
         element('p', `State: ${item.status} · Last updated ${item.updatedAt}`, 'subtle'));
       if (item.nextAction) card.append(element('p', 'Next: ' + item.nextAction, 'subtle'));
+      if (['queued', 'active', 'blocked'].includes(item.status)) {
+        const next = element('textarea');
+        next.maxLength = 1000;
+        next.rows = 2;
+        next.value = workActionDrafts.has(item.id) ? workActionDrafts.get(item.id) : (item.nextAction ?? '');
+        next.setAttribute('aria-label', 'Next action for ' + item.title);
+        next.placeholder = 'User-authored next local action; not automatic execution';
+        next.addEventListener('input', () => { workActionDrafts.set(item.id, next.value); });
+        const save = element('button', 'Save next action', 'secondary');
+        save.type = 'button';
+        save.addEventListener('click', async () => {
+          const planned = next.value.trim();
+          if (!planned && item.status === 'blocked') {
+            message('Blocked Work requires a next action or reason.', true); return;
+          }
+          save.disabled = true;
+          try {
+            const status = await request('/status');
+            await request('/work/' + encodeURIComponent(item.id) + '/next-action', {
+              method: 'POST', body: JSON.stringify({ expectedVersion: status.version, nextAction: planned || null }),
+            });
+            workActionDrafts.delete(item.id);
+            message('Next action saved in local Work history. Nothing was executed.');
+            await refresh(); await loadWork();
+          } catch (error) {
+            message('Plan: ' + error.code + ' — ' + error.message, true);
+            save.disabled = false; // keep the user's unsaved draft
+          }
+        });
+        const plan = element('div');
+        plan.style.display = 'grid'; plan.style.gap = '8px';
+        plan.append(next, save);
+        card.append(plan);
+      }
       const transitions = workTransitions[item.status] ?? [];
       if (transitions.length) {
         const select = element('select');
@@ -290,6 +332,7 @@ async function exportAgent() {
 $('sitrepRefresh').addEventListener('click', showSitrep);
 $('exportAgent').addEventListener('click', exportAgent);
 $('workForm').addEventListener('submit', createWork);
+$('workFilter').addEventListener('change', loadWork);
 $('knowledgeRefresh').addEventListener('click', showKnowledge);
 $('memoryForm').addEventListener('submit', saveMemory);
 void refresh().then(async () => { await readMemory(); await loadWork(); await showKnowledge(); });
