@@ -100,7 +100,7 @@ export function transitionWork(state, { id, to, note, evidence = [], now }) {
     evidence: evidence.map(ref => ({ ref, basis: 'user-attested; unverified-for-live-execution' })),
   };
   const item = { ...old, status: to, updatedAt: now,
-    nextAction: to === 'blocked' ? event.note : null,
+    nextAction: to === 'blocked' ? event.note : to === 'active' && old.status === 'queued' ? (old.nextAction ?? null) : null,
     evidence: [...old.evidence, ...event.evidence], events: [...old.events, event] };
   if (item.events.length > 100) throw err('PERSONAL_AGENT_WORK_LIMIT', 'Work event history reached capacity', 409);
   return { state: { ...state, updatedAt: now, work: work.map(row => row.id === id ? item : row) }, item, changed: true };
