@@ -12,7 +12,26 @@ const FENCE = /```[ \t]*([A-Za-z0-9_-]*)[ \t]*\r?\n([\s\S]*?)\r?\n?```/g;
 const CONTROL = /[\u0000-\u001f\u007f]/;
 const DIGEST = /^[a-f0-9]{64}$/;
 const digestOf = text => createHash('sha256').update(text, 'utf8').digest('hex');
-const ambiguous = () => problem(400, 'Provider reply contains more than one JSON block; refusing to guess', 'PROVIDER_REPLY_AMBIGUOUS');
+const ambiguous = () => problem(400,
+  'This saved answer contains more than one possible design. Choose another answer, or ask your AI for one app design, then preview it again. Nothing was changed.', 'PROVIDER_REPLY_AMBIGUOUS');
+
+// Keep the compiler's stable codes/statuses (including CAS conflicts) while giving
+// the saved-reply picker a useful next step rather than a raw JSON/schema error.
+function designProblem(error) {
+  const guidance = {
+    PERSONAL_APP_INVALID: 'This saved answer is not an app design VIVIM can use. Choose another answer, or ask your AI for a screen design for this app, then preview it again. Nothing was changed.',
+    PERSONAL_APP_VERSION_CONFLICT: 'This design is for another app or an older version. Choose a design for this app as it is now, then preview it again. Nothing was changed.',
+    PERSONAL_APP_SCREEN_EXISTS: 'This design repeats a screen your app already has. Choose another answer, or ask your AI for different screens. Nothing was changed.',
+    PERSONAL_APP_LIMIT: 'This design would add too many screens. Ask your AI for fewer screens, or use another app. Nothing was changed.',
+  };
+  return guidance[error?.code] ? problem(error.status ?? 400, guidance[error.code], error.code) : error;
+}
+const emptyReply = () => problem(409,
+  'This saved answer has no text to use as a design. Choose another answer or ask your AI for a new design.', 'PROVIDER_REPLY_EMPTY');
+const proposalFromReply = text => {
+  if (!text.trim()) throw emptyReply();
+  return extractProposalText(text);
+};
 
 // Top-level {...} spans of prose that parse as JSON objects. Quotes are only tracked INSIDE a brace span,
 // so apostrophes/quotes in the surrounding prose cannot desynchronise the scan.
@@ -74,17 +93,15 @@ export function createProviderReplyBuilder({ apps, readStoredConversation } = {}
     }
     const stored = await readStoredConversation(conversation);
     const turn = Array.isArray(stored?.turns) ? stored.turns.find(item => item?.id === turnId) : null;
-    if (!turn) throw problem(404, 'Stored turn not found', 'PROVIDER_REPLY_NOT_FOUND');
+    if (!turn) throw problem(404, 'That saved answer is no longer available. Reload your saved answers and choose another one.', 'PROVIDER_REPLY_NOT_FOUND');
     const reply = turn.reply;
     if (reply?.state !== 'ready') {
-      throw problem(409, 'Stored reply is not settled', 'PROVIDER_REPLY_NOT_READY');
+      throw problem(409, 'This answer is not finished yet. Wait for your AI to finish, then choose it again.', 'PROVIDER_REPLY_NOT_READY');
     }
-    if (typeof reply.text !== 'string' || !reply.text.trim()) {
-      throw problem(409, 'Stored reply has no text', 'PROVIDER_REPLY_EMPTY');
-    }
+    if (typeof reply.text !== 'string') throw emptyReply();
     const replyDigest = digestOf(reply.text);
     return {
-      proposal: extractProposalText(reply.text),
+      replyText: reply.text,
       provenance: {
         source: PROVIDER_REPLY_SOURCE, conversationId: conversation, turnId,
         replyState: reply.state, replyChars: reply.text.length, replyDigest,
@@ -94,20 +111,24 @@ export function createProviderReplyBuilder({ apps, readStoredConversation } = {}
     };
   }
   async function preview({ id, conversation, turnId } = {}) {
-    const { proposal, provenance } = await observedReply({ conversation, turnId });
-    const result = apps.previewChange({ id, proposal });
-    return { ...result, source: PROVIDER_REPLY_SOURCE, provenance };
+    const { replyText, provenance } = await observedReply({ conversation, turnId });
+    try {
+      const result = apps.previewChange({ id, proposal: proposalFromReply(replyText) });
+      return { ...result, source: PROVIDER_REPLY_SOURCE, provenance };
+    } catch (error) { throw designProblem(error); }
   }
   async function apply({ id, conversation, turnId, replyDigest, expectedVersion, approval } = {}) {
     if (typeof replyDigest !== 'string' || !DIGEST.test(replyDigest)) {
       throw problem(400, 'replyDigest from the preview is required; preview the reply first', 'PROVIDER_REPLY_INVALID');
     }
-    const { proposal, provenance } = await observedReply({ conversation, turnId });
+    const { replyText, provenance } = await observedReply({ conversation, turnId });
     if (replyDigest !== provenance.replyDigest) {
-      throw problem(409, 'Stored reply changed since it was previewed; preview again', 'PROVIDER_REPLY_CHANGED');
+      throw problem(409, 'This saved answer changed after you reviewed it. Preview it again before adding any screens. Nothing was changed.', 'PROVIDER_REPLY_CHANGED');
     }
-    const result = apps.applyChange({ id, expectedVersion, proposal, approval });
-    return { ...result, source: PROVIDER_REPLY_SOURCE, provenance };
+    try {
+      const result = apps.applyChange({ id, expectedVersion, proposal: proposalFromReply(replyText), approval });
+      return { ...result, source: PROVIDER_REPLY_SOURCE, provenance };
+    } catch (error) { throw designProblem(error); }
   }
   return { preview, apply };
 }
