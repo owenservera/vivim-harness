@@ -41,6 +41,7 @@ import * as fs from 'node:fs';
 import path from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
 import { acquireDriveLease } from './drive-lease.mjs';
+import { THREAD_KINDS } from './conversation-thread.mjs';
 
 const now = () => new Date().toISOString();
 const error = (code) => Object.assign(new Error(code), { code });
@@ -64,8 +65,8 @@ export function canonicalThreadKey({ namespace, origin, thread } = {}) {
   try { url = new URL(origin); } catch { throw error('INVALID_THREAD_SCOPE'); }
   const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
   if (typeof namespace !== 'string' || !/^[a-z0-9][a-z0-9_.-]{0,127}$/i.test(namespace)
-    || url.protocol !== 'https:' || url.origin !== origin || thread?.kind !== 'chatgpt-c'
-    || typeof thread.id !== 'string' || !uuid.test(thread.id) || thread.ref !== `chatgpt-c:${thread.id}`) throw error('INVALID_THREAD_SCOPE');
+    || url.protocol !== 'https:' || url.origin !== origin || !THREAD_KINDS.includes(thread?.kind)
+    || typeof thread.id !== 'string' || !uuid.test(thread.id) || thread.ref !== `${thread.kind}:${thread.id}`) throw error('INVALID_THREAD_SCOPE');
   return JSON.stringify(['thread-turn-journal-v1', namespace, origin, thread.ref]);
 }
 

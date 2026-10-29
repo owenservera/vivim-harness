@@ -11,7 +11,7 @@ import { createConversationBrowserAdapter } from './conversation-browser-adapter
 import { isPrefixCode, prefixId, preimageDigest, resolvePromptTier, checkPrefixPage, comparePrefixRead, comparePrefixReads,
   prefixGuardSource, sha256Hex, PREFIX_ORIGINS, validPrefixRecord } from './conversation-prefix.mjs';
 import { acquireDriveLease } from './drive-lease.mjs';
-import { parseThread, threadSupported, TRANSCRIPT_LIMITS } from './conversation-thread.mjs';
+import { parseThread, threadSupported, THREAD_REF_PATTERN, TRANSCRIPT_LIMITS } from './conversation-thread.mjs';
 import { buildCapabilityCapsule } from './conversation-capsule.mjs';
 import { captureConversationEvidence } from './conversation-evidence.mjs';
 import { readChatIndex } from './chatgpt-chat-index-reader.mjs';
@@ -36,7 +36,9 @@ export function createConversationRuntime({ paths, profileStore, familyStore, po
   mkdirSync(directory, { recursive: true });
   const entries = new Map(); let closed = false;
   const active = () => { if (closed) throw fail(503, 'RUNTIME_CLOSED'); };
-  const THREAD_REF = /^chatgpt-c:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+  // Denylist refs are per-site thread refs; the exact-prefix bind path below stays ChatGPT-only (its own `chatgpt-c:` check).
+  const THREAD_REF = THREAD_REF_PATTERN;
+  const CHATGPT_THREAD_REF = /^chatgpt-c:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
   async function collectThreadDenylist(site) {
     const refs = new Set();
     const accept = (ref) => { if (THREAD_REF.test(ref ?? '')) refs.add(ref); };
@@ -349,7 +351,7 @@ export function createConversationRuntime({ paths, profileStore, familyStore, po
   function checkPrefixRequest(body, sourceField = 'source') {
     const source = body[sourceField];
     if (body.site !== 'chatgpt' || typeof body.targetId !== 'string' || !body.targetId || body.targetId.length > 256
-      || !THREAD_REF.test(body.expectedThread ?? '') || !source || typeof source !== 'object' || Array.isArray(source)
+      || !CHATGPT_THREAD_REF.test(body.expectedThread ?? '') || !source || typeof source !== 'object' || Array.isArray(source)
       || !validId(source.conversationId) || !validId(source.attemptId)
       || body.promptAttestation !== undefined && (typeof body.promptAttestation !== 'string' || body.promptAttestation.length > 250000)) throw fail(400, 'INVALID_PREFIX_REQUEST');
     if (sourceField === 'prefixSource' && !/^[a-f0-9]{64}$/.test(source.payloadDigest ?? '')) throw fail(400, 'INVALID_PREFIX_REQUEST');
@@ -615,7 +617,7 @@ export function createConversationRuntime({ paths, profileStore, familyStore, po
         if (!validId(prior.sessionId)) return null;
         try {
           const url = JSON.parse(readFileSync(path.join(paths.sessions, prior.sessionId, 'session.json'), 'utf8'))?.target?.url;
-          return typeof url === 'string' ? parseThread('chatgpt', url)?.ref ?? null : null;
+          return typeof url === 'string' ? parseThread(prior.site ?? 'chatgpt', url)?.ref ?? null : null;
         } catch { return null; }
       };
       if (thread) for (const priorId of ids()) {

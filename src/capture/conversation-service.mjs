@@ -25,7 +25,7 @@
 import * as fs from 'node:fs';
 import path from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
-import { sameThread, validThread, validIdentity } from './conversation-thread.mjs';
+import { sameThread, validThread, validIdentity, THREAD_REF_PATTERN } from './conversation-thread.mjs';
 import { createThreadTurnJournal } from './thread-turn-journal.mjs';
 import { validPrefixRecord, prefixDescriptor } from './conversation-prefix.mjs';
 
@@ -390,7 +390,7 @@ export function createConversationService({ dataDir, id = randomUUID(), adapter,
         const resolved = identity ?? (thread ? { state: 'bound', reason: null } : { state: 'unbound', reason: 'NOT_PROVIDED' });
         if (!validThread(thread) || !validIdentity(resolved, thread)) throw error('INVALID_BINDING');
         if (threadDenylist !== undefined && !Array.isArray(threadDenylist)) throw error('INVALID_BINDING');
-        const threadRef = /^chatgpt-c:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+        const threadRef = THREAD_REF_PATTERN;
         snapshot.binding = { targetId, origin, ownedByStudio, ...(thread ? { thread } : {}) };
         snapshot.identity = { state: resolved.state, reason: resolved.reason ?? null };
         if (Array.isArray(threadDenylist)) snapshot.threadDenylist = [...new Set(threadDenylist.filter((ref) => threadRef.test(ref)))];

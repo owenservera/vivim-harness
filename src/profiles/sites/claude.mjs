@@ -24,6 +24,21 @@ export default {
       'fieldset button[type="submit"]',
       'button[type="submit"]',
     ],
+    // Claude hides (visibility:hidden, inert) the send button while the composer is empty and shows the
+    // voice-mode button in its place. Idle-state evidence only; never used to find a button to click.
+    idleSelectors: [
+      'button[aria-label="Use voice mode"]',
+    ],
+  },
+  // Measured on the live claude.ai transcript (2026-10-29): user text lives in [data-testid=user-message],
+  // the reply in [data-testid=assistant-message] whose body is [data-perf-reply-text] (the node also holds an
+  // sr-only "Claude responded:" heading, an action bar and a timestamp). Both rows carry the provider's own
+  // stable identity in `data-turn-key` (user: <uuid>, reply: <uuid>-hub-reply).
+  transcript: {
+    userSelectors: ['[data-testid="user-message"]'],
+    assistantSelectors: ['[data-testid="assistant-message"]'],
+    textSelector: '[data-perf-reply-text]',
+    idAttribute: 'data-turn-key',
   },
   assistant: {
     containerSelectors: [
@@ -37,6 +52,7 @@ export default {
       'button[aria-label*="Stop" i]',
       '[role="button"][aria-label*="Stop" i]',
       '[data-testid="stop-button"]',
+      '[data-is-streaming="true"]',
       '[aria-busy="true"]',
     ],
     doneWhen: 'text-stable',

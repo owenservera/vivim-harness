@@ -6,7 +6,7 @@ import { listSessions } from '../store/session.mjs';
 import { Recorder } from './recorder.mjs';
 import { evaluate, findComposer, focusComposer, typeText, sendMessage, sendState, readTranscript, waitForCompletion, detectAuthWall, detectSiteFailure } from './actions.mjs';
 import { setTimeout as sleep } from 'node:timers/promises';
-import { parseThread, sameThread, transcriptExpression, turnObservationExpression, boundTranscript, TRANSCRIPT_LIMITS } from './conversation-thread.mjs';
+import { parseThread, sameThread, isNewChatPath, idleControlSelectors, transcriptSpec, transcriptExpression, turnObservationExpression, boundTranscript, TRANSCRIPT_LIMITS } from './conversation-thread.mjs';
 
 const norm = (s) => String(s ?? '').replace(/\s+/g, ' ').trim();
 const problem = (code) => Object.assign(new Error(code), { code, status: 409 });
@@ -39,11 +39,13 @@ const settleTypingReadback = async (read, prompt) => {
   }
   return null;
 };
+const transcriptArgs = (adapter) => { const s = transcriptSpec(adapter);
+  return { userSelectors: s.user, assistantSelectors: s.assistant, textSelector: s.textSelector, idAttribute: s.idAttribute }; };
 export const readTurnPage = (page, adapter) => evaluate(page, turnObservationExpression(adapter));
 // Read-only observed-prefix page read: one evaluation, same shaper, reports the positive-idle
 // controls alongside the transcript so idle and empty composer describe the same instant.
-export const readPrefixPage = (page, adapter) => evaluate(page, transcriptExpression({ composerSelectors: adapter?.composer?.selectors ?? [],
-  streamingSelectors: adapter?.assistant?.streamingSelectors ?? [], sendSelectors: adapter?.send?.buttonSelectors ?? [] }));
+export const readPrefixPage = (page, adapter) => evaluate(page, transcriptExpression({ ...transcriptArgs(adapter), composerSelectors: adapter?.composer?.selectors ?? [],
+  streamingSelectors: adapter?.assistant?.streamingSelectors ?? [], sendSelectors: idleControlSelectors(adapter) }));
 
 // Pre-send per-turn cursor: what already exists on the page (count, role split, ordered ids, content
 // digest) and the prior stream cursor (raw-log sequence). Metadata only; never message bodies.
@@ -187,7 +189,7 @@ export function createConversationBrowserAdapter({ paths, profileStore, familySt
           if (loc) {
             if (loc.targetThread || loc.pageThread) return blocked('PREEXISTING_THREAD');
             // A project/custom-GPT route is not a fresh home composer.
-            if (loc.targetPath !== '/' || loc.pathname !== '/') return blocked('BINDING_CHANGED');
+            if (!isNewChatPath(siteAdapter.id, loc.targetPath) || !isNewChatPath(siteAdapter.id, loc.pathname)) return blocked('BINDING_CHANGED');
             const composer = await d.findComposer(livePage(), siteAdapter);
             const auth = await d.detectAuthWall(livePage(), siteAdapter);
             if (auth.blocked) return blocked('AUTH_WALL');
@@ -235,7 +237,7 @@ export function createConversationBrowserAdapter({ paths, profileStore, familySt
       // (or start an effect on) a different thread/project after same-origin drift.
       const targetPath = (() => { try { return new URL(target.url).pathname; } catch { return null; } })();
       const pagePath = await d.evaluate(livePage(), 'location.pathname');
-      if (targetPath !== '/' || pagePath !== '/') throw problem('BINDING_CHANGED');
+      if (!isNewChatPath(siteAdapter.id, targetPath) || !isNewChatPath(siteAdapter.id, pagePath)) throw problem('BINDING_CHANGED');
     }
     return { ...binding };
   }
@@ -448,7 +450,7 @@ export function createConversationBrowserAdapter({ paths, profileStore, familySt
       if (!thread?.ref || !Array.isArray(denylist) || denylist.includes(thread.ref)) return null;
       const loc = await creationLocation();
       if (!loc.targetThread || !loc.pageThread || loc.targetThread.ref !== loc.pageThread.ref || loc.targetThread.ref !== thread.ref) return null;
-      binding.thread = { kind: 'chatgpt-c', id: loc.targetThread.id, ref: loc.targetThread.ref };
+      binding.thread = { kind: loc.targetThread.kind, id: loc.targetThread.id, ref: loc.targetThread.ref };
       return structuredClone(binding);
     },
     adoptTurn(fromId, toId) {
@@ -482,7 +484,7 @@ export function createConversationBrowserAdapter({ paths, profileStore, familySt
         requireRecording();
         const loc = await creationLocation();
         if (loc.targetThread || loc.pageThread) throw Object.assign(problem('PREEXISTING_THREAD'), { notDispatched: true, notTyped: true });
-        if (loc.targetPath !== '/' || loc.pathname !== '/') throw problem('BINDING_CHANGED');
+        if (!isNewChatPath(siteAdapter.id, loc.targetPath) || !isNewChatPath(siteAdapter.id, loc.pathname)) throw problem('BINDING_CHANGED');
         const composer = await d.findComposer(recorder.page, siteAdapter);
         if ((await d.detectAuthWall(recorder.page, siteAdapter)).blocked) throw problem('AUTH_WALL');
         if ((await d.detectSiteFailure(recorder.page, siteAdapter)).failed) throw problem('SITE_GATE');
@@ -654,13 +656,13 @@ export function createConversationBrowserAdapter({ paths, profileStore, familySt
     // page's own location is part of the evaluated result, so a thread switch mid-read discards it.
     async readTranscript({ maxMessages = TRANSCRIPT_LIMITS.maxMessages.default, maxChars = TRANSCRIPT_LIMITS.maxChars.default, perMessageCap = TRANSCRIPT_LIMITS.perMessageCap } = {}) {
       await check();
-      const result = await d.evaluate(livePage(), transcriptExpression({ composerSelectors: siteAdapter.composer?.selectors ?? [],
-         streamingSelectors: siteAdapter.assistant?.streamingSelectors ?? [], sendSelectors: siteAdapter.send?.buttonSelectors ?? [],
+      const result = await d.evaluate(livePage(), transcriptExpression({ ...transcriptArgs(siteAdapter), composerSelectors: siteAdapter.composer?.selectors ?? [],
+         streamingSelectors: siteAdapter.assistant?.streamingSelectors ?? [], sendSelectors: idleControlSelectors(siteAdapter),
          perMessageCap: Math.min(perMessageCap, maxChars) }));
       const after = await check();
       if (!result || typeof result !== 'object' || !Array.isArray(result.messages)) throw problem('READ_FAILED');
       if (binding.thread && !threadMatches(`${binding.origin}${String(result?.pathname ?? '')}`)) throw problem('BINDING_CHANGED');
-      if (freshTab && !binding.thread && result.pathname !== '/') throw problem('BINDING_CHANGED');
+      if (freshTab && !binding.thread && !isNewChatPath(siteAdapter.id, result.pathname)) throw problem('BINDING_CHANGED');
       if (result?.origin !== undefined && result.origin !== binding.origin) throw problem('BINDING_CHANGED');
       return { binding: after, transcript: boundTranscript(result, { maxMessages, maxChars, perMessageCap: Math.min(perMessageCap, maxChars) }) };
     },
