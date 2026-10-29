@@ -115,10 +115,12 @@ test('preflight rejects mutated payload, forged privacy flags and invalid bootst
   assert.throws(() => inspectPortableSnapshot(flags), e => e.code === 'PERSONAL_AGENT_EXPORT_INVALID');
   const identity = structuredClone(valid);
   identity.payload.identity.providerAccountVerified = true;
+  identity.bytes = Buffer.byteLength(JSON.stringify(identity.payload), 'utf8');
   identity.checksum = 'sha256:' + createHash('sha256').update(JSON.stringify(identity.payload)).digest('hex');
   assert.throws(() => inspectPortableSnapshot(identity), e => e.code === 'PERSONAL_AGENT_EXPORT_INVALID');
   const invalidWork = structuredClone(valid);
   invalidWork.payload.work[0].source = 'provider-executed';
+  invalidWork.bytes = Buffer.byteLength(JSON.stringify(invalidWork.payload), 'utf8');
   invalidWork.checksum = 'sha256:' + createHash('sha256').update(JSON.stringify(invalidWork.payload)).digest('hex');
   assert.throws(() => inspectPortableSnapshot(invalidWork), e => e.code === 'PERSONAL_AGENT_EXPORT_INVALID');
   const unsupported = structuredClone(valid);
