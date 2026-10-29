@@ -170,8 +170,8 @@
         }
       ],
       "expectedOutcome": "Studio and the dedicated browser are ready",
-      "status": "UNKNOWN",
-      "evidence": null,
+      "status": "PARTIAL",
+      "evidence": "212c645 VIVIM.ps1 -DryRun reuses running Studio; cold start not run",
       "files": {
         "existing": [
           "src/studio/server.mjs",
@@ -207,8 +207,8 @@
         }
       ],
       "expectedOutcome": "The diagnostic explains browser connectivity",
-      "status": "UNKNOWN",
-      "evidence": null,
+      "status": "WORKS",
+      "evidence": "doctor --json ok:true (lane W)",
       "files": {
         "existing": [
           "src/studio/server.mjs",
@@ -244,8 +244,8 @@
         }
       ],
       "expectedOutcome": "My local World opens",
-      "status": "UNKNOWN",
-      "evidence": null,
+      "status": "PARTIAL",
+      "evidence": "World root HTTP 200; browser open not run",
       "files": {
         "existing": [
           "src/studio/server.mjs",
@@ -281,8 +281,8 @@
         }
       ],
       "expectedOutcome": "The CLI lists callable tools",
-      "status": "UNKNOWN",
-      "evidence": null,
+      "status": "WORKS",
+      "evidence": "tools list returns capture-studio.tools/1",
       "files": {
         "existing": [
           "src/studio/server.mjs",
@@ -318,8 +318,8 @@
         }
       ],
       "expectedOutcome": "A matching recipe is shown before execution",
-      "status": "UNKNOWN",
-      "evidence": null,
+      "status": "WORKS",
+      "evidence": "recipe choose -> conversation.ask suggested, not executed",
       "files": {
         "existing": [
           "src/studio/server.mjs",
@@ -357,8 +357,8 @@
         }
       ],
       "expectedOutcome": "Status reflects the available browser",
-      "status": "UNKNOWN",
-      "evidence": null,
+      "status": "PARTIAL",
+      "evidence": "agent status chromeReachable; recovery not exercised",
       "files": {
         "existing": [
           "src/studio/server.mjs",
@@ -394,8 +394,8 @@
         }
       ],
       "expectedOutcome": "The account is signed in without sharing a password with VIVIM",
-      "status": "UNKNOWN",
-      "evidence": null,
+      "status": "PARTIAL",
+      "evidence": "doctor sign-in guidance in plain words; human sign-in not exercised",
       "files": {
         "existing": [
           "src/studio/server.mjs",
@@ -434,8 +434,8 @@
         }
       ],
       "expectedOutcome": "My provider sign-ins remain in that profile",
-      "status": "UNKNOWN",
-      "evidence": null,
+      "status": "PARTIAL",
+      "evidence": "launcher refuses unverified reuse; relaunch not exercised",
       "files": {
         "existing": [
           "src/studio/server.mjs",
@@ -1505,7 +1505,7 @@
       ],
       "expectedOutcome": "A provider reply appears on the phone",
       "status": "PARTIAL",
-      "evidence": "Owner-provided status evidence, 2026-10-29; retest required",
+      "evidence": "60f50d4 mobile Ask my AI; offline smoke 1 key/1 post; no live phone run",
       "files": {
         "existing": [
           "src/studio/lan-pair.mjs",
@@ -1956,8 +1956,8 @@
         }
       ],
       "expectedOutcome": "My Work items are shown",
-      "status": "UNKNOWN",
-      "evidence": null,
+      "status": "PARTIAL",
+      "evidence": "c9e139b GET work 200; UI not observed",
       "files": {
         "existing": [
           "src/agents/personal-agent-service.mjs",
@@ -1995,8 +1995,8 @@
         }
       ],
       "expectedOutcome": "The item is saved for later",
-      "status": "UNKNOWN",
-      "evidence": null,
+      "status": "WORKS",
+      "evidence": "personal-agent queue CLI created work-204cf15f…",
       "files": {
         "existing": [
           "src/agents/personal-agent-service.mjs",
@@ -2034,8 +2034,8 @@
         }
       ],
       "expectedOutcome": "Its details and current state appear",
-      "status": "UNKNOWN",
-      "evidence": null,
+      "status": "PARTIAL",
+      "evidence": "c9e139b",
       "files": {
         "existing": [
           "src/agents/personal-agent-service.mjs",
@@ -2073,8 +2073,8 @@
         }
       ],
       "expectedOutcome": "Stored Work survives the restart",
-      "status": "UNKNOWN",
-      "evidence": null,
+      "status": "PARTIAL",
+      "evidence": "fresh-process read persisted v5",
       "files": {
         "existing": [
           "src/agents/personal-agent-service.mjs",
@@ -2112,8 +2112,8 @@
         }
       ],
       "expectedOutcome": "The updated state is preserved",
-      "status": "UNKNOWN",
-      "evidence": null,
+      "status": "WORKS",
+      "evidence": "plan/advance CLI next step persisted",
       "files": {
         "existing": [
           "src/agents/personal-agent-service.mjs",
@@ -2151,8 +2151,8 @@
         }
       ],
       "expectedOutcome": "Relevant stored context is returned",
-      "status": "UNKNOWN",
-      "evidence": null,
+      "status": "WORKS",
+      "evidence": "search-memory shown=1",
       "files": {
         "existing": [
           "src/agents/personal-agent-service.mjs",
@@ -2190,8 +2190,8 @@
         }
       ],
       "expectedOutcome": "I can decide whether to apply the content",
-      "status": "UNKNOWN",
-      "evidence": null,
+      "status": "PARTIAL",
+      "evidence": "preview effects=none; apply w/o approval 400",
       "files": {
         "existing": [
           "src/agents/personal-agent-service.mjs",
@@ -2231,8 +2231,8 @@
         }
       ],
       "expectedOutcome": "Only that reply is applied",
-      "status": "UNKNOWN",
-      "evidence": null,
+      "status": "PARTIAL",
+      "evidence": "alreadySaved returned; wrong digest 409",
       "files": {
         "existing": [
           "src/agents/personal-agent-service.mjs",
@@ -2272,8 +2272,8 @@
         }
       ],
       "expectedOutcome": "The state explains what remains to be done",
-      "status": "UNKNOWN",
-      "evidence": null,
+      "status": "PARTIAL",
+      "evidence": "continuity read; no controlled interruption",
       "files": {
         "existing": [
           "src/agents/personal-agent-service.mjs",
@@ -2311,8 +2311,8 @@
         }
       ],
       "expectedOutcome": "Available agent capabilities are described",
-      "status": "UNKNOWN",
-      "evidence": null,
+      "status": "WORKS",
+      "evidence": "capabilities tools=79",
       "files": {
         "existing": [
           "src/agents/personal-agent-service.mjs",
@@ -2350,8 +2350,8 @@
         }
       ],
       "expectedOutcome": "The work item does not receive an unintended duplicate",
-      "status": "UNKNOWN",
-      "evidence": null,
+      "status": "WORKS",
+      "evidence": "replayed=true; same key changed payload 409",
       "files": {
         "existing": [
           "src/agents/personal-agent-service.mjs",
@@ -2512,8 +2512,8 @@
         }
       ],
       "expectedOutcome": "Its app and screens open",
-      "status": "UNKNOWN",
-      "evidence": null,
+      "status": "PARTIAL",
+      "evidence": "b3c82ba offline reload",
       "files": {
         "existing": [
           "src/studio/personal-app-blueprint.mjs",
@@ -2551,8 +2551,8 @@
         }
       ],
       "expectedOutcome": "A personal reading list app is ready to populate",
-      "status": "UNKNOWN",
-      "evidence": null,
+      "status": "PARTIAL",
+      "evidence": "template offline + templates HTTP 200",
       "files": {
         "existing": [
           "src/studio/personal-app-blueprint.mjs",
@@ -2590,8 +2590,8 @@
         }
       ],
       "expectedOutcome": "A task screen is available",
-      "status": "UNKNOWN",
-      "evidence": null,
+      "status": "PARTIAL",
+      "evidence": "b3c82ba offline",
       "files": {
         "existing": [
           "src/studio/personal-app-blueprint.mjs",
@@ -2629,8 +2629,8 @@
         }
       ],
       "expectedOutcome": "The notes screen is available",
-      "status": "UNKNOWN",
-      "evidence": null,
+      "status": "PARTIAL",
+      "evidence": "b3c82ba offline",
       "files": {
         "existing": [
           "src/studio/personal-app-blueprint.mjs",
@@ -2668,8 +2668,8 @@
         }
       ],
       "expectedOutcome": "The saved blueprint retains its title and purpose",
-      "status": "UNKNOWN",
-      "evidence": null,
+      "status": "PARTIAL",
+      "evidence": "b3c82ba offline",
       "files": {
         "existing": [
           "src/studio/personal-app-blueprint.mjs",
@@ -2707,8 +2707,8 @@
         }
       ],
       "expectedOutcome": "I can inspect the proposed changes",
-      "status": "UNKNOWN",
-      "evidence": null,
+      "status": "PARTIAL",
+      "evidence": "read-only preview offline",
       "files": {
         "existing": [
           "src/studio/personal-app-blueprint.mjs",
@@ -2746,8 +2746,8 @@
         }
       ],
       "expectedOutcome": "The approved screens are added",
-      "status": "UNKNOWN",
-      "evidence": null,
+      "status": "PARTIAL",
+      "evidence": "apply offline",
       "files": {
         "existing": [
           "src/studio/personal-app-blueprint.mjs",
@@ -2785,8 +2785,8 @@
         }
       ],
       "expectedOutcome": "A version conflict prevents overwriting newer changes",
-      "status": "UNKNOWN",
-      "evidence": null,
+      "status": "PARTIAL",
+      "evidence": "VERSION_CONFLICT offline",
       "files": {
         "existing": [
           "src/studio/personal-app-blueprint.mjs",
@@ -2865,8 +2865,8 @@
         }
       ],
       "expectedOutcome": "The existing screen remains intact and an error is shown",
-      "status": "UNKNOWN",
-      "evidence": null,
+      "status": "PARTIAL",
+      "evidence": "SCREEN_EXISTS offline",
       "files": {
         "existing": [
           "src/studio/personal-app-blueprint.mjs",
@@ -2904,8 +2904,8 @@
         }
       ],
       "expectedOutcome": "The proposal is extracted for review",
-      "status": "UNKNOWN",
-      "evidence": null,
+      "status": "PARTIAL",
+      "evidence": "synthetic stored reply",
       "files": {
         "existing": [
           "src/studio/personal-app-blueprint.mjs",
@@ -2984,8 +2984,8 @@
         }
       ],
       "expectedOutcome": "Its blueprint and content are available",
-      "status": "UNKNOWN",
-      "evidence": null,
+      "status": "PARTIAL",
+      "evidence": "fresh service reload offline",
       "files": {
         "existing": [
           "src/studio/personal-app-blueprint.mjs",
@@ -3339,8 +3339,8 @@
         }
       ],
       "expectedOutcome": "The second process is refused without killing the first owner",
-      "status": "BROKEN",
-      "evidence": "Owner-provided status evidence, 2026-10-29; retest required",
+      "status": "WORKS",
+      "evidence": "c6439df: second serve refused exit 5 with owner URL; stale lock takeover live",
       "files": {
         "existing": [
           "src/studio/server.mjs",
@@ -3768,8 +3768,8 @@
         }
       ],
       "expectedOutcome": "The existing text is not overwritten or sent",
-      "status": "UNKNOWN",
-      "evidence": null,
+      "status": "WORKS",
+      "evidence": "c6439df: non-VIVIM drafts still DRAFT_PRESENT; own residue cleared live",
       "files": {
         "existing": [
           "src/capture/privacy.mjs",
@@ -3964,8 +3964,8 @@
         }
       ],
       "expectedOutcome": "The chosen signed-in provider receives the prompt",
-      "status": "UNKNOWN",
-      "evidence": null,
+      "status": "PARTIAL",
+      "evidence": "81dc070 compare; live job stalled with Studio hang",
       "files": {
         "existing": [
           "src/profiles/sites/index.mjs",
@@ -4004,8 +4004,8 @@
         }
       ],
       "expectedOutcome": "Both labeled answers are available for comparison",
-      "status": "UNKNOWN",
-      "evidence": null,
+      "status": "PARTIAL",
+      "evidence": "81dc070",
       "files": {
         "existing": [
           "src/profiles/sites/index.mjs",
@@ -4044,8 +4044,8 @@
         }
       ],
       "expectedOutcome": "The other provider can be chosen without sending to Gemini",
-      "status": "UNKNOWN",
-      "evidence": null,
+      "status": "PARTIAL",
+      "evidence": "signed-out skip offline only",
       "files": {
         "existing": [
           "src/profiles/sites/index.mjs",
@@ -4085,8 +4085,8 @@
         }
       ],
       "expectedOutcome": "Each reply remains associated with its own provider thread",
-      "status": "UNKNOWN",
-      "evidence": null,
+      "status": "PARTIAL",
+      "evidence": "separate conversations offline",
       "files": {
         "existing": [
           "src/profiles/sites/index.mjs",
@@ -4363,32 +4363,33 @@
   },
   "summary": {
     "byStatus": {
-      "BROKEN": 4,
-      "PARTIAL": 4,
-      "UNKNOWN": 75,
-      "WORKS": 17
+      "PARTIAL": 30,
+      "WORKS": 27,
+      "UNKNOWN": 40,
+      "BROKEN": 3
     },
     "byPriority": {
       "P0": 46,
-      "P1": 38,
-      "P2": 16
+      "P2": 16,
+      "P1": 38
     },
     "byLane": {
-      "A": 26,
       "B": 22,
+      "A": 26,
       "C": 52
     },
     "byArea": {
-      "app-builder": 16,
-      "conversations": 12,
-      "knowledge": 8,
-      "mobile": 14,
-      "multi-provider": 4,
       "onboarding": 8,
-      "personal-agent": 12,
-      "privacy": 6,
       "providers": 10,
-      "reliability": 10
-    }
+      "conversations": 12,
+      "mobile": 14,
+      "personal-agent": 12,
+      "app-builder": 16,
+      "knowledge": 8,
+      "reliability": 10,
+      "privacy": 6,
+      "multi-provider": 4
+    },
+    "updatedAt": "2026-10-29"
   }
 }
