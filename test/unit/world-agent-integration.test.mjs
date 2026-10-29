@@ -638,7 +638,7 @@ test('editing a preview invalidates prior approval, and malformed drafts remain 
   await byId(f.root, 'worldBuilderProposalForm').fire('submit');
   const draft = byId(f.root, 'worldBuilderProposalText');
   await type(draft, '{broken JSON');
-  assert.equal(byId(f.root, 'worldBuilderApplyProposal').disabled, true);
+  assert.equal(byId(f.root, 'worldBuilderApplyProposal'), null, 'editing removes the prior approval control');
   await byId(f.root, 'worldBuilderProposalForm').fire('submit');
   assert.match(byId(f.root, 'worldBuilderNotice').textContent, /PERSONAL_APP_INVALID/);
   assert.equal(byId(f.root, 'worldBuilderProposalText').value, '{broken JSON');
@@ -662,7 +662,7 @@ test('a stale proposal or uncertain apply never auto-retries and preserves the d
   assert.equal(byId(f.root, 'worldBuilderApplyProposal'), null, 'the stale approval is removed');
   const selection = nodes(f.root, n => n.tag === 'button' && n.textContent.includes('A careful agent'))[0];
   await selection.click();
-  assert.equal(byId(f.root, 'worldBuilderProposalText').value.length > 0, 'draft survives refresh');
+  assert.equal(byId(f.root, 'worldBuilderProposalText').value.length > 0, true, 'draft survives refresh');
   assert.equal(f.state.apps[0].version, 8);
   // Rebase is a new user action, never implicit: reinsert a current-version example.
   await nodes(f.root, n => n.tag === 'button' && n.textContent === 'Insert editable example')[0].click();
