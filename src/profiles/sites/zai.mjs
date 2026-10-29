@@ -25,17 +25,34 @@ export default {
     ],
   },
   assistant: {
+    // Measured on chat.z.ai/c/<uuid> (2026-10-29, signed in): every turn is a wrapper
+    // #message-<uuid> inside #messages-container; the prompt bubble is .chat-user and the answer
+    // is .chat-assistant. The previous generic guesses (div[class*="prose"], article) matched the
+    // anonymous footer wrapper instead, so the page footer was read back as the reply.
     containerSelectors: [
-      '[data-message-author-role="assistant"]',
-      'div[class*="markdown"]',
-      'div[class*="prose"]',
-      'article',
-      '[data-testid*="assistant" i]',
+      '#messages-container .chat-assistant',
+      '#messages-container [id^="message-"]:not(.user-message)',
+    ],
+    // Decoration around the answer, not the answer: the collapsed "Thought Process" header would
+    // otherwise prefix every reply with "Thought Process".
+    stripSelectors: ['.thinking-chain-container'],
+    // Regions that sit next to the answer and were read as it: the composer panel ("Choose
+    // project"), the new-chat landing pane ("More than coding..." + model chip), the prompt
+    // bubble, the thinking header, and the site chrome.
+    ignoreSelectors: [
+      '.messageInputContainer',
+      '.agent-home-scroll',
+      '.chat-user',
+      '.thinking-chain-container',
+      'nav',
+      'footer',
+      'header',
+      'aside',
     ],
     streamingSelectors: [
       'button[aria-label*="stop" i]',
       '[role="button"][aria-label*="stop" i]',
-      '[data-testid="stop-button"]',
+      '#send-message-button[aria-label*="stop" i]',
       '[aria-busy="true"]',
     ],
     doneWhen: 'text-stable',

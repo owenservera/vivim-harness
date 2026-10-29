@@ -466,6 +466,19 @@ export async function readTranscript(page, adapter = null, { exclude = [] } = {}
     const seen = new Set();
     // The prompt we sent is not an answer. Its own text must not count as new content.
     const EXCLUDED = ${JSON.stringify(excluded)};
+    // Per-site regions that are never the answer, declared by the adapter (empty for every site
+    // that does not declare them, so ChatGPT/Claude behaviour is unchanged). Measured on z.ai:
+    // the composer panel ("Choose project"), its per-turn prompt (.chat-user) and the collapsed
+    // "Thought Process" header all live next to the answer and were read back as the reply.
+    const IGNORE = ${JSON.stringify(Array.isArray(adapter?.assistant?.ignoreSelectors) ? adapter.assistant.ignoreSelectors : [])};
+    const ignored = (el) => {
+      for (const sel of IGNORE) {
+        try { if (el.matches(sel) || el.closest(sel)) return true; } catch (e) { /* bad selector: skip it */ }
+      }
+      return false;
+    };
+    // Per-site sub-trees that decorate the answer rather than being it (z.ai's thinking chain).
+    const STRIP = ${JSON.stringify(Array.isArray(adapter?.assistant?.stripSelectors) ? adapter.assistant.stripSelectors : [])};
     const push = (role, text) => {
       const t = String(text || '').trim();
       if (!t) return;
@@ -509,8 +522,20 @@ export async function readTranscript(page, adapter = null, { exclude = [] } = {}
         }
         return flat;
       };
-      const shown = els.filter((el) => vis(el) && !inComposer(el));
-      const texts = shown.map((el) => stripPrompt(txt(el))).filter((t) => t.length >= 4);
+      // A declared decoration sub-tree (z.ai's collapsed "Thought Process" chain) is read around,
+      // not through: its header would otherwise prefix every answer with "Thought Process".
+      const readText = (el) => {
+        if (!STRIP.length) return stripPrompt(txt(el));
+        try {
+          const clone = el.cloneNode(true);
+          for (const sel of STRIP) {
+            try { for (const n of clone.querySelectorAll(sel)) n.remove(); } catch (e) { /* bad selector */ }
+          }
+          return stripPrompt(txt(clone));
+        } catch (e) { return stripPrompt(txt(el)); }
+      };
+      const shown = els.filter((el) => vis(el) && !inComposer(el) && !ignored(el));
+      const texts = shown.map(readText).filter((t) => t.length >= 4);
       for (const t of texts) push('assistant', t);
       const meaningful = texts.filter((t) => t.length >= 8);
       return {
@@ -624,6 +649,9 @@ export async function readTranscript(page, adapter = null, { exclude = [] } = {}
       if (el.closest(CHROME_ANCESTOR)) continue;
       if (el.matches(CHROME_SELF)) continue;
       if (el.closest('nav,aside,header,footer,script,style')) continue;
+      // A per-site region the adapter declares as never-an-answer (z.ai's composer panel, its
+      // prompt bubble, its thinking header). Empty for every site that declares none.
+      if (ignored(el)) continue;
       // Interactive chrome (a "Reply" button, a link) is not the answer: on a page with no
       // recognised assistant container this fallback used to return the last button label.
       if (el.closest('button,a,[role="button"],[role="link"],input,textarea,[contenteditable]')) continue;
@@ -635,6 +663,19 @@ export async function readTranscript(page, adapter = null, { exclude = [] } = {}
       if (t.length < 8) continue;
       const flat = t.replace(/\s+/g, ' ').trim();
       if (STATUS.test(flat)) continue;
+      // A row of links is navigation chrome, not an answer: on z.ai the page footer ("Tech Blog
+      // Contact us Terms of Service and Privacy Policy") sat above the composer in an anonymous
+      // div, matched every tag-based exclusion, and was reported as a successful reply. The test
+      // is on the block's own text minus its link/button labels, so an answer that merely ends
+      // with a citation keeps its prose.
+      const linkLabels = Array.from(el.querySelectorAll('a,button,[role="button"],[role="link"]'))
+        .map((a) => String(a.innerText ?? a.textContent ?? '').replace(/\s+/g, ' ').trim())
+        .filter(Boolean);
+      if (linkLabels.length) {
+        let prose = flat;
+        for (const l of linkLabels) if (prose.includes(l)) prose = prose.split(l).join(' ');
+        if (prose.replace(/\s+/g, ' ').trim().length < 8) continue;
+      }
       // The prompt we sent is stripped out of the text rather than the whole block dropped:
       // ChatGPT renders one turn as "Tú dijiste: <prompt> ChatGPT dijo: <answer>".
       let stripped = flat;
