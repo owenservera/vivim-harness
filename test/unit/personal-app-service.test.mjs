@@ -61,3 +61,28 @@ test('rejects malformed keys, app paths, code-like screen kinds and unknown apps
   assert.throws(() => service.get('app-' + 'f'.repeat(32)),
     e => e.code === 'PERSONAL_APP_NOT_FOUND');
 });
+
+test('untrusted proposal requires explicit approval, rejects stale version and preserves original intent', t => {
+  const f = fixture(t), service = f.make();
+  const original = service.create({ title: 'Growing personal app', intent: 'I want to build my own AI UI',
+    idempotencyKey: 'proposal-user-12345678' }).app;
+  const proposal = {
+    schema: 'vivim.personal-app-change/1', appId: original.id, baseVersion: original.version,
+    operations: [{ type: 'add-screen', kind: 'notes', label: 'Idea Garden' }],
+  };
+  const preview = service.previewChange({ id: original.id, proposal });
+  assert.equal(preview.scaffold.screens.length, 4);
+  assert.equal(service.get(original.id).version, 1, 'preview must not persist');
+  assert.throws(() => service.applyChange({ id: original.id, expectedVersion: 1, proposal }),
+    e => e.code === 'PERSONAL_APP_APPROVAL_REQUIRED');
+  const applied = service.applyChange({ id: original.id, expectedVersion: 1, proposal,
+    approval: 'user-confirmed' });
+  assert.equal(applied.app.version, 2);
+  assert.equal(applied.deployed, false);
+  assert.equal(applied.providerExecution, 'not-attempted');
+  assert.equal(f.make().get(original.id).intent, original.intent);
+  assert.equal(f.make().get(original.id).screens[3].key, 'custom-idea-garden');
+  assert.throws(() => service.applyChange({ id: original.id, expectedVersion: 1, proposal,
+    approval: 'user-confirmed' }), e => e.code === 'PERSONAL_APP_VERSION_CONFLICT');
+  assert.equal(f.make().get(original.id).screens.length, 4);
+});
