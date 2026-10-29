@@ -5,6 +5,15 @@ export const PERSONAL_APP_SCHEMA = 'vivim.personal-app/1';
 export const PERSONAL_APP_KINDS = Object.freeze(['notes', 'tasks', 'dashboard', 'blank']);
 export const PERSONAL_APP_BASE_SCREENS = Object.freeze(['home', 'agent', 'builder']);
 export const MAX_PERSONAL_APP_SCREENS = 12;
+// Templates are trusted data, not executable UI. Reuse the same renderer/validator kinds.
+export const PERSONAL_APP_TEMPLATES = Object.freeze([
+  { id: 'reading-list', title: 'My Reading List', intent: 'Keep books and articles to read, with notes and a done list.', screens: [{ kind: 'tasks', label: 'To Read' }, { kind: 'notes', label: 'Reading Notes' }] },
+  { id: 'household-tasks', title: 'Household Tasks', intent: 'Keep track of household chores and useful household notes.', screens: [{ kind: 'tasks', label: 'Chores' }, { kind: 'notes', label: 'Household Notes' }] },
+  { id: 'notes', title: 'My Notes', intent: 'Write and keep personal notes on my PC.', screens: [{ kind: 'notes', label: 'Notes' }] },
+  { id: 'study-planner', title: 'Study Planner', intent: 'Plan study tasks and keep study notes.', screens: [{ kind: 'tasks', label: 'Study Plan' }, { kind: 'notes', label: 'Study Notes' }, { kind: 'dashboard', label: 'Progress' }] },
+  { id: 'habit-tracker', title: 'Habit Tracker', intent: 'Track habits with a checklist and keep reflection notes.', screens: [{ kind: 'tasks', label: 'Habits' }, { kind: 'notes', label: 'Reflections' }] },
+  { id: 'blank', title: 'My App', intent: 'Start a personal app and choose my own screens.', screens: [{ kind: 'blank', label: 'My Canvas' }] },
+].map(template => Object.freeze({ ...template, screens: Object.freeze(template.screens.map(screen => Object.freeze(screen))) })));
 const invalid = (message, code = 'PERSONAL_APP_INVALID', status = 400) =>
   Object.assign(new Error(message), { code, status });
 const clean = (value, label, max) => {

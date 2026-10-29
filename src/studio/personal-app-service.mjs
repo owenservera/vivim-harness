@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto';
 import { VersionedStore } from '../store/versioned.mjs';
 import { problem, storeProblem } from './http.mjs';
 import { createPersonalAppBlueprint, addPersonalAppScreen, personalAppScaffold,
-  assertPersonalAppBlueprint, isPersonalAppId, previewPersonalAppChange } from './personal-app-blueprint.mjs';
+  assertPersonalAppBlueprint, isPersonalAppId, previewPersonalAppChange, PERSONAL_APP_TEMPLATES } from './personal-app-blueprint.mjs';
 
 const KEY = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{7,127}$/;
 const MAX_APPS = 20;
@@ -34,16 +34,20 @@ export function createPersonalAppService({ paths, clock = () => new Date().toISO
     return { schema: 'vivim.personal-app-index/1', total: apps.length, items: apps,
       source: 'user-owned-versioned-local-blueprints', providerExecution: 'not-attempted' };
   }
-  function create({ title, intent, idempotencyKey } = {}) {
+  function create({ title, intent, idempotencyKey } = {}, template = null) {
     if (typeof idempotencyKey !== 'string' || !KEY.test(idempotencyKey)) {
       throw fail(400, 'A stable 8..128 character idempotency key is required');
     }
     const id = 'app-' + createHash('sha256').update(idempotencyKey).digest('hex').slice(0, 32);
     // Validate the request BEFORE consulting an existing id: replay is allowed only for the same inputs.
-    const blueprint = createPersonalAppBlueprint({ id, title, intent, now: clock() });
+    let blueprint = createPersonalAppBlueprint({ id, title, intent, now: clock() });
+    if (template) {
+      blueprint.template = template.id;
+      for (const screen of template.screens) blueprint = addPersonalAppScreen(blueprint, { ...screen, now: clock() });
+    }
     if (store.has(id)) {
       const previous = load(id);
-      if (previous.title !== blueprint.title || previous.intent !== blueprint.intent) {
+      if (previous.title !== blueprint.title || previous.intent !== blueprint.intent || previous.template !== blueprint.template) {
         throw fail(409, 'This creation key was used for another request', 'PERSONAL_APP_IDEMPOTENCY_CONFLICT');
       }
       return { app: previous, replayed: true };
@@ -54,6 +58,11 @@ export function createPersonalAppService({ paths, clock = () => new Date().toISO
     // Concurrent same-key creates are fenced by the store CAS; replay requires a read-only retry.
     const saved = commit(id, blueprint, null, 'Created user-owned personal mobile app blueprint');
     return { app: saved, replayed: false };
+  }
+  function fromTemplate({ template, title, idempotencyKey } = {}) {
+    const chosen = PERSONAL_APP_TEMPLATES.find(item => item.id === template);
+    if (!chosen) throw fail(400, 'Choose one of the available app templates');
+    return create({ title: title ?? chosen.title, intent: chosen.intent, idempotencyKey }, chosen);
   }
   function addScreen({ id, expectedVersion, kind, label } = {}) {
     const before = load(id);
@@ -86,7 +95,7 @@ export function createPersonalAppService({ paths, clock = () => new Date().toISO
       providerExecution: 'not-attempted', deployed: false };
   }
   return {
-    list, create, get: load, addScreen, previewChange, applyChange,
+    list, create, fromTemplate, templates: () => ({ items: PERSONAL_APP_TEMPLATES }), get: load, addScreen, previewChange, applyChange,
     scaffold: id => { const app = load(id); return { version: app.version, scaffold: personalAppScaffold(app) }; },
   };
 }

@@ -64,11 +64,15 @@ export function mountMobile({
   if (!doc || !root || typeof fetchImpl !== 'function') return null;
   const state = { appId: null, scaffold: null, version: null, active: 'home',
     index: null, content: null, agent: null, notice: '', error: '', busy: false,
+    templates: [], template: 'notes', appTitle: '', creationKey: null,
+    builder: { kind: 'notes', label: '', preview: null, source: null,
+      site: 'chatgpt', wish: '', job: null, timer: null, designChecked: false, replies: [], repliesLoaded: false },
     loading: false, draftTitle: '', draftBody: '', pendingKey: null, view: 'index',
     ask: { site: 'chatgpt', conversationId: null, revision: null, snapshot: null, turns: [],
       pending: null, draft: '', status: '', error: '', notice: '', retry: false,
       busy: false, timer: null, pinBottom: false, checkAgain: false } };
   let requestTicket = 0;
+  let designReadTicket = 0;
   function el(tag, text, cls) {
     const node = doc.createElement(tag);
     if (text !== undefined) node.textContent = String(text);
@@ -131,9 +135,9 @@ export function mountMobile({
         list.append(button);
       }
     } else list.append(el('p', state.loading ? 'Reading local app list…' :
-      'No app blueprints yet. Create one in VIVIM World.', 'muted'));
-    list.append(link('Build an app in World', '/chat', 'action'));
+      'No apps yet. Choose a starter below to make your first app.', 'muted'));
     target.append(list);
+    renderTemplates(target);
   }
   function renderHome(target) {
     const hero = el('section', undefined, 'card hero');
@@ -167,12 +171,228 @@ export function mountMobile({
     target.append(box);
   }
   function renderBuilder(target) {
+    const b = state.builder;
     const box = el('section', undefined, 'card');
-    box.append(el('h2', 'Build'), el('p',
-      'This app is generated from a bounded, versioned screen blueprint. Use the VIVIM World builder to propose, preview and explicitly approve changes.', 'muted'),
-      el('p', 'Current blueprint revision: ' + state.version, 'muted'),
-      link('Edit screens in VIVIM World', '/chat', 'action'));
+    box.append(el('h2', 'Build your app'), el('p',
+      'Choose a screen, preview it, then tap Add. Your existing notes and tasks stay saved on your PC.', 'muted'));
+    box.append(btn('Refresh app', () => refreshBuilder()));
+    const kinds = el('div', undefined, 'row');
+    for (const [kind, label] of [['notes', 'Notes'], ['tasks', 'Checklist'], ['dashboard', 'Dashboard'], ['blank', 'Blank']]) {
+      const choice = btn(label, () => { b.kind = kind; b.preview = null; render(); });
+      attr(choice, 'aria-pressed', b.kind === kind); choice.disabled = state.busy; kinds.append(choice);
+    }
+    box.append(kinds);
+    const form = el('form', undefined, 'stack');
+    const label = builderField(form, 'Screen name', b.label, 64, value => { b.label = value; b.preview = null; });
+    const preview = btn('Preview screen', () => {}); attr(preview, 'type', 'submit');
+    preview.disabled = state.busy;
+    on(form, 'submit', event => { event.preventDefault(); previewScreen(); });
+    attr(label, 'required', ''); form.append(preview); box.append(form);
+    box.append(el('h3', 'Design with my AI'), el('p',
+      'Ask your own AI account to suggest screens. This sends a request through your PC. You review everything before adding it.', 'muted'));
+    const sites = el('div', undefined, 'row');
+    for (const site of Object.keys(ASK_SITES)) {
+      const choice = btn(ASK_SITES[site], () => { b.site = site; render(); });
+      attr(choice, 'aria-pressed', b.site === site); choice.disabled = state.busy; sites.append(choice);
+    }
+    box.append(sites);
+    builderField(box, 'What would you like to add? (optional)', b.wish, 500, value => { b.wish = value; }, true);
+    const design = btn('Design with my AI', () => designAction('start'), 'primary');
+    design.disabled = state.busy || !b.designChecked || ['queued', 'asking', 'waiting-reply', 'ready-to-review'].includes(b.job?.state);
+    box.append(design);
+    if (!b.designChecked) {
+      box.append(el('p', 'Check your saved design before starting a new request, so nothing is sent twice.', 'muted'));
+      builderButton(box, 'Check design', () => readDesign());
+    }
+    if (b.job) {
+      const job = b.job;
+      const status = el('p', job.state === 'ready-to-review' ? 'Your AI has ideas ready to review.' :
+        job.state === 'failed' ? (job.error?.message || 'Your AI could not finish. Nothing changed. Check the chat on your PC.') :
+        job.state === 'applied' ? 'Your AI’s screens were added.' : job.state === 'discarded' ? 'Design discarded. Your app was not changed.' :
+        'Waiting for your AI… You can leave this screen and come back.', 'muted');
+      attr(status, 'role', 'status'); box.append(status);
+      if (job.state === 'ready-to-review') renderDiff(box, job.preview);
+      if (!['applied', 'discarded'].includes(job.state)) {
+        if (job.state === 'ready-to-review') builderButton(box, 'Add these screens', () => designAction('approve'), 'primary');
+        builderButton(box, 'Discard design', () => designAction('discard'));
+        builderButton(box, 'Check design', () => readDesign());
+      }
+    }
+    box.append(el('h3', 'Use a saved AI reply'), el('p',
+      'Choose an answer already saved by VIVIM. This never sends a new message. It must contain a screen design for this app.', 'muted'));
+    builderButton(box, 'Choose a saved AI reply', () => loadBuilderReplies());
+    if (b.repliesLoaded && !b.replies.length) box.append(el('p', 'No finished saved replies found yet.', 'muted'));
+    b.replies.forEach((reply, index) => builderButton(box,
+      'Preview ' + (ASK_SITES[reply.site] ?? 'AI') + ' answer ' + (index + 1), () => previewSavedReply(reply)));
+    if (b.preview) {
+      renderDiff(box, b.preview);
+      attr(builderButton(box, 'Add these screens', () => applyBuilderPreview(), 'primary'), 'data-builder-apply', '');
+      builderButton(box, 'Discard preview', () => { b.preview = null; b.source = null; render(); });
+    }
     target.append(box);
+  }
+  function builderButton(target, text, fn, cls) {
+    const button = btn(text, fn, cls); button.disabled = state.busy; target.append(button); return button;
+  }
+  function builderField(target, text, value, max, change, multiline = false) {
+    const label = el('label', text, 'field'), input = el(multiline ? 'textarea' : 'input', undefined, 'field-input');
+    attr(input, 'maxlength', max); attr(input, 'aria-label', text); input.value = value;
+    input.disabled = state.busy;
+    on(input, 'input', () => { change(input.value);
+      // An edited draft invalidates the old preview immediately, including its still-visible Add button.
+      if (state.builder.preview === null) root.querySelectorAll?.('[data-builder-apply]').forEach(node => { node.disabled = true; });
+    });
+    label.append(input); target.append(label); return input;
+  }
+  function renderDiff(target, preview) {
+    target.append(el('h3', 'Preview — not added yet'));
+    const list = el('ul');
+    for (const item of preview?.diff ?? []) list.append(el('li', 'Add ' + item.label + ' (' + item.kind + ')'));
+    target.append(list, el('p', 'Only these screens will be added. No code runs and nothing is installed.', 'muted'));
+  }
+  function renderTemplates(target) {
+    const box = el('section', undefined, 'card');
+    box.append(el('h2', 'Make an app'), el('p', 'Choose a starter. You can add more screens later.', 'muted'));
+    for (const template of state.templates) {
+      const choice = builderButton(box, template.title, () => {
+        state.template = template.id; state.creationKey = null; render();
+      });
+      attr(choice, 'aria-pressed', state.template === template.id);
+    }
+    builderField(box, 'App name (optional)', state.appTitle, 80, value => { state.appTitle = value; state.creationKey = null; });
+    const create = builderButton(box, 'Create app', () => createTemplateApp(), 'primary');
+    create.disabled = state.busy || !state.templates.length;
+    target.append(box);
+  }
+  function builderError(result) {
+    const code = result.data?.code;
+    if (code === 'PERSONAL_APP_SCREEN_EXISTS') return 'A screen with that name already exists. Choose another name.';
+    if (code === 'PERSONAL_APP_LIMIT') return 'This app is full. Try adding a screen to another app.';
+    if (code === 'PERSONAL_APP_VERSION_CONFLICT' || result.status === 409) return 'Your app changed since this preview. Tap Refresh app, then preview again.';
+    if (result.status === 401 || result.status === 403) return 'Reconnect this phone using the connection link from VIVIM on your PC.';
+    if (result.status === 0 || result.status >= 500) return 'Cannot confirm this with your PC. Check your connection, then refresh before trying again.';
+    return 'VIVIM could not use that design. Check the screen name or choose a different saved answer, then preview again.';
+  }
+  async function builderRequest(suffix, body) {
+    if (!state.appId || state.busy) return null;
+    const id = state.appId, ticket = requestTicket;
+    state.busy = true; state.error = ''; state.notice = ''; render();
+    const result = await request(MOBILE_API + '/' + id + suffix, { method: 'POST', body, timeoutMs: 20000 });
+    if (ticket !== requestTicket || state.appId !== id) return null;
+    state.busy = false;
+    if (result.status !== 200) { state.error = builderError(result); render(); return null; }
+    return result.data;
+  }
+  async function createTemplateApp() {
+    if (state.busy) return;
+    if (!state.creationKey) {
+      const key = uuid();
+      if (!key) { state.error = 'Your phone cannot create a safe save key. Try another browser.'; render(); return; }
+      state.creationKey = 'mobile-app:' + key;
+    }
+    const ticket = requestTicket;
+    state.busy = true; state.error = ''; render();
+    const result = await request(MOBILE_API + '/from-template', { method: 'POST', timeoutMs: 20000,
+      body: { template: state.template, ...(state.appTitle.trim() ? { title: state.appTitle.trim() } : {}), idempotencyKey: state.creationKey } });
+    if (ticket !== requestTicket) return;
+    state.busy = false;
+    if (result.status === 200 && APP_ID.test(result.data?.app?.id)) {
+      state.creationKey = null; state.appTitle = ''; await openApp(result.data.app.id);
+    } else { state.error = builderError(result); render(); }
+  }
+  async function previewScreen() {
+    if (!state.builder.label.trim()) return;
+    const proposal = { schema: 'vivim.personal-app-change/1', appId: state.appId, baseVersion: state.version,
+      operations: [{ type: 'add-screen', kind: state.builder.kind, label: state.builder.label.trim() }] };
+    state.builder.preview = null;
+    const data = await builderRequest('/preview-change', { proposal });
+    if (data) { state.builder.preview = data; state.builder.source = null; render(); }
+  }
+  async function previewSavedReply(reply) {
+    state.builder.preview = null;
+    const data = await builderRequest('/preview-provider-reply', { conversation: reply.conversation, turnId: reply.turnId });
+    if (data) { state.builder.preview = data; state.builder.source = reply; render(); }
+  }
+  async function applyBuilderPreview() {
+    const b = state.builder, preview = b.preview;
+    if (!preview || preview.appId !== state.appId || preview.baseVersion !== state.version) return;
+    const body = { expectedVersion: preview.baseVersion, approval: 'user-confirmed' };
+    const data = b.source ? await builderRequest('/apply-provider-reply', { ...body,
+      conversation: b.source.conversation, turnId: b.source.turnId, replyDigest: preview.provenance?.replyDigest }) :
+      await builderRequest('/apply-change', { ...body, proposal: preview.change });
+    if (data) { b.preview = null; b.label = ''; await refreshBuilder(); state.notice = 'Your screens were added. Open them above.'; render(); }
+  }
+  async function refreshBuilder() {
+    if (!state.appId || state.busy) return;
+    const id = state.appId, ticket = requestTicket;
+    state.busy = true; state.builder.preview = null; state.error = ''; render();
+    const result = await request(MOBILE_API + '/' + id + '/scaffold', { timeoutMs: 20000 });
+    if (ticket !== requestTicket || state.appId !== id) return;
+    state.busy = false;
+    try {
+      if (result.status !== 200) throw new Error(builderError(result));
+      state.scaffold = validateMobileScaffold(result.data, id); state.version = result.data.version;
+    } catch (error) { state.error = error.message; }
+    render();
+  }
+  function stopDesignPoll() {
+    ++designReadTicket;
+    if (state.builder.timer) globalThis.clearTimeout(state.builder.timer);
+    state.builder.timer = null;
+  }
+  async function readDesign() {
+    stopDesignPoll();
+    if (!state.appId || state.view !== 'app' || state.active !== 'builder') return;
+    const id = state.appId, ticket = requestTicket, designTicket = designReadTicket, old = state.builder.job;
+    const path = old?.id ? '/ai-design/' + encodeURIComponent(old.id) : '/' + id + '/ai-design';
+    const result = await request(MOBILE_API + path, { timeoutMs: 20000 });
+    if (ticket !== requestTicket || state.appId !== id || designTicket !== designReadTicket) return;
+    if (result.status === 200) {
+      const wasChecked = state.builder.designChecked;
+      state.builder.designChecked = true;
+      state.builder.job = result.data?.job ?? null;
+      if (!wasChecked || JSON.stringify(old) !== JSON.stringify(state.builder.job)) render();
+      if (['queued', 'asking', 'waiting-reply'].includes(state.builder.job?.state) && state.active === 'builder') {
+        state.builder.timer = globalThis.setTimeout(readDesign, 2500);
+      }
+    } else {
+      state.builder.designChecked = false;
+      state.error = 'Cannot check your AI design right now. Tap Check design when your PC is connected. Nothing was resent.'; render();
+    }
+  }
+  async function designAction(action) {
+    if (!state.appId || state.busy) return;
+    stopDesignPoll();
+    const id = state.appId, ticket = requestTicket, b = state.builder;
+    if (action !== 'start' && !b.job?.id) return;
+    if (action === 'start' && !b.designChecked) return;
+    b.designChecked = false;
+    state.busy = true; state.error = ''; render();
+    const path = action === 'start' ? '/' + id + '/ai-design' : '/ai-design/' + b.job.id + '/' + action;
+    const result = await request(MOBILE_API + path, { method: 'POST', timeoutMs: 20000,
+      body: action === 'start' ? { site: b.site, request: b.wish } : {} });
+    if (ticket !== requestTicket || state.appId !== id) return;
+    state.busy = false;
+    if (result.status === 200 && result.data?.job) {
+      b.job = result.data.job;
+      if (action === 'approve') await refreshBuilder();
+    } else { state.error = builderError(result); }
+    render(); await readDesign();
+  }
+  async function loadBuilderReplies() {
+    if (state.busy) return;
+    const ticket = requestTicket;
+    state.busy = true; state.error = ''; render();
+    const result = await request(CONVERSATIONS_API, { timeoutMs: 20000 });
+    if (ticket !== requestTicket) return;
+    state.busy = false;
+    if (result.status === 200 && Array.isArray(result.data?.conversations)) {
+      state.builder.replies = result.data.conversations.flatMap(conversation =>
+        (Array.isArray(conversation.turns) ? conversation.turns : []).filter(turn => turn.reply?.state === 'ready' && typeof turn.id === 'string')
+          .map(turn => ({ conversation: conversation.id, turnId: turn.id, site: conversation.site }))).slice(0, 20);
+      state.builder.repliesLoaded = true;
+    } else state.error = 'Cannot load saved answers. Check your PC connection and try again.';
+    render();
   }
   function renderDataScreen(target, screen) {
     const box = el('section', undefined, 'card');
@@ -291,13 +511,17 @@ export function mountMobile({
   }
   async function loadIndex() {
     const ticket = ++requestTicket;
+    stopDesignPoll();
     askStopPolling(); state.view = 'index';
     state.scaffold = null; state.appId = null; state.content = null; state.agent = null;
     state.busy = false; state.pendingKey = null;
     state.notice = ''; state.error = ''; state.loading = true; render();
-    const result = await request(MOBILE_API);
+    const [result, templates] = await Promise.all([
+      request(MOBILE_API, { timeoutMs: 20000 }), request(MOBILE_API + '/templates', { timeoutMs: 20000 }),
+    ]);
     if (ticket !== requestTicket) return;
     state.loading = false;
+    if (templates.status === 200 && Array.isArray(templates.data?.items)) state.templates = templates.data.items;
     if (result.status === 200 && Array.isArray(result.data?.items)) state.index = result.data;
     else state.error = 'Cannot load local app library (' + (result.data?.code ?? result.status) + ').';
     render();
@@ -307,6 +531,8 @@ export function mountMobile({
       state.error = 'Invalid local app reference'; render(); return;
     }
     const ticket = ++requestTicket;
+    stopDesignPoll();
+    Object.assign(state.builder, { kind: 'notes', label: '', preview: null, source: null, job: null, designChecked: false, replies: [], repliesLoaded: false });
     askStopPolling(); state.view = 'app';
     state.loading = true; state.busy = false; state.notice = ''; state.error = ''; state.scaffold = null;
     state.appId = id; state.content = null; state.agent = null;
@@ -338,9 +564,11 @@ export function mountMobile({
     if (!state.scaffold?.screens.some(screen => screen.key === key)) return;
     const priorKind = state.scaffold.screens.find(screen => screen.key === state.active)?.kind;
     state.active = key; state.error = ''; state.notice = '';
+    stopDesignPoll();
     const kind = state.scaffold.screens.find(screen => screen.key === key).kind;
     if (priorKind !== kind) { state.draftTitle = ''; state.draftBody = ''; state.pendingKey = null; }
     render();
+    if (kind === 'builder') readDesign();
     if (['notes', 'tasks', 'dashboard'].includes(kind) && !state.content) loadContent();
   }
   async function createItem(kind) {
@@ -744,6 +972,7 @@ export function mountMobile({
   function openAsk() {
     if (state.view === 'ask') return;
     ++requestTicket;
+    stopDesignPoll();
     state.view = 'ask'; state.loading = false; state.error = ''; state.notice = '';
     state.ask.error = ''; state.ask.notice = ''; state.ask.checkAgain = false; state.ask.pinBottom = true;
     render();

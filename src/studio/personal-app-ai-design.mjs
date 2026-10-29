@@ -126,7 +126,11 @@ export function createAiDesignJobs({ apps, conversations, providerReply, paths, 
     turnId: job.turnId ?? null, replyDigest: job.replyDigest ?? null, preview: job.preview ?? null,
     applied: job.applied ?? null, error: job.error ?? null });
 
-  const setState = (job, state, extra = {}) => { Object.assign(job, { state }, extra); save(job); };
+  const setState = (job, state, extra = {}) => {
+    // An awaited provider read/send may finish after Discard. It must not resurrect that job.
+    if (job.state === 'discarded' && state !== 'discarded') return;
+    Object.assign(job, { state }, extra); save(job);
+  };
   const cancelled = job => job.state === 'discarded';
   const stop = () => Object.assign(new Error('AI_DESIGN_CANCELLED'), { code: 'AI_DESIGN_CANCELLED', cancelled: true });
 
@@ -257,6 +261,7 @@ export function createAiDesignJobs({ apps, conversations, providerReply, paths, 
 
   async function compile(job) {
     const preview = await reply.preview({ id: job.appId, conversation: job.conversationId, turnId: job.turnId });
+    if (cancelled(job)) throw stop();
     setState(job, 'ready-to-review', { waitingOn: null, error: null, replyDigest: preview.provenance.replyDigest,
       preview: { baseVersion: preview.baseVersion, diff: preview.diff.map(({ type, key, label, kind }) => ({ type, key, label, kind })),
         qualification: preview.qualification } });
@@ -265,7 +270,9 @@ export function createAiDesignJobs({ apps, conversations, providerReply, paths, 
   async function execute(job, resumed) {
     try {
       await ensureConversation(job, resumed);
+      if (cancelled(job)) throw stop();
       const mode = await ensureSubmitted(job, resumed);
+      if (cancelled(job)) throw stop();
       await waitForReply(job, mode);
       await compile(job);
       // Best effort: free the capture and the Studio-owned tab. The stored reply stays readable.
@@ -366,6 +373,7 @@ export function createAiDesignJobs({ apps, conversations, providerReply, paths, 
 
   function discard({ jobId } = {}) {
     const job = need(jobId);
+    if (approving.has(job.id)) throw problem(409, 'Already adding these screens; wait for the result', 'AI_DESIGN_BUSY');
     if (job.state === 'applied') throw problem(409, 'These screens were already added', 'AI_DESIGN_APPLIED');
     if (job.state !== 'discarded') setState(job, 'discarded', { waitingOn: null });
     return { job: publicJob(job) };

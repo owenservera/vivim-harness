@@ -25,6 +25,14 @@ export function registerPersonalAppRoutes({ add, paths, readStoredConversation, 
   const content = createPersonalAppContentService({ paths, apps });
   add('GET', '/personal-apps', 'List local user-owned personal mobile app blueprints',
     () => apps.list());
+  add('GET', '/personal-apps/templates', 'Choose a safe local app starter', () => apps.templates());
+  add('POST', '/personal-apps/from-template', 'Create an app and its starter screens in one local save',
+    ({ body }) => apps.fromTemplate(strict(body, ['template', 'title', 'idempotencyKey'])),
+    { body: { type: 'object', properties: {
+      template: { type: 'string', enum: apps.templates().items.map(item => item.id) },
+      title: { type: 'string', minLength: 1, maxLength: 80 },
+      idempotencyKey: { type: 'string', minLength: 8, maxLength: 128 },
+    }, required: ['template', 'idempotencyKey'], additionalProperties: false } });
   add('POST', '/personal-apps', 'Create a minimal local app blueprint from explicit intent; no provider execution',
     ({ body }) => apps.create(strict(body, ['title', 'intent', 'idempotencyKey'])),
     { body: { type: 'object', properties: {
