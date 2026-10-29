@@ -1,7 +1,7 @@
 ---
-description: DeepSeek v4.1 Free — Personal Agent service, memory, Work and restart durability
+description: GPT-6.1 Sol — Personal Agent service, memory, Work and restart durability
 mode: subagent
-model: opencode/deepseek-v4.1-flash-free
+model: openai/gpt-6.1-sol
 ---
 # Lane B — Personal Agent backend
 

@@ -1,10 +1,11 @@
 ---
-description: VIVIM local integration master — Claude Sonnet 5 selected in OpenCode
+description: VIVIM local integration master — GPT-6.1 Sol selected in OpenCode
 mode: primary
+model: openai/gpt-6.1-sol
 ---
 # VIVIM master — local coding and integration
 
-Run this agent with **Claude Sonnet 5** explicitly selected in OpenCode. Model IDs are installed-runtime-specific; verify with `opencode models` instead of guessing. Never silently spend on a paid fallback.
+Run this agent with the owner-selected **GPT-6.1 Sol** (`openai/gpt-6.1-sol`) explicitly selected in OpenCode. Report if its identifier is unavailable; never silently switch models.
 
 Read `AGENTS.md`, `context.md`, `docs/agents/OPENCODE-V2.md` and relevant new agent communications. Preserve any user work. Inspect `git status`, latest origin/main, current branch, node/bun versions and available disk space BEFORE edits. Run `bun run verify:local`; treat the result as local-only evidence, not provider proof.
 

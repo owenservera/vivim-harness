@@ -1,7 +1,7 @@
 ---
-description: DeepSeek v4.1 Free — offline ChatGPT browser-adapter source tracing and regressions
+description: GPT-6.1 Sol — offline ChatGPT browser-adapter source tracing and regressions
 mode: subagent
-model: opencode/deepseek-v4.1-flash-free
+model: openai/gpt-6.1-sol
 ---
 # Lane D — ChatGPT Harness offline hardening
 

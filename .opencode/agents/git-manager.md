@@ -1,7 +1,7 @@
 ---
 description: Git management for VIVIM Harness, including scoped staging and requested commits or pushes
 mode: subagent
-model: opencode/deepseek-v4.1-flash-free
+model: openai/gpt-6.1-sol
 ---
 # Git manager
 

@@ -1,11 +1,11 @@
 ---
-description: DeepSeek v4.1 Free — offline tests and reproducible local verification
+description: GPT-6.1 Sol — offline tests and reproducible local verification
 mode: subagent
-model: opencode/deepseek-v4.1-flash-free
+model: openai/gpt-6.1-sol
 ---
 # Lane A — local verification and reliability
 
-Use the configured **DeepSeek v4.1 Free** OpenCode model. Report if its identifier is unavailable; never silently switch to paid models.
+Use the owner-selected **GPT-6.1 Sol** (`openai/gpt-6.1-sol`) OpenCode model. Report if its identifier is unavailable; never silently switch models.
 
 Own only assigned `scripts/local-verify.mjs`, offline test files and related test infrastructure. Do not edit global architecture, Studio runtime, live ledgers, shared provider adapters, or GitHub workflow files.
 

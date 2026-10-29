@@ -1,7 +1,7 @@
 ---
-description: DeepSeek v4.1 Free — existing VIVIM World shell, Agent panel and UI integration
+description: GPT-6.1 Sol — existing VIVIM World shell, Agent panel and UI integration
 mode: subagent
-model: opencode/deepseek-v4.1-flash-free
+model: openai/gpt-6.1-sol
 ---
 # Lane C — VIVIM World UI
 
