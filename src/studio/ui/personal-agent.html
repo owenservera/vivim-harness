@@ -62,7 +62,7 @@ pre{max-height:360px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}
 </section>
 <section>
 <h2>Agent Work</h2>
-<p class="subtle">Keep tasks and progress on this computer, even after you close Studio. You decide every update. Nothing is sent to an AI or started automatically.</p>
+<p class="subtle">Keep tasks, saved next steps and progress history on this computer, even after you close Studio. Save an edited next action before updating a task's status. Resume makes a waiting task ready to continue; it does not start anything or send a message to an AI.</p>
 <form id="workForm">
 <label><span>Task title</span><input id="workTitle" maxlength="160" required placeholder="Plan the weekly groceries"></label>
 <label><span>What needs to be done?</span><textarea id="workObjective" maxlength="4000" required placeholder="Describe the task and what finished looks like"></textarea></label>
@@ -80,7 +80,7 @@ pre{max-height:360px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}
 </section>
 <section id="providerReplyWork">
 <h2>Propose Work from a saved AI reply</h2>
-<p class="subtle">Choose a saved reply, review the suggestion, then decide whether to save it as Work. AI suggestions can be wrong. Nothing is saved without your approval, and nothing is sent to an AI.</p>
+<p class="subtle">Choose a saved reply, review the suggestion, then decide whether to save it as Work. AI suggestions can be wrong. Your last review is restored when you reload this tab, including whether it is already saved. Nothing is saved without your approval, and nothing is sent to an AI.</p>
 <button id="replyLoad" type="button" class="secondary" disabled>Load saved replies</button>
 <div id="replyChoices" aria-live="polite"></div>
 <div id="replyPreview" aria-live="polite"></div>

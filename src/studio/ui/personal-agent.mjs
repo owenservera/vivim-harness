@@ -152,7 +152,7 @@ async function saveMemory(event) {
   } catch (e) { message(`Could not save your note. ${e.message}`, true); await refresh(); }
   finally { $('saveMemory').disabled = !snapshot?.initialized; }
 }
-$('refresh').addEventListener('click', async () => { await refresh(); await loadWork(); });
+$('refresh').addEventListener('click', async () => { await refresh(); await loadWork(); await restoreReplyPreview(); });
 $('bootstrap').addEventListener('click', bootstrap);
 $('discover').addEventListener('click', discover);
 $('tier').addEventListener('change', readMemory);
@@ -168,11 +168,33 @@ let pendingWorkKey = null;
 let pendingWorkSignature = null;
 const workStatusLabels = { queued: 'To do', active: 'In progress', blocked: 'Waiting for you', completed: 'Done', cancelled: 'Cancelled' };
 const workActionDrafts = new Map();
+// Tab-local continuity stores retry identity, never approval or an instruction to apply.
+function readContinuity(key, fallback = null) {
+  try { return JSON.parse(sessionStorage.getItem('vivim-agent-' + key)) ?? fallback; }
+  catch { return fallback; }
+}
+function writeContinuity(key, value) {
+  try {
+    if (value === null) sessionStorage.removeItem('vivim-agent-' + key);
+    else sessionStorage.setItem('vivim-agent-' + key, JSON.stringify(value));
+  } catch { /* Storage may be unavailable; in-page retry identity is still retained. */ }
+}
+const savedUpdates = readContinuity('work-updates', {});
+const workUpdates = new Map(Object.entries(savedUpdates && typeof savedUpdates === 'object' ? savedUpdates : {}));
+const workBusy = new Set();
+let workLoadToken = 0;
+function rememberUpdate(id, update) {
+  if (update) workUpdates.set(id, update);
+  else workUpdates.delete(id);
+  writeContinuity('work-updates', Object.fromEntries(workUpdates));
+}
 async function loadWork() {
   const area = $('workList');
+  const token = ++workLoadToken;
   if (!snapshot?.initialized) { area.replaceChildren(element('p', 'No local agent yet.')); return; }
   try {
     const data = await request('/work');
+    if (token !== workLoadToken) return;
     area.replaceChildren();
     const filter = $('workFilter').value;
     const visible = data.items.filter(item => filter === 'all' ||
@@ -183,6 +205,10 @@ async function loadWork() {
     if (!visible.length) area.append(element('p', data.items.length
       ? 'No Work matches this status filter.' : 'No Work items yet.', 'subtle'));
     for (const item of visible.slice().reverse()) {
+      const pending = workUpdates.get(item.id);
+      if (pending && item.events?.some(event => event.idempotencyKey === pending.key)) {
+        rememberUpdate(item.id, null); // A lost response must not turn into another update.
+      }
       const card = element('article');
       card.style.borderTop = '1px solid var(--border)';
       card.style.padding = '12px 0';
@@ -196,8 +222,9 @@ async function loadWork() {
       for (const event of item.events ?? []) {
         const description = event.type === 'created' ? 'Added to Work'
           : event.type === 'transition' ? `${workStatusLabels[event.from]} → ${workStatusLabels[event.to]}`
-            : event.nextAction ? 'Next step: ' + event.nextAction : 'Next step updated';
+            : event.nextAction ? 'Next step: ' + event.nextAction : 'Next step cleared';
         history.append(element('p', `${new Date(event.at).toLocaleString()} · ${description}${event.note ? ': ' + event.note : ''}`));
+        if (event.evidence?.length) history.append(element('p', 'Completion references: ' + event.evidence.map(entry => entry.ref).join(', '), 'subtle'));
       }
       card.append(history);
       const context = element('button', 'Find saved context', 'secondary');
@@ -219,10 +246,12 @@ async function loadWork() {
         const save = element('button', 'Save next action', 'secondary');
         save.type = 'button';
         save.addEventListener('click', async () => {
+          if (workBusy.has(item.id)) return;
           const planned = next.value.trim();
           if (!planned && item.status === 'blocked') {
-            message('Blocked Work requires a next action or reason.', true); return;
+            message('Add the next step or explain what you are waiting for before saving.', true); return;
           }
+          workBusy.add(item.id);
           save.disabled = true;
           try {
             const status = await request('/status');
@@ -235,7 +264,7 @@ async function loadWork() {
           } catch (error) {
             message('Could not save your next step. ' + error.message, true);
             save.disabled = false; // keep the user's unsaved draft
-          }
+          } finally { workBusy.delete(item.id); }
         });
         const plan = element('div');
         plan.style.display = 'grid'; plan.style.gap = '8px';
@@ -253,34 +282,57 @@ async function loadWork() {
         }
         const note = element('input');
         note.maxLength = 2000;
-        note.placeholder = 'Reason (required if blocked)';
+        note.placeholder = 'What changed? (required when waiting)';
         note.setAttribute('aria-label', `Reason for ${item.title}`);
         const evidence = element('input');
         evidence.maxLength = 1200;
-        evidence.placeholder = 'Evidence refs separated by commas (required if completed)';
+        evidence.placeholder = 'Completion references, separated by commas (required for Done)';
         evidence.setAttribute('aria-label', `Evidence for ${item.title}`);
-        const button = element('button', 'Update Work', 'secondary');
+        const button = element('button', item.status === 'blocked' ? 'Resume Work' : 'Update Work', 'secondary');
         button.type = 'button';
-        let pendingUpdate = null;
+        const savedUpdate = workUpdates.get(item.id);
+        if (savedUpdate?.payload && transitions.includes(savedUpdate.payload.to)) {
+          select.value = savedUpdate.payload.to;
+          note.value = savedUpdate.payload.note ?? '';
+          evidence.value = (savedUpdate.payload.evidence ?? []).join(', ');
+        }
+        const updateLabel = () => { button.textContent = item.status === 'blocked' && select.value === 'active' ? 'Resume Work' : 'Update Work'; };
+        select.addEventListener('change', updateLabel);
+        updateLabel();
         button.addEventListener('click', async () => {
+          if (workBusy.has(item.id)) return;
+          if (workActionDrafts.has(item.id) && workActionDrafts.get(item.id).trim() !== (item.nextAction ?? '')) {
+            message('Save your edited next action first, then update the task status. Nothing has changed yet.', true);
+            return;
+          }
+          const refs = evidence.value.split(',').map(ref => ref.trim()).filter(Boolean);
+          const payload = { to: select.value, note: note.value.trim(), evidence: refs };
+          if (payload.to === 'blocked' && !payload.note) {
+            message('Explain what you are waiting for so you can pick this task up later.', true); return;
+          }
+          if (payload.to === 'completed' && !refs.length) {
+            message('Add a completion reference before marking this task Done.', true); return;
+          }
+          workBusy.add(item.id);
           button.disabled = true;
           try {
             const current = await request('/status');
-            const refs = evidence.value.split(',').map(ref => ref.trim()).filter(Boolean);
-            const payload = { to: select.value, note: note.value, evidence: refs };
             const signature = JSON.stringify(payload);
-            if (pendingUpdate?.signature !== signature) pendingUpdate = { signature, key: crypto.randomUUID() };
+            let pendingUpdate = workUpdates.get(item.id);
+            if (pendingUpdate?.signature !== signature) pendingUpdate = { signature, payload, key: crypto.randomUUID() };
+            rememberUpdate(item.id, pendingUpdate);
             await request('/work/' + encodeURIComponent(item.id) + '/transition', {
               method: 'POST', body: JSON.stringify({
                 expectedVersion: current.version, ...payload, idempotencyKey: pendingUpdate.key,
               }),
             });
-            message('Work updated in local version history; no external action executed.');
+            rememberUpdate(item.id, null);
+            message(payload.to === 'active' ? 'Work is ready to continue. Your saved next step is still here; nothing started automatically.' : 'Progress saved in Work history. Nothing started automatically.');
             await refresh(); await loadWork();
           } catch (error) {
             message(`Could not update Work. ${error.message}`, true);
             button.disabled = false;
-          }
+          } finally { workBusy.delete(item.id); }
         });
         const controls = element('div');
         controls.style.display = 'grid';
@@ -290,7 +342,7 @@ async function loadWork() {
       }
       area.append(card);
     }
-  } catch (e) { area.replaceChildren(element('p', `Could not load Work. ${e.message}`)); }
+  } catch (e) { if (token === workLoadToken) area.replaceChildren(element('p', `Could not load Work. ${e.message}`)); }
 }
 async function createWork(event) {
   event.preventDefault();
@@ -319,6 +371,13 @@ async function createWork(event) {
    item is AI-proposed/unverified and is saved only by the explicit Save click below. */
 const CONVERSATIONS_API = '/api/v1/conversations';
 let replyPreviewToken = 0;
+let replyApplying = false;
+async function restoreReplyPreview() {
+  const choice = readContinuity('reply-choice');
+  if (snapshot?.initialized && typeof choice?.conversation === 'string' && typeof choice?.turnId === 'string') {
+    await previewReply({ ...choice, site: typeof choice.site === 'string' ? choice.site : 'AI' });
+  }
+}
 async function loadReplyChoices() {
   const area = $('replyChoices'), button = $('replyLoad');
   button.disabled = true;
@@ -342,7 +401,7 @@ async function loadReplyChoices() {
       }
     }
     area.replaceChildren();
-    if (!items.length) area.append(element('p', 'No settled replies are stored yet.', 'subtle'));
+    if (!items.length) area.append(element('p', 'No finished replies are saved yet.', 'subtle'));
     for (const choice of items.slice(0, 12)) {
       const row = element('div');
       const pick = element('button', `Review ${choice.site} reply · ${choice.conversation} / ${choice.turnId}${choice.chars === null ? '' : ' (' + choice.chars + ' characters)'}`, 'secondary');
@@ -369,6 +428,7 @@ async function previewReply(choice) {
         data.effects !== 'none' || data.approvalRequired !== true) {
       area.replaceChildren(element('p', 'The preview did not carry the expected provenance. Nothing was saved.')); return;
     }
+    writeContinuity('reply-choice', { conversation: choice.conversation, turnId: choice.turnId, site: choice.site });
     const card = element('article');
     card.style.borderTop = '1px solid var(--border)';
     card.style.padding = '12px 0';
@@ -381,7 +441,9 @@ async function previewReply(choice) {
     save.type = 'button';
     save.disabled = data.canApply !== true || Boolean(data.alreadySaved);
     save.addEventListener('click', async () => {
+      if (replyApplying || token !== replyPreviewToken || data.alreadySaved || data.canApply !== true) return;
       if (!window.confirm('Save this AI-proposed, unverified text as a local queued Work item? Nothing will be sent or executed.')) return;
+      replyApplying = true;
       save.disabled = true;
       try {
         const latest = await request('/status');
@@ -395,6 +457,10 @@ async function previewReply(choice) {
       } catch (e) {
         message(`Could not save this suggestion. ${e.message}`, true);
         save.disabled = false;
+      } finally {
+        replyApplying = false;
+        // Re-read saved state even after a lost response; never repeat the apply automatically.
+        if (token === replyPreviewToken) await previewReply(choice);
       }
     });
     card.append(save);
@@ -492,4 +558,4 @@ async function searchPrivateMemory(event) {
 
 $('memoryForm').addEventListener('submit', saveMemory);
 $('memorySearchForm').addEventListener('submit', searchPrivateMemory);
-void refresh().then(async () => { await readMemory(); await loadWork(); await showKnowledge(); });
+void refresh().then(async () => { await readMemory(); await loadWork(); await restoreReplyPreview(); await showKnowledge(); });
