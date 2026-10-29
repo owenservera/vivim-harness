@@ -80,6 +80,10 @@ export function registerPersonalAgentRoutes({ add, paths, getTools, readStoredCo
       expectedVersion: { type: 'integer', minimum: 1 },
       nextAction: { type: ['string', 'null'], maxLength: 1000 },
     }, required: ['expectedVersion', 'nextAction'], additionalProperties: false } });
+  add('GET', '/personal-agent/work/{id}/relevant-memory',
+    'Find local saved memory relevant to one Work item by title/objective keywords; read-only, no provider call, not in tool manifest',
+    ({ p, q }) => agent.relevantMemoryForWork({ id: p.id, tier: q?.tier ?? 'all' }),
+    { query: { tier: { type: 'string', enum: ['all', 'CANON', 'Immediate', 'Curated'] } } });
   add('GET', '/personal-agent/capabilities', 'Inspect bounded skill sources and registered Studio tools (no runtime proof)',
     () => agent.capabilities(), { tool: 'personal_agent_capabilities',
       annotations: { readOnlyHint: true, openWorldHint: false, idempotentHint: true } });

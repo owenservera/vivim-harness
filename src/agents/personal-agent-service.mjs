@@ -19,6 +19,27 @@ const KEY = 'primary';
 const token = (s) => typeof s === 'string' && /^[a-z][a-z0-9_-]{0,63}$/.test(s);
 const sha = (s) => createHash('sha256').update(s).digest('hex').slice(0, 20);
 const memoryBlank = () => Object.fromEntries(MEMORY_TIERS.map(tier => [tier, []]));
+const workIdPattern = /^work-[a-f0-9]{32}$/;
+// A single literal full-title query almost never matches saved memory text. These are generic
+// low-signal connector words only; they never discard a meaningful domain term from the title/objective.
+const RELEVANCE_STOPWORDS = new Set(['the', 'a', 'an', 'and', 'or', 'to', 'of', 'in', 'on', 'at', 'for', 'with',
+  'about', 'into', 'from', 'by', 'as', 'is', 'are', 'was', 'were', 'be', 'been', 'this', 'that', 'it', 'its',
+  'your', 'my', 'our', 'their', 'i', 'you', 'he', 'she', 'they', 'we']);
+// Derive bounded, deduplicated keyword terms from user-authored Work title/objective text.
+// Pure and local: no provider call, no generative expansion, just tokenization.
+function workRelevanceTerms(title, objective) {
+  const words = `${title ?? ''} ${objective ?? ''}`.toLocaleLowerCase('en-US').match(/[a-z0-9][a-z0-9'-]*/g) ?? [];
+  const seen = new Set();
+  const terms = [];
+  for (const raw of words) {
+    const term = raw.replace(/^[-']+|[-']+$/g, '');
+    if (term.length < 3 || RELEVANCE_STOPWORDS.has(term) || seen.has(term)) continue;
+    seen.add(term);
+    terms.push(term);
+    if (terms.length >= 8) break; // bounded cost: at most 8 local searches per lookup
+  }
+  return terms;
+}
 // Stable fingerprint of THIS local data directory. It distinguishes two local instances without exposing the
 // path, and it is deliberately not a device, account or cross-device identity. Separators are normalised with
 // path.sep (host data, never a platform branch) so the same root hashes the same on every host; letter case is
@@ -248,6 +269,43 @@ export function createPersonalAgentService({ paths, skillsRoot = TOOL_ROOT, getT
     versioned({ ...state, memory, updatedAt: clock() }, state.version, `User memory removal: ${tier}`);
     return status();
   }
+  // Reviewing a Work item needs saved context that actually matches it. A single literal
+  // query of the whole title almost never hits user-authored memory text, so this derives
+  // bounded keyword terms from the Work item's own title/objective and merges per-term hits
+  // from the existing local search primitive. Still private, read-only and local-only.
+  function relevantMemoryForWork({ id, tier = 'all', limit = 20 } = {}) {
+    if (typeof id !== 'string' || !workIdPattern.test(id)) throw bad('Invalid Work ID', 'PERSONAL_AGENT_WORK_INVALID');
+    if (tier !== 'all' && !MEMORY_TIERS.includes(tier)) throw bad('Unknown memory tier');
+    if (!Number.isSafeInteger(limit) || limit < 1 || limit > 50) throw bad('limit must be an integer from 1 to 50');
+    const state = read();
+    if (!state) throw problem(404, 'Initialize Personal Agent first', 'PERSONAL_AGENT_NOT_INITIALIZED');
+    const work = Array.isArray(state.work) ? state.work : [];
+    const item = work.find(entry => entry?.id === id);
+    if (!item) throw problem(404, 'Work item not found', 'PERSONAL_AGENT_WORK_NOT_FOUND');
+    const terms = workRelevanceTerms(item.title, item.objective);
+    const merged = new Map();
+    for (const term of terms) {
+      let result;
+      try { result = searchPersonalAgentMemory(state, { query: term, tier, limit: 50 }); }
+      catch { continue; } // a derived term that somehow fails validation is skipped, never a crash
+      for (const hit of result.items) {
+        const mapKey = hit.tier + '/' + hit.key;
+        const prior = merged.get(mapKey);
+        if (prior) prior.matchedTerms.add(term);
+        else merged.set(mapKey, { ...hit, matchedTerms: new Set([term]) });
+      }
+    }
+    const ranked = [...merged.values()].sort((a, b) => b.matchedTerms.size - a.matchedTerms.size ||
+      String(b.updatedAt ?? '').localeCompare(String(a.updatedAt ?? '')));
+    const shown = ranked.slice(0, limit).map(({ matchedTerms, ...hit }) => ({ ...hit, matchedTerms: [...matchedTerms] }));
+    return {
+      workId: id, workTitle: item.title, terms, total: ranked.length, shown: shown.length,
+      truncated: ranked.length > shown.length, items: shown,
+      scope: 'private-user-authored-local-memory',
+      basis: 'derived-from-work-title-and-objective-keywords; not a generative or provider-assisted match',
+      execution: 'read-only-local-search; no provider, model, browser or conversation access',
+    };
+  }
   function continuity() {
     const state = read();
     if (!state) throw problem(404, 'Initialize Personal Agent first', 'PERSONAL_AGENT_NOT_INITIALIZED');
@@ -296,5 +354,5 @@ export function createPersonalAgentService({ paths, skillsRoot = TOOL_ROOT, getT
     if (result.changed) versioned(result.state, state.version, 'User-updated Work next action');
     return { ...status(), item: result.item, replayed: !result.changed };
   }
-  return { status, initialize, bootstrap, capabilities, selfKnowledge, continuity, exportSnapshot, memories, remember, forget, workList, createWorkItem, transitionWorkItem, updateWorkNextAction, searchMemory };
+  return { status, initialize, bootstrap, capabilities, selfKnowledge, continuity, exportSnapshot, memories, remember, forget, workList, createWorkItem, transitionWorkItem, updateWorkNextAction, searchMemory, relevantMemoryForWork };
 }
