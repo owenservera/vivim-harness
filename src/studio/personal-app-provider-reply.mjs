@@ -19,7 +19,17 @@ export function extractProposalText(replyText) {
   if (blocks.length > 1) {
     throw problem(400, 'Provider reply contains more than one JSON block; refusing to guess', 'PROVIDER_REPLY_AMBIGUOUS');
   }
-  return blocks.length === 1 ? blocks[0] : replyText.trim();
+  if (blocks.length === 1) return blocks[0];
+  const whole = replyText.trim();
+  if (whole.startsWith('{')) return whole;
+  // A page-captured reply often renders the JSON code block as "json <copy label> {...}" without fences.
+  // Candidate = outermost braces only, and only when that slice is itself valid JSON; the compiler still judges it.
+  const open = whole.indexOf('{'), close = whole.lastIndexOf('}');
+  if (open >= 0 && close > open) {
+    const slice = whole.slice(open, close + 1);
+    try { JSON.parse(slice); return slice; } catch { /* fall through to the whole reply */ }
+  }
+  return whole;
 }
 
 export function createProviderReplyBuilder({ apps, readStoredConversation } = {}) {

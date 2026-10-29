@@ -747,6 +747,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     builder: { apps: [], selected: null, title: '', intent: '', pendingKey: null, kind: 'notes', label: '',
       proposalText: '', proposalPreview: null, previewSource: null,
       replyChoices: { loading: false, items: [], error: '', loaded: false },
+      ai: { site: 'claude', request: '', job: null, appId: null, busy: false, error: '', timer: null },
       busy: false, loading: false, error: '', notice: '' },
     agent: { status: null, work: null, loading: false, busy: false, error: '', notice: '', title: '', objective: '', pendingKey: null,
       tier: 'Immediate', memoryKey: '', memoryText: '', memoryEntries: [], workFilter: 'open', workLimit: 50, actionDrafts: new Map(),
@@ -1368,6 +1369,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
       b.selected = result.data.app;
       b.proposalText = ''; b.proposalPreview = null; b.previewSource = null;
       b.title = ''; b.intent = ''; b.pendingKey = null;
+      aiStopPolling(); b.ai.job = null; b.ai.appId = result.data.app.id; b.ai.error = '';
       b.notice = result.data.replayed
         ? 'Reconnected to the same locally saved blueprint.'
         : 'Your personal app blueprint is saved locally. No provider was called.';
@@ -1389,6 +1391,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
       b.proposalPreview = null; b.previewSource = null;
     } else b.error = result.data?.code || 'Saved app could not be read.';
     if (state.view === 'builder') renderBuilder();
+    if (b.selected?.id === id) loadAiJob();
   }
   async function addBuilderScreen() {
     const b = state.builder;
@@ -1487,6 +1490,145 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     } else b.error = data?.code || 'No verified preview from that reply. Nothing was changed.';
     if (state.view === 'builder') renderBuilder();
   }
+  // "Design with my AI": one tap, queued on the server. The page only starts the job, polls it and
+  // shows plain words. It never sends to a provider itself and never applies without the user's click.
+  const AI_ACTIVE = ['queued', 'asking', 'waiting-reply'];
+  const AI_POLL_MS = 2500;
+  function aiStopPolling() {
+    const ai = state.builder.ai;
+    if (ai.timer) { globalThis.clearTimeout(ai.timer); ai.timer = null; }
+  }
+  function aiSchedulePoll() {
+    const ai = state.builder.ai;
+    aiStopPolling();
+    if (!AI_ACTIVE.includes(ai.job?.state) || state.view !== 'builder') return;
+    const jobId = ai.job.id;
+    ai.timer = globalThis.setTimeout(async () => {
+      ai.timer = null;
+      const result = await builderCall('/ai-design/' + encodeURIComponent(jobId));
+      if (ai.job?.id !== jobId || state.view !== 'builder') return;
+      const next = result.data?.job;
+      if (result.status === 200 && next?.id === jobId) {
+        const changed = next.state !== ai.job.state || next.waitingOn !== ai.job.waitingOn;
+        ai.job = next;
+        if (changed) renderBuilder();
+      }
+      aiSchedulePoll();
+    }, AI_POLL_MS);
+  }
+  async function loadAiJob() {
+    const b = state.builder, ai = b.ai, id = b.selected?.id;
+    if (!id) return;
+    if (ai.appId !== id) { aiStopPolling(); ai.job = null; ai.appId = id; ai.error = ''; }
+    const result = await builderCall('/' + encodeURIComponent(id) + '/ai-design');
+    if (b.selected?.id !== id) return;
+    const job = result.status === 200 ? result.data?.job : null;
+    ai.job = job && ['queued', 'asking', 'waiting-reply', 'ready-to-review', 'failed'].includes(job.state) ? job : null;
+    if (state.view === 'builder') renderBuilder();
+    aiSchedulePoll();
+  }
+  async function startAiDesign() {
+    const b = state.builder, ai = b.ai;
+    if (!b.selected || ai.busy || AI_ACTIVE.includes(ai.job?.state)) return;
+    ai.busy = true; ai.error = '';
+    renderBuilder();
+    const body = { site: ai.site };
+    if (ai.request.trim()) body.request = ai.request.trim().slice(0, 500);
+    const result = await builderCall('/' + encodeURIComponent(b.selected.id) + '/ai-design', { method: 'POST', body });
+    ai.busy = false;
+    if (result.status === 200 && result.data?.job?.appId === b.selected.id) {
+      ai.job = result.data.job; ai.appId = b.selected.id;
+    } else ai.error = result.data?.error || 'Could not start. Nothing was sent to your AI.';
+    if (state.view === 'builder') renderBuilder();
+    aiSchedulePoll();
+  }
+  async function approveAiDesign() {
+    const b = state.builder, ai = b.ai, job = ai.job;
+    if (!job || job.state !== 'ready-to-review' || ai.busy) return;
+    ai.busy = true; ai.error = '';
+    renderBuilder();
+    const result = await builderCall('/ai-design/' + encodeURIComponent(job.id) + '/approve', { method: 'POST', body: {} });
+    ai.busy = false;
+    if (result.status === 200 && result.data?.app?.id === job.appId) {
+      b.selected = result.data.app; b.proposalPreview = null; b.previewSource = null;
+      const count = result.data.job?.applied?.screens?.length ?? 0;
+      b.notice = 'Added ' + count + (count === 1 ? ' screen' : ' screens') + ' designed by your AI.';
+      ai.job = null;
+    } else {
+      ai.error = result.data?.error || 'Could not add these screens. Nothing was changed.';
+      const again = await builderCall('/ai-design/' + encodeURIComponent(job.id));
+      if (again.status === 200 && again.data?.job?.id === job.id) ai.job = again.data.job;
+    }
+    if (state.view === 'builder') renderBuilder();
+    if (result.status === 200) await refreshBuilder();
+  }
+  async function dismissAiDesign() {
+    const b = state.builder, ai = b.ai, job = ai.job;
+    if (!job || ai.busy) return;
+    aiStopPolling();
+    ai.job = null; ai.error = '';
+    renderBuilder();
+    if (job.state !== 'failed') await builderCall('/ai-design/' + encodeURIComponent(job.id) + '/discard', { method: 'POST', body: {} });
+  }
+  function renderAiDesign(locked) {
+    const b = state.builder, ai = b.ai, job = ai.job;
+    const section = el('section', { id: 'worldBuilderAiDesign', class: 'vivim-info-card' }, [
+      el('h3', { text: 'Design with my AI' }),
+    ]);
+    const status = el('div', { id: 'worldBuilderAiStatus', role: 'status', 'aria-live': 'polite' });
+    if (ai.error) status.append(el('p', { class: 'err', role: 'alert', text: ai.error }));
+    const siteLabel = job ? (job.siteLabel || job.site) : '';
+    if (job && AI_ACTIVE.includes(job.state)) {
+      status.append(el('p', { class: 'note', id: 'worldBuilderAiWaiting', text: 'Waiting for your AI…' }));
+      status.append(el('p', { class: 'note', text: job.waitingOn === 'browser'
+        ? 'Your browser is busy for a moment. This continues on its own; you can leave this page.'
+        : job.state === 'waiting-reply' ? siteLabel + ' is working on it. You can leave this page; it keeps going.'
+          : 'Opening ' + siteLabel + ' with your own account…' }));
+      const cancel = el('button', { type: 'button', id: 'worldBuilderAiCancel', text: 'Cancel' });
+      cancel.disabled = ai.busy;
+      on(cancel, 'click', () => dismissAiDesign());
+      status.append(cancel);
+    } else if (job && job.state === 'ready-to-review') {
+      status.append(el('p', { class: 'note', text: siteLabel + ' suggests these screens. Nothing is added until you say so.' }));
+      const grid = el('div', { class: 'vivim-builder-screen-grid', id: 'worldBuilderAiScreens' });
+      for (const item of job.preview?.diff ?? []) {
+        grid.append(el('div', { class: 'vivim-builder-screen' }, [
+          el('strong', { text: item.label }),
+          el('p', { class: 'note', text: item.kind }),
+        ]));
+      }
+      const add = el('button', { type: 'button', id: 'worldBuilderAiApprove', text: 'Add these screens' });
+      add.disabled = locked || ai.busy || job.preview?.baseVersion !== b.selected.version;
+      on(add, 'click', () => approveAiDesign());
+      const later = el('button', { type: 'button', id: 'worldBuilderAiDismiss', text: 'Not now' });
+      later.disabled = ai.busy;
+      on(later, 'click', () => dismissAiDesign());
+      status.append(grid, add, later);
+      if (job.preview?.baseVersion !== b.selected.version) {
+        status.append(el('p', { class: 'note', text: 'Your app changed since your AI looked at it. Ask again for fresh ideas.' }));
+      }
+    } else {
+      if (job?.state === 'failed') {
+        status.append(el('p', { class: 'err', id: 'worldBuilderAiFailed', text: job.error?.message || 'Your AI could not finish this request.' }));
+        if (job.error?.code) status.append(el('p', { class: 'note', text: 'Reference: ' + job.error.code }));
+      } else status.append(el('p', { class: 'note', text: 'Let your own ChatGPT or Claude suggest screens for this app. It uses your signed-in account, asks once, and never changes anything without your OK.' }));
+      const form = el('form', { id: 'worldBuilderAiForm' });
+      const site = el('select', { 'aria-label': 'Which AI?' });
+      for (const [value, label] of [['claude', 'Claude'], ['chatgpt', 'ChatGPT']]) site.append(el('option', { value, text: label }));
+      site.value = ai.site; on(site, 'change', () => { ai.site = site.value; });
+      const wish = el('textarea', { rows: '3', maxlength: '500', 'aria-label': 'What do you want?',
+        placeholder: 'What do you want? (optional) For example: help me plan study sessions' });
+      wish.value = ai.request; on(wish, 'input', () => { ai.request = wish.value; });
+      const go = el('button', { type: 'submit', id: 'worldBuilderAiStart', text: job?.state === 'failed' ? 'Try again' : 'Design with my AI' });
+      go.disabled = locked || ai.busy;
+      on(form, 'submit', event => { event.preventDefault(); startAiDesign(); });
+      form.append(site, wish, go);
+      section.append(status, form);
+      return section;
+    }
+    section.append(status);
+    return section;
+  }
   async function applyBuilderProposal() {
     const b = state.builder, preview = b.proposalPreview, current = b.selected;
     if (b.busy || !current || !preview || b.previewSource !== b.proposalText ||
@@ -1536,7 +1678,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     const head = el('div', { class: 'vivim-section-head' }, [
       el('span', { class: 'vivim-eyebrow', text: 'YOUR PERSONAL APP FACTORY' }),
       el('h2', { text: 'Build my VIVIM' }),
-      el('p', { class: 'note', text: 'Describe your personal mobile app. Start with a tiny blueprint; evolve it safely. AI construction and APK installation are not yet connected.' }),
+      el('p', { class: 'note', text: 'Describe your personal mobile app. Start with a tiny blueprint; evolve it safely, or let your own AI suggest screens. APK installation is not yet connected.' }),
     ]);
     const notice = el('div', { id: 'worldBuilderNotice', role: b.error ? 'alert' : 'status' });
     if (b.error) notice.append(el('p', { class: 'err', text: b.error }));
@@ -1591,6 +1733,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
         text: 'Open working mobile view on this PC' }));
       preview.append(el('p', { class: 'note',
         text: 'This local view supports saved notes and tasks. It is not yet reachable from a separate phone.' }));
+      preview.append(renderAiDesign(locked));
       const add = el('form', { id: 'worldBuilderAddScreenForm' });
       const kind = el('select', { 'aria-label': 'New screen kind' });
       for (const type of ['notes', 'tasks', 'dashboard', 'blank']) kind.append(el('option', { value: type, text: type }));
@@ -4127,6 +4270,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     if (view === 'builder') {
       renderBuilder();
       await refreshBuilder();
+      if (state.view === 'builder' && state.builder.selected) await loadAiJob();
       if (!quiet) announce('Build my VIVIM.');
       return;
     }

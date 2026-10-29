@@ -3,6 +3,7 @@
 import { createPersonalAppService } from './personal-app-service.mjs';
 import { createPersonalAppContentService } from './personal-app-content.mjs';
 import { createProviderReplyBuilder } from './personal-app-provider-reply.mjs';
+import { createAiDesignJobs, AI_DESIGN_SITES } from './personal-app-ai-design.mjs';
 import { problem } from './http.mjs';
 
 const idPattern = '^app-[a-f0-9]{32}$';
@@ -13,10 +14,14 @@ const strict = (body, allowed) => {
   }
   return body;
 };
-export function registerPersonalAppRoutes({ add, paths, readStoredConversation } = {}) {
+export function registerPersonalAppRoutes({ add, paths, readStoredConversation, conversationRuntime } = {}) {
   if (typeof add !== 'function') throw new TypeError('Studio add() required');
   const apps = createPersonalAppService({ paths });
   const providerReply = createProviderReplyBuilder({ apps, readStoredConversation });
+  // Background "Design with my AI" jobs over the SAME in-process conversation runtime (no second driver).
+  const aiDesign = conversationRuntime && typeof conversationRuntime.get === 'function' && typeof conversationRuntime.submit === 'function'
+    ? createAiDesignJobs({ apps, conversations: conversationRuntime, providerReply, paths }) : null;
+  const designJobs = () => aiDesign ?? (() => { throw problem(501, 'Design with my AI needs the conversation runtime', 'AI_DESIGN_UNAVAILABLE'); })();
   const content = createPersonalAppContentService({ paths, apps });
   add('GET', '/personal-apps', 'List local user-owned personal mobile app blueprints',
     () => apps.list());
@@ -87,6 +92,28 @@ export function registerPersonalAppRoutes({ add, paths, readStoredConversation }
       expectedVersion: { type: 'integer', minimum: 1 },
       approval: { type: 'string', enum: ['user-confirmed'] },
     }, ['replyDigest', 'expectedVersion', 'approval']), pathParameters: { id: { type: 'string', pattern: idPattern } } });
+  // One-tap "Design with my AI": queued background job on the user's own ChatGPT/Claude account.
+  // The job never resends under a new key and never applies by itself; approve is the user's click.
+  const jobParam = { jobId: { type: 'string', pattern: '^aid-[a-f0-9]{24}$' } };
+  add('POST', '/personal-apps/{id}/ai-design',
+    'Start a background job asking the user\'s own ChatGPT or Claude account to propose screens; nothing is applied',
+    ({ p, body }) => designJobs().start({ id: p.id, ...strict(body, ['site', 'request']) }),
+    { body: { type: 'object', properties: {
+      site: { type: 'string', enum: [...AI_DESIGN_SITES] },
+      request: { type: 'string', maxLength: 500 },
+    }, required: ['site'], additionalProperties: false },
+    pathParameters: { id: { type: 'string', pattern: idPattern } } });
+  add('GET', '/personal-apps/{id}/ai-design', 'Read the most recent design-with-my-AI job for one app',
+    ({ p }) => designJobs().latestFor(p.id), { pathParameters: { id: { type: 'string', pattern: idPattern } } });
+  add('GET', '/personal-apps/ai-design/{jobId}', 'Read one design-with-my-AI job (poll this)',
+    ({ p }) => designJobs().get(p.jobId), { pathParameters: jobParam });
+  add('POST', '/personal-apps/ai-design/{jobId}/approve',
+    'Add the screens an AI design job proposed, after the user explicitly approves; CAS on app version',
+    ({ p, body }) => { strict(body, []); return designJobs().approve({ jobId: p.jobId }); },
+    { body: { type: 'object', properties: {}, additionalProperties: false }, pathParameters: jobParam });
+  add('POST', '/personal-apps/ai-design/{jobId}/discard', 'Dismiss an AI design job without changing the app',
+    ({ p, body }) => { strict(body, []); return designJobs().discard({ jobId: p.jobId }); },
+    { body: { type: 'object', properties: {}, additionalProperties: false }, pathParameters: jobParam });
   add('POST', '/personal-apps/{id}/screens', 'Add one validated user-directed mobile screen; no provider or code execution',
     ({ p, body }) => apps.addScreen({ id: p.id, ...strict(body, ['expectedVersion', 'kind', 'label']) }),
     { body: { type: 'object', properties: {
