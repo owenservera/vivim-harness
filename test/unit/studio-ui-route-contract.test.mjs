@@ -28,7 +28,7 @@ test('every shipped Studio page serves its referenced JS modules under token sec
   const auth = { 'x-studio-token': 'route-fixture-token' };
   const allModules = new Set();
 
-  for (const route of ['/', '/chat', '/drive', '/platform', '/personal-agent']) {
+  for (const route of ['/', '/chat', '/drive', '/platform', '/personal-agent', '/mobile']) {
     assert.equal((await fetch(base + route)).status, 401, route + ' must require configured token');
     const page = await fetch(base + route, { headers: auth });
     assert.equal(page.status, 200, route + ' page');
@@ -49,6 +49,7 @@ test('every shipped Studio page serves its referenced JS modules under token sec
   // request is made before the Chat UI starts or any live Chrome exists.
   allModules.add('/ui/universal-chat.mjs');
   allModules.add('/ui/world-view.mjs');
+  allModules.add('/ui/mobile.mjs');
   for (const modulePath of allModules) {
     assert.equal((await fetch(base + modulePath)).status, 401, modulePath + ' token');
     const response = await fetch(base + modulePath, { headers: auth });
@@ -58,6 +59,14 @@ test('every shipped Studio page serves its referenced JS modules under token sec
     assert.ok((await response.text()).length > 0, modulePath + ' nonempty source');
     assert.equal((await fetch(base + modulePath, { method: 'POST', headers: auth })).status, 405);
   }
+
+  const mobilePage = await fetch(base + '/mobile', { headers: auth });
+  const mobileText = await mobilePage.text();
+  assert.match(mobileText, /id="mobileRoot"/);
+  assert.match(mobileText, /name="viewport"/);
+  assert.doesNotMatch(mobileText, /<script[^>]*>(?!\s*<\/script>)/i);
+  assert.match(mobilePage.headers.get('content-security-policy') ?? '', /connect-src 'self'/);
+  assert.equal((await fetch(base + '/mobile', { method: 'POST', headers: auth })).status, 405);
 
   assert.equal((await fetch(base + '/chat', { headers: { ...auth, origin: 'https://evil.example' } })).status, 403,
     'cross-origin request is refused regardless of token');
