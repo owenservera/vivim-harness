@@ -831,7 +831,8 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
   async function agentCall(route, method = 'GET', body = null) {
     try {
       const response = await fetchImpl(AGENT_API + route, {
-        method, headers: body ? { 'content-type': 'application/json' } : undefined,
+        method, credentials: 'same-origin', cache: 'no-store',
+        headers: body ? { 'content-type': 'application/json' } : undefined,
         body: body ? JSON.stringify(body) : undefined,
       });
       let data = null;
@@ -894,6 +895,12 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     const response = await agentCall(route, method, body);
     if (response.status === 200) {
       onSuccess(response.data);
+      if (route.startsWith('/memory/')) {
+        agentMemorySearchTicket++;
+        a.memorySearch.busy = false;
+        a.memorySearch.result = null;
+        a.memorySearch.error = '';
+      }
       a.notice = success;
       await agentRefresh();
     } else {
