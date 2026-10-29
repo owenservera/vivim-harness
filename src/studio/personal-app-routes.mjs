@@ -100,11 +100,13 @@ export function registerPersonalAppRoutes({ add, paths, readStoredConversation, 
       expectedVersion: { type: 'integer', minimum: 1 },
       approval: { type: 'string', enum: ['user-confirmed'] },
     }, ['replyDigest', 'expectedVersion', 'approval']), pathParameters: { id: { type: 'string', pattern: idPattern } } });
-  // One-tap "Design with my AI": queued background job on the user's own ChatGPT/Claude account.
-  // The job never resends under a new key and never applies by itself; approve is the user's click.
+  // One-tap "Design with my AI": queued background job on any of the user's own signed-in AI accounts
+  // (see CREATE_SITES). The job never resends under a new key and never applies by itself; approve is
+  // the user's click. On failure the UI may let the user start a brand-new job on a different site —
+  // that always goes through this same route with a fresh key, never the failed job's key.
   const jobParam = { jobId: { type: 'string', pattern: '^aid-[a-f0-9]{24}$' } };
   add('POST', '/personal-apps/{id}/ai-design',
-    'Start a background job asking the user\'s own ChatGPT or Claude account to propose screens; nothing is applied',
+    'Start a background job asking one of the user\'s own signed-in AI accounts to propose screens; nothing is applied',
     ({ p, body }) => designJobs().start({ id: p.id, ...strict(body, ['site', 'request']) }),
     { body: { type: 'object', properties: {
       site: { type: 'string', enum: [...AI_DESIGN_SITES] },

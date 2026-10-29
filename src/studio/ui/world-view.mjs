@@ -1493,6 +1493,8 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
   // "Design with my AI": one tap, queued on the server. The page only starts the job, polls it and
   // shows plain words. It never sends to a provider itself and never applies without the user's click.
   const AI_ACTIVE = ['queued', 'asking', 'waiting-reply'];
+  // Every AI website the owner may be signed in to (mirrors the server's CREATE_SITES/AI_DESIGN_SITES).
+  const AI_SITES = [['chatgpt', 'ChatGPT'], ['claude', 'Claude'], ['zai', 'Z.ai'], ['qwen', 'Qwen'], ['deepseek', 'DeepSeek'], ['gemini', 'Gemini']];
   const AI_POLL_MS = 2500;
   function aiStopPolling() {
     const ai = state.builder.ai;
@@ -1608,18 +1610,23 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
         status.append(el('p', { class: 'note', text: 'Your app changed since your AI looked at it. Ask again for fresh ideas.' }));
       }
     } else {
-      if (job?.state === 'failed') {
+      const failed = job?.state === 'failed';
+      if (failed) {
         status.append(el('p', { class: 'err', id: 'worldBuilderAiFailed', text: job.error?.message || 'Your AI could not finish this request.' }));
         if (job.error?.code) status.append(el('p', { class: 'note', text: 'Reference: ' + job.error.code }));
-      } else status.append(el('p', { class: 'note', text: 'Let your own ChatGPT or Claude suggest screens for this app. It uses your signed-in account, asks once, and never changes anything without your OK.' }));
+        status.append(el('p', { class: 'note', text: 'Pick a different AI below, or try the same one again.' }));
+        // A nudge toward a different site, never a resend: still needs the user's own click below, and
+        // starting again always gets a brand-new job id and key — the failed job's key is never reused.
+        if (ai.site === job.site) { const alt = AI_SITES.find(([value]) => value !== job.site); if (alt) ai.site = alt[0]; }
+      } else status.append(el('p', { class: 'note', text: 'Let one of your own signed-in AI accounts suggest screens for this app. It asks once, and never changes anything without your OK.' }));
       const form = el('form', { id: 'worldBuilderAiForm' });
       const site = el('select', { 'aria-label': 'Which AI?' });
-      for (const [value, label] of [['claude', 'Claude'], ['chatgpt', 'ChatGPT']]) site.append(el('option', { value, text: label }));
+      for (const [value, label] of AI_SITES) site.append(el('option', { value, text: label }));
       site.value = ai.site; on(site, 'change', () => { ai.site = site.value; });
       const wish = el('textarea', { rows: '3', maxlength: '500', 'aria-label': 'What do you want?',
         placeholder: 'What do you want? (optional) For example: help me plan study sessions' });
       wish.value = ai.request; on(wish, 'input', () => { ai.request = wish.value; });
-      const go = el('button', { type: 'submit', id: 'worldBuilderAiStart', text: job?.state === 'failed' ? 'Try again' : 'Design with my AI' });
+      const go = el('button', { type: 'submit', id: 'worldBuilderAiStart', text: failed ? 'Try with another AI' : 'Design with my AI' });
       go.disabled = locked || ai.busy;
       on(form, 'submit', event => { event.preventDefault(); startAiDesign(); });
       form.append(site, wish, go);

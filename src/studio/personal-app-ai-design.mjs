@@ -1,6 +1,7 @@
-// "Design with my AI": a background job that asks the user's OWN ChatGPT/Claude account (through the
-// ONE existing in-process conversation runtime) to propose screens for a personal app, then hands the
-// compiled preview to the user. Consumer rules baked in:
+// "Design with my AI": a background job that asks the user's OWN account on any signed-in AI website
+// (ChatGPT, Claude, Z.ai, Qwen, DeepSeek or Gemini — through the ONE existing in-process conversation
+// runtime) to propose screens for a personal app, then hands the compiled preview to the user.
+// Consumer rules baked in:
 //  - one stable idempotency key per job (derived from the job id); a new key is NEVER generated, so a
 //    timeout / 504 / unknown effect can never become a second provider send;
 //  - after any uncertain outcome the runner reads the STORED conversation (and may ask the runtime for
@@ -18,10 +19,14 @@ import { problem } from './http.mjs';
 import { executeConversationTool } from './conversation-tools.mjs';
 import { createProviderReplyBuilder } from './personal-app-provider-reply.mjs';
 import { PERSONAL_APP_CHANGE_SCHEMA, PERSONAL_APP_KINDS, isPersonalAppId } from './personal-app-blueprint.mjs';
+import { CREATE_SITES } from './conversation-api.mjs';
 
 export const AI_DESIGN_JOB_SCHEMA = 'vivim.personal-app-ai-job/1';
-export const AI_DESIGN_SITES = Object.freeze(['claude', 'chatgpt']);
-const SITE_LABEL = { claude: 'Claude', chatgpt: 'ChatGPT' };
+// Any AI website the owner is signed in to in the shared Chrome (same list the conversation runtime
+// accepts for a fresh conversation). Reused, not duplicated, so a newly signed-in site needs no edit here.
+export const AI_DESIGN_SITES = CREATE_SITES;
+const SITE_LABEL = { chatgpt: 'ChatGPT', claude: 'Claude', zai: 'Z.ai', qwen: 'Qwen', deepseek: 'DeepSeek', gemini: 'Gemini' };
+const SITE_LIST_TEXT = CREATE_SITES.map(site => SITE_LABEL[site] ?? site).join(', ');
 const JOB_ID = /^aid-[a-f0-9]{24}$/;
 const ACTIVE = new Set(['queued', 'asking', 'waiting-reply']);
 const TERMINAL = new Set(['ready-to-review', 'applied', 'discarded', 'failed']);
@@ -318,7 +323,7 @@ export function createAiDesignJobs({ apps, conversations, providerReply, paths, 
 
   function start({ id, site, request } = {}) {
     if (!isPersonalAppId(id)) throw problem(400, 'Invalid personal app ID', 'PERSONAL_APP_INVALID');
-    if (!AI_DESIGN_SITES.includes(site)) throw problem(400, 'Choose ChatGPT or Claude', 'AI_DESIGN_INVALID');
+    if (!AI_DESIGN_SITES.includes(site)) throw problem(400, 'Choose one of your signed-in AIs: ' + SITE_LIST_TEXT, 'AI_DESIGN_INVALID');
     let wish = null;
     if (request !== undefined && request !== null && request !== '') {
       if (typeof request !== 'string' || request.length > 500) throw problem(400, 'Keep your wish under 500 characters', 'AI_DESIGN_INVALID');
