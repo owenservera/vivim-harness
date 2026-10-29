@@ -1,0 +1,664 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b0f14">
+<meta name="description" content="A tour of the real VIVIM interface: Windows start, your own signed-in ChatGPT and Claude accounts, your personal World, Personal Agent Work, the app builder and side-by-side compare.">
+<title>VIVIM — Inside the product</title>
+<style>
+/* ---------- Page chrome (marketing shell, matches marketing/index.html's palette) ---------- */
+:root{
+  color-scheme: dark;
+  --bg:#0b0f14; --panel:#131920; --panel2:#171f28; --line:#2a333d; --ink:#f1f4ee; --muted:#aeb9bb;
+  --mint:#b5f3cd; --amber:#ffcc88;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto} }
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,BlinkMacSystemFont,sans-serif;line-height:1.55}
+a{color:inherit}
+a:focus-visible, button:focus-visible{outline:3px solid var(--mint);outline-offset:4px;border-radius:4px}
+.wrap{width:min(1180px, calc(100% - 44px));margin:0 auto}
+img,svg{max-width:100%}
+
+header.site{position:sticky;top:0;z-index:5;border-bottom:1px solid var(--line);background:color-mix(in srgb, var(--bg) 88%, black);backdrop-filter:blur(10px)}
+header.site .wrap{display:flex;align-items:center;justify-content:space-between;min-height:68px;gap:18px;flex-wrap:wrap}
+.logo{font-size:1.3rem;font-weight:900;letter-spacing:-.07em;text-decoration:none}
+.logo b{color:var(--mint)}
+nav.top{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+nav.top a{font-size:.88rem;color:var(--muted);text-decoration:none}
+nav.top a:hover{color:var(--ink)}
+.pill-link{border:1px solid #475058;border-radius:100px;padding:9px 16px;color:var(--ink);text-decoration:none;font-size:.85rem;font-weight:650}
+.pill-link:hover{border-color:var(--mint)}
+
+main{display:block}
+.hero{padding:76px 0 46px;position:relative;overflow:hidden}
+.hero::after{content:"";position:absolute;width:560px;height:560px;background:radial-gradient(circle,#81f8b522,transparent 68%);right:-180px;top:-200px;pointer-events:none}
+.eyebrow{font-size:.74rem;font-weight:750;letter-spacing:.18em;text-transform:uppercase;color:var(--mint)}
+h1.page-title{max-width:880px;font-size:clamp(2.5rem,6.2vw,4.4rem);line-height:1.04;letter-spacing:-.045em;margin:18px 0 20px}
+h1.page-title em{font-style:normal;color:var(--mint)}
+.lead{font-size:clamp(1.02rem,1.7vw,1.22rem);max-width:700px;color:var(--muted)}
+.hero-note{margin-top:22px;font-size:.86rem;color:var(--muted);max-width:700px;border-left:3px solid var(--amber);padding-left:14px}
+
+section.block{padding:58px 0;border-top:1px solid var(--line)}
+.block-head{max-width:760px;margin-bottom:30px}
+.block-head .eyebrow{display:block;margin-bottom:10px}
+h2.block-title{font-size:clamp(1.6rem,3vw,2.3rem);letter-spacing:-.03em;margin:0 0 12px;line-height:1.15}
+.block-head p{color:var(--muted);margin:0;max-width:66ch}
+
+.proof{display:inline-flex;align-items:center;gap:7px;margin-top:16px;font-size:.78rem;font-weight:700;padding:5px 12px;border-radius:100px;border:1px solid currentColor}
+.proof.built{color:#8fe3b5}
+.proof.unproven{color:var(--amber)}
+.proof .dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+
+.showcase{display:grid;gap:34px;grid-template-columns:minmax(0,1fr);align-items:start}
+@media (min-width:980px){ .showcase.two-col{grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr)} }
+
+/* generic device chrome used by every mock figure */
+figure.device{margin:0;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.09);box-shadow:0 30px 70px -20px rgba(0,0,0,.6);background:#000}
+figure.device figcaption{padding:14px 18px 16px;font-size:.84rem;color:var(--muted);background:var(--panel);border-top:1px solid var(--line)}
+figure.device figcaption b{color:var(--ink)}
+@media (prefers-reduced-motion: no-preference){
+  figure.device{animation:rise .5s ease both}
+}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+.side-notes{display:grid;gap:16px;align-content:start}
+.note-card{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+.note-card h3{margin:0 0 8px;font-size:1rem;letter-spacing:-.01em}
+.note-card p{margin:0;color:var(--muted);font-size:.9rem}
+.note-card ul{margin:10px 0 0;padding-left:20px;color:var(--muted);font-size:.9rem}
+.note-card li{margin:4px 0}
+.label-copy{font-family:ui-monospace,"Cascadia Mono",Consolas,monospace;font-size:.78rem;color:#9fd6ff;background:#0e1620;border:1px solid #223042;border-radius:6px;padding:1px 7px}
+
+/* ================= WINDOWS START mock ================= */
+.mock-windows{background:#0b0f14}
+.win-row{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr)}
+@media (max-width:760px){ .win-row{grid-template-columns:1fr} }
+.win-term{background:#0a0d12;color:#cfe8d6;padding:20px 22px;font-family:ui-monospace,"Cascadia Mono",Consolas,monospace;font-size:.82rem;line-height:1.7}
+.win-term .ttl{display:flex;gap:7px;margin-bottom:14px}
+.win-term .ttl span{width:11px;height:11px;border-radius:50%;background:#394450}
+.win-term .cmdline{color:#eef4ea}
+.win-term .ok{color:#7be3a0}
+.win-term .muted2{color:#7c8a8e}
+.win-browser{background:#0e1521;padding:20px 22px;display:flex;flex-direction:column;gap:12px}
+.win-browser .chrome-top{display:flex;align-items:center;gap:8px}
+.win-browser .chrome-top span{width:11px;height:11px;border-radius:50%}
+.win-browser .chrome-top span:nth-child(1){background:#ff6a5e}
+.win-browser .chrome-top span:nth-child(2){background:#ffbd4c}
+.win-browser .chrome-top span:nth-child(3){background:#29c940}
+.win-tab{display:flex;align-items:center;gap:10px;background:#141d2c;border:1px solid #273549;border-radius:9px;padding:9px 14px;font-size:.82rem;color:#d4e3f5}
+.win-tab b{font-weight:700}
+.win-chip{margin-left:auto;font-size:.68rem;font-weight:750;letter-spacing:.05em;color:#8ee7bb;border:1px solid #2b5a43;border-radius:100px;padding:2px 9px}
+.win-url{font-size:.74rem;color:#7f93ab;font-family:ui-monospace,Consolas,monospace}
+.win-sign{background:#101a29;border:1px solid #233349;border-radius:10px;padding:14px 16px;font-size:.82rem;color:#c8d6ea}
+.win-sign b{color:#fff}
+
+/* ================= WORLD (desktop) mock — palette taken from src/studio/ui/chat.html .vivim-app ================= */
+.theme-world{
+  --w-paper:#080e1b; --w-panel:#101c2f; --w-ink:#edf4ff; --w-muted:#a4b4ce; --w-line:#2b3954;
+  --w-accent:#448dff; --w-accent2:#a58efe; --w-good:#6bdac2;
+  background:radial-gradient(ellipse at 55% 0%, #152c52 0%, transparent 38%), linear-gradient(160deg,#070d18,#0b1423 50%,#080d18);
+  color:var(--w-ink); font-size:14px;
+}
+.w-topbar{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:14px 22px;border-bottom:1px solid #233655;background:#0b1425ee}
+.w-brand{display:flex;align-items:center;gap:10px;margin-right:auto}
+.w-brand-mark{width:32px;height:32px;border-radius:10px;background:linear-gradient(150deg,#539bff,#1354e1 73%);display:grid;place-items:center;font-size:18px}
+.w-brand h3{margin:0;font-size:15px;font-weight:750;letter-spacing:.07em}
+.w-brand p{margin:2px 0 0;font-size:9.5px;color:#8299bd}
+.w-crumb{font-size:11px;color:#c0d6f5}
+.w-crumb b{font-weight:650}
+.w-actions{display:flex;gap:9px;align-items:center;flex-wrap:wrap;font-size:11px}
+.w-actions .w-local{color:#70dcac;font-weight:650}
+.w-actions .w-local::before{content:"●";margin-right:5px;font-size:7px}
+.w-actions span.linklike{color:#a5caff;border:1px solid #294265;border-radius:9px;padding:3px 10px;background:#121e32}
+.w-modes{display:flex;flex-wrap:wrap;gap:7px;padding:12px 22px;border-bottom:1px solid #1d2b43}
+.w-modes .m{font-size:11.5px;font-weight:570;color:#b1c3de;border:1px solid transparent;border-radius:10px;padding:8px 12px}
+.w-modes .m.on{background:linear-gradient(110deg,#1c58b5,#163a79);color:#fff;box-shadow:inset 2px 0 0 #85b7ff}
+.w-body{padding:24px clamp(16px,2.4vw,34px) 30px}
+.w-welcome{position:relative;overflow:hidden;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:0;border:1px solid #4d6d9f;border-radius:18px;isolation:isolate;
+  background:radial-gradient(ellipse at 20% 30%,#4b69a4 0%,transparent 50%),linear-gradient(165deg,#0d244d,#070f22 68%)}
+@media (max-width:760px){ .w-welcome{grid-template-columns:1fr} }
+.w-hero{padding:30px 28px;display:flex;flex-direction:column;justify-content:center;min-width:0}
+.w-hero .mark{width:40px;height:40px;background:linear-gradient(150deg,#50a5ff,#145de4);border-radius:12px;display:grid;place-items:center;font-size:23px;box-shadow:0 0 30px #287be75c}
+.w-hero .word{font-size:34px;font-weight:720;letter-spacing:.06em;margin:14px 0 2px}
+.w-hero h4{font-size:19px;font-weight:560;line-height:1.3;margin:7px 0 20px}
+.w-hero ul{list-style:none;padding:0;margin:0;display:grid;gap:11px;font-size:13px;color:#f0f6ff}
+.w-hero li{display:flex;gap:9px;align-items:baseline}
+.w-hero li::before{content:"✧";color:#86c1ff;font-size:16px}
+.w-hero .priv{margin:26px 0 0;border:1px solid #5171a47a;border-radius:12px;padding:11px 14px;background:#071426b8;font-size:11.5px;font-weight:650}
+.w-hero .priv span{display:block;font-size:10px;font-weight:420;color:#b6c9e7;margin-top:4px}
+.w-card{margin:20px;padding:24px;border:1px solid #3b537b;border-radius:16px;background:linear-gradient(160deg,#12213adf,#090f20ed)}
+.w-card h4.ov{font-size:11px;letter-spacing:.17em;text-transform:uppercase;color:#8bbdff;margin:0 0 7px}
+.w-card h4.ttl{font-size:22px;letter-spacing:-.02em;margin:0 0 6px}
+.w-card p.sub{font-size:11.5px;color:#aabbd3;margin:0 0 15px}
+.w-steps{list-style:none;padding:0;margin:0 0 14px}
+.w-steps li{position:relative;display:grid;grid-template-columns:30px 1fr;gap:10px;padding:0 0 13px;align-items:start}
+.w-steps .n{width:30px;height:30px;border:1px solid #5782bf;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:12px;color:#c0dbff;background:#172c4e}
+.w-steps strong{display:block;font-size:12px}
+.w-steps span.d{display:block;font-size:10.5px;color:#9aafcc}
+.w-provchoice{display:flex;gap:7px;margin:6px 0}
+.w-provchoice span{padding:7px 12px;border-radius:9px;background:#162b49;border:1px solid #355b89;color:#d7e9ff;font-weight:650;font-size:11px}
+.w-provchoice span.on{border-color:#89bafb;background:#235494;box-shadow:inset 0 -2px 0 #9ec7ff}
+.w-disc{color:#9fb2ce;font-size:10.5px;margin:4px 0 12px}
+.w-cta{display:flex;gap:9px;flex-wrap:wrap;margin:10px 0}
+.w-btn{padding:9px 16px;border-radius:10px;font-weight:700;font-size:12px;border:1px solid #5099ff}
+.w-btn.primary{background:#2473f2;color:#fff}
+.w-btn.ghost{background:transparent;color:#eaf3ff;border-color:#2c3e5b}
+.w-trust{color:#a3b6d0;font-size:11px;margin:9px 0 0}
+
+.w-chatcard{background:#101d31;border:1px solid #2c3e5b;border-radius:14px;padding:18px 20px;margin-top:22px}
+.w-chatcard h4{margin:0 0 6px;font-size:15px}
+.w-lede{color:#a7b6cb;font-size:12.5px;max-width:70ch;margin:0 0 14px}
+.w-composer{border:1px solid #40659b;background:#0e1d33;border-radius:14px;padding:12px 14px}
+.w-composer label{font-size:11.5px;font-weight:650;display:block;margin-bottom:6px}
+.w-ta{min-height:46px;border:1px solid #385d91;background:#091629;border-radius:9px;padding:9px 11px;color:#dce9fb;font-size:12.5px}
+.w-sendrow{display:flex;gap:9px;margin-top:9px;align-items:center}
+.w-sendnote{color:#9aafcc;font-size:10.5px;margin:7px 0 0}
+
+.w-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:11px;margin-top:16px}
+.w-pcard{border-radius:13px;border:1px solid #34506f;background:#101c2f;overflow:hidden}
+.w-pcard .art{height:70px;display:grid;place-items:center;font-size:26px;color:#eff7ff99}
+.w-pcard .art.a{background:linear-gradient(140deg,#7b99db,#35438c 48%,#202244)}
+.w-pcard .art.b{background:linear-gradient(145deg,#b99c6c,#574d49 52%,#192a45)}
+.w-pcard .art.c{background:linear-gradient(135deg,#789ea0,#254a62 52%,#14243d)}
+.w-pcard .txt{padding:10px 12px}
+.w-pcard .txt strong{display:block;font-size:12px}
+.w-pcard .txt span{font-size:10.5px;color:#9fb1cd}
+
+/* ================= BUILDER mock ================= */
+.b-row{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:20px;padding:22px}
+@media (max-width:760px){ .b-row{grid-template-columns:1fr} }
+.b-card{background:#101d31;border:1px solid #2c3e5b;border-radius:14px;padding:16px 18px}
+.b-card h4{margin:0 0 6px;font-size:14.5px}
+.b-card p.sub{color:#a7b6cb;font-size:11.5px;margin:0 0 12px}
+.b-starters{display:grid;gap:8px}
+.b-starters .t{border:1px solid #2f4564;border-radius:10px;background:#12223a;padding:10px 12px}
+.b-starters .t strong{display:block;font-size:12.5px}
+.b-starters .t span{font-size:10.5px;color:#9fb1cd}
+.b-starters .t.on{border-color:#73a6f3;box-shadow:inset 3px 0 0 #76afff;background:#1a3d68}
+.b-site{display:flex;gap:8px;margin:10px 0}
+.b-site span{padding:7px 12px;border-radius:9px;border:1px solid #2f476a;background:#121f34;color:#c6d5eb;font-size:11px;font-weight:650}
+.b-site span.on{border-color:#66a6ff;color:#fff;background:#1c457b}
+.b-wish{border:1px solid #385172;background:#0b182b;border-radius:9px;padding:9px 11px;min-height:48px;font-size:11.5px;color:#9aafcc}
+.b-goai{margin-top:10px;display:inline-block;padding:9px 16px;border-radius:9px;background:#337de9;color:#fff;font-weight:700;font-size:12px;border:1px solid #4d95ff}
+.phone-frame{margin:0 auto;width:min(100%,260px);border:2px solid #2f4564;border-radius:26px;padding:16px 12px;background:#0b1b30}
+.phone-frame > strong{display:block;text-align:center;font-size:12px;padding-bottom:10px}
+.phone-screens{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.phone-screens .s{min-height:62px;border:1px solid #2f4564;border-radius:10px;padding:8px;background:#101c2f;font-size:10.5px}
+.phone-screens .s strong{display:block;font-size:11px;margin-bottom:3px}
+.b-diff{margin-top:12px;border-top:1px solid #2c3e5b;padding-top:10px}
+.b-diff p{margin:0 0 7px;font-size:11px;color:#9fb1cd}
+.b-diff ul{margin:0 0 8px;padding-left:18px;font-size:11.5px;color:#dce9fb}
+
+/* ================= PERSONAL AGENT mock — palette from src/studio/ui/personal-agent.html ================= */
+.theme-agent{background:#091522;color:#eff7ff;font-size:13px}
+.a-top{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:20px 24px;border-bottom:1px solid #1a2d3e;flex-wrap:wrap}
+.a-top .ov{color:#74d7c2;font-size:10.5px;text-transform:uppercase;letter-spacing:.16em;font-weight:750}
+.a-top h4{font-size:24px;margin:7px 0 4px;letter-spacing:-.03em}
+.a-top p{color:#afc4d8;font-size:11.5px;margin:0;max-width:46ch}
+.a-top a.back{color:#74d7c2;font-size:11.5px;text-decoration:none}
+.a-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;padding:20px 24px}
+.a-sec{background:#112437;border:1px solid #2e526c;border-radius:14px;padding:16px 18px}
+.a-sec h5{margin:0 0 8px;font-size:13.5px}
+.a-sec p{color:#afc4d8;font-size:11px;margin:0 0 10px}
+.a-status{font-weight:700;color:#74d7c2;font-size:12px}
+.a-tiers{display:flex;gap:7px;flex-wrap:wrap;margin-top:6px}
+.a-tiers span{border:1px solid #2e526c;border-radius:100px;padding:3px 11px;font-size:10.5px}
+.a-work{padding:0 24px 22px}
+.a-field label{display:block;font-size:11px;font-weight:650;margin-top:9px}
+.a-field .fake-input{border:1px solid #2e526c;background:#091522;border-radius:8px;padding:8px 10px;margin-top:4px;font-size:11.5px;color:#afc4d8}
+.a-addbtn{margin-top:10px;background:#74d7c2;color:#091522;font-weight:750;border-radius:8px;padding:9px 16px;font-size:12px;display:inline-block}
+.a-list{display:grid;gap:8px;margin-top:14px}
+.a-item{display:flex;justify-content:space-between;gap:10px;align-items:baseline;border:1px solid #2e526c;border-radius:10px;padding:10px 12px;background:#112437}
+.a-item strong{font-size:12px}
+.a-item span.chip{border:1px solid #2e526c;border-radius:100px;padding:2px 10px;font-size:10px;white-space:nowrap}
+.a-item span.chip.queued{color:#afc4d8}
+.a-item span.chip.active{color:#9ecbff}
+.a-item span.chip.blocked{color:#ffc0ac}
+.a-item span.chip.done{color:#74d7c2}
+.a-sitrep{margin:0 24px 26px;border:1px solid #2e526c;border-radius:14px;padding:16px 18px;background:#112437}
+.a-sitrep summary{font-weight:650;font-size:12px;cursor:default;color:#afc4d8}
+
+/* ================= PHONE mock — palette from src/studio/ui/mobile.html ================= */
+.phone-shell{margin:0 auto;width:min(100%,340px);border-radius:38px;border:8px solid #11161d;background:#111722;box-shadow:0 30px 60px -20px rgba(0,0,0,.7);overflow:hidden}
+.phone-screen{background:#111722;color:#f3f6fc;min-height:600px;font-size:13px}
+.ph-top{display:flex;align-items:center;justify-content:space-between;padding:16px 16px 6px}
+.ph-brand{font-size:17px;letter-spacing:.08em;font-weight:800}
+.ph-eyebrow{text-transform:uppercase;letter-spacing:.1em;font-weight:700;font-size:9.5px;color:#b8c5d8}
+.ph-actions{display:flex;gap:6px}
+.ph-actions span{border:1px solid #354154;border-radius:12px;padding:5px 9px;font-size:10px;background:#1b2533}
+.ph-card{background:#1b2533;border:1px solid #354154;border-radius:18px;padding:16px;margin:12px 16px;box-shadow:0 3px 12px #0000000a}
+.ph-hero{background:linear-gradient(140deg,#302d53,#1b2533 70%)}
+.ph-hero h5{font-size:20px;margin:7px 0;letter-spacing:-.03em}
+.ph-hero p{color:#b8c5d8;font-size:11.5px;margin:0}
+.ask-card{display:flex;flex-direction:column;gap:3px;padding:16px;margin:12px 16px;border-radius:18px;color:#f6f4ff;background:linear-gradient(150deg,#262048,#3d317f);box-shadow:0 12px 26px #2b24701f}
+.ask-card .ph-eyebrow{color:inherit;opacity:.75}
+.ask-title{font-size:18px;font-weight:800;letter-spacing:-.02em}
+.ask-sub{font-size:12px;font-weight:500;opacity:.92}
+.bubbles{display:flex;flex-direction:column;gap:8px;margin:10px 16px}
+.bubble{max-width:82%;padding:9px 12px;border-radius:14px;font-size:12px}
+.bubble.you{align-self:flex-end;background:#b6abff;color:#15132d;border-bottom-right-radius:5px}
+.bubble.ai{align-self:flex-start;background:#302d53;color:#f3f6fc;border-bottom-left-radius:5px}
+.bubble .who{display:block;font-size:9px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;opacity:.7;margin-bottom:4px}
+.ph-tiles{display:grid;gap:8px;margin-top:6px}
+.ph-tile{border:1px solid #354154;border-radius:13px;padding:11px 13px;font-size:12px;background:#1b2533}
+.ph-footer{font-size:10px;color:#8793a3;padding:12px 18px 18px;border-top:1px solid #272f3d;margin-top:8px}
+
+/* ================= COMPARE mock ================= */
+.cmp-wrap{padding:22px}
+.cmp-note{color:#a7b6cb;font-size:11.5px;margin:0 0 14px}
+.cmp-q{border:1px solid #385172;background:#0b182b;border-radius:9px;min-height:44px;padding:10px 12px;font-size:12px;color:#dce9fb;margin-bottom:10px}
+.cmp-opts{display:flex;gap:16px;margin-bottom:12px;font-size:12px}
+.cmp-opts span{display:flex;align-items:center;gap:6px}
+.cmp-opts .box{width:15px;height:15px;border:1px solid #5782bf;border-radius:4px;background:#1c58b5;display:inline-block}
+.cmp-table{display:grid;grid-template-columns:1fr 1fr;border:1px solid #2c3e5b;border-radius:10px;overflow:hidden}
+.cmp-col{padding:14px}
+.cmp-col:first-child{border-right:1px solid #2c3e5b}
+.cmp-col h5{margin:0 0 8px;font-size:13px}
+.cmp-col p.state{font-size:10.5px;color:#9fb1cd;margin:0 0 8px}
+.cmp-col .ans{font-size:11.5px;color:#dce9fb;line-height:1.55}
+
+/* ---------- proof / status list ---------- */
+.status-grid{display:grid;gap:22px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));margin-top:10px}
+.status-col h3{font-size:1rem;margin:0 0 12px;display:flex;align-items:center;gap:8px}
+.status-col h3 .dot2{width:9px;height:9px;border-radius:50%}
+.status-col.built .dot2{background:#8fe3b5}
+.status-col.unproven .dot2{background:var(--amber)}
+.status-col ul{margin:0;padding-left:20px;color:var(--muted);font-size:.92rem}
+.status-col li{margin:7px 0}
+.status-col code{font-family:ui-monospace,Consolas,monospace;font-size:.82em;color:#9fd6ff;background:#0e1620;border:1px solid #223042;border-radius:5px;padding:0 5px}
+
+footer.site{border-top:1px solid var(--line);padding:30px 0 40px}
+footer.site .wrap{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:.85rem}
+footer.site a{color:var(--mint);text-decoration:none}
+
+@media (prefers-reduced-motion: reduce){
+  figure.device{animation:none}
+}
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <a class="logo" href="index.html" aria-label="VIVIM home">VIVI<b>M</b></a>
+    <nav class="top" aria-label="Primary navigation">
+      <a href="index.html">About VIVIM</a>
+      <a href="#windows">Windows start</a>
+      <a href="#world">Your World</a>
+      <a href="#phone">Phone</a>
+      <a href="#proof">What's proven</a>
+      <a class="pill-link" href="https://github.com/owenservera/vivim-harness">View source ↗</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+
+<section class="hero">
+  <div class="wrap">
+    <div class="eyebrow">A tour of the actual interface — not a mockup of an idea</div>
+    <h1 class="page-title">Your AI accounts.<br><em>Your machine. Your world.</em></h1>
+    <p class="lead">VIVIM opens a dedicated, signed-in browser for the ChatGPT or Claude account you already have, keeps everything you save on your own PC, and gives you one place to carry it forward — on your desktop, and reaching toward your phone. No API keys. No second account. Nothing is sent to an AI until you press Send.</p>
+    <p class="hero-note">Every screen below is redrawn using the real labels, colors and layout from VIVIM's own interface files. Where a feature is built in code but hasn't been confirmed on a real phone or with a live AI reply, it's marked <strong>built, not yet proven live</strong> instead of claimed as working.</p>
+  </div>
+</section>
+
+<!-- ================= WINDOWS START ================= -->
+<section class="block" id="windows">
+  <div class="wrap">
+    <div class="block-head">
+      <span class="eyebrow">01 — Starting VIVIM</span>
+      <h2 class="block-title">Double-click VIVIM.cmd. That's the whole install step.</h2>
+      <p>The launcher (<span class="label-copy">scripts/windows/VIVIM.cmd</span> → <span class="label-copy">VIVIM.ps1</span>) starts one local Studio server and opens one dedicated browser window — the only browser VIVIM controls. You sign in to ChatGPT or Claude yourself, the same way you always do. VIVIM never asks for a password and never calls a provider's API with a key.</p>
+      <span class="proof built"><span class="dot"></span>Built and running on Windows</span>
+    </div>
+
+    <figure class="device mock-windows" role="img" aria-label="Two linked windows. Left, a terminal shows VIVIM's one-click Windows launcher starting a local Studio server at 127.0.0.1 and opening a browser window. Right, that dedicated browser window shows a chatgpt.com tab labelled Signed in as you, with a note that VIVIM opens this browser only for you to sign in yourself and never handles your password.">
+      <div class="win-row" aria-hidden="true">
+        <div class="win-term">
+          <div class="ttl"><span></span><span></span><span></span></div>
+          <div class="cmdline">&gt; Double-click <b>VIVIM.cmd</b></div>
+          <div class="muted2">VIVIM one-click start for Windows.</div>
+          <div class="muted2">Checking for a running VIVIM…</div>
+          <div class="ok">Studio ready — http://127.0.0.1:38703</div>
+          <div class="muted2">Data on this PC: C:\VIVIM</div>
+          <div class="ok">Opening your dedicated VIVIM browser window…</div>
+          <div class="muted2">One Studio per browser. Closing this window will not<br>stop VIVIM — use "Stop VIVIM" instead.</div>
+          <div class="muted2" style="margin-top:10px">Extra: <span class="cmdline">VIVIM.cmd -LanPair</span> also prints a phone pairing link.</div>
+        </div>
+        <div class="win-browser">
+          <div class="chrome-top"><span></span><span></span><span></span><span style="margin-left:8px;color:#7f93ab;font-size:11px">VIVIM browser — your account</span></div>
+          <div class="win-tab"><b>chatgpt.com</b><span class="win-chip">Signed in as you</span></div>
+          <div class="win-url">https://chatgpt.com/ — your own session, your own cookies</div>
+          <div class="win-sign">No API key. No separate VIVIM account. <b>You</b> sign in once, in a browser VIVIM opens just for this — the same way you'd sign in anywhere else.</div>
+        </div>
+      </div>
+      <figcaption><b>What you're seeing:</b> the real one-click launcher output and the dedicated browser it opens, redrawn from <code class="label-copy" style="display:inline">VIVIM.ps1</code> and the chat page's connection flow. The content and wording are accurate; the exact terminal line spacing is illustrative.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ================= WORLD ================= -->
+<section class="block" id="world">
+  <div class="wrap">
+    <div class="block-head">
+      <span class="eyebrow">02 — Your World</span>
+      <h2 class="block-title">One home for your AI conversations, projects and notes.</h2>
+      <p>This is VIVIM's main screen — the same shell used for chatting, saving conversations, building projects and notes, and running your Personal Agent. The views across the top (<span class="label-copy">Home</span>, <span class="label-copy">Build my VIVIM</span>, <span class="label-copy">Personal Agent</span>, <span class="label-copy">Capture</span>, <span class="label-copy">Compare</span>, <span class="label-copy">Saved conversations</span>, <span class="label-copy">Projects</span>, <span class="label-copy">Notes</span>, <span class="label-copy">Find</span>, <span class="label-copy">Transfer</span>, <span class="label-copy">Relations</span>, <span class="label-copy">Workspace</span>, <span class="label-copy">Composed workspace</span>, <span class="label-copy">Settings</span>) are the real navigation labels in the product.</p>
+      <span class="proof built"><span class="dot"></span>Built and running on Windows</span>
+    </div>
+
+    <figure class="device theme-world" role="img" aria-label="VIVIM's Windows World screen. A top bar reads VIVIM, My machine, My data, My AI, with a breadcrumb Your AI World / Chat, a Local-first badge, and links to Advanced Studio, Calibrate sites and Agent details. Below it, a row of view buttons: Home, Build my VIVIM, Personal Agent, Capture (currently selected), Compare, Saved conversations, Projects, Notes, Find, Transfer, Relations, Workspace, Composed workspace, Settings. The main panel is a welcome card titled Welcome to VIVIM with four setup steps — your local workspace, choosing an AI provider, connecting your browser, and capturing and exploring — next to a hero panel listing what VIVIM does: bring your AI conversations together, capture and organize your knowledge, work across AI providers with source evidence, and keep your personal World on your machine, marked Private by design. Below that is a chat composer labelled Message with a Send button, and a small gallery of saved project cards.">
+      <div aria-hidden="true">
+        <div class="w-topbar">
+          <div class="w-brand"><div class="w-brand-mark">✦</div><div><h3>VIVIM</h3><p>My machine. My data. My AI.</p></div></div>
+          <span class="w-crumb"><b>Your AI World / Chat</b></span>
+          <div class="w-actions">
+            <span class="w-local">Local-first</span>
+            <span class="linklike">Advanced Studio</span>
+            <span class="linklike">Calibrate sites</span>
+            <span class="linklike">Agent details</span>
+          </div>
+        </div>
+        <div class="w-modes">
+          <span class="m">Home</span><span class="m">Build my VIVIM</span><span class="m">Personal Agent</span>
+          <span class="m on">Capture</span><span class="m">Compare</span><span class="m">Saved conversations</span>
+          <span class="m">Projects</span><span class="m">Notes</span><span class="m">Find</span>
+          <span class="m">Transfer</span><span class="m">Relations</span><span class="m">Workspace</span>
+          <span class="m">Composed workspace</span><span class="m">Settings</span>
+        </div>
+        <div class="w-body">
+          <div class="w-welcome">
+            <div class="w-hero">
+              <div class="mark">✦</div>
+              <div class="word">VIVIM</div>
+              <h4>Your AI, your world,<br>in one place.</h4>
+              <ul>
+                <li>Bring your AI conversations together</li>
+                <li>Capture, organize and build on your knowledge</li>
+                <li>Work across AI providers, with source evidence</li>
+                <li>Keep your personal World on your machine</li>
+              </ul>
+              <div class="priv">◈ Private by design<span>Local-first records and explicit provider actions.</span></div>
+            </div>
+            <div class="w-card">
+              <h4 class="ov">Your Personal AI World</h4>
+              <h4 class="ttl">Welcome to VIVIM</h4>
+              <p class="sub">Set up your workspace and connect your AI.</p>
+              <ol class="w-steps">
+                <li><span class="n">1</span><div><strong>Your local workspace</strong><span class="d">Local data roots are managed by Harness.</span></div></li>
+                <li><span class="n">2</span><div><strong>Choose an AI provider</strong><span class="d">Choose a supported website; no account is assumed connected.</span></div></li>
+                <li><span class="n">3</span><div><strong>Connect your browser world</strong><span class="d">You authenticate with the provider yourself.</span></div></li>
+                <li><span class="n">4</span><div><strong>Capture and explore</strong><span class="d">Start observation, then organize what you save locally.</span></div></li>
+              </ol>
+              <div class="w-provchoice"><span class="on">ChatGPT</span><span>Claude</span></div>
+              <p class="w-disc">Supported sites are not verified accounts. Sign in directly with each provider.</p>
+              <div class="w-cta"><span class="w-btn primary">Get started →</span><span class="w-btn ghost">Explore saved conversations</span></div>
+              <p class="w-trust">No message is sent without your explicit action.</p>
+            </div>
+          </div>
+
+          <div class="w-chatcard">
+            <h4>Chat</h4>
+            <p class="w-lede">Connect to a website you're logged in to, send a message, and read the reply while Studio records it. Connecting only watches. Nothing is sent until you press Send.</p>
+            <div class="w-composer">
+              <label>Message</label>
+              <div class="w-ta">Write a message to this website</div>
+              <div class="w-sendrow"><span class="w-btn primary">Send</span></div>
+              <p class="w-sendnote">Sends 1 message with your logged-in account. One turn at a time. Up to 250,000 characters.</p>
+            </div>
+          </div>
+
+          <div class="w-chatcard">
+            <h4>Projects — illustrative examples, not real data</h4>
+            <div class="w-gallery">
+              <div class="w-pcard"><div class="art a">◇</div><div class="txt"><strong>Trip planning</strong><span>4 saved conversations</span></div></div>
+              <div class="w-pcard"><div class="art b">◇</div><div class="txt"><strong>Kitchen remodel</strong><span>2 notes · 1 conversation</span></div></div>
+              <div class="w-pcard"><div class="art c">◇</div><div class="txt"><strong>Study plan</strong><span>6 saved conversations</span></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <figcaption><b>What you're seeing:</b> the real Windows World shell from <code class="label-copy" style="display:inline">src/studio/ui/chat.html</code> — exact header, navigation labels, welcome copy and composer text. The three project cards are illustrative placeholders; your own saved conversations and projects appear there instead.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ================= APP BUILDER ================= -->
+<section class="block" id="builder">
+  <div class="wrap">
+    <div class="block-head">
+      <span class="eyebrow">03 — Build my VIVIM</span>
+      <h2 class="block-title">Start from a template, or let your AI design the screens.</h2>
+      <p>The <span class="label-copy">Build my VIVIM</span> view starts you on a small personal app — a notes list, a checklist, a dashboard — then lets your own signed-in ChatGPT or Claude suggest more screens. Nothing is added until you tap <span class="label-copy">Add these screens</span>; no code runs and nothing is installed on your machine.</p>
+      <span class="proof built"><span class="dot"></span>Built and running on Windows</span>
+    </div>
+
+    <figure class="device theme-world" role="img" aria-label="VIVIM's app builder screen. On the left, six starter templates: My Reading List, Household Tasks, My Notes, Study Planner, Habit Tracker, and My App, the blank starter. On the right, a phone-shaped preview of the chosen app's screens, and a Design with my AI card where you pick Claude or ChatGPT, optionally describe what you want, and tap Design with my AI; a preview lists suggested screens with an Add these screens button, and text reading nothing is added until you say so.">
+      <div class="b-row" aria-hidden="true">
+        <div class="b-card">
+          <h4>Make an app</h4>
+          <p class="sub">Choose a starter. You can add more screens later.</p>
+          <div class="b-starters">
+            <div class="t on"><strong>My Reading List</strong><span>Keep books and articles to read, with notes and a done list.</span></div>
+            <div class="t"><strong>Household Tasks</strong><span>Keep track of household chores and useful household notes.</span></div>
+            <div class="t"><strong>My Notes</strong><span>Write and keep personal notes on my PC.</span></div>
+            <div class="t"><strong>Study Planner</strong><span>Plan study tasks and keep study notes.</span></div>
+            <div class="t"><strong>Habit Tracker</strong><span>Track habits with a checklist and keep reflection notes.</span></div>
+            <div class="t"><strong>My App</strong><span>Start a personal app and choose my own screens.</span></div>
+          </div>
+        </div>
+        <div class="b-card">
+          <div class="phone-frame">
+            <strong>My Reading List</strong>
+            <div class="phone-screens">
+              <div class="s"><strong>To Read</strong>Checklist of books and articles</div>
+              <div class="s"><strong>Reading Notes</strong>Short personal notes</div>
+            </div>
+          </div>
+          <h4 style="margin-top:14px">Design with my AI</h4>
+          <p class="sub">Let your own ChatGPT or Claude suggest screens for this app. It uses your signed-in account, asks once, and never changes anything without your OK.</p>
+          <div class="b-site"><span>Claude</span><span class="on">ChatGPT</span></div>
+          <div class="b-wish">What do you want? (optional) For example: help me plan study sessions</div>
+          <span class="b-goai">Design with my AI</span>
+          <div class="b-diff">
+            <p>ChatGPT suggests these screens. Nothing is added until you say so.</p>
+            <ul><li>Add "Book Ratings" (notes)</li><li>Add "Finished Books" (tasks)</li></ul>
+            <span class="w-btn primary" style="font-size:11px;padding:7px 13px">Add these screens</span>
+            <span class="w-btn ghost" style="font-size:11px;padding:7px 13px">Not now</span>
+          </div>
+        </div>
+      </div>
+      <figcaption><b>What you're seeing:</b> the real starter templates from <code class="label-copy" style="display:inline">personal-app-blueprint.mjs</code> and the real "Design with my AI" flow from <code class="label-copy" style="display:inline">world-view.mjs</code>. The suggested screens ("Book Ratings", "Finished Books") are an illustrative example reply, not a captured live answer.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ================= PERSONAL AGENT ================= -->
+<section class="block" id="agent">
+  <div class="wrap">
+    <div class="block-head">
+      <span class="eyebrow">04 — Personal Agent</span>
+      <h2 class="block-title">A durable identity that keeps your tasks and memory on your PC.</h2>
+      <p>Your Personal Agent tracks <span class="label-copy">Work</span> — tasks, next steps and progress — across sessions, and keeps notes in three tiers: <span class="label-copy">Immediate</span>, <span class="label-copy">CANON</span> and <span class="label-copy">Curated</span>. Nothing is imported from your provider conversations automatically, and nothing is sent to an AI without your approval.</p>
+      <span class="proof built"><span class="dot"></span>Built and running on Windows</span>
+    </div>
+
+    <figure class="device theme-agent" role="img" aria-label="VIVIM's Personal Agent screen. Header reads Your Personal Agent: one durable identity, memory you control, abilities proven by evidence, not promises. Two cards show Bootstrap lifecycle status and Memory ownership across three tiers: Immediate, CANON and Curated. An Agent Work section lets you add a task title and objective, and lists example Work items with statuses To do, In progress, Waiting for you and Done. A Pick up where you left off section offers to review saved progress in a private continuity packet, kept on this computer and never sent to an AI automatically.">
+      <div aria-hidden="true">
+        <div class="a-top">
+          <div><div class="ov">VIVIM World · local first</div><h4>Your Personal Agent</h4><p>One durable identity. Memory you control. Abilities proven by evidence—not promises.</p></div>
+          <a class="back" href="#">← Back to VIVIM World</a>
+        </div>
+        <div class="a-grid">
+          <div class="a-sec"><h5>Bootstrap lifecycle</h5><p class="a-status">Agent initialized on this PC.</p><p>Four ordered stages, resumed where you left off.</p></div>
+          <div class="a-sec"><h5>Memory ownership</h5><p>Three personal tiers. Nothing is imported from your provider conversations automatically.</p><div class="a-tiers"><span>Immediate</span><span>CANON</span><span>Curated</span></div></div>
+        </div>
+        <div class="a-work">
+          <div class="a-sec">
+            <h5>Agent Work</h5>
+            <p>Keep tasks, saved next steps and progress history on this computer, even after you close Studio.</p>
+            <div class="a-field">
+              <label>Task title</label><div class="fake-input">Plan the weekly groceries</div>
+              <label>What needs to be done?</label><div class="fake-input">Describe the task and what finished looks like</div>
+            </div>
+            <span class="a-addbtn">Add Work item</span>
+            <div class="a-list">
+              <div class="a-item"><strong>Plan the weekly groceries</strong><span class="chip queued">To do</span></div>
+              <div class="a-item"><strong>Draft the study schedule</strong><span class="chip active">In progress</span></div>
+              <div class="a-item"><strong>Confirm the trip dates</strong><span class="chip blocked">Waiting for you</span></div>
+              <div class="a-item"><strong>Summarize the reading notes</strong><span class="chip done">Done</span></div>
+            </div>
+          </div>
+        </div>
+        <details class="a-sitrep"><summary>Pick up where you left off — private continuity packet</summary></details>
+      </div>
+      <figcaption><b>What you're seeing:</b> the real Personal Agent page from <code class="label-copy" style="display:inline">src/studio/ui/personal-agent.html</code>, with sample Work items standing in for your own tasks.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ================= PHONE ================= -->
+<section class="block" id="phone">
+  <div class="wrap">
+    <div class="block-head">
+      <span class="eyebrow">05 — Your phone</span>
+      <h2 class="block-title">Ask my AI and Build your app, from your phone, over your own WiFi.</h2>
+      <p>The phone surface connects to your PC, not to the internet directly: your phone opens a page that talks to the same Studio that's already running at home, which talks to your already-signed-in browser. <span class="label-copy">Ask my AI</span> continues a real chat with ChatGPT or Claude; <span class="label-copy">My apps</span> opens the small apps you built. There is also a native Android shell that wraps this same page for pairing and offline recovery.</p>
+      <span class="proof unproven"><span class="dot"></span>Built, not yet proven live on a real phone</span>
+    </div>
+
+    <div class="showcase two-col">
+      <figure class="device" role="img" aria-label="VIVIM's phone screen, shown as a phone-shaped frame. A top bar reads VIVIM, My Mobile World, with Ask my AI, My apps and World buttons. A gradient Ask my AI card invites you to talk to your own AI from this phone; it runs on your PC. Below it, a sample conversation bubble shows you asking a quick dinner question and the AI replying, followed by a My apps list showing My Reading List with two screens and Study Planner with three screens. A footer explains that VIVIM data is hosted on your PC, the phone connects over WiFi, and your chosen AI provider receives messages through your own account.">
+        <div class="phone-shell" aria-hidden="true">
+          <div class="phone-screen">
+            <div class="ph-top">
+              <div><div class="ph-brand">VIVIM</div><div class="ph-eyebrow">MY MOBILE WORLD</div></div>
+              <div class="ph-actions"><span>Ask my AI</span><span>My apps</span><span>World</span></div>
+            </div>
+            <div class="ph-card ph-hero">
+              <div class="ph-eyebrow">YOUR APPS</div>
+              <h5>A personal world you can shape</h5>
+              <p>Ask your own AI from this phone, or open a locally saved VIVIM app. VIVIM runs on your PC.</p>
+            </div>
+            <div class="ask-card">
+              <span class="ph-eyebrow">ASK MY AI</span>
+              <span class="ask-title">Ask my AI</span>
+              <span class="ask-sub">Talk to your own ChatGPT from this phone. It runs on your PC.</span>
+            </div>
+            <div class="bubbles">
+              <div class="bubble you"><span class="who">You</span>Quick dinner idea with what's in the fridge?</div>
+              <div class="bubble ai"><span class="who">ChatGPT</span>Illustrative reply — your real answer appears here, exactly as your AI sent it.</div>
+            </div>
+            <div class="ph-card">
+              <strong style="display:block;margin-bottom:8px">My apps</strong>
+              <div class="ph-tiles">
+                <div class="ph-tile">My Reading List · 2 screens</div>
+                <div class="ph-tile">Study Planner · 3 screens</div>
+              </div>
+            </div>
+            <div class="ph-footer">VIVIM data is hosted on your PC; this phone connects over your WiFi. Your chosen AI provider receives messages through your own account.</div>
+          </div>
+        </div>
+        <figcaption><b>What you're seeing:</b> the real mobile layout and copy from <code class="label-copy" style="display:inline">src/studio/ui/mobile.html</code>. The dinner question and reply are an illustrative example, not a captured conversation.</figcaption>
+      </figure>
+
+      <div class="side-notes">
+        <div class="note-card">
+          <h3>What's actually confirmed today</h3>
+          <p>From the project's own Android build log, dated 2026-10-29:</p>
+          <ul>
+            <li>The Android shell compiles, packages and signs into <code>vivim.apk</code> (signature verified with <code>apksigner</code>).</li>
+            <li>It has <strong>not</strong> been installed on a device, opened, paired, or used to send or receive a real message.</li>
+            <li>Phone pairing, reconnect-after-Wi-Fi-change, and the root Back menu are described in code and docs, but unobserved on real hardware.</li>
+          </ul>
+        </div>
+        <div class="note-card">
+          <h3>Why this page says "not yet proven live"</h3>
+          <p>VIVIM's own standard is: a build or a passing check is not proof of real behavior on a real device with a real AI reply. Until someone installs the app, pairs a phone, and watches a live answer arrive, this surface stays labeled honestly rather than claimed as finished.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= COMPARE ================= -->
+<section class="block" id="compare">
+  <div class="wrap">
+    <div class="block-head">
+      <span class="eyebrow">06 — Compare</span>
+      <h2 class="block-title">Ask the same question. See both answers side by side.</h2>
+      <p>The <span class="label-copy">Compare</span> view sends your question through your own ChatGPT and Claude accounts, one at a time, each starting a fresh conversation. Nothing is combined or summarized for you — you read both real answers yourself.</p>
+      <span class="proof built"><span class="dot"></span>Built and running on Windows</span>
+    </div>
+
+    <figure class="device theme-world" role="img" aria-label="VIVIM's Compare screen, titled Compare your AI answers. A note explains that it asks through your own accounts on this PC, with each provider getting a separate new conversation, one at a time. A text box holds your question, checkboxes for ChatGPT and Claude are both checked, and an Ask selected providers button starts the request. A two-column table shows example waiting and answered states for ChatGPT and Claude side by side.">
+      <div class="cmp-wrap" aria-hidden="true">
+        <h4 style="margin:0 0 8px">Compare your AI answers</h4>
+        <p class="cmp-note">Ask through your own accounts on this PC. Each provider gets a separate new conversation, one at a time.</p>
+        <div class="cmp-q">What's a simple way to explain compound interest to a teenager?</div>
+        <div class="cmp-opts"><span><span class="box"></span>ChatGPT</span><span><span class="box"></span>Claude</span><span class="w-btn primary" style="font-size:11px;padding:7px 13px">Ask selected providers</span></div>
+        <div class="cmp-table">
+          <div class="cmp-col">
+            <h5>ChatGPT</h5>
+            <p class="state">Answered</p>
+            <p class="ans">Illustrative answer — the real reply from your ChatGPT account appears here, with its own sources if it included any.</p>
+          </div>
+          <div class="cmp-col">
+            <h5>Claude</h5>
+            <p class="state">Waiting for your AI…</p>
+            <p class="ans">Studio is watching this conversation and will show the reply as soon as it finishes.</p>
+          </div>
+        </div>
+      </div>
+      <figcaption><b>What you're seeing:</b> the real wording and layout of the Compare panel inside <code class="label-copy" style="display:inline">src/studio/ui/chat.html</code>. The example question and answers are illustrative, not a captured transcript.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ================= PROOF ================= -->
+<section class="block" id="proof">
+  <div class="wrap">
+    <div class="block-head">
+      <span class="eyebrow">Honest status</span>
+      <h2 class="block-title">Built in code is not the same as proven live. Here's the line.</h2>
+      <p>Owner directive for this project: short, real runtime checks are the evidence — not a passing build or a file on disk. This page draws that line plainly, screen by screen.</p>
+    </div>
+
+    <div class="status-grid">
+      <div class="status-col built">
+        <h3><span class="dot2"></span>Built and running on Windows</h3>
+        <ul>
+          <li>One-click start from <code>VIVIM.cmd</code>, one Studio server, one dedicated signed-in browser window.</li>
+          <li>Your World: chat, saved conversations, projects, notes, find, relations and transfer, all stored locally.</li>
+          <li>Side-by-side Compare across your own ChatGPT and Claude accounts, one conversation each.</li>
+          <li>Personal Agent Work tracking, memory tiers, and a private "pick up where you left off" summary.</li>
+          <li>The app builder: six starter templates, plus AI-suggested screens you approve before anything changes.</li>
+        </ul>
+      </div>
+      <div class="status-col unproven">
+        <h3><span class="dot2"></span>Built, not yet proven live</h3>
+        <ul>
+          <li>The Android phone app: compiled and signature-verified as of 2026-10-29, but not installed, opened or paired on a real device.</li>
+          <li>End-to-end phone pairing, Wi-Fi/PC-change recovery, and the root Back menu — described in code and docs, unobserved on hardware.</li>
+          <li>"Ask my AI" and "Design with my AI" over the phone connection, with a confirmed live round-trip reply from a real device.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>© VIVIM · My machine. My data. My AI.</span>
+    <span><a href="index.html">Back to the project overview</a> · <a href="https://github.com/owenservera/vivim-harness">View source on GitHub ↗</a></span>
+  </div>
+</footer>
+
+</body>
+</html>
