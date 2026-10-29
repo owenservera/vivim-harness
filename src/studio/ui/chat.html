@@ -735,6 +735,9 @@ body.vivim-app {
 #worldShell[data-active-view="agent"] form select { width: 100%; max-width: 100%; }
 #worldShell[data-active-view="agent"] .vivim-agent-work-row { border-top: 1px solid var(--line); padding: 12px 0; }
 #worldShell[data-active-view="agent"] .vivim-agent-work-row > * { margin-top: 6px; }
+#worldAgentInsights { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; }
+#worldAgentInsights > h3, #worldAgentInsights > p, #worldAgentInsights > pre { flex-basis: 100%; }
+#worldAgentInsightOutput { max-height: 24rem; max-width: 100%; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
 @media (max-width: 850px) {
   #worldShell[data-active-view="agent"] #worldGrid { grid-template-columns: minmax(0, 1fr); }
 }
