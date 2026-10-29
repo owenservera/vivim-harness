@@ -13,7 +13,7 @@ export async function defaultConversationRuntime(options) {
 // actually signed into and that compare/ask exercise (chatgpt, claude, zai, qwen as of 2026-10-30).
 // runtime.connect() (src/capture/conversation-runtime.mjs) independently re-checks against the
 // full adapter registry; this list only needs to grow when another account is wired up end to end.
-export const CREATE_SITES = Object.freeze(['chatgpt', 'claude', 'zai', 'qwen']);
+export const CREATE_SITES = Object.freeze(['chatgpt', 'claude', 'zai', 'qwen', 'deepseek', 'gemini']);
 
 export function validateConversationBody(kind, body) {
   object(body);

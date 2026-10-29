@@ -7,7 +7,7 @@ import path from 'node:path';
 import { readdir, readFile, stat } from 'node:fs/promises';
 
 const MAX_JOBS = 200; // latest N files per job directory, by last-modified time
-const LABELS = { chatgpt: 'ChatGPT', claude: 'Claude', zai: 'Z.ai', qwen: 'Qwen' };
+const LABELS = { chatgpt: 'ChatGPT', claude: 'Claude', zai: 'Z.ai', qwen: 'Qwen', deepseek: 'DeepSeek', gemini: 'Gemini' };
 const labelOf = (site) => LABELS[site] ?? (typeof site === 'string' && site ? site[0].toUpperCase() + site.slice(1) : 'Unknown');
 // Codes that mean "we could not prove what happened", as distinct from a plain failure.
 const UNCERTAIN_CODES = new Set(['DELIVERY_UNCONFIRMED', 'TURN_NOT_FOUND', 'CREATION_UNPINNED', 'RESUMED_UNFINISHED', 'REPLY_INTERRUPTED']);

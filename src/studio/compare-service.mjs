@@ -16,7 +16,7 @@ const SCHEMA = 'vivim.compare/1';
 // Every site here must also be accepted by conversation-api.mjs's 'create' fresh-conversation gate
 // (src/studio/conversation-api.mjs) and have a working adapter in src/profiles/sites. Owner's four
 // signed-in accounts (2026-10-30): ChatGPT, Claude, Z.ai, Qwen.
-const LABELS = { chatgpt: 'ChatGPT', claude: 'Claude', zai: 'Z.ai', qwen: 'Qwen' };
+const LABELS = { chatgpt: 'ChatGPT', claude: 'Claude', zai: 'Z.ai', qwen: 'Qwen', deepseek: 'DeepSeek', gemini: 'Gemini' };
 export const COMPARE_SITES = Object.keys(LABELS);
 const MAX_SITES = COMPARE_SITES.length;
 const ID = /^cmp-[a-f0-9]{24}$/;
