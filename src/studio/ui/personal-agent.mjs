@@ -334,5 +334,35 @@ $('exportAgent').addEventListener('click', exportAgent);
 $('workForm').addEventListener('submit', createWork);
 $('workFilter').addEventListener('change', loadWork);
 $('knowledgeRefresh').addEventListener('click', showKnowledge);
+async function searchPrivateMemory(event) {
+  event.preventDefault();
+  const area = $('memorySearchResults'), button = $('memorySearchButton');
+  const query = $('memorySearchQuery').value.trim(), tier = $('memorySearchTier').value || 'all';
+  if (query.length < 2) {
+    area.replaceChildren(element('p', 'Enter at least two characters.'));
+    return;
+  }
+  button.disabled = true;
+  area.replaceChildren(element('p', 'Searching user-authored local memory…'));
+  try {
+    const data = await request('/search-memory', {
+      method: 'POST',
+      body: JSON.stringify({ query, tier, limit: 20 }),
+    });
+    area.replaceChildren(element('p', 'Showing ' + data.shown + ' of ' + data.total +
+      ' local matches' + (data.truncated ? ' (more exist)' : '') + '.'));
+    if (!data.items.length) area.append(element('p', 'No matching local memory entries.'));
+    for (const hit of data.items) {
+      const card = element('article');
+      card.append(element('strong', hit.tier + ' / ' + hit.key),
+        element('p', hit.preview), element('p', 'Local source: ' + hit.source + ' · matched ' + hit.match, 'subtle'));
+      area.append(card);
+    }
+  } catch (error) {
+    area.replaceChildren(element('p', 'Memory search: ' + error.code + ' — ' + error.message));
+  } finally { button.disabled = false; }
+}
+
 $('memoryForm').addEventListener('submit', saveMemory);
+$('memorySearchForm').addEventListener('submit', searchPrivateMemory);
 void refresh().then(async () => { await readMemory(); await loadWork(); await showKnowledge(); });
