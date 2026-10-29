@@ -41,6 +41,12 @@ import java.util.Locale;
  *   vivim://pair?pairUrl=http%3A%2F%2F...
  * Intent-supplied URLs are never loaded silently; the user confirms them on the pairing screen.
  *
+ * The Android Share action from any other app (ACTION_SEND, text/plain) is also accepted: the
+ * shared text is handed to the paired web app as a URL fragment (#ask=<encoded text>), which
+ * never reaches the server or its logs. The web app prefills the "Ask my AI" box with it; the
+ * user still taps Send. If the phone is not paired yet, the pairing screen opens first and the
+ * text is kept in memory until the user finishes pairing.
+ *
  * Only the paired Studio origin (scheme + host + port) is browsed inside the shell, so the
  * pairing cookie and the error/expiry screens apply to the PC only; any other link opens in
  * the phone's normal browser.
@@ -64,6 +70,8 @@ public class MainActivity extends Activity {
     private boolean showingWeb;
     /** Last main-frame load of the paired origin failed; Back must not return to that error page. */
     private boolean loadFailed;
+    /** Text shared from another app while unpaired; applied to the first load once pairing finishes. */
+    private String pendingShareText;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final ConnectionWait connectionWait = new ConnectionWait(this);
 
@@ -77,14 +85,16 @@ public class MainActivity extends Activity {
 
         web = createWebView();
 
-        String incoming = incomingUrl(getIntent());
-        String saved = savedUrl();
-        if (incoming != null && !incoming.equals(saved)) {
-            showPairScreen(incoming, confirmNotice(incoming), false);
-        } else if (saved == null) {
-            showPairScreen(null, null, false);
-        } else {
-            loadWorld(saved);
+        if (!handleShareIntent(getIntent())) {
+            String incoming = incomingUrl(getIntent());
+            String saved = savedUrl();
+            if (incoming != null && !incoming.equals(saved)) {
+                showPairScreen(incoming, confirmNotice(incoming), false);
+            } else if (saved == null) {
+                showPairScreen(null, null, false);
+            } else {
+                loadWorld(saved);
+            }
         }
     }
 
@@ -92,10 +102,35 @@ public class MainActivity extends Activity {
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
+        if (handleShareIntent(intent)) {
+            return;
+        }
         String incoming = incomingUrl(intent);
         if (incoming != null && (!incoming.equals(savedUrl()) || loadFailed || !showingWeb)) {
             showPairScreen(incoming, confirmNotice(incoming), false);
         }
+    }
+
+    /**
+     * Handles "Share" from another app (ACTION_SEND, text/plain). Returns true when the intent
+     * was a share (whether or not pairing is already done), so the caller skips its normal
+     * pairing-link/startup handling for this intent.
+     */
+    private boolean handleShareIntent(Intent intent) {
+        String text = incomingSharedText(intent);
+        if (text == null) {
+            return false;
+        }
+        String saved = savedUrl();
+        if (saved != null) {
+            pendingShareText = null;
+            loadWorld(appendAsk(saved, text));
+        } else {
+            pendingShareText = text;
+            showPairScreen(null, "Paste your PC's phone pairing link, then tap Connect. "
+                    + "The text you shared is waiting and nothing was sent yet.", false);
+        }
+        return true;
     }
 
     // ---------------------------------------------------------------- WebView
@@ -398,7 +433,9 @@ public class MainActivity extends Activity {
                 return;
             }
             host.savePairUrl(url);
-            host.loadWorld(url);
+            String shared = host.pendingShareText;
+            host.pendingShareText = null;
+            host.loadWorld(shared != null ? appendAsk(url, shared) : url);
         }
     }
 
@@ -438,6 +475,33 @@ public class MainActivity extends Activity {
 
     private void savePairUrl(String url) {
         prefs.edit().putString(KEY_URL, url).apply();
+    }
+
+    /**
+     * Text shared from another app via Android's Share sheet (ACTION_SEND, text/plain), trimmed
+     * and non-empty, or null for any other intent. Nothing but plain text is accepted: no files,
+     * no HTML, no other MIME type.
+     */
+    private static String incomingSharedText(Intent intent) {
+        if (intent == null || !Intent.ACTION_SEND.equals(intent.getAction())
+                || !"text/plain".equals(intent.getType())) {
+            return null;
+        }
+        String text = intent.getStringExtra(Intent.EXTRA_TEXT);
+        if (text == null) {
+            return null;
+        }
+        String trimmed = text.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    /**
+     * Appends the shared text as a URL fragment (#ask=...), never as a query parameter: fragments
+     * are not sent to the server and never appear in its logs. The web app reads it once, prefills
+     * the Ask my AI box (it does not send on its own) and clears the fragment from the URL.
+     */
+    private static String appendAsk(String url, String text) {
+        return url + "#ask=" + Uri.encode(text);
     }
 
     private static String incomingUrl(Intent intent) {

@@ -33,6 +33,21 @@ const ASK_REFUSAL_CODES = new Set([...ASK_BUSY_CODES, 'BROWSER_UNAVAILABLE', 'DR
   'STALE_REVISION', 'THREAD_IDENTITY_UNVERIFIED', 'BINDING_CHANGED', 'THREAD_FENCED',
   'PRIOR_TURN_CAPTURE_NOT_FINALIZED', 'ONE_TURN_LIMIT', 'CONVERSATION_FINISHED',
   'CONVERSATION_NOT_FOUND', 'INVALID_SUBMISSION']);
+// Android's Share sheet hands selected text from any app to the native shell, which opens the
+// paired PC URL with it as a #ask=<encoded text> fragment (see android/.../MainActivity.java).
+// Fragments never reach the server or its logs. Read once on load, prefill (never auto-send) the
+// Ask my AI box, then the caller clears the fragment so Back/reload cannot resubmit the same text.
+const MAX_SHARED_ASK_CHARS = 10000;
+function sharedAskFromHash(raw) {
+  const match = /^#ask=([\s\S]*)$/.exec(typeof raw === 'string' ? raw : '');
+  if (!match) return null;
+  let text; try { text = decodeURIComponent(match[1]); } catch { text = match[1]; }
+  text = text.trim();
+  if (!text) return null;
+  if (text.length <= MAX_SHARED_ASK_CHARS) return { text, notice: '' };
+  return { text: text.slice(0, MAX_SHARED_ASK_CHARS),
+    notice: 'The shared text was long, so it was trimmed to 10,000 characters.' };
+}
 
 export function validateMobileScaffold(payload, id) {
   const value = payload?.scaffold;
@@ -71,7 +86,7 @@ export function validateMobileContent(content, id) {
 }
 export function mountMobile({
   document: doc, root, fetchImpl = globalThis.fetch, search = globalThis.location?.search ?? '',
-  uuid = () => globalThis.crypto?.randomUUID?.(),
+  hash = globalThis.location?.hash ?? '', uuid = () => globalThis.crypto?.randomUUID?.(),
 } = {}) {
   if (!doc || !root || typeof fetchImpl !== 'function') return null;
   const state = { appId: null, scaffold: null, version: null, active: 'home',
@@ -1391,7 +1406,19 @@ export function mountMobile({
   view?.addEventListener?.('offline', () => { state.connection = 'offline'; render(); });
   view?.addEventListener?.('pageshow', event => { if (event.persisted) recoverConnection(); });
   doc.addEventListener?.('visibilitychange', () => { if (!doc.hidden) recoverConnection(); });
-  if (app) openApp(app); else loadIndex();
+  const shared = sharedAskFromHash(hash);
+  if (shared) {
+    // Clear the fragment first: if render() or openAsk() ever throws, the shared text still
+    // never lingers in the address bar (history, Back, or a screenshot could otherwise show it).
+    const loc = view?.location;
+    if (loc && typeof view?.history?.replaceState === 'function') {
+      try { view.history.replaceState(null, '', loc.pathname + loc.search); } catch { /* no history API */ }
+    }
+    state.ask.draft = shared.text;
+    openAsk();
+    if (shared.notice) { state.ask.notice = shared.notice; render(); }
+    saveAsk();
+  } else if (app) openApp(app); else loadIndex();
   return { loadIndex, openApp, chooseScreen, loadContent, openAsk, askSend, render, state };
 }
 // Registers the shell-only service worker (/mobile-sw.js, scope /mobile). Needs a secure context; resolves

@@ -14,6 +14,20 @@ also saves the PC's pairing cookie when the page finishes and when the app
 pauses. Closing and reopening the app uses the saved link. A changed PC address
 or a new pairing code requires a fresh link from Windows.
 
+## Share text from any app
+
+Select text in any other Android app, tap **Share**, and choose **VIVIM**.
+If you're already paired, VIVIM opens straight to **Ask my AI** with the
+shared text sitting in the message box — nothing is sent until you tap
+**Send**, so you can edit or clear it first. The shared text travels only as
+part of the opened page's address (a URL fragment); it is never written to
+VIVIM's server logs. Very long shares are trimmed to 10,000 characters with a
+plain note in the Ask my AI screen.
+
+If you haven't paired yet, Share opens the pairing screen instead and keeps
+your shared text waiting. Paste your PC's pairing link and tap **Connect**;
+VIVIM then opens Ask my AI with your shared text still prefilled.
+
 ## Recovery and navigation
 
 - Failed main-page connections and HTTP errors return to the pairing screen
