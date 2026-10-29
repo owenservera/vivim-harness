@@ -51,6 +51,36 @@ export function createWork(state, { title, objective, idempotencyKey, now }) {
   return { state: { ...state, updatedAt: now, work: [...work, item] }, item, changed: true };
 }
 
+// The user's next step is a LOCAL planning field, not permission to execute it.
+// CAS is owned by PersonalAgentService, so this pure reducer only validates the state.
+export function setWorkNextAction(state, { id, nextAction, now }) {
+  if (typeof id !== 'string' || !/^work-[a-f0-9]{32}$/.test(id)) {
+    throw err('PERSONAL_AGENT_WORK_INVALID', 'Invalid Work ID');
+  }
+  const work = existing(state);
+  const old = work.find(item => item.id === id);
+  if (!old) throw err('PERSONAL_AGENT_WORK_NOT_FOUND', 'Work item not found', 404);
+  if (old.status === 'completed' || old.status === 'cancelled') {
+    throw err('PERSONAL_AGENT_WORK_TRANSITION', 'Closed Work cannot be edited', 409);
+  }
+  if (nextAction !== null && (typeof nextAction !== 'string' || nextAction.trim().length === 0 ||
+      nextAction.trim().length > 1000)) {
+    throw err('PERSONAL_AGENT_WORK_INVALID', 'nextAction must be null or 1..1000 characters');
+  }
+  const action = nextAction === null ? null : nextAction.trim();
+  if (old.status === 'blocked' && action === null) {
+    throw err('PERSONAL_AGENT_WORK_INVALID', 'Blocked Work needs a next action or reason');
+  }
+  if ((old.nextAction ?? null) === action) return { state, item: old, changed: false };
+  if (!Array.isArray(old.events) || old.events.length >= 100) {
+    throw err('PERSONAL_AGENT_WORK_LIMIT', 'Work event history reached capacity', 409);
+  }
+  const event = { type: 'next-action', at: now, basis: 'user-authored-local-plan' };
+  const item = { ...old, nextAction: action, updatedAt: now, events: [...old.events, event] };
+  return { state: { ...state, updatedAt: now, work: work.map(row => row.id === id ? item : row) },
+    item, changed: true };
+}
+
 export function transitionWork(state, { id, to, note, evidence = [], now }) {
   if (typeof id !== 'string' || !/^work-[a-f0-9]{32}$/.test(id)) throw err('PERSONAL_AGENT_WORK_INVALID', 'Invalid Work ID');
   if (!WORK_STATES.includes(to)) throw err('PERSONAL_AGENT_WORK_INVALID', 'Invalid Work status');
