@@ -10,8 +10,8 @@ export const PERSONAL_APPS_API = '/api/v1/personal-apps';
 const CONVERSATIONS_API = '/api/v1/conversations'; // read-only stored list (list_conversations); never a send
 export const PAGE_LIMIT = 50;
 export const VIEWS = Object.freeze(['conversations', 'projects', 'notes']);
-export const FIND_KINDS = Object.freeze(['message', 'project', 'note', 'source-reference', 'selection']);
-const FIND_LABELS = { message: 'Messages', project: 'Projects', note: 'Notes', 'source-reference': 'Local objects', selection: 'Selections' };
+export const FIND_KINDS = Object.freeze(['message', 'project', 'note', 'task', 'app-note', 'source-reference', 'selection']);
+const FIND_LABELS = { message: 'Messages', project: 'Projects', note: 'Notes', task: 'Tasks', 'app-note': 'App notes', 'source-reference': 'Local objects', selection: 'Selections' };
 const SHELL_VIEWS = new Set(['capture', 'home', 'agent', 'builder', 'settings', 'find', 'transfer', 'relations', 'workspace', 'compose', ...VIEWS]);
 export const AGENT_TRANSITIONS = Object.freeze({ queued: ['active','blocked','cancelled'], active: ['blocked','completed','cancelled'], blocked: ['active','cancelled'], completed: [], cancelled: [] });
 const STANDARD_RELATION_BASIS = 'local association; not native equality';
@@ -3013,7 +3013,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     on(more, 'click', () => runSearch({ more: true }));
     listPane.replaceChildren(
       el('h2', { text: 'Find' }),
-      el('p', { class: 'note', text: 'Find looks through saved text on this computer. A match count is not everything that exists, and it does not search a provider.' }),
+      el('p', { class: 'note', text: 'Search your saved conversations, notes and app tasks here, including notes saved from a phone connected to this Studio. This searches this computer only, not your AI accounts.' }),
       el('div', { role: 'search', 'aria-label': 'Find saved records' }, [
         el('label', { class: 'lab', for: 'worldFindQuery', text: 'Text' }), query,
         el('label', { class: 'lab', for: 'worldFindKind', text: 'Kind' }), kind,
@@ -3117,6 +3117,20 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
   }
   async function openHit(hit) {
     if (!hit || typeof hit.id !== 'string') return;
+    if (hit.kind === 'task' || hit.kind === 'app-note') {
+      const appId = hit.source?.appId, itemId = hit.source?.itemId;
+      if (!/^app-[a-f0-9]{32}$/.test(appId ?? '') || !/^item-[a-f0-9]{32}$/.test(itemId ?? '')) return;
+      const response = await builderCall('/' + encodeURIComponent(appId) + '/content');
+      if (state.view !== 'find') return;
+      if (response.status !== 200) { state.find.error = 'This saved app item could not be opened. Open its app and try again.'; renderFind(); return; }
+      const data = response.data ?? {};
+      const item = (data.content?.items ?? data.items ?? []).find(value => value.id === itemId);
+      if (!item) { state.find.error = 'This item is no longer available. Search again to refresh the results.'; renderFind(); return; }
+      detailPane.replaceChildren(el('article', {}, [el('h2', { text: item.title }), el('p', { text: item.body }),
+        el('p', { text: item.kind === 'task' ? item.completed ? 'Task completed' : 'Task not completed yet' : 'Saved note' }),
+        el('p', { text: 'Saved in your app on this Studio. Phone and Windows use this same saved item.' })]));
+      return;
+    }
     if (hit.kind === 'message') {
       const id = hit.conversation?.id;
       if (!ID_RE.conversations.test(id || '')) {
@@ -3241,7 +3255,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     };
     const partsHint = exportMode === 'references'
       ? el('p', { class: 'note', text: 'References only has no message text, so there is nothing to turn on here. Choose Transcript or Full saved first.' })
-      : el('p', { class: 'note', text: 'These stay off until you turn them on. What is ticked goes into the file unredacted.' });
+      : el('p', { class: 'note', text: 'These stay off until you turn them on. Common sensitive patterns are masked, but included content may still be private.' });
     const preview = el('button', { type: 'button', id: 'worldExportPreview', text: t.loading === 'export' ? 'Previewing…' : 'Preview' });
     preview.disabled = t.loading === 'export' || !selectedExportIds().length;
     on(preview, 'click', () => runExport());
@@ -3280,8 +3294,11 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
         : exportMode !== 'references' && (t.exportParts.reasoning === true || t.exportParts.toolActivity === true);
       previewBox.append(el('p', { class: 'note', text: 'The hash is integrity only. It checks the file, not who wrote it and not that a provider still has it.' }));
       previewBox.append(el('p', { class: 'note', text: strongWarning
-        ? 'Selected content is not automatically redacted, and this may contain content you did not mean to share. Read every line before you share it.'
-        : 'Selected content is not automatically redacted.' }));
+        ? 'Common sensitive patterns are masked. Included reasoning or activity may still be private. Read every line before sharing.'
+        : 'Common sensitive patterns are masked automatically. This is not a guarantee: review all included text before sharing.' }));
+      previewBox.append(el('h3', { text: 'Review the complete file before downloading' }),
+        el('pre', { text: JSON.stringify(t.bundle, null, 2) }),
+        el('p', { text: 'Downloading saves a local file only. VIVIM does not upload or send it to anyone.' }));
       if (t.bundle.integrity?.sha256) previewBox.append(el('p', { class: 'mono', text: String(t.bundle.integrity.sha256).slice(0, 12) }));
       let href = '';
       try {

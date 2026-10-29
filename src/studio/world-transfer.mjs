@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { redactExportValue } from '../export/export.mjs';
 import { stableStringify } from '../intel/similarity.mjs';
 import { detectSecrets } from '../security/patterns.mjs';
 import { validateStoreName } from '../store/versioned.mjs';
@@ -263,7 +264,7 @@ export function createWorldTransfer({ service }) {
           omit(id, id.startsWith('c-') && error.code === 'WORLD_NOT_FOUND' ? 'SOURCE_MISSING' : reason);
           continue;
         }
-        data = jsonCopy(data);
+        data = redactExportValue(jsonCopy(data));
         // Export-time re-application of the read-time sanitizer (see world-url.mjs): providerUrl is
         // origin+pathname only. Service reads already sanitize; this choke point keeps the record
         // byte-identical when no providerUrl key exists (a changed envelope would break the record
@@ -312,7 +313,9 @@ export function createWorldTransfer({ service }) {
           providerCompleteness: 'not-established', recordsIncluded: records.length, referencesDiscovered: discovered.size,
           sourceSnapshotsIncluded: records.filter((r) => r.custody === 'saved-observation').length,
           referenceOnlyRevision: includeSources ? 'not-applicable' : 'selection revisions may point to content absent from this bundle',
-          qualification: 'User overlays are not provider assertions; source snapshots retain observed uncertainty. Selected content is not automatically redacted. providerUrl is projected as origin plus pathname only: userinfo, query strings and fragments are removed at read time; the pathname itself is kept and is not scanned for secret-looking segments.' } };
+          qualification: 'Local content only. Common credential and personal-data patterns are masked automatically; this is not a guarantee. Read the complete preview before sharing. Provider completeness is unknown.' },
+        privacy: { redactedByDefault: true, shared: false, reviewRequired: true,
+          warning: 'Masking is heuristic. Conversation text and user-authored notes may remain private even after masking.' } };
       // Bounded secret scan of the content that is about to be serialized. Runs before hashing so the
       // bundle digest covers the warnings it reports; findings are warnings (location + rule, never
       // the value) and never block or alter the export.

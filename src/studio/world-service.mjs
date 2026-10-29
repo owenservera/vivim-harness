@@ -2,6 +2,7 @@ import path from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
 import { Session, listSessions } from '../store/session.mjs';
 import { VersionedStore } from '../store/versioned.mjs';
+import { assertPersonalAppContent } from './personal-app-content.mjs';
 import { problem, storeProblem, page } from './http.mjs';
 import { buildObservation } from '../shapes/observation.mjs';
 import { sanitizeProviderUrl, sanitizedSource } from './world-url.mjs';
@@ -27,6 +28,7 @@ const publicRecord = ({ name, changeNote, ...record }) => record;
 // Only user-owned overlays live here. Messages remain projections of saved session evidence.
 export function createWorldService({ paths, isSessionActive = () => false }) {
   const store = new VersionedStore(path.join(paths.root, 'world'), { kind: 'world item' });
+  const appContent = new VersionedStore(path.join(paths.root, 'personal-app-content'), { kind: 'personal app content' });
   const load = (id, kind) => {
     check(typeof id === 'string' && new RegExp(`^${kind === 'project' ? 'p' : 'n'}-[a-z0-9-]{1,60}$`).test(id), 'Invalid item ID');
     let value;
@@ -49,7 +51,8 @@ export function createWorldService({ paths, isSessionActive = () => false }) {
     source: { sessionId: m.id, kind: 'saved-session', providerUrl: sanitizeProviderUrl(m.target?.url ?? null) },
     identityScope: 'source-observation-alias; use world objects for durable local references' });
   };
-  const allMetadata = () => listSessions(paths.sessions).filter((m) => typeof m.id === 'string' && /^[a-z0-9][a-z0-9._-]{0,127}$/i.test(m.id));
+  // World projections need metadata only, never a synchronous walk of every raw segment.
+  const allMetadata = () => listSessions(paths.sessions, { includeRawBytes: false }).filter((m) => typeof m.id === 'string' && /^[a-z0-9][a-z0-9._-]{0,127}$/i.test(m.id));
   const active = (m) => ['recording', 'stopping'].includes(m.status) || isSessionActive(m.id);
   const importedConversation = (id) => {
     if (!importedConversationId(id)) return null;
@@ -70,10 +73,11 @@ export function createWorldService({ paths, isSessionActive = () => false }) {
     return { ...metadata(m), availability: active(m) || m.status === 'unreadable_metadata' ? 'unavailable' : 'metadata-only',
       availabilityReason: active(m) ? 'SOURCE_ACTIVE' : m.status === 'unreadable_metadata' ? 'METADATA_UNREADABLE' : 'EVIDENCE_NOT_READ' };
   };
-  const resolve = (id) => {
+  const resolve = (id, request = {}) => {
     check(typeof id === 'string' && /^c-(?:[a-f0-9]{40}|i[a-f0-9]{38})$/.test(id), 'Invalid conversation ID');
     const imported = importedConversation(id); if (imported) return imported;
-    const m = allMetadata().find((m) => conversationId(m.id) === id);
+    request.metadata ??= allMetadata();
+    const m = request.metadata.find((m) => conversationId(m.id) === id);
     if (!m) throw problem(404, 'Saved conversation not found', 'WORLD_NOT_FOUND');
     if (active(m)) throw problem(409, 'Source is active; saved evidence read unavailable', 'WORLD_SOURCE_ACTIVE');
     return m;
@@ -84,11 +88,23 @@ export function createWorldService({ paths, isSessionActive = () => false }) {
     return { ...selected, items: selected.items.map((id) => publicRecord(load(id, kind))), namesEnumerated: names.length };
   };
   const service = {
+    appItems(q = {}) {
+      const items = [], failures = [];
+      const names = appContent.names(), selected = names.slice(0, 500);
+      for (const id of selected) {
+        try {
+          const content = assertPersonalAppContent(appContent.load(id), id);
+          for (const item of content.items) items.push({ ...item, appId: id, version: content.version });
+        } catch { failures.push({ kind: 'app-content', id, message: 'Saved app content could not be read. Open the app to check it.' }); }
+      }
+      return { ...page(items, q), failures, truncated: names.length > selected.length };
+    },
     conversationMetadata,
-    conversations: (q = {}) => {
+    conversations: (q = {}, request = {}) => {
       const mode = q.custody ?? 'observed';
       check(['observed', 'imported', 'all'].includes(mode), 'custody must be observed, imported or all');
-      const rows = allMetadata(), observed = rows.filter((m) => !active(m)).map((m) => ({ ...metadata(m), custody: 'observed', importedFrom: null }));
+      request.metadata ??= allMetadata();
+      const rows = request.metadata, observed = rows.filter((m) => !active(m)).map((m) => ({ ...metadata(m), custody: 'observed', importedFrom: null }));
       const imported = mode === 'observed' ? [] : store.names().filter(importedConversationId).map(importedConversation)
         .filter(Boolean).map((r) => ({ id: r.id, sessionId: null, title: r.title, status: 'imported', createdAt: r.importedFrom?.observedAt ?? null,
           identity: r.identity, source: sanitizedSource(r.source), custody: 'imported', importedFrom: r.importedFrom }));
@@ -96,7 +112,7 @@ export function createWorldService({ paths, isSessionActive = () => false }) {
       return { ...selected, metadataEnumerated: rows.length, custody: mode };
     },
     // @serves 016,099,100
-    conversation(id) {
+    conversation(id, request = {}) {
       const imported = importedConversation(id);
       if (imported) return { ...conversationMetadata(id),
         messages: imported.messages.map((message, index) => {
@@ -108,7 +124,7 @@ export function createWorldService({ paths, isSessionActive = () => false }) {
           return { ...message, id: localId, source };
         }),
         coverage: { state: 'imported-snapshot', reason: null, fullNativeThread: 'unknown', acceptance: 'not-assessed', richContent: 'imported-as-supplied' } };
-      const m = resolve(id);
+      const m = resolve(id, request);
       const unavailable = (reason) => ({ ...metadata(m), messages: [], coverage: { state: 'unavailable', reason,
         fullNativeThread: 'unknown', acceptance: 'not-assessed', richContent: 'unavailable' } });
       if (m.status === 'unreadable_metadata') return unavailable('METADATA_UNREADABLE');
@@ -209,6 +225,7 @@ export function registerWorldRoutes({ add, paths, isSessionActive }) {
   route('POST', '/projects', ({ body }) => service.createProject(body));
   route('PUT', '/projects/{id}', ({ p, body }) => service.updateProject(p.id, body));
   route('GET', '/notes', ({ q }) => service.notes(q));
+  route('GET', '/app-items', ({ q }) => service.appItems(q));
   route('GET', '/notes/{id}', ({ p, q }) => service.note(p.id, q));
   route('GET', '/notes/{id}/units', ({ p }) => service.noteUnits(p.id));
   route('GET', '/notes/{id}/units/{address}', ({ p }) => service.noteUnit(p.id, p.address));

@@ -6,6 +6,8 @@
 import { createWriteStream, createReadStream, existsSync, mkdirSync, writeFileSync, readFileSync, readdirSync, statSync, cpSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
+import { scrubText, redactUrl, redactHeaders } from '../capture/redact.mjs';
+import { detectSecrets } from '../security/patterns.mjs';
 import { exportSchemas } from './schemas.mjs';
 import { exportGraphRanked } from './graph-ranked.mjs';
 export { exportSchemas, exportGraphRanked };
@@ -245,13 +247,33 @@ export async function formatRows(rows, format = 'jsonl', { fields, title, column
 // ---------------------------------------------------------------------------------------------
 // Transcript
 // ---------------------------------------------------------------------------------------------
-export async function buildTranscript(session, { maxTimeline = 20000, topTexts = 5 } = {}) {
+export function redactExportValue(value, key = '', stats = { changed: 0 }) {
+  if (/^(password|passwd|cookie|cookies|set.cookie|authorization|access.?token|refresh.?token|api.?key|client.?secret|secret|token)$/i.test(key)) {
+    if (value != null && value !== '') { stats.changed++; return '[redacted]'; }
+  }
+  if (typeof value === 'string') {
+    if (/^(id|.*Ids|namespaceId|sha256|digest|schema|kind|version|sessionId)$/i.test(key)) return value;
+    let text = scrubText(value).text;
+    text = text.replace(/https?:\/\/[^\s<>"']+/g, url => redactUrl(url));
+    const hits = detectSecrets(text, { extended: true });
+    for (const hit of hits.sort((a, b) => b.start - a.start)) text = text.slice(0, hit.start) + '[redacted]' + text.slice(hit.end);
+    text = text.replace(/\b(password|passwd|api[_-]?key|access[_-]?token|secret|token)\s*[:=]\s*["']?[^\s"',;}]+/gi, '$1=[redacted]');
+    if (text !== value) stats.changed++;
+    return text;
+  }
+  if (Array.isArray(value)) return value.map(child => redactExportValue(child, key, stats));
+  if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([name, child]) =>
+    [name, /^headers$/i.test(name) ? redactHeaders(child) : redactExportValue(child, name, stats)]));
+  return value;
+}
+
+export async function buildTranscript(session, { maxTimeline = 20000, topTexts = 5, includeTechnical = false } = {}) {
   const m = session.meta;
   const assembled = session.kv.get('ASSEMBLED', {}) ?? {};
-  const timeline = await session.dataset('timeline').toArray(maxTimeline);
+  const timeline = includeTechnical ? await session.dataset('timeline').toArray(maxTimeline) : [];
   const t0 = timeline[0]?.t ?? 0;
   const streams = [];
-  for (const [sid, a] of Object.entries(assembled)) {
+  for (const [sid, a] of Object.entries(includeTechnical ? assembled : {})) {
     const texts = [];
     const walk = (n, p) => { if (typeof n === 'string' && n.length >= 20) texts.push([p, n]); else if (n && typeof n === 'object') for (const [k, v] of Object.entries(n)) walk(v, `${p}/${k}`); };
     walk(a.doc, '');
@@ -271,11 +293,11 @@ function timelineLine(e) {
 
 export function renderTranscriptMarkdown(tr) {
   const m = tr.meta;
-  const out = [`# Capture session ${m.id}`, '', `- Target: ${m.target?.title ?? ''} (${m.target?.url ?? ''})`, `- Browser: ${m.browser}`, `- Profile: ${m.profile?.name}@v${m.profile?.version}`, `- Status: ${m.status} (${m.endReason ?? ''})`, ''];
+  const out = [`# Saved conversation ${m.id}`, '', `- Page: ${m.target?.title ?? ''} (${m.target?.url ?? ''})`, `- Browser: ${m.browser}`, `- Profile: ${m.profile?.name}@v${m.profile?.version}`, `- Saving status: ${m.status} (${m.endReason ?? ''})`, '- Privacy: common sensitive patterns are masked; review this local file before sharing.', ''];
   out.push('## Timeline', '');
   for (const e of tr.timeline) out.push(`- ${timelineLine(e)}`);
   if (tr.turns.length) {
-    out.push('', '## Rendered conversation turns', '');
+    out.push('', '## Saved messages', '');
     for (const t of tr.turns) out.push(`**${t.role || 'turn'}**`, '', t.text, '');
   }
   out.push('', '## Assembled stream content', '');
@@ -289,11 +311,12 @@ export function renderTranscriptMarkdown(tr) {
 export function renderTranscriptHtml(tr) {
   const m = tr.meta;
   const body = [
-    `<h1>Capture session ${escapeHtml(m.id)}</h1>`,
+    `<h1>Saved conversation ${escapeHtml(m.id)}</h1>`,
+    '<p>Common sensitive patterns are masked. Review this local file before sharing.</p>',
     `<ul><li>Target: ${escapeHtml(m.target?.title ?? '')} <code>${escapeHtml(m.target?.url ?? '')}</code></li><li>Browser: ${escapeHtml(m.browser)}</li><li>Profile: ${escapeHtml(m.profile?.name)}@v${escapeHtml(m.profile?.version)}</li><li>Status: ${escapeHtml(m.status)} (${escapeHtml(m.endReason ?? '')})</li></ul>`,
     '<h2>Timeline</h2>', `<ul>${tr.timeline.map((e) => `<li>${escapeHtml(timelineLine(e))}</li>`).join('')}</ul>`,
   ];
-  if (tr.turns.length) body.push('<h2>Rendered conversation turns</h2>', ...tr.turns.map((t) => `<p><strong>${escapeHtml(t.role || 'turn')}</strong></p><pre>${escapeHtml(t.text)}</pre>`));
+  if (tr.turns.length) body.push('<h2>Saved messages</h2>', ...tr.turns.map((t) => `<p><strong>${escapeHtml(t.role || 'message')}</strong></p><pre>${escapeHtml(t.text)}</pre>`));
   body.push('<h2>Assembled stream content</h2>');
   for (const a of tr.streams) body.push(`<h3>${escapeHtml(a.endpoint)} <small class="meta">[${escapeHtml(a.sid)}] ${a.revisions} revisions (${escapeHtml(a.dialects.join(', ') || 'snapshots')})</small></h3>`, ...a.texts.map((t) => `<p><code>${escapeHtml(t.path)}</code></p><pre>${escapeHtml(t.text)}</pre>`));
   return htmlPage(`Transcript ${m.id}`, body.join('\n'));
@@ -303,9 +326,16 @@ export function renderTranscriptHtml(tr) {
 export async function exportTranscript(session, outFile, opts = {}) {
   const format = opts.format ?? (TRANSCRIPT_FORMATS.includes(inferFormat(outFile, 'md')) ? inferFormat(outFile, 'md') : 'md');
   if (!TRANSCRIPT_FORMATS.includes(format)) throw new ExportError(`Unknown transcript format ${format} (${TRANSCRIPT_FORMATS.join('|')})`, 'BAD_FORMAT');
-  const tr = await buildTranscript(session, opts);
+  const stats = { changed: 0 };
+  const tr = redactExportValue(await buildTranscript(session, opts), '', stats);
+  const review = { session: session.id, messages: tr.turns.length, timelineEntries: tr.timeline.length,
+    streamSections: tr.streams.length, redactedValues: stats.changed, localOnly: true,
+    includes: ['saved message text', 'session metadata', ...(opts.includeTechnical ? ['technical timeline and stream text'] : [])],
+    excludes: ['raw browser traffic', 'browser profile', 'credential stores'],
+    warning: 'Automatic masking is not a guarantee. Read the complete local file before sharing it.' };
+  if (opts.reviewOnly) return { review, preview: tr, written: false };
   const text = format === 'json' ? JSON.stringify(tr, null, 2) + '\n' : format === 'html' ? renderTranscriptHtml(tr) : renderTranscriptMarkdown(tr);
-  return writeText(outFile, text, { format });
+  return writeText(outFile, text, { format, review, written: true });
 }
 
 async function writeText(outFile, text, extra = {}) {

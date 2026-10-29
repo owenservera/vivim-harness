@@ -80,13 +80,25 @@ define({
 define({
   name: 'export transcript', section: 'Export', aliases: ['transcript'], usage: '[id|latest] [--format md|html|json]', summary: 'Readable session transcript: timeline, rendered turns, assembled stream text',
   flags: {
+    confirm: { type: 'boolean', desc: 'Write the masked transcript after reviewing the preview' },
+    receipt: { type: 'boolean', desc: 'Show only inclusion counts and privacy outcome, never conversation text' },
+    'include-technical': { type: 'boolean', desc: 'Also include technical timeline and stream text (private)' },
     format: { type: 'string', alias: 'f', choices: TRANSCRIPT_FORMATS, desc: 'Output format (default md, or from --out extension)' },
     out: { type: 'string', alias: 'o', valueName: 'FILE', desc: 'Output file; "-" writes to stdout' },
   },
   async run(ctx) {
-    const s = await prepared(ctx, ctx.args[0]);
+    // Saved text can be read without deriving raw network logs or waiting on a recording.
+    const s = ctx.session(ctx.args[0]);
     const fmt = ctx.flags.format ?? (TRANSCRIPT_FORMATS.includes(inferFormat(ctx.flags.out, 'md')) ? inferFormat(ctx.flags.out, 'md') : 'md');
-    const r = await exportTranscript(s, outFile(ctx, s, '', fmt), { format: fmt });
+    const r = await exportTranscript(s, outFile(ctx, s, '', fmt), { format: fmt, reviewOnly: !ctx.flags.confirm || !!ctx.flags.receipt, includeTechnical: !!ctx.flags['include-technical'] });
+    if (ctx.flags.receipt) {
+      ctx.out.emit({ ...r.review, outcome: r.written ? 'saved-locally' : 'review-only', shared: false }, o => o.result(JSON.stringify(r.review, null, 2)));
+      return;
+    }
+    if (!ctx.flags.confirm) {
+      ctx.out.emit(r, o => { o.result(JSON.stringify(r, null, 2)); o.result('Review the masked preview above. Nothing was written or shared. Add --confirm to save locally; inspect that file before sharing.'); });
+      return;
+    }
     if (r.file !== '-') ctx.out.emit(r, (o) => showWrite(o, 'transcript', r));
   },
 });

@@ -8,7 +8,7 @@ import { problem, integer, text, storeProblem } from './http.mjs';
 import { noteUnits, noteUnitRef } from './world-note-units.mjs';
 
 // Kinds are the actual local record families; messages are saved DOM_TURNS projections.
-export const WORLD_SEARCH_KINDS = Object.freeze(['message', 'project', 'note', 'source-reference', 'selection']);
+export const WORLD_SEARCH_KINDS = Object.freeze(['message', 'project', 'note', 'task', 'app-note', 'source-reference', 'selection']);
 export const WORLD_SEARCH_CUSTODY = Object.freeze(['observed', 'imported', 'all']);
 
 // Generous finite scan bounds. They are exposed in coverage so a caller can see what was read.
@@ -110,7 +110,7 @@ export function createWorldSearch({ service, limits } = {}) {
   }
   const bounds = boundsWith(limits);
 
-  function search(q = {}) {
+  function* searchSteps(q = {}) {
     if (!q || typeof q !== 'object' || Array.isArray(q)) throw problem(400, 'Search query must be an object', 'WORLD_INVALID_INPUT');
     const query = text(q.q, 'q', 1000).trim();
     const custody = q.custody === undefined || q.custody === null ? 'all' : q.custody;
@@ -122,7 +122,7 @@ export function createWorldSearch({ service, limits } = {}) {
 
     const index = new CorpusSearchIndex(), hitMeta = new Map();
     const failures = [], reasons = new Set();
-    const scanned = { conversations: 0, observedConversations: 0, importedConversations: 0, messages: 0, projects: 0, notes: 0, sourceReferences: 0, selections: 0 };
+    const scanned = { conversations: 0, observedConversations: 0, importedConversations: 0, messages: 0, projects: 0, notes: 0, appNotes: 0, tasks: 0, sourceReferences: 0, selections: 0 };
     // Conversations whose saved or imported content is explicitly absent. Absence is disclosed, never
     // turned into synthetic message content or into an implied successful local match.
     let absentObserved = 0, absentImported = 0;
@@ -152,12 +152,17 @@ export function createWorldSearch({ service, limits } = {}) {
 
     if (kind === null || kind === 'message') {
       // The service list defaults to observed-only, so the requested custody is always passed explicitly.
-      const conversations = collect((query) => service.conversations({ ...query, custody }), 'conversations', bounds.conversations, bounds.pageSize);
+      // Share one metadata enumeration for this search, not one disk walk per message source.
+      const readContext = {};
+      const conversations = collect((query) => service.conversations({ ...query, custody }, readContext), 'conversations', bounds.conversations, bounds.pageSize);
       if (conversations.truncated) reasons.add('conversation-scan-limit');
       for (const meta of conversations.items) {
+        // The HTTP runner yields between saved conversations so health, capture and
+        // comparison polling can run while this bounded local index is built.
+        yield;
         if (scanned.messages >= bounds.messages) { reasons.add('message-scan-limit'); break; }
         let detail;
-        try { detail = service.conversation(meta?.id); }
+        try { detail = service.conversation(meta?.id, readContext); }
         catch (e) { fail(failures, 'conversation', meta?.id, e); continue; }
         const imported = importedSnapshot(meta, detail);
         scanned.conversations++;
@@ -214,6 +219,23 @@ export function createWorldSearch({ service, limits } = {}) {
             identityScope: imported ? 'imported snapshot; not observed; not durable part identity' : 'source-observation-alias; not durable part identity',
           });
         }
+      }
+    }
+
+    if ((kind === null || kind === 'task' || kind === 'app-note') && typeof service.appItems === 'function') {
+      const found = collect(query => service.appItems(query), 'app content', 2000, bounds.pageSize);
+      if (found.truncated) reasons.add('app-content-scan-limit');
+      const report = service.appItems({ limit: 1 });
+      failures.push(...(report.failures ?? []));
+      if (report.truncated) reasons.add('app-store-scan-limit');
+      for (const item of found.items) {
+        const itemKind = item.kind === 'task' ? 'task' : 'app-note';
+        if (kind !== null && kind !== itemKind) continue;
+        scanned[itemKind === 'task' ? 'tasks' : 'appNotes']++;
+        const id = `${item.appId}:${item.id}`;
+        put(id, { id, kind: itemKind, title: item.title, version: item.version },
+          [item.title, item.body, item.kind === 'task' ? item.completed ? 'completed' : 'unfinished' : ''].join('\n'),
+          { provenance: 'user-authored', appId: item.appId, itemId: item.id, completed: item.completed });
       }
     }
 
@@ -354,14 +376,36 @@ export function createWorldSearch({ service, limits } = {}) {
     };
   }
 
-  return { search };
+  function search(q = {}) {
+    const steps = searchSteps(q);
+    let step;
+    do { step = steps.next(); } while (!step.done);
+    return step.value;
+  }
+  let inFlight = false;
+  async function searchAsync(q = {}) {
+    // Do not let overlapping UI polls accumulate synchronous indexing work.
+    if (inFlight) throw problem(503, 'Search is still working. Please try again shortly.', 'WORLD_SEARCH_BUSY');
+    inFlight = true;
+    try {
+      const steps = searchSteps(q);
+      const deadline = Date.now() + 30000;
+      for (;;) {
+        await new Promise(resolve => setImmediate(resolve));
+        if (Date.now() >= deadline) throw problem(503, 'Search is taking longer than expected. Try a more specific search.', 'WORLD_SEARCH_BUSY');
+        const step = steps.next();
+        if (step.done) return step.value;
+      }
+    } finally { inFlight = false; }
+  }
+  return { search, searchAsync };
 }
 
 // Optional route for the existing Studio hub; the parent registers it after reconciliation.
 export function registerWorldSearchRoutes({ add, service }) {
   if (typeof add !== 'function') throw new TypeError('registerWorldSearchRoutes requires the hub add() function');
-  const { search } = createWorldSearch({ service });
-  add('GET', '/world/search', 'Bounded read-only search across saved messages and local world records', ({ q }) => {
-    try { return search(q); } catch (e) { throw e?.status ? e : storeProblem(e); }
+  const { searchAsync } = createWorldSearch({ service });
+  add('GET', '/world/search', 'Bounded read-only search across saved messages and local world records', async ({ q }) => {
+    try { return await searchAsync(q); } catch (e) { throw e?.status ? e : storeProblem(e); }
   });
 }

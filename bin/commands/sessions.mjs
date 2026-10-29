@@ -17,6 +17,9 @@ defineGroup('session', {
 });
 
 const sessionRow = (m) => ({
+  explanation: m.status === 'recording' ? 'This conversation was still being saved. Its saved messages may be incomplete.'
+    : m.status === 'complete' ? 'Saving finished. Only messages available on this computer can be reopened.'
+      : 'Some information may be missing. Open the saved conversation to see what is available.',
   id: m.id, status: m.status, createdAt: m.createdAt, endedAt: m.endedAt ?? null, endReason: m.endReason ?? null,
   site: siteLabel(m), title: m.target?.title ?? '', url: m.target?.url ?? '', profile: m.profile ? `${m.profile.name}@v${m.profile.version}` : null,
   rawBytes: m.rawBytes ?? 0, integrityOk: m.integrity?.ok ?? null, records: m.integrity?.records ?? null,
@@ -115,7 +118,8 @@ define({
       datasets: catalog,
     };
     ctx.out.emit(data, (o) => {
-      o.heading(s.id);
+       o.heading('Saved conversation');
+       o.line(data.explanation);
       o.kv([['target', `${data.title} ${data.url}`.trim()], ['site', data.site], ['status', `${m.status}${m.endReason ? ` (${m.endReason})` : ''}`], ['created', `${m.createdAt} (${fmtAgo(m.createdAt)})`],
         ['profile', data.profile], ['browser', m.browser], ['raw size', fmtBytes(data.rawBytes)], ['integrity', m.integrity ? `${m.integrity.ok ? 'ok' : 'WARNINGS'}, ${m.integrity.records} records, ${m.integrity.gapRecords} gap(s)` : 'unchecked'], ['directory', s.dir]]);
       o.line('');
@@ -125,7 +129,7 @@ define({
           ['family', receipt.family ? `${receipt.family.best} (${fmtPct(receipt.family.score)})` : ''], ['knowledge', receipt.knowledge ? (receipt.knowledge.error ? `failed at ${receipt.knowledge.stage}` : `${receipt.knowledge.types} types, ${receipt.knowledge.entities} entities, ${receipt.knowledge.edges} edges`) : data.knowledge.state]]);
       } else o.line(o.c.yellow(`Not derived yet. Run "studio derive ${s.id}".`));
       o.line('');
-      o.heading('Datasets');
+      o.heading('Saved information available to export');
       o.table(catalog, [{ title: 'NAME', key: 'name' }, { title: 'KIND', key: 'kind' }, ...(ctx.flags.counts ? [{ title: 'ROWS', get: (d) => d.rows ?? '-', align: 'right' }] : []), { title: 'SIZE', get: (d) => (d.bytes ? fmtBytes(d.bytes) : ''), align: 'right' }], { empty: 'No datasets (run "studio derive").' });
     });
   },
