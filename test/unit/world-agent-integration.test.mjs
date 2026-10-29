@@ -57,16 +57,22 @@ function fixture() {
     memoryCounts: { CANON: state.memory.filter(x => x.tier === 'CANON').length,
       Immediate: state.memory.filter(x => x.tier === 'Immediate').length,
       Curated: state.memory.filter(x => x.tier === 'Curated').length },
-    work: { total: state.work.length, byStatus: {} },
+    work: { total: state.work.length, byStatus: Object.fromEntries(
+      ['queued', 'active', 'blocked', 'completed', 'cancelled'].map(status =>
+        [status, state.work.filter(item => item.status === status).length])) },
   } : { initialized: false, agentId: 'primary', nextStage: 'identity-and-sitrep' };
   const reply = (code, data) => ({ status: code, json: async () => data });
   const fetchImpl = async (url, options = {}) => {
     const method = options.method ?? 'GET';
     const data = options.body ? JSON.parse(options.body) : null;
     calls.push({ url, method, data });
+    if (url.startsWith('/api/v1/world')) {
+      if (url.includes('/namespace')) return reply(200, { id: 'local', kind: 'namespace' });
+      return reply(200, { items: [], total: 0, limit: 50, offset: 0, nextOffset: null });
+    }
     if (!url.startsWith(AGENT_API)) throw Error('Unexpected route: ' + url);
     const route = url.slice(AGENT_API.length);
-    if (route === '/status' && method === 'GET') return reply(200, status());
+    if (route === '/status' && method === 'GET') return state.failStatus ? reply(503, { code: 'LOCAL_UNAVAILABLE' }) : reply(200, status());
     if (route === '/bootstrap' && method === 'POST') {
       if (data.expectedVersion !== (state.initialized ? state.version : null)) return reply(409, { code: 'CAS_VERSION_CONFLICT' });
       state.initialized = true; state.version++; return reply(200, status());
@@ -311,4 +317,40 @@ test('Work list filters open/closed records and progressively exposes older loca
   filter().value = 'all'; await filter().fire('change');
   assert.match(summary(), /Showing 50 of 64 matching/);
   assert.equal(nodes(byId(f.root, 'worldAgentWork'), n => n.tag === 'article').length, 50);
+});
+
+test('Home projects only status counts; never auto-reads private Agent Work, memory or SITREP', async () => {
+  const f = fixture();
+  await f.world.choose('home');
+  const card = byId(f.root, 'vivimAgentHomeCard');
+  assert.ok(card);
+  assert.match(card.textContent, /Initialize your local agent/);
+  const homeRequests = f.calls.filter(c => c.url.startsWith(AGENT_API));
+  assert.deepEqual(homeRequests.map(c => c.url), [AGENT_API + '/status']);
+  assert.equal(homeRequests.every(c => c.method === 'GET'), true);
+  // Bootstrap is an explicit action in Agent view, then Home reads ONLY status again.
+  await f.world.choose('agent'); await byId(f.root, 'worldAgentStart').click();
+  f.state.work = [
+    { status: 'queued' }, { status: 'active' }, { status: 'blocked' }, { status: 'completed' },
+  ];
+  const before = f.calls.length;
+  await f.world.choose('home');
+  const onlyHomeAgentRequests = f.calls.slice(before).filter(c => c.url.startsWith(AGENT_API));
+  assert.deepEqual(onlyHomeAgentRequests.map(c => c.url), [AGENT_API + '/status']);
+  assert.match(byId(f.root, 'vivimAgentHomeCard').textContent, /3Personal Agent/);
+  assert.match(byId(f.root, 'vivimAgentHomeCard').textContent, /Open local Work/);
+  assert.doesNotMatch(byId(f.root, 'vivimAgentHomeCard').textContent, /PRIVATE_LOCAL_MEMORY|Work objective/);
+  await byId(f.root, 'vivimAgentHomeCard').click();
+  assert.equal(f.world.view(), 'agent');
+});
+
+test('Home falls back to unknown rather than inventing Agent status when Studio is unavailable', async () => {
+  const f = fixture();
+  f.state.failStatus = true;
+  await f.world.choose('home');
+  const card = byId(f.root, 'vivimAgentHomeCard');
+  assert.match(card.textContent, /Local agent status unavailable/);
+  assert.doesNotMatch(card.textContent, /Agent ready locally|Bootstrap complete/);
+  assert.match(card.textContent, /—Personal Agent/);
+  assert.equal(f.calls.filter(c => c.url.startsWith(AGENT_API)).length, 1);
 });
