@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto';
 import { VersionedStore } from '../store/versioned.mjs';
 import { problem, storeProblem } from './http.mjs';
 import { createPersonalAppBlueprint, addPersonalAppScreen, personalAppScaffold,
-  assertPersonalAppBlueprint, isPersonalAppId } from './personal-app-blueprint.mjs';
+  assertPersonalAppBlueprint, isPersonalAppId, previewPersonalAppChange } from './personal-app-blueprint.mjs';
 
 const KEY = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{7,127}$/;
 const MAX_APPS = 20;
@@ -64,8 +64,29 @@ export function createPersonalAppService({ paths, clock = () => new Date().toISO
     const saved = commit(id, next, expectedVersion, 'Added user-directed declarative mobile screen');
     return { app: saved, changed: true };
   }
+  function previewChange({ id, proposal } = {}) {
+    const app = load(id);
+    return previewPersonalAppChange(app, proposal, { now: clock() });
+  }
+  function applyChange({ id, expectedVersion, proposal, approval } = {}) {
+    if (approval !== 'user-confirmed') {
+      throw fail(403, 'Explicit local user approval is required', 'PERSONAL_APP_APPROVAL_REQUIRED');
+    }
+    const before = load(id);
+    if (!Number.isSafeInteger(expectedVersion) || expectedVersion !== before.version) {
+      throw fail(409, 'App revision changed; refresh before applying', 'PERSONAL_APP_VERSION_CONFLICT');
+    }
+    const preview = previewPersonalAppChange(before, proposal, { now: clock() });
+    let next = before;
+    for (const op of preview.change.operations) {
+      next = addPersonalAppScreen(next, { kind: op.kind, label: op.label, now: clock() });
+    }
+    const saved = commit(id, next, expectedVersion, 'Explicitly approved bounded data-only app proposal');
+    return { app: saved, applied: preview.diff, externalProvenance: 'not-verified',
+      providerExecution: 'not-attempted', deployed: false };
+  }
   return {
-    list, create, get: load, addScreen,
-    scaffold: id => ({ version: load(id).version, scaffold: personalAppScaffold(load(id)) }),
+    list, create, get: load, addScreen, previewChange, applyChange,
+    scaffold: id => { const app = load(id); return { version: app.version, scaffold: personalAppScaffold(app) }; },
   };
 }
