@@ -36,9 +36,9 @@ test('input validation prevents arbitrary code as executable layout and rejects 
     assert.throws(() => addPersonalAppScreen(base(), { kind, label: 'Danger', now }),
       e => e.code === 'PERSONAL_APP_INVALID');
   }
-  for (const intent of ['', 'x'.repeat(2001), 'invalid\\u0000control']) {
-    const unescaped = intent.replace('\\u0000','\\u0000');
-    if (!intent) assert.throws(() => createPersonalAppBlueprint({ id, title: 'x', intent, now }));
+  for (const intent of ['', 'x'.repeat(2001), 'bad' + String.fromCharCode(0) + 'text']) {
+    assert.throws(() => createPersonalAppBlueprint({ id, title: 'x', intent, now }),
+      e => e.code === 'PERSONAL_APP_INVALID');
   }
   assert.throws(() => createPersonalAppBlueprint({ id: '../escape', title: 'A', intent: 'B', now }));
   const changed = structuredClone(base()); changed.screens[0].key = 'oops';
