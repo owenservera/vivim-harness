@@ -65,7 +65,7 @@ test('same-owner app factory survives Studio restart with token and origin guard
     'preview is read-only and may not advance a revision');
   assert.equal((await request('/' + id + '/apply-change', 'POST', {
     expectedVersion: 2, proposal,
-  })).status, 400, 'missing approval is not permitted');
+  })).status, 403, 'missing approval is not permitted');
   const applied = await request('/' + id + '/apply-change', 'POST', {
     expectedVersion: 2, proposal, approval: 'user-confirmed',
   });
@@ -85,7 +85,7 @@ test('same-owner app factory survives Studio restart with token and origin guard
   })).status, 409);
   assert.equal((await request('', 'POST', { ...input, extra: 'unapproved' })).status, 400);
   assert.equal((await request('/' + id + '/screens', 'POST', {
-    expectedVersion: 2, kind: 'javascript', label: 'Code injection',
+    expectedVersion: 3, kind: 'javascript', label: 'Code injection',
   })).status, 400);
   const toolManifest = await fetch(base() + '/api/v1/integrations/tools', { headers });
   if (toolManifest.ok) {
