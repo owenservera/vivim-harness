@@ -3,6 +3,9 @@ import { define, defineGroup } from '../lib/registry.mjs';
 import { createPersonalAgentService } from '../../src/agents/personal-agent-service.mjs';
 import { usageError } from '../lib/ui.mjs';
 import { randomUUID } from 'node:crypto';
+import { lstatSync, readFileSync } from 'node:fs';
+import path from 'node:path';
+import { inspectPortableSnapshot, MAX_AGENT_EXPORT_DOCUMENT_BYTES } from '../../src/agents/personal-agent-continuity.mjs';
 
 const emit = (ctx, data) => ctx.out.emit(data, out => out.line(JSON.stringify(data, null, 2)));
 const service = ctx => createPersonalAgentService({ paths: ctx.paths });
@@ -110,6 +113,25 @@ define({ name: 'personal-agent sitrep', section: 'System',
   examples: ['studio personal-agent sitrep --json'],
   run(ctx) { noArgs(ctx); emit(ctx, service(ctx).continuity()); },
 });
+define({ name: 'personal-agent inspect-export', section: 'System', usage: '<snapshot.json>',
+  summary: 'Read-only preflight of local portable Agent JSON; verifies checksum and privacy flags, never imports',
+  examples: ['studio personal-agent inspect-export ./agent-snapshot.json --json'],
+  run(ctx) {
+    if (ctx.args.length !== 1) throw usageError('Usage: studio personal-agent inspect-export <snapshot.json>');
+    const file = path.resolve(ctx.args[0]);
+    let meta;
+    try { meta = lstatSync(file); }
+    catch { throw usageError('Snapshot file cannot be opened'); }
+    if (!meta.isFile() || meta.isSymbolicLink() || meta.size < 2 || meta.size > MAX_AGENT_EXPORT_DOCUMENT_BYTES) {
+      throw usageError('Snapshot must be a regular JSON file within the bounded export size');
+    }
+    let bundle;
+    try { bundle = JSON.parse(readFileSync(file, 'utf8')); }
+    catch { throw usageError('Snapshot is not valid readable JSON'); }
+    emit(ctx, inspectPortableSnapshot(bundle));
+  },
+});
+
 define({ name: 'personal-agent export', section: 'System',
   summary: 'Export checksummed local agent JSON; private details only on explicit flags',
   flags: {
