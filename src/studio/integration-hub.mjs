@@ -23,6 +23,7 @@ import { registerHarnessTools } from './harness-api.mjs';
 import { registerRecipeRoutes } from './recipe-routes.mjs';
 import { registerWorldRoutes } from './world-service.mjs';
 import { registerPersonalAgentRoutes } from './personal-agent-routes.mjs';
+import { registerPersonalAppRoutes } from './personal-app-routes.mjs';
 
 const str = { type: 'string' };
 const pagination = { offset: { type: 'integer', minimum: 0, maximum: 1000000 }, limit: { type: 'integer', minimum: 1, maximum: 1000 } };
@@ -114,6 +115,7 @@ export function createIntegrationHub({ paths, profileStore, learner, recorder, c
   registerRecipeRoutes({ add, harnessApi, conversationRuntime });
   registerWorldRoutes({ add, paths, isSessionActive: (id) => conversationRuntime?.isSessionActive(id) ?? false });
   registerPersonalAgentRoutes({ add, paths, getTools: () => toolsManifest().tools });
+  registerPersonalAppRoutes({ add, paths });
 
   add('GET', '/health', 'Studio process health without probing Chrome', () => ({ version: VERSION, apiVersion: 1, time: new Date().toISOString(), recorder: recorder.status(), events: feed.info() }), { tool: 'studio_health' });
   add('GET', '/sessions', 'List and filter saved recordings', ({ q }) => page(selectedSessions(q), q), { query: sessionQuery, tool: 'list_sessions' });
