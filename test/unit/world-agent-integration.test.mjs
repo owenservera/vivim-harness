@@ -541,6 +541,10 @@ test('the existing World shell exposes one native Build my VIVIM journey, no pro
   assert.equal(f.state.apps.length, 1);
   assert.match(byId(f.root, 'worldBuilderPhone').textContent, /My Agent/);
   assert.match(byId(f.root, 'worldBuilderPhone').textContent, /Build/);
+  const mobileLink = byId(f.root, 'worldBuilderOpenMobile');
+  assert.ok(mobileLink, 'the existing World builder links to the mobile view');
+  assert.equal(mobileLink.getAttribute('href'), '/mobile?app=' + f.state.apps[0].id);
+  assert.equal(mobileLink.getAttribute('rel'), 'noopener noreferrer');
   assert.equal(f.state.apps[0].intent, 'I want a local-first assistant with tasks and notes');
   const add = byId(f.root, 'worldBuilderAddScreenForm');
   const label = inputs(add)[0];
