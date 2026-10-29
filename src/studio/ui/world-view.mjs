@@ -1504,7 +1504,13 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
           (screen.origin === 'base-scaffold' ? 'starter screen' : 'user-added screen') }),
       ]));
       phone.append(nav);
-      preview.append(phone, el('p', { class: 'note', text: 'This is a data-only layout preview. It does not run generated code or contact an AI provider.' }));
+      preview.append(phone, el('p', { class: 'note', text: 'Blueprint-only representation. No model or generated code ran.' }));
+      preview.append(el('a', { id: 'worldBuilderOpenMobile', class: 'hit',
+        href: '/mobile?app=' + encodeURIComponent(b.selected.id),
+        target: '_blank', rel: 'noopener noreferrer',
+        text: 'Open working mobile view on this PC' }));
+      preview.append(el('p', { class: 'note',
+        text: 'This local view supports saved notes and tasks. It is not yet reachable from a separate phone.' }));
       const add = el('form', { id: 'worldBuilderAddScreenForm' });
       const kind = el('select', { 'aria-label': 'New screen kind' });
       for (const type of ['notes', 'tasks', 'dashboard', 'blank']) kind.append(el('option', { value: type, text: type }));
