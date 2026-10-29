@@ -63,14 +63,14 @@ export function mountMobile({
 } = {}) {
   if (!doc || !root || typeof fetchImpl !== 'function') return null;
   const state = { appId: null, scaffold: null, version: null, active: 'home',
-    index: null, content: null, agent: null, notice: '', error: '', busy: false,
+    index: null, content: null, agent: null, notice: '', error: '', busy: false, connection: '', recovering: false,
     templates: [], template: 'notes', appTitle: '', creationKey: null,
     builder: { kind: 'notes', label: '', preview: null, source: null,
       site: 'chatgpt', wish: '', job: null, timer: null, designChecked: false, replies: [], repliesLoaded: false },
     loading: false, draftTitle: '', draftBody: '', pendingKey: null, view: 'index',
     ask: { site: 'chatgpt', conversationId: null, revision: null, snapshot: null, turns: [],
       pending: null, draft: '', status: '', error: '', notice: '', retry: false,
-      busy: false, timer: null, pinBottom: false, checkAgain: false } };
+      busy: false, reading: false, timer: null, pinBottom: false, checkAgain: false } };
   let requestTicket = 0;
   let designReadTicket = 0;
   function el(tag, text, cls) {
@@ -90,19 +90,28 @@ export function mountMobile({
     const node = el('a', text, cls); attr(node, 'href', href); return node;
   }
   async function request(path, options = {}) {
-    const controller = options.timeoutMs && typeof AbortController === 'function' ? new AbortController() : null;
-    const timer = controller ? globalThis.setTimeout(() => controller.abort(), options.timeoutMs) : null;
+    const controller = typeof AbortController === 'function' ? new AbortController() : null;
+    const timer = controller ? globalThis.setTimeout(() => controller.abort(), options.timeoutMs ?? 20000) : null;
     try {
       const response = await fetchImpl(path, { credentials: 'same-origin', cache: 'no-store',
         ...(controller ? { signal: controller.signal } : {}),
         ...(options.body ? { headers: { 'content-type': 'application/json' },
           body: JSON.stringify(options.body) } : {}), method: options.method ?? 'GET' });
       let data; try { data = await response.json(); } catch { data = null; }
+      state.connection = response.status === 401 || response.status === 403 ? 'approval' : '';
       return { status: response.status, data };
-    } catch { return { status: 0, data: null }; }
+    } catch { state.connection = 'offline'; return { status: 0, data: null }; }
     finally { if (timer) globalThis.clearTimeout(timer); }
   }
   function message(target) {
+    if (state.connection) {
+      const notice = el('section', undefined, 'notice'); attr(notice, 'role', 'status');
+      notice.append(el('p', state.connection === 'approval'
+        ? 'Reconnect this phone using the connection link from VIVIM on your PC.'
+        : 'Your PC isn’t reachable. Connect to the same WiFi and keep VIVIM open on your PC. Nothing will be sent automatically. If your PC’s address changed, open a new connection link from VIVIM.'));
+      const check = btn(state.recovering ? 'Checking connection…' : 'Check connection', () => recoverConnection());
+      check.disabled = state.recovering; notice.append(check); target.append(notice);
+    }
     if (state.error) target.append(el('p', state.error, 'notice error'));
     if (state.notice) target.append(el('p', state.notice, 'notice'));
   }
@@ -119,6 +128,8 @@ export function mountMobile({
     target.append(el('footer',
       'VIVIM data is hosted on your PC; this phone connects over your WiFi and saves recent messages to resume your chat. Your chosen AI provider receives messages through your own account.',
       'footer'));
+    if (globalThis.isSecureContext === false) target.append(el('p',
+      'You can use VIVIM here while connected to your PC. Installing it and opening it offline need a secure connection; a plain WiFi address does not support those features.', 'footer'));
   }
   function renderIndex(target) {
     const hero = el('section', undefined, 'card hero');
@@ -523,7 +534,7 @@ export function mountMobile({
     state.loading = false;
     if (templates.status === 200 && Array.isArray(templates.data?.items)) state.templates = templates.data.items;
     if (result.status === 200 && Array.isArray(result.data?.items)) state.index = result.data;
-    else state.error = 'Cannot load local app library (' + (result.data?.code ?? result.status) + ').';
+    else state.error = 'Cannot load your apps from your PC. Check the connection, then tap My apps to try again.';
     render();
   }
   async function openApp(id) {
@@ -541,7 +552,7 @@ export function mountMobile({
     if (ticket !== requestTicket) return;
     state.loading = false;
     try {
-      if (result.status !== 200) throw new Error('Local app unavailable (' + (result.data?.code ?? result.status) + ')');
+      if (result.status !== 200) throw new Error('Cannot open this app from your PC. Check the connection, then choose it again from My apps.');
       state.scaffold = validateMobileScaffold(result.data, id);
       state.version = result.data.version; state.active = 'home';
     } catch (error) { state.error = error.message; }
@@ -555,7 +566,7 @@ export function mountMobile({
     if (ticket !== requestTicket || state.appId !== id) return;
     state.busy = false;
     try {
-      if (result.status !== 200) throw new Error('Local content unavailable (' + (result.data?.code ?? result.status) + ')');
+      if (result.status !== 200) throw new Error('Cannot load your saved content from your PC. Check the connection, then tap Reload saved content.');
       state.content = validateMobileContent(result.data, id);
     } catch (error) { state.error = error.message; }
     render();
@@ -598,8 +609,7 @@ export function mountMobile({
         state.notice = result.data.replayed ? 'Recovered the previous local save.' : 'Saved on this PC.';
       } catch (error) { state.error = error.message; }
     } else {
-      state.error = (result.data?.code ?? 'SAVE_UNCONFIRMED') +
-        ': save unconfirmed. Your draft is retained; retry will reuse its creation key.';
+      state.error = 'Couldn’t confirm your save. Your draft is still here. Check the connection, then save again; VIVIM will check the same save so it isn’t added twice.';
     }
     render();
   }
@@ -617,8 +627,7 @@ export function mountMobile({
         state.content = validateMobileContent(result.data.content, id);
         state.notice = 'Task updated locally.';
       } catch (error) { state.error = error.message; }
-    } else state.error = (result.data?.code ?? 'UPDATE_UNCONFIRMED') +
-      ': task update not confirmed. Reload saved content before trying again.';
+    } else state.error = 'Couldn’t confirm the task changed. Check the connection, then reload saved content before trying again.';
     render();
   }
   async function readAgent() {
@@ -631,7 +640,7 @@ export function mountMobile({
     if (result.status === 200 && typeof result.data?.initialized === 'boolean') {
       state.agent = result.data;
       state.notice = 'Read local agent status. No AI provider call was made.';
-    } else state.error = 'Agent status unavailable (' + (result.data?.code ?? result.status) + ').';
+    } else state.error = 'Cannot read your Agent’s status from your PC. Check the connection, then try again.';
     render();
   }
   /* ---------------- Ask my AI ---------------- */
@@ -678,13 +687,13 @@ export function mountMobile({
   // have timed out: the saved chat, never a timer, decides what happened.
   function askSchedulePoll() {
     askStopPolling();
-    if (state.view !== 'ask' || !state.ask.pending) return;
+    if (state.view !== 'ask' || !state.ask.pending || state.ask.retry || state.ask.checkAgain) return;
     state.ask.timer = globalThis.setTimeout(() => { state.ask.timer = null; askPoll(); }, ASK_POLL_MS);
   }
   function askSignature() {
     const ask = state.ask;
     return JSON.stringify({ p: ask.pending?.key ?? null, s: ask.status, e: ask.error, n: ask.notice,
-      r: ask.retry, c: ask.checkAgain, b: ask.busy,
+      r: ask.retry, c: ask.checkAgain, b: ask.busy, connection: state.connection,
       t: askTurns().map(turn => [turn?.key, turn?.phase, turn?.send?.state, turn?.reply?.state,
         turn?.reply?.text?.length ?? 0]) });
   }
@@ -694,16 +703,21 @@ export function mountMobile({
     const ticket = requestTicket, before = askSignature();
     pending.polls = (pending.polls ?? 0) + 1;
     const ok = await askRefresh(ticket);
-    if (ticket !== requestTicket || state.ask.pending?.key !== pending.key) return;
+    if (ticket !== requestTicket) return;
+    if (state.ask.pending?.key !== pending.key) { render(); return; }
     if (!ok) {
-      if (!ask.conversationId) { askStopPolling(); if (askSignature() !== before) render(); return; }
-      if (pending.polls >= 6) {
+      if (!ask.conversationId || state.connection === 'approval') {
+        askStopPolling(); if (askSignature() !== before) render(); return;
+      }
+      pending.failures = (pending.failures ?? 0) + 1;
+      if (pending.failures >= 6) {
         askStopPolling(); ask.status = ''; ask.checkAgain = true;
         ask.error = 'Can’t reach your PC right now. Check that you are on the same WiFi, then tap Check again.';
       } else askSchedulePoll();
       if (askSignature() !== before) render();
       return;
     }
+    pending.failures = 0;
     const outcome = askResolve();
     if (outcome === 'working' || outcome === 'missing') {
       if (pending.polls >= 150) {
@@ -729,8 +743,9 @@ export function mountMobile({
     const result = await request(CONVERSATIONS_API + '/' + encodeURIComponent(ask.conversationId), { timeoutMs: 20000 });
     if (ticket !== requestTicket) return false;
     const snapshot = askUnwrap(result.data);
-    if (snapshot && snapshot.id === ask.conversationId) {
+    if (result.status === 200 && snapshot && snapshot.id === ask.conversationId) {
       askApply(snapshot);
+      ask.error = ''; ask.checkAgain = false;
       if (ask.pending && !ask.busy && !askFindTurn(ask.pending.key)) ask.pending.absentAfterPost = true;
       return true;
     }
@@ -741,7 +756,8 @@ export function mountMobile({
     if (result.status === 404) {
       askStopPolling();
       ask.conversationId = null; ask.snapshot = null; ask.revision = null; ask.pending = null; ask.turns = [];
-      ask.status = ''; ask.error = 'That chat is no longer on your PC. Start a new chat.';
+      ask.retry = false; ask.checkAgain = false;
+      ask.status = ''; ask.error = 'That chat is no longer on your PC. Nothing was resent. Check your AI tab on your PC before starting a new chat.';
       saveAsk();
     }
     return false;
@@ -821,7 +837,8 @@ export function mountMobile({
   }
   function askBlocked() {
     const ask = state.ask, name = askSite();
-    if (ask.busy) return 'Working…';
+    if (ask.busy || ask.reading) return 'Checking your chat…';
+    if (ask.conversationId && !ask.snapshot) return 'Check your saved chat before sending another message.';
     if (ask.pending) return 'Waiting for ' + name + '…';
     const turns = askTurns(), last = turns[turns.length - 1];
     if (ask.snapshot?.state === 'needs-reconciliation' || last?.send?.state === 'uncertain') {
@@ -896,22 +913,31 @@ export function mountMobile({
     ask.busy = true; ask.error = ''; ask.notice = ''; ask.retry = false; ask.checkAgain = false;
     ask.status = ask.conversationId ? 'Sending…' : 'Opening ' + askSite() + ' on your PC…';
     render();
-    if (!ask.conversationId && !await askCreate(ticket)) { ask.busy = false; ask.status = ''; render(); return; }
-    if (ticket !== requestTicket) return;
-    await askPost(prompt, ticket);
-    ask.busy = false;
-    if (ticket !== requestTicket) return;
-    saveAsk(); render();
+    try {
+      if (!ask.conversationId && !await askCreate(ticket)) { ask.status = ''; return; }
+      if (ticket !== requestTicket) return;
+      await askPost(prompt, ticket);
+    } finally {
+      ask.busy = false;
+      if (ticket === requestTicket) { saveAsk(); render(); }
+      else if (state.view === 'ask') askLoadOnOpen();
+    }
   }
   // The user's own choice after a refusal, with the same key: safe by construction, because the service replays
   // the original message instead of creating a second one.
   async function askRetry() {
     const ask = state.ask, pending = ask.pending;
-    if (!pending || ask.busy || !ask.retry) return;
+    if (!pending || ask.busy || ask.reading || !ask.retry) return;
     const ticket = requestTicket;
     ask.busy = true; ask.error = ''; ask.retry = false; ask.status = 'Sending…'; render();
     const ok = await askRefresh(ticket);
-    if (ticket !== requestTicket || state.ask.pending?.key !== pending.key) { ask.busy = false; return; }
+    if (ticket !== requestTicket || state.ask.pending?.key !== pending.key) {
+      ask.busy = false;
+      if (state.view === 'ask') {
+        if (ticket !== requestTicket) askLoadOnOpen(); else render();
+      }
+      return;
+    }
     if (ok) {
       if (askFindTurn(pending.key)) {
         askResolve(); ask.busy = false; if (ask.pending) askSchedulePoll(); saveAsk(); render(); return;
@@ -925,33 +951,45 @@ export function mountMobile({
       saveAsk(); render(); return;
     }
     await askPostPending(ticket);
-    ask.busy = false; saveAsk(); render();
+    ask.busy = false;
+    if (ticket !== requestTicket) { if (state.view === 'ask') askLoadOnOpen(); return; }
+    saveAsk(); render();
   }
   async function askCheckAgain() {
     const ask = state.ask;
-    if (ask.busy || !ask.conversationId) return;
+    if (ask.busy || ask.reading || !ask.conversationId) return;
+    askStopPolling();
     const ticket = requestTicket;
     ask.busy = true; ask.error = ''; ask.checkAgain = false; ask.status = 'Checking…'; render();
     const ok = await askRefresh(ticket);
-    if (ticket !== requestTicket) { ask.busy = false; return; }
+    if (ticket !== requestTicket) {
+      ask.busy = false; if (state.view === 'ask') askLoadOnOpen(); return;
+    }
     ask.busy = false;
     if (ok) {
+      ask.status = '';
+      if (ask.pending) { ask.pending.polls = 0; ask.pending.failures = 0; }
       if (ask.pending && !askFindTurn(ask.pending.key)) ask.pending.absentAfterPost = true;
       askResolve(); if (ask.pending && !ask.retry) askSchedulePoll();
     }
-    else if (!ask.error) ask.error = 'Can’t reach your PC right now.';
+    else {
+      ask.checkAgain = Boolean(ask.conversationId);
+      if (!ask.error) ask.error = 'Can’t reach your PC right now. Check your WiFi, then tap Check again.';
+    }
     saveAsk(); render();
   }
   async function askNewChat() {
     const ask = state.ask;
-    if (ask.busy || ask.pending) return;
+    if (ask.busy || ask.reading || ask.pending) return;
     const id = ask.conversationId;
     askStopPolling();
     ask.busy = true; render();
     const ticket = requestTicket;
     const result = id ? await request(CONVERSATIONS_API + '/' + encodeURIComponent(id) + '/finish',
       { method: 'POST', body: { closeTab: true }, timeoutMs: 20000 }) : null;
-    if (ticket !== requestTicket) { ask.busy = false; return; }
+    if (ticket !== requestTicket) {
+      ask.busy = false; if (state.view === 'ask') askLoadOnOpen(); return;
+    }
     if (state.view !== 'ask') { ask.busy = false; return; }
     if (result && !(result.status >= 200 && result.status < 300)) {
       ask.busy = false;
@@ -979,17 +1017,41 @@ export function mountMobile({
     if (state.ask.conversationId) askLoadOnOpen();
   }
   async function askLoadOnOpen() {
+    if (state.ask.busy || state.ask.reading) return;
     const ticket = requestTicket;
+    state.ask.reading = true; render();
     const ok = await askRefresh(ticket);
-    if (ticket !== requestTicket || state.view !== 'ask') return;
+    state.ask.reading = false;
+    if (ticket !== requestTicket || state.view !== 'ask') {
+      if (state.view === 'ask') askLoadOnOpen();
+      return;
+    }
     if (!ok) {
       state.ask.checkAgain = Boolean(state.ask.conversationId);
       if (!state.ask.error) state.ask.error = 'Can’t reach your PC. Check your WiFi, then tap Check again.';
       render(); return;
     }
+    if (state.ask.pending) { state.ask.pending.polls = 0; state.ask.pending.failures = 0; }
+    state.ask.status = '';
     askResolve();
     saveAsk(); render();
     if (state.ask.pending) askSchedulePoll();
+  }
+  // Connectivity events only read the PC. They never create a chat, retry a send or apply a design.
+  async function recoverConnection() {
+    if (state.recovering || doc.hidden) return;
+    state.recovering = true; render();
+    const ticket = requestTicket;
+    const result = await request(MOBILE_API, { timeoutMs: 10000 });
+    state.recovering = false;
+    if (ticket !== requestTicket) { render(); return; }
+    if (result.status === 200) {
+      if (state.view === 'ask' && state.ask.conversationId && !state.ask.busy) {
+        await askCheckAgain();
+      } else if (state.view === 'index' && !state.busy && !state.loading) await loadIndex();
+      else if (state.view === 'app' && state.active === 'builder' && !state.busy) await readDesign();
+    }
+    render();
   }
   function askRows() {
     const ask = state.ask, local = new Map(ask.turns.map(turn => [turn.key, turn.prompt]));
@@ -1063,7 +1125,7 @@ export function mountMobile({
     const send = btn('Send', () => askSend(), 'primary');
     send.disabled = Boolean(askBlocked()) || !ask.draft.trim() || ask.busy;
     const fresh = btn('New chat', () => askNewChat());
-    fresh.disabled = ask.busy || Boolean(ask.pending) || !ask.conversationId;
+    fresh.disabled = ask.busy || ask.reading || Boolean(ask.pending) || !ask.conversationId;
     on(box, 'input', () => {
       ask.draft = box.value; saveAsk();
       send.disabled = Boolean(askBlocked()) || !ask.draft.trim() || ask.busy;
@@ -1126,6 +1188,11 @@ export function mountMobile({
   }
   const app = new URLSearchParams(search).get('app');
   restoreAsk();
+  const view = doc.defaultView;
+  view?.addEventListener?.('online', recoverConnection);
+  view?.addEventListener?.('offline', () => { state.connection = 'offline'; render(); });
+  view?.addEventListener?.('pageshow', event => { if (event.persisted) recoverConnection(); });
+  doc.addEventListener?.('visibilitychange', () => { if (!doc.hidden) recoverConnection(); });
   if (app) openApp(app); else loadIndex();
   return { loadIndex, openApp, chooseScreen, loadContent, openAsk, askSend, render, state };
 }

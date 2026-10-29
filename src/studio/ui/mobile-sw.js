@@ -2,16 +2,29 @@
 // opens offline-capable. It deliberately has no handler for /api/ or any non-GET request: every
 // state-changing call, and every API read, goes straight to the live server and is never queued,
 // cached or replayed. Network-first so edits on the PC are picked up; cache is the offline fallback.
-const CACHE = 'vivim-mobile-shell-v3';
-const SHELL = new Set(['/mobile', '/ui/mobile.mjs']);
+const CACHE = 'vivim-mobile-shell-v4';
+const SHELL = new Map([
+  ['/mobile', 'text/html'], ['/ui/mobile.mjs', 'text/javascript'],
+  ['/mobile.webmanifest', 'application/manifest+json'],
+]);
+// A redirect, JSON error or a response from another endpoint is never a shell asset.
+const isShell = (response, path) => response.ok && !response.redirected
+  && new URL(response.url).origin === self.location.origin
+  && new URL(response.url).pathname === path
+  && response.headers.get('content-type')?.split(';')[0].trim() === SHELL.get(path);
+async function fetchShell(request) {
+  const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 8000);
+  try { return await fetch(request, { signal: controller.signal, cache: 'no-store', credentials: 'same-origin' }); }
+  finally { clearTimeout(timer); }
+}
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE);
-    for (const path of SHELL) {
+    for (const path of SHELL.keys()) {
       try {
-        const response = await fetch(path, { credentials: 'same-origin', cache: 'reload' });
-        if (response.ok) await cache.put(path, response);
+        const response = await fetchShell(path);
+        if (isShell(response, path)) await cache.put(path, response);
       } catch { /* shell caching is best effort; the page still works online */ }
     }
     await self.skipWaiting();
@@ -32,14 +45,19 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return; // never touch mutations
   const url = new URL(request.url);
   if (url.origin !== self.location.origin || !SHELL.has(url.pathname)) return; // APIs and everything else: network, untouched
+  // Pairing links must reach the PC to set the cookie. Never disguise failed pairing with an offline shell.
+  if (url.searchParams.has('token')) return;
   event.respondWith((async () => {
+    const cache = await caches.open(CACHE).catch(() => null);
     try {
-      const response = await fetch(request);
-      if (response.ok) (await caches.open(CACHE)).put(url.pathname, response.clone()).catch(() => {});
+      const response = await fetchShell(request);
+      if (cache && isShell(response, url.pathname)) {
+        event.waitUntil(cache.put(url.pathname, response.clone()).catch(() => {}));
+      }
       return response; // 401/other statuses pass through uncached
     } catch (error) {
-      const cached = await caches.match(url.pathname);
-      if (cached) return cached;
+      const cached = await cache?.match(url.pathname);
+      if (cached && isShell(cached, url.pathname)) return cached;
       throw error;
     }
   })());
