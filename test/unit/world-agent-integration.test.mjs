@@ -3,7 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { mountWorldView, AGENT_API, AGENT_TRANSITIONS } from '../../src/studio/ui/world-view.mjs';
+import { mountWorldView, AGENT_API, AGENT_TRANSITIONS, PERSONAL_APPS_API } from '../../src/studio/ui/world-view.mjs';
 
 const html = readFileSync(new URL('../../src/studio/ui/chat.html', import.meta.url), 'utf8');
 
@@ -43,10 +43,11 @@ const inputs = (node) => nodes(node, n => n.tag === 'input' || n.tag === 'textar
 async function type(node, value) { node.value = value; await node.fire('input'); }
 
 function fixture() {
-  const calls = [], state = { initialized: false, version: 1, memory: [], work: [], errors: [], failNextWork: false };
+  const calls = [], state = { initialized: false, version: 1, memory: [], work: [], errors: [], failNextWork: false,
+    apps: [], failNextApp: false };
   const document = { createElement: tag => new Node(tag) };
   const root = new Node('main'), chat = new Node('main'), modes = new Node('nav');
-  for (const view of ['capture', 'home', 'agent', 'conversations', 'settings']) {
+  for (const view of ['capture', 'home', 'agent', 'builder', 'conversations', 'settings']) {
     const button = new Node('button');
     button.setAttribute('data-view', view); modes.append(button);
   }
@@ -66,6 +67,48 @@ function fixture() {
     const method = options.method ?? 'GET';
     const data = options.body ? JSON.parse(options.body) : null;
     calls.push({ url, method, data });
+    if (url.startsWith(PERSONAL_APPS_API)) {
+      const route = url.slice(PERSONAL_APPS_API.length);
+      const index = () => ({ total: state.apps.length, items: state.apps.map(app => ({
+        id: app.id, title: app.title, version: app.version,
+        screenCount: app.screens.length, deployStatus: 'not-built', providerExecution: 'not-attempted',
+      })) });
+      if (route === '' && method === 'GET') return reply(200, index());
+      if (route === '' && method === 'POST') {
+        const previous = state.apps.find(app => app.idempotencyKey === data.idempotencyKey);
+        if (previous) {
+          if (previous.title !== data.title || previous.intent !== data.intent) {
+            return reply(409, { code: 'PERSONAL_APP_IDEMPOTENCY_CONFLICT' });
+          }
+          return reply(200, { app: structuredClone(previous), replayed: true });
+        }
+        const app = { schema: 'vivim.personal-app/1', id: 'app-' + 'a'.repeat(32), version: 1,
+          idempotencyKey: data.idempotencyKey, title: data.title, intent: data.intent,
+          screens: [
+            { key: 'home', label: 'Home', kind: 'home', origin: 'base-scaffold' },
+            { key: 'agent', label: 'My Agent', kind: 'agent', origin: 'base-scaffold' },
+            { key: 'builder', label: 'Build', kind: 'builder', origin: 'base-scaffold' },
+          ] };
+        state.apps.push(app);
+        if (state.failNextApp) {
+          state.failNextApp = false; return reply(503, { code: 'LOST_APP_RESPONSE' });
+        }
+        return reply(200, { app: structuredClone(app), replayed: false });
+      }
+      const id = route.split('/')[1];
+      const app = state.apps.find(app => app.id === id);
+      if (!app) return reply(404, { code: 'PERSONAL_APP_NOT_FOUND' });
+      if (route === '/' + id && method === 'GET') return reply(200, structuredClone(app));
+      if (route === '/' + id + '/screens' && method === 'POST') {
+        if (data.expectedVersion !== app.version) return reply(409, { code: 'PERSONAL_APP_VERSION_CONFLICT' });
+        const key = 'custom-' + data.label.toLowerCase().replace(/\s+/g, '-');
+        if (app.screens.some(screen => screen.key === key)) return reply(409, { code: 'PERSONAL_APP_SCREEN_EXISTS' });
+        app.version++;
+        app.screens.push({ key, label: data.label, kind: data.kind, origin: 'explicit-user-customization' });
+        return reply(200, { app: structuredClone(app) });
+      }
+      return reply(404, { code: 'NOT_FOUND' });
+    }
     if (url.startsWith('/api/v1/world')) {
       if (url.includes('/namespace')) return reply(200, { id: 'local', kind: 'namespace' });
       return reply(200, { items: [], total: 0, limit: 50, offset: 0, nextOffset: null });
@@ -451,4 +494,78 @@ test('private memory search results are invalidated after an explicit local memo
   assert.equal(byId(f.root, 'worldAgentMemorySearchResults').textContent.includes('OLD_SEARCH_RESULT'), false);
   assert.equal(f.calls.filter(c => c.url.endsWith('/search-memory')).length, 1,
     'a memory mutation never silently reruns a private search');
+});
+
+test('the existing World shell exposes one native Build my VIVIM journey, no provider effect', async () => {
+  assert.match(html, /id="viewBuilder" data-view="builder"/);
+  const f = fixture();
+  await f.world.choose('builder');
+  assert.equal(f.world.view(), 'builder');
+  assert.ok(byId(f.root, 'worldBuilderCreateForm'));
+  assert.equal(f.calls.filter(c => c.url.startsWith(PERSONAL_APPS_API)).length, 1);
+  assert.equal(f.calls.some(c => /conversation|chatgpt/.test(c.url)), false);
+  const form = byId(f.root, 'worldBuilderCreateForm');
+  const [name, intent] = inputs(form);
+  await type(name, 'My private AI');
+  await type(intent, 'I want a local-first assistant with tasks and notes');
+  await form.fire('submit');
+  assert.equal(f.state.apps.length, 1);
+  assert.match(byId(f.root, 'worldBuilderPhone').textContent, /My Agent/);
+  assert.match(byId(f.root, 'worldBuilderPhone').textContent, /Build/);
+  assert.equal(f.state.apps[0].intent, 'I want a local-first assistant with tasks and notes');
+  const add = byId(f.root, 'worldBuilderAddScreenForm');
+  const label = inputs(add)[0];
+  await type(label, 'My Tasks');
+  await add.fire('submit');
+  assert.equal(f.state.apps[0].version, 2);
+  assert.equal(f.state.apps[0].screens[3].kind, 'notes', 'kind defaults to notes until user changes it');
+  assert.match(byId(f.root, 'worldBuilderPhone').textContent, /My Tasks/);
+  assert.equal(f.calls.filter(c => c.method === 'POST').length, 2);
+  assert.ok(f.calls.filter(c => c.method === 'POST').every(c => c.url.startsWith(PERSONAL_APPS_API)));
+});
+
+test('lost create reply reuses original key and preserves the entered intent', async () => {
+  const f = fixture(); await f.world.choose('builder');
+  const form = byId(f.root, 'worldBuilderCreateForm');
+  const [title, intent] = inputs(form);
+  await type(title, 'Family assistant');
+  await type(intent, 'Keep our shared local notes private');
+  f.state.failNextApp = true;
+  await form.fire('submit');
+  assert.equal(f.state.apps.length, 1, 'the first request committed locally');
+  assert.match(byId(f.root, 'worldBuilderNotice').textContent, /LOST_APP_RESPONSE/);
+  const retry = byId(f.root, 'worldBuilderCreateForm');
+  assert.equal(inputs(retry)[1].value, 'Keep our shared local notes private');
+  await retry.fire('submit');
+  assert.equal(f.state.apps.length, 1, 'same key must never duplicate the application');
+  const posts = f.calls.filter(c => c.url === PERSONAL_APPS_API && c.method === 'POST');
+  assert.equal(posts.length, 2);
+  assert.equal(posts[0].data.idempotencyKey, posts[1].data.idempotencyKey);
+  assert.equal(inputs(byId(f.root, 'worldBuilderCreateForm'))[0].value, '');
+});
+
+test('builder returns a clear CAS failure without losing uncommitted screen edits', async () => {
+  const f = fixture(); await f.world.choose('builder');
+  const form = byId(f.root, 'worldBuilderCreateForm');
+  await type(inputs(form)[0], 'My evolving app');
+  await type(inputs(form)[1], 'Add screens carefully');
+  await form.fire('submit');
+  const add = byId(f.root, 'worldBuilderAddScreenForm');
+  await type(inputs(add)[0], 'My Dashboard');
+  f.state.apps[0].version = 10;
+  await add.fire('submit');
+  assert.match(byId(f.root, 'worldBuilderNotice').textContent, /PERSONAL_APP_VERSION_CONFLICT/);
+  assert.equal(inputs(byId(f.root, 'worldBuilderAddScreenForm'))[0].value, 'My Dashboard');
+  assert.equal(f.state.apps[0].screens.length, 3);
+});
+
+test('builder preview renders arbitrary user text as DOM text, not generated HTML or scripts', async () => {
+  const f = fixture(); await f.world.choose('builder');
+  const form = byId(f.root, 'worldBuilderCreateForm');
+  await type(inputs(form)[0], '<img src=x onerror=alert(1)>');
+  await type(inputs(form)[1], 'Build a simple personal assistant');
+  await form.fire('submit');
+  assert.match(byId(f.root, 'worldBuilderPhone').textContent, /<img src=x onerror=alert\(1\)>/);
+  assert.equal(nodes(byId(f.root, 'worldBuilderPhone'), n => n.tag === 'img').length, 0);
+  assert.equal(f.calls.some(c => /openai|claude|gemini/.test(c.url)), false);
 });
