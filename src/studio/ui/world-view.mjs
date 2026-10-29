@@ -744,7 +744,8 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     agentHome: { status: null, loading: false, error: '' },
     agent: { status: null, work: null, loading: false, busy: false, error: '', notice: '', title: '', objective: '', pendingKey: null,
       tier: 'Immediate', memoryKey: '', memoryText: '', memoryEntries: [], workFilter: 'open', workLimit: 50, actionDrafts: new Map(),
-      insightKind: null, insight: null, insightBusy: false, insightError: '' },
+      insightKind: null, insight: null, insightBusy: false, insightError: '',
+      memorySearch: { query: '', tier: 'all', busy: false, error: '', result: null } },
     relations: { id: '', typed: '', map: null, error: '', status: '', loading: false, recordId: null },
     workspace: { id: '', typed: '', map: null, error: '', status: '', loading: false, item: null, readingId: '', readingNode: null, readingError: '', readingLoading: false },
     transfer: {
@@ -765,6 +766,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
   let agentHomeTicket = 0;
   let agentTicket = 0;
   let agentInsightTicket = 0;
+  let agentMemorySearchTicket = 0;
   let searchTicket = 0;
   let searchAbort = null;
   const tickets = {
@@ -829,7 +831,8 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
   async function agentCall(route, method = 'GET', body = null) {
     try {
       const response = await fetchImpl(AGENT_API + route, {
-        method, headers: body ? { 'content-type': 'application/json' } : undefined,
+        method, credentials: 'same-origin', cache: 'no-store',
+        headers: body ? { 'content-type': 'application/json' } : undefined,
         body: body ? JSON.stringify(body) : undefined,
       });
       let data = null;
@@ -892,6 +895,12 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     const response = await agentCall(route, method, body);
     if (response.status === 200) {
       onSuccess(response.data);
+      if (route.startsWith('/memory/')) {
+        agentMemorySearchTicket++;
+        a.memorySearch.busy = false;
+        a.memorySearch.result = null;
+        a.memorySearch.error = '';
+      }
       a.notice = success;
       await agentRefresh();
     } else {
@@ -919,6 +928,26 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     else a.insightError = agentError(result);
     a.insightBusy = false;
     if (state.view === 'agent') renderAgent();
+  }
+  async function searchAgentMemory() {
+    const a = state.agent, form = a.memorySearch;
+    if (form.busy || a.loading || !a.status?.initialized) return;
+    if (form.query.trim().length < 2) {
+      form.error = 'Enter at least two characters for local memory search.';
+      if (state.view === 'agent') renderAgent();
+      return;
+    }
+    const ticket = ++agentMemorySearchTicket;
+    form.busy = true; form.error = ''; form.result = null;
+    if (state.view === 'agent') renderAgent();
+    // POST keeps sensitive search terms out of URL query strings and access logs.
+    const response = await agentCall('/search-memory', 'POST',
+      { query: form.query.trim(), tier: form.tier, limit: 20 });
+    if (ticket !== agentMemorySearchTicket || state.view !== 'agent') return;
+    if (response.status === 200 && Array.isArray(response.data?.items)) form.result = response.data;
+    else form.error = agentError(response);
+    form.busy = false;
+    renderAgent();
   }
   function applyVisibility() {
     const world = state.view !== 'capture';
@@ -1113,6 +1142,38 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
         existing.append(note);
       }
       memory.append(existing);
+      const search = a.memorySearch;
+      const searchBox = el('section', { id: 'worldAgentMemorySearch' }, [
+        el('h3', { text: 'Find personal memory' }),
+        el('p', { class: 'note', text: 'Explicit private local search of user-authored memory. No provider conversations are queried.' }),
+      ]);
+      const searchForm = el('form', { id: 'worldAgentMemorySearchForm' });
+      const term = el('input', { type: 'search', minlength: '2', maxlength: '120', required: true,
+        'aria-label': 'Search local agent memory', placeholder: 'Search your memory notes' });
+      term.value = search.query; on(term, 'input', () => { search.query = term.value; });
+      const searchTier = el('select', { 'aria-label': 'Memory search tier' });
+      for (const choice of ['all', 'CANON', 'Immediate', 'Curated']) searchTier.append(el('option', { value: choice, text: choice }));
+      searchTier.value = search.tier; on(searchTier, 'change', () => { search.tier = searchTier.value; });
+      const searchButton = el('button', { type: 'submit', text: 'Search local memory' });
+      searchButton.disabled = busy || search.busy;
+      on(searchForm, 'submit', event => { event.preventDefault(); searchAgentMemory(); });
+      searchForm.append(term, searchTier, searchButton);
+      searchBox.append(searchForm);
+      const resultArea = el('div', { id: 'worldAgentMemorySearchResults', role: 'status' });
+      if (search.busy) resultArea.append(el('p', { class: 'note', text: 'Searching local memory…' }));
+      else if (search.error) resultArea.append(el('p', { class: 'err', text: search.error }));
+      else if (search.result) {
+        resultArea.append(el('p', { class: 'note', text: 'Showing ' + search.result.shown +
+          ' of ' + search.result.total + ' local matches' + (search.result.truncated ? ' (more exist)' : '') + '.' }));
+        if (!search.result.items.length) resultArea.append(el('p', { class: 'empty', text: 'No matching user-authored memory.' }));
+        for (const hit of search.result.items) resultArea.append(el('article', { class: 'vivim-agent-work-row' }, [
+          el('strong', { text: hit.tier + ' / ' + hit.key }),
+          el('p', { class: 'note', text: hit.preview }),
+          el('p', { class: 'note', text: 'Local source: ' + hit.source + ' · matched ' + hit.match }),
+        ]));
+      }
+      searchBox.append(resultArea);
+      memory.append(searchBox);
     } else memory.append(el('p', { class: 'note', text: 'Initialize your agent to save memory.' }));
     const insights = el('section', { class: 'vivim-info-card', id: 'worldAgentInsights' }, [
       el('h3', { text: 'Agent knowledge and continuity' }),
@@ -3339,6 +3400,8 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     if (state.view !== view) {
       if (state.view === 'agent' && view !== 'agent') {
         agentInsightTicket++;
+        agentMemorySearchTicket++;
+        state.agent.memorySearch = { query: '', tier: 'all', busy: false, error: '', result: null };
         state.agent.insightBusy = false;
         // Explicitly loaded private continuity must not survive navigation in UI state.
         state.agent.insight = null; state.agent.insightKind = null; state.agent.insightError = '';

@@ -59,12 +59,28 @@ test('personal agent survives a real Studio HTTP restart with local-only effects
     assert.equal(saved.data.memoryCounts.Immediate, 1);
     assert.equal(JSON.stringify(saved.data).includes('Resume local skill review'), false);
     assert.equal((await api('/api/v1/personal-agent/memory/Immediate')).data.entries[0].text, 'Resume local skill review');
+    const searched = await api('/api/v1/personal-agent/search-memory', 'POST', {
+      query: 'skill', tier: 'Immediate', limit: 5,
+    });
+    assert.equal(searched.status, 200);
+    assert.equal(searched.data.total, 1);
+    assert.equal(searched.data.items[0].key, 'task');
+    assert.equal(searched.data.items[0].match, 'text');
+    assert.equal((await api('/api/v1/personal-agent/search-memory', 'POST', { query: 's' })).status, 400);
+    assert.equal((await api('/api/v1/personal-agent/search-memory', 'POST', { query: 'skill', extra: true })).status, 400);
+    assert.equal((await api('/api/v1/personal-agent/search-memory', 'POST', { query: 'skill' }, false)).status, 401);
+    const badOriginSearch = await fetch(url('/api/v1/personal-agent/search-memory'), {
+      method: 'POST', headers: { ...headers, origin: 'https://attacker.example' },
+      body: JSON.stringify({ query: 'skill' }),
+    });
+    assert.equal(badOriginSearch.status, 403);
     const removed = await api('/api/v1/personal-agent/memory/Immediate/task/remove', 'POST', {
       expectedVersion: saved.data.version,
     });
     assert.equal(removed.status, 200);
     assert.equal(removed.data.memoryCounts.Immediate, 0);
     assert.equal((await api('/api/v1/personal-agent/memory/Immediate')).data.entries.length, 0);
+    assert.equal((await api('/api/v1/personal-agent/search-memory', 'POST', { query: 'skill' })).data.total, 0);
     assert.equal((await api('/api/v1/personal-agent/memory/Immediate/task', 'PUT', {
       text: 'stale attempt', expectedVersion: revision,
     })).status, 409);
@@ -126,6 +142,7 @@ test('personal agent survives a real Studio HTTP restart with local-only effects
     assert.equal(toolNames.some(name => name.startsWith('personal_agent_work')), false);
     assert.equal(toolNames.some(name => name.includes('sitrep') || name.includes('export')), false);
     assert.equal(toolNames.some(name => name.includes('memory')), false);
+    assert.equal(toolNames.some(name => name.includes('search-memory')), false);
 
     await studio.close(); studio = await start();
     const recovered = await api('/api/v1/personal-agent/status');

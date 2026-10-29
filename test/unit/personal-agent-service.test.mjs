@@ -73,6 +73,24 @@ test('memory updates are user-authored, CAS guarded, and absent from status proj
   const independent = make({ ...f, paths: { root: path.join(path.dirname(f.paths.root), 'other') } });
   assert.equal(independent.status().initialized, false, 'no cross-data-directory identity leakage');
 });
+test('private memory search uses persisted user-authored state, tier scopes and bound previews', t => {
+  const f = fixture(t), agent = make(f);
+  const boot = agent.bootstrap({ expectedVersion: null });
+  const saved = agent.remember({ tier: 'Immediate', key: 'focus', text: 'Verify local source receipts',
+    expectedVersion: boot.version });
+  const result = make(f).searchMemory({ query: 'source', tier: 'Immediate', limit: 5 });
+  assert.equal(result.total, 1);
+  assert.equal(result.items[0].key, 'focus');
+  assert.equal(result.items[0].source, 'user-authored');
+  assert.equal(result.execution.includes('no provider'), true);
+  assert.equal(result.version, saved.version);
+  assert.equal(JSON.stringify(agent.status()).includes('Verify local source'), false);
+  assert.throws(() => agent.searchMemory({ query: '..', tier: 'wrong' }),
+    e => e.code === 'PERSONAL_AGENT_MEMORY_SEARCH_INVALID');
+  const removed = make(f).forget({ tier: 'Immediate', key: 'focus', expectedVersion: saved.version });
+  assert.equal(make(f).searchMemory({ query: 'source' }).total, 0);
+  assert.equal(removed.memoryCounts.Immediate, 0);
+});
 test('capability inventory distinguishes source discovery from verified runtime execution', t => {
   const agent = make(fixture(t), { getTools: () => [
     { name: 'send', http: { method: 'POST', path: '/send' }, annotations: { readOnlyHint: false } },

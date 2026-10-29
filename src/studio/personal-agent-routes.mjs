@@ -69,6 +69,14 @@ export function registerPersonalAgentRoutes({ add, paths, getTools } = {}) {
   add('POST', '/personal-agent/bootstrap', 'Run remaining local evidence-backed bootstrap stages; no external effects',
     ({ body }) => agent.bootstrap(ensureBody(body, ['expectedVersion'])),
     { body: { type: 'object', properties: { expectedVersion: versionSchema }, required: ['expectedVersion'], additionalProperties: false } });
+  // Search body stays out of URLs/access logs. Private previews are never tool-exposed.
+  add('POST', '/personal-agent/search-memory', 'Explicit private read-only local memory search',
+    ({ body }) => agent.searchMemory(ensureBody(body, ['query', 'tier', 'limit'])),
+    { body: { type: 'object', properties: {
+      query: { type: 'string', minLength: 2, maxLength: 120 },
+      tier: { type: 'string', enum: ['all', 'CANON', 'Immediate', 'Curated'] },
+      limit: { type: 'integer', minimum: 1, maximum: 50 },
+    }, required: ['query'], additionalProperties: false } });
   add('GET', '/personal-agent/memory/{tier}', 'Read one local Personal Agent memory tier; private values not exposed as a tool',
     ({ p }) => agent.memories(p.tier));
   add('PUT', '/personal-agent/memory/{tier}/{key}', 'Save explicit user-authored Personal Agent memory with CAS',

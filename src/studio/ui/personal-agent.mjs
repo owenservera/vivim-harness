@@ -117,6 +117,7 @@ async function readMemory() {
             method: 'POST', body: JSON.stringify({ expectedVersion: current.version }),
           });
           message('Entry removed from current local memory.');
+          $('memorySearchResults').replaceChildren(element('p', 'Memory changed. Search again to see current results.'));
           await refresh(); await readMemory();
         } catch (e) { message(`Remove: ${e.code} — ${e.message}`, true); remove.disabled = false; }
       });
@@ -136,6 +137,7 @@ async function saveMemory(event) {
       method: 'PUT', body: JSON.stringify({ text, expectedVersion: current.version }),
     });
     $('memoryText').value = '';
+    $('memorySearchResults').replaceChildren(element('p', 'Memory changed. Search again to see current results.'));
     message('Saved in locally versioned Personal Agent memory.');
     await refresh(); await readMemory();
   } catch (e) { message(`Memory: ${e.code} — ${e.message}`, true); await refresh(); }
@@ -334,5 +336,35 @@ $('exportAgent').addEventListener('click', exportAgent);
 $('workForm').addEventListener('submit', createWork);
 $('workFilter').addEventListener('change', loadWork);
 $('knowledgeRefresh').addEventListener('click', showKnowledge);
+async function searchPrivateMemory(event) {
+  event.preventDefault();
+  const area = $('memorySearchResults'), button = $('memorySearchButton');
+  const query = $('memorySearchQuery').value.trim(), tier = $('memorySearchTier').value || 'all';
+  if (query.length < 2) {
+    area.replaceChildren(element('p', 'Enter at least two characters.'));
+    return;
+  }
+  button.disabled = true;
+  area.replaceChildren(element('p', 'Searching user-authored local memory…'));
+  try {
+    const data = await request('/search-memory', {
+      method: 'POST',
+      body: JSON.stringify({ query, tier, limit: 20 }),
+    });
+    area.replaceChildren(element('p', 'Showing ' + data.shown + ' of ' + data.total +
+      ' local matches' + (data.truncated ? ' (more exist)' : '') + '.'));
+    if (!data.items.length) area.append(element('p', 'No matching local memory entries.'));
+    for (const hit of data.items) {
+      const card = element('article');
+      card.append(element('strong', hit.tier + ' / ' + hit.key),
+        element('p', hit.preview), element('p', 'Local source: ' + hit.source + ' · matched ' + hit.match, 'subtle'));
+      area.append(card);
+    }
+  } catch (error) {
+    area.replaceChildren(element('p', 'Memory search: ' + error.code + ' — ' + error.message));
+  } finally { button.disabled = false; }
+}
+
 $('memoryForm').addEventListener('submit', saveMemory);
+$('memorySearchForm').addEventListener('submit', searchPrivateMemory);
 void refresh().then(async () => { await readMemory(); await loadWork(); await showKnowledge(); });
