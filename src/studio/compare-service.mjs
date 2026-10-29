@@ -1,22 +1,22 @@
 // Compare through the ONE conversation runtime. Never construct a browser or repeat an uncertain send.
 //  - Fan-out: phase 1 asks every selected site in turn (create/ready/submit), holding the browser only
 //    as the runtime's drive lease already does (busy() backs off on DRIVE_LEASE_BUSY exactly as before).
-//    Phase 2 then lets every asked site's reply stream in CONCURRENTLY (Promise.allSettled over one
-//    observe loop per site), so one site's long answer never delays another's. A six-site job now costs
-//    roughly the slowest single reply, not the sum of all six.
+//    Each site's phase-2 observe loop starts the moment its ask hands off, so it runs concurrently with
+//    the remaining asks and with every other observe. One site's long answer never delays another's,
+//    and an uncertain site can be reconciled (lease-free) while the next site waits for the lease.
 //  - One stable key per provider (job id + site). It is never replaced, so a timeout or unknown effect
 //    can only be observed again, never resent. `attempted` is saved BEFORE submit.
-//  - After a restart a job is only ever observed (stored conversation + capped read-only reconcile); a
-//    resumed site whose turn already exists skips phase 1 entirely and goes straight to phase 2.
-//  - All jobs share one sequential lane (this module's own queue); the runtime's drive lease is the real
-//    browser fence for actual typing/sending. get_conversation is a plain in-memory view with no serial
-//    queue of its own, and reconcile is serialized only PER conversation (its own chain, one per site) —
-//    so the concurrent per-site observe loops in phase 2 never contend with each other or with phase 1.
-//    Poll interval still stays >= pollMs (2.5s default) as a courtesy to the runtime, not because it's
-//    required to avoid contention.
+//  - After a restart, a site that was attempted is only ever observed (stored conversation + capped
+//    read-only reconcile). A site never attempted (nothing typed, proven by the strict pre-submit save)
+//    is asked fresh, but only when the previous owner is provably dead and the job is recent.
+//  - All jobs share one sequential lane (this module's own queue). The job's terminal state is computed
+//    only after EVERY observe loop settled; the lane then stays fenced (bounded by fenceMs) behind any
+//    submit that never settled, and each handed-off site is cleaned up exactly once, after its observe.
+//  - Persistence: save() is synchronous write+rename of the full in-memory job on one thread, so the
+//    concurrent observe loops can never interleave writes or lose another site's update.
 //  - Never freeze: every wait sleeps on an unref'd timer, every runtime call is time-bounded, and the
-//    read-only reconcile (it inspects the browser on the conversation's own serial queue) is reserved for
-//    genuinely uncertain or unwatched turns, never for a reply that is still streaming normally.
+//    read-only reconcile (it inspects the browser) is reserved for genuinely uncertain or unwatched turns,
+//    capped per site and serialized across sites so six sites never inspect the browser at once.
 import path from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { mkdirSync, readdirSync, readFileSync, writeFileSync, renameSync, rmSync } from 'node:fs';
@@ -44,7 +44,9 @@ const DEFAULT_TIMING = Object.freeze({
   resumeMs: 120000,      // patience for a reply observed only after a VIVIM restart
   operationMs: 300000,   // ceiling for one awaited runtime call (the call itself keeps running)
   probeMs: 15000,        // ceiling for the browser target listing
-  reconcileMs: 10000, maxReconciles: 8,
+  reconcileMs: 10000, maxReconciles: 8, // min interval between reconciles of one site, and per-site cap
+  reconcileCallMs: 60000, // ceiling for one awaited read-only reconcile
+  resumeAskMs: 1800000,  // after a restart, a never-attempted site is asked only if the job is this recent
   fenceMs: 600000,       // how long the shared lane stays fenced behind a submit that never settles
   heartbeatMs: 60000, staleMs: 900000, // a running job last saved this long ago by a live pid is stale
 });
@@ -163,44 +165,54 @@ export function createCompareJobs({ paths, conversations, sleep = ms => new Prom
     });
   }
 
-  // Shared end-of-site cleanup for both phases, run exactly once per site: fence the shared lane
-  // behind a submit that never settles, then close an untouched Studio tab (keep one that holds a
-  // sent question or a sign-in page).
-  async function cleanup(job, result, ctx) {
-    if (ctx.pending && !ctx.outcome) {
-      // Keep the public job responsive while the runtime call is still running. The shared lane stays
-      // fenced behind that effect (bounded by fenceMs; the runtime's drive lease still guards the browser).
-      if (job.state !== 'cancelled') {
-        job.state = job.results.some(r => r.state === 'ready') ? 'partial' : 'failed';
-        for (const next of job.results) if (next.state === 'queued') {
-          next.state = 'skipped'; next.message = 'Waiting for the earlier provider to release your browser. Nothing was sent here. Check its tab before starting another comparison.';
-        }
-        persist(job);
-      }
-      await Promise.race([ctx.pending, sleep(t.fenceMs)]);
-    }
+  // Read-only reconciles inspect the browser; serialize them across this manager's observe loops so a
+  // six-site job never runs six browser inspections at once. Each call is bounded, so a stuck one
+  // releases the lane (the call itself is read-only and never a resend).
+  let reconcileTail = Promise.resolve();
+  function reconcile(args) {
+    const run = reconcileTail.then(() => bounded(tool('reconcile_conversation', args), t.reconcileCallMs));
+    reconcileTail = run.catch(() => {});
+    return run;
+  }
+  // End-of-site cleanup, run exactly once per site and only after its observe loop settled: fence
+  // the shared lane behind a submit that never settles (bounded by fenceMs; the runtime's drive lease
+  // still guards the browser), then close an untouched Studio tab (keep one that holds a sent
+  // question or a sign-in page).
+  async function cleanup(result, ctx) {
+    if (ctx.pending && !ctx.outcome) await bounded(ctx.pending, t.fenceMs).catch(() => {});
     if (result.conversationId) await bounded(tool('finish_conversation', { conversation: result.conversationId,
       closeTab: !result.attempted && result.state !== 'skipped' })).catch(() => {});
   }
   // Phase 1 — ask, one site at a time. Create/ready/submit for this site, holding the browser only
   // as the runtime's drive lease already does (busy() backs off on DRIVE_LEASE_BUSY, same as before
-  // the fan-out). Hands off to phase 2 without waiting for its own submit to settle: a slow submit
-  // never blocks the NEXT site from being asked, and phase 2 polls stored state concurrently with
-  // this call settling — identical to the single-site behaviour this replaces, just no longer forced
-  // to finish observing one site before asking the next. Returns the phase-2 handoff, or null when
-  // this site is already finished (skipped, failed or cancelled) and has nothing left to observe.
-  async function ask(job, result, resumed) {
+  // the fan-out). Hands off without waiting for its own submit to settle: a slow submit never blocks
+  // the NEXT site from being asked, and this site's observe loop polls stored state concurrently
+  // with that call settling. Returns the handoff, or null when this site is already finished
+  // (skipped, failed or cancelled; cleaned up here) and has nothing left to observe.
+  // `resume` is false, 'observe' (previous owner may still be alive) or 'ask' (owner provably dead).
+  async function ask(job, result, resume) {
     const label = LABELS[result.site];
     const ctx = { pending: null, outcome: null };
+    const observeOnly = Boolean(resume) && result.attempted; // Attempted before a restart: never typed again.
     let handedOff = false;
     try {
       checkCancel(job);
+      if (resume && !result.attempted) {
+        // Nothing was typed (attempted is saved strictly before submit). Ask fresh only when no other
+        // process can still be asking it and the user's question is recent; otherwise report it.
+        if (resume !== 'ask' || !(Date.now() - (Date.parse(job.createdAt) || 0) <= t.resumeAskMs)) throw coded('INTERRUPTED');
+        if (result.conversationId) {
+          // A restarted runtime never admits sends on a loaded conversation; close the untouched tab.
+          const old = result.conversationId; result.conversationId = null; result.turnId = null; persist(job);
+          await bounded(tool('finish_conversation', { conversation: old, closeTab: true })).catch(() => {});
+        }
+      }
       result.state = 'waiting'; result.message = 'Waiting for ' + label + '…';
       if (!result.startedAt) result.startedAt = new Date().toISOString(); // asked-at, set once, never moved by a retry/resume.
       persist(job);
       if (!result.attempted && await signedOut(result.site)) { skip(job, result); return null; }
       if (!result.conversationId) {
-        if (resumed) throw coded('INTERRUPTED');
+        if (observeOnly) throw coded('INTERRUPTED');
         const created = await create(job, result);
         result.conversationId = created.id; persist(job);
         checkCancel(job);
@@ -213,7 +225,7 @@ export function createCompareJobs({ paths, conversations, sleep = ms => new Prom
         // The runtime records a keyed turn before typing. No turn after a restart (or after an earlier
         // attempt) therefore means nothing was typed; it is reported, never resent. A resumed site that
         // already has a recorded turn never reaches this branch — it goes straight to phase 2 below.
-        if (resumed || result.attempted) throw coded('INTERRUPTED');
+        if (result.attempted) throw coded('INTERRUPTED');
         result.attempted = true; result.submittedAt = new Date().toISOString(); save(job); // Strict: a failed write means we do NOT send.
         ctx.pending = busy(job, result, async () => {
           const latest = await read();
@@ -224,21 +236,23 @@ export function createCompareJobs({ paths, conversations, sleep = ms => new Prom
         ctx.pending.then(value => { ctx.outcome = value; });
       }
       handedOff = true;
-      return { read, ctx };
+      return { read, ctx, resumed: observeOnly };
     } catch (error) {
       if (error?.cancelled || job.state === 'cancelled') return null;
       if (authBlocked(error)) { skip(job, result); return null; }
       result.state = 'failed'; result.reason = codeOf(error); result.message = message(result.reason, result.site); persist(job);
       return null;
     } finally {
-      // A site handed off to phase 2 gets its cleanup there instead, exactly once.
-      if (!handedOff) await cleanup(job, result, ctx);
+      // A handed-off site is cleaned up by execute() after its observe loop, exactly once. A site that
+      // did not hand off never started a submit (ctx.pending is set only on the hand-off path).
+      if (!handedOff) await cleanup(result, ctx);
     }
   }
   // Phase 2 — observe, every asked/resumed site concurrently (fan-out). Each site's reply streams in
   // its own tab, so one site's long answer never delays another's; never resends — an uncertain or
-  // unwatched turn is only ever observed or reconciled here, exactly as before the fan-out.
-  async function observe(job, result, resumed, { read, ctx }) {
+  // unwatched turn is only ever observed or reconciled here, exactly as before the fan-out. Never
+  // touches job.state and never cleans up: execute() owns both, after every loop has settled.
+  async function observe(job, result, { read, ctx, resumed }) {
     const label = LABELS[result.site];
     try {
       const deadline = Date.now() + (resumed ? t.resumeMs : t.replyMs);
@@ -269,8 +283,7 @@ export function createCompareJobs({ paths, conversations, sleep = ms => new Prom
         const unwatched = turn.reply?.state === 'unknown' && turn.send?.state === 'observed';
         if ((uncertain || unwatched || resumed) && (!ctx.pending || ctx.outcome) && reconciles < t.maxReconciles && Date.now() - lastReconcile >= t.reconcileMs) {
           reconciles++; lastReconcile = Date.now();
-          await bounded(tool('reconcile_conversation', { conversation: result.conversationId,
-            expectedRevision: stored.revision, turnId: turn.id })).catch(() => {}); // Never a resend.
+          await reconcile({ conversation: result.conversationId, expectedRevision: stored.revision, turnId: turn.id }).catch(() => {}); // Never a resend.
         } else if (uncertain && reconciles >= t.maxReconciles && Date.now() - lastReconcile >= t.reconcileMs) {
           throw coded(CODE.test(turn.reason ?? '') ? turn.reason : 'DELIVERY_UNCONFIRMED');
         }
@@ -281,40 +294,39 @@ export function createCompareJobs({ paths, conversations, sleep = ms => new Prom
       if (error?.cancelled || job.state === 'cancelled') return;
       if (authBlocked(error)) { skip(job, result); return; }
       result.state = 'failed'; result.reason = codeOf(error); result.message = message(result.reason, result.site); persist(job);
-    } finally {
-      await cleanup(job, result, ctx);
     }
   }
-  async function execute(job, resumed) {
+  async function execute(job, resume) {
+    const handoffs = [], watching = [];
     try {
       if (job.state === 'cancelled') return;
       job.state = 'running'; persist(job);
       // Phase 1: ask every site in turn — sequential, each ask() hands off as soon as its own submit
-      // is kicked off rather than waiting for it to settle. Phase 2: fan the hand-offs out so every
-      // asked site's reply streams in concurrently (Promise.allSettled; a resumed site with an
-      // already-recorded turn arrives here directly from phase 1 with nothing left to ask).
-      const handoffs = [];
+      // is kicked off. Phase 2 for that site starts right then, concurrently with the remaining asks
+      // (a resumed site with an already-recorded turn hands off with nothing left to ask).
       for (const result of job.results) {
-        if (!ACTIVE.has(job.state)) break;
+        if (!ACTIVE.has(job.state)) break; // Cancelled: already handed-off sites still get cleaned up below.
         if (DONE.has(result.state)) continue;
-        const handoff = await ask(job, result, resumed);
-        if (handoff) handoffs.push({ result, handoff });
-      }
-      if (ACTIVE.has(job.state) && handoffs.length) {
-        await Promise.allSettled(handoffs.map(({ result, handoff }) => observe(job, result, resumed, handoff)));
+        const handoff = await ask(job, result, resume);
+        if (handoff) { handoffs.push({ result, handoff }); watching.push(observe(job, result, handoff)); }
       }
     } finally {
+      // The job's terminal state is computed only once EVERY observe loop has settled.
+      await Promise.allSettled(watching);
       if (job.state !== 'cancelled') {
         for (const result of job.results) if (!DONE.has(result.state)) { result.state = 'failed'; result.message = message('COMPARE_FAILED', result.site); }
         job.state = job.results.every(r => r.state === 'ready') ? 'complete' : job.results.some(r => r.state === 'ready') ? 'partial' : 'failed';
         persist(job);
       }
+      // The public job is final; the shared lane stays fenced behind any submit still running
+      // (bounded by fenceMs each, in parallel), then every handed-off tab is finished exactly once.
+      await Promise.allSettled(handoffs.map(({ result, handoff }) => cleanup(result, handoff.ctx)));
       prune();
     }
   }
-  function launch(job, resumed = false) {
+  function launch(job, resume = false) {
     if (running.has(job.id)) return;
-    const work = queue.then(() => execute(job, resumed));
+    const work = queue.then(() => execute(job, resume));
     queue = work.catch(() => {});
     running.set(job.id, work);
     work.finally(() => running.delete(job.id)).catch(() => {});
@@ -327,12 +339,14 @@ export function createCompareJobs({ paths, conversations, sleep = ms => new Prom
       try { rmSync(fileOf(job.id), { force: true }); } catch { /* best effort */ }
     }
   }
-  // A running job is resumed (observe-only) when its owner is gone: a dead pid, a reused pid of this
-  // process that no live manager claims, or a live pid that has not saved for staleMs.
+  // A running job is resumed when its owner is gone. 'ask': the owner is provably dead (a dead pid, or
+  // a reused pid of this process that no live manager claims), so never-attempted sites may be asked.
+  // 'observe': a live pid that has not saved for staleMs — it might still wake up and ask, so this
+  // process only observes what was attempted and reports the rest. null: the owner is alive.
   const abandoned = job => {
-    if (job.ownerPid === process.pid) return !LIVE_OWNERS.has(job.ownerToken);
-    if (!pidAlive(job.ownerPid)) return true;
-    return Date.now() - (Date.parse(job.updatedAt) || 0) > t.staleMs;
+    if (job.ownerPid === process.pid) return LIVE_OWNERS.has(job.ownerToken) ? null : 'ask';
+    if (!pidAlive(job.ownerPid)) return 'ask';
+    return Date.now() - (Date.parse(job.updatedAt) || 0) > t.staleMs ? 'observe' : null;
   };
 
   for (const file of readdirSync(directory)) {
@@ -343,9 +357,8 @@ export function createCompareJobs({ paths, conversations, sleep = ms => new Prom
     const job = loadFromDisk(id); // Unreadable files stay on disk for support and are never replayed.
     if (!job) continue;
     jobs.set(job.id, job);
-    if (ACTIVE.has(job.state) && abandoned(job)) {
-      job.ownerPid = process.pid; job.ownerToken = token; persist(job); launch(job, true);
-    }
+    const resume = ACTIVE.has(job.state) ? abandoned(job) : null;
+    if (resume) { job.ownerPid = process.pid; job.ownerToken = token; persist(job); launch(job, resume); }
   }
   prune();
 
