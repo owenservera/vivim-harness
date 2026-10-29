@@ -117,6 +117,7 @@ async function readMemory() {
             method: 'POST', body: JSON.stringify({ expectedVersion: current.version }),
           });
           message('Entry removed from current local memory.');
+          $('memorySearchResults').replaceChildren(element('p', 'Memory changed. Search again to see current results.'));
           await refresh(); await readMemory();
         } catch (e) { message(`Remove: ${e.code} — ${e.message}`, true); remove.disabled = false; }
       });
@@ -136,6 +137,7 @@ async function saveMemory(event) {
       method: 'PUT', body: JSON.stringify({ text, expectedVersion: current.version }),
     });
     $('memoryText').value = '';
+    $('memorySearchResults').replaceChildren(element('p', 'Memory changed. Search again to see current results.'));
     message('Saved in locally versioned Personal Agent memory.');
     await refresh(); await readMemory();
   } catch (e) { message(`Memory: ${e.code} — ${e.message}`, true); await refresh(); }
