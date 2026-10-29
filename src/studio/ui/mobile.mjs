@@ -175,7 +175,8 @@ export function mountMobile({
     const heading = el('label', 'Title', 'field'), title = el('input', undefined, 'field-input');
     attr(title, 'maxlength', 160); attr(title, 'required', ''); attr(title, 'aria-label', 'New ' + kind + ' title');
     title.value = state.draftTitle;
-    on(title, 'input', () => { state.draftTitle = title.value; state.pendingKey = null; });
+    on(title, 'input', () => { state.draftTitle = title.value; state.pendingKey = null;
+      save.disabled = state.busy || !state.draftTitle.trim(); });
     heading.append(title); form.append(heading);
     const bodyLabel = el('label', 'Details (optional)', 'field');
     const body = el('textarea', undefined, 'field-input');
