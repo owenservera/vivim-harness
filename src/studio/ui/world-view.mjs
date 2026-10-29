@@ -5,11 +5,13 @@
  */
 
 export const WORLD_API = '/api/v1/world';
+export const AGENT_API = '/api/v1/personal-agent';
 export const PAGE_LIMIT = 50;
 export const VIEWS = Object.freeze(['conversations', 'projects', 'notes']);
 export const FIND_KINDS = Object.freeze(['message', 'project', 'note', 'source-reference', 'selection']);
 const FIND_LABELS = { message: 'Messages', project: 'Projects', note: 'Notes', 'source-reference': 'Local objects', selection: 'Selections' };
-const SHELL_VIEWS = new Set(['capture', 'home', 'settings', 'find', 'transfer', 'relations', 'workspace', ...VIEWS]);
+const SHELL_VIEWS = new Set(['capture', 'home', 'agent', 'settings', 'find', 'transfer', 'relations', 'workspace', ...VIEWS]);
+export const AGENT_TRANSITIONS = Object.freeze({ queued: ['active','blocked','cancelled'], active: ['blocked','completed','cancelled'], blocked: ['active','cancelled'], completed: [], cancelled: [] });
 const STANDARD_RELATION_BASIS = 'local association; not native equality';
 const EXPORT_MODE_LABEL = { references: 'References only — no message text', transcript: 'Transcript — saved message text and simple formatting', 'full-saved': 'Full saved — every recorded block' };
 const EXPORT_OMIT_LABEL = { 'reasoning-blocks-excluded': 'Saved reasoning blocks left out', 'tool-activity-blocks-excluded': 'Tool and status activity blocks left out', 'non-transcript-blocks-excluded': 'Blocks Studio does not recognize left out' };
@@ -739,6 +741,8 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     find: { query: '', kind: '', items: [], total: null, nextOffset: null, coverage: null, error: '', status: '', loading: false, recordId: null },
     custody: 'observed',
     settings: { tab: 'providers', sites: [], loaded: false, loading: false, error: '' },
+    agent: { status: null, work: null, loading: false, busy: false, error: '', notice: '', title: '', objective: '', pendingKey: null,
+      tier: 'Immediate', memoryKey: '', memoryText: '', memoryEntries: [] },
     relations: { id: '', typed: '', map: null, error: '', status: '', loading: false, recordId: null },
     workspace: { id: '', typed: '', map: null, error: '', status: '', loading: false, item: null, readingId: '', readingNode: null, readingError: '', readingLoading: false },
     transfer: {
@@ -756,6 +760,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
   let workspaceReadAbort = null;
   let readerHeadNode = null, readerStatusNode = null, readerBodyNode = null;
 
+  let agentTicket = 0;
   let searchTicket = 0;
   let searchAbort = null;
   const tickets = {
@@ -815,6 +820,64 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
       return { status: 0, data: null };
     }
   }
+
+  // One owner, one local store. Never request a provider or browser effect from this view.
+  async function agentCall(route, method = 'GET', body = null) {
+    try {
+      const response = await fetchImpl(AGENT_API + route, {
+        method, headers: body ? { 'content-type': 'application/json' } : undefined,
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      let data = null;
+      try { data = await response.json(); } catch { /* non-JSON error stays an error */ }
+      return { status: response.status, data };
+    } catch { return { status: 0, data: null }; }
+  }
+  function agentError(result) {
+    return result.data?.code
+      ? String(result.data.code) + ': ' + problemText(result.data)
+      : (result.status ? 'Agent request failed (HTTP ' + result.status + ')' : 'Local Studio is unreachable');
+  }
+  async function agentRefresh() {
+    const ticket = ++agentTicket, a = state.agent;
+    a.loading = true; a.error = '';
+    if (state.view === 'agent') renderAgent();
+    const status = await agentCall('/status');
+    if (ticket !== agentTicket) return;
+    if (status.status !== 200 || typeof status.data?.initialized !== 'boolean') {
+      a.status = null; a.work = null; a.memoryEntries = []; a.error = agentError(status);
+    } else {
+      a.status = status.data; a.work = null; a.memoryEntries = [];
+      if (status.data.initialized) {
+        const work = await agentCall('/work');
+        if (ticket !== agentTicket) return;
+        if (work.status === 200 && Array.isArray(work.data?.items)) a.work = work.data;
+        else a.error = agentError(work);
+        const memory = await agentCall('/memory/' + encodeURIComponent(a.tier));
+        if (ticket !== agentTicket) return;
+        if (memory.status === 200 && Array.isArray(memory.data?.entries)) a.memoryEntries = memory.data.entries;
+        else a.error = agentError(memory);
+      }
+    }
+    a.loading = false;
+    if (state.view === 'agent') renderAgent();
+  }
+  async function agentWrite(route, method, body, success, onSuccess = () => {}) {
+    const a = state.agent;
+    if (a.busy || a.loading) return;
+    a.busy = true; a.error = ''; a.notice = '';
+    if (state.view === 'agent') renderAgent();
+    const response = await agentCall(route, method, body);
+    if (response.status === 200) {
+      onSuccess(response.data);
+      a.notice = success;
+      await agentRefresh();
+    } else {
+      a.error = agentError(response);
+    }
+    a.busy = false;
+    if (state.view === 'agent') renderAgent();
+  }
   function applyVisibility() {
     const world = state.view !== 'capture';
     chat.hidden = world;
@@ -828,7 +891,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     const breadcrumb = doc.getElementById?.('vivimViewBreadcrumb');
     if (breadcrumb) {
       const titles = {
-        capture: 'Chat', home: 'Home', settings: 'Settings', conversations: 'Saved conversations', projects: 'Projects',
+        capture: 'Chat', home: 'Home', agent: 'Personal Agent', settings: 'Settings', conversations: 'Saved conversations', projects: 'Projects',
         notes: 'Notes', find: 'Find', transfer: 'Transfer',
         relations: 'Relations', workspace: 'Workspace',
       };
@@ -875,7 +938,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
       el('h3', { text: 'Quick actions' }),
     ]);
     for (const [view, title] of [
-      ['capture', 'Start a conversation'], ['find', 'Find saved content'],
+      ['capture', 'Start a conversation'], ['agent', 'Your Personal Agent'], ['find', 'Find saved content'],
       ['workspace', 'Explore workspace'], ['relations', 'Explore relationships'],
     ]) {
       const action = el('button', { type: 'button', text: title });
@@ -904,6 +967,147 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
       ]));
   }
 
+
+  function renderAgent() {
+    ensureFrame();
+    const a = state.agent, status = a.status, busy = a.loading || a.busy;
+    const head = el('div', { class: 'vivim-section-head' }, [
+      el('span', { class: 'vivim-eyebrow', text: 'OWN YOUR AI' }),
+      el('h2', { text: 'Your Personal Agent' }),
+      el('p', { class: 'note', text: 'Your local agent inside VIVIM World. No provider send, model call or background execution is started here.' }),
+    ]);
+    const bootstrap = el('section', { class: 'vivim-info-card', id: 'worldAgentBootstrap' }, [
+      el('h3', { text: 'Local bootstrap' }),
+    ]);
+    if (status) {
+      bootstrap.append(el('p', { text: status.initialized
+        ? (status.nextStage ? 'Next stage: ' + status.nextStage : 'Local bootstrap completed')
+        : 'Personal Agent not initialized' }));
+      if (status.initialized) {
+        bootstrap.append(el('p', { class: 'note', text: 'Local revision ' + status.version + '; remote account not verified.' }));
+        for (const [stage, value] of Object.entries(status.stages ?? {})) {
+          bootstrap.append(el('p', { class: 'note', text: stage + ': ' + value.status + (value.blocker ? ' — ' + value.blocker : '') }));
+        }
+      }
+      const start = el('button', { type: 'button', id: 'worldAgentStart', text: status.initialized ? 'Resume bootstrap' : 'Initialize and bootstrap' });
+      start.disabled = busy;
+      on(start, 'click', () => agentWrite('/bootstrap', 'POST', {
+        expectedVersion: status.initialized ? status.version : null,
+      }, 'Local bootstrap checked without provider activity.'));
+      bootstrap.append(start);
+    } else bootstrap.append(el('p', { class: 'note', text: a.loading ? 'Reading local agent status…' : 'Agent status unavailable.' }));
+    const refresh = el('button', { type: 'button', id: 'worldAgentRefresh', text: 'Refresh agent' });
+    refresh.disabled = busy;
+    on(refresh, 'click', () => agentRefresh());
+    const notice = el('div', { id: 'worldAgentNotice', role: a.error ? 'alert' : 'status' });
+    if (a.error) notice.append(el('p', { class: 'err', text: a.error }));
+    if (a.notice) notice.append(el('p', { class: 'note', text: a.notice }));
+    const memory = el('section', { class: 'vivim-info-card', id: 'worldAgentMemory' }, [
+      el('h3', { text: 'Memory' }),
+      el('p', { class: 'note', text: 'Local and user-authored. Current removal does not erase version history.' }),
+    ]);
+    if (status?.initialized) {
+      for (const [tier, count] of Object.entries(status.memoryCounts ?? {})) {
+        memory.append(el('p', { class: 'note', text: tier + ': ' + count + ' entries' }));
+      }
+      const form = el('form', { id: 'worldAgentMemoryForm' });
+      const tier = el('select', { 'aria-label': 'Memory tier' });
+      for (const value of ['CANON','Immediate','Curated']) tier.append(el('option', { value, text: value }));
+      tier.value = a.tier; on(tier, 'change', () => { a.tier = tier.value; agentRefresh(); });
+      const key = el('input', { type: 'text', required: true, maxlength: '64', placeholder: 'Memory key', 'aria-label': 'Memory key' });
+      key.value = a.memoryKey; on(key, 'input', () => { a.memoryKey = key.value; });
+      const value = el('textarea', { required: true, maxlength: '8000', rows: '3', placeholder: 'What should your agent remember?', 'aria-label': 'Memory text' });
+      value.value = a.memoryText; on(value, 'input', () => { a.memoryText = value.value; });
+      const save = el('button', { type: 'submit', text: 'Save memory locally' }); save.disabled = busy;
+      form.append(tier, key, value, save);
+      on(form, 'submit', event => {
+        event.preventDefault();
+        if (!a.memoryKey.trim() || !a.memoryText.trim()) return;
+        agentWrite('/memory/' + encodeURIComponent(a.tier) + '/' + encodeURIComponent(a.memoryKey.trim()), 'PUT',
+          { text: a.memoryText, expectedVersion: a.status.version },
+          'Memory saved in local version history.', () => { a.memoryKey = ''; a.memoryText = ''; });
+      });
+      memory.append(form);
+      const existing = el('section', { id: 'worldAgentMemoryEntries' }, [
+        el('h3', { text: 'Saved ' + a.tier + ' memory' }),
+      ]);
+      if (a.loading) existing.append(el('p', { class: 'note', text: 'Reading local memory…' }));
+      else if (!a.memoryEntries.length) existing.append(el('p', { class: 'note', text: 'No entries in this tier.' }));
+      for (const entry of a.memoryEntries.slice().reverse().slice(0, 50)) {
+        const note = el('article', { class: 'vivim-agent-work-row' }, [
+          el('strong', { text: entry.key }),
+          el('p', { class: 'note', text: entry.text }),
+        ]);
+        const remove = el('button', { type: 'button', text: 'Remove from current memory' });
+        remove.disabled = busy;
+        on(remove, 'click', () => agentWrite(
+          '/memory/' + encodeURIComponent(a.tier) + '/' + encodeURIComponent(entry.key) + '/remove',
+          'POST', { expectedVersion: a.status.version },
+          'Removed from current local memory; prior versions remain in history.',
+        ));
+        note.append(remove);
+        existing.append(note);
+      }
+      memory.append(existing);
+    } else memory.append(el('p', { class: 'note', text: 'Initialize your agent to save memory.' }));
+    listPane.replaceChildren(head, bootstrap, notice, refresh, memory,
+      el('a', { href: '/personal-agent', class: 'hit', text: 'Advanced agent inspector' }));
+
+    const tasks = el('section', { class: 'vivim-info-card', id: 'worldAgentWork' }, [
+      el('h3', { text: 'Your Work' }),
+      el('p', { class: 'note', text: 'User-directed local records, not automated model execution.' }),
+    ]);
+    if (status?.initialized) {
+      const form = el('form', { id: 'worldAgentWorkForm' });
+      const title = el('input', { type: 'text', required: true, maxlength: '160', placeholder: 'Task title', 'aria-label': 'Work title' });
+      title.value = a.title; on(title, 'input', () => { a.title = title.value; });
+      const objective = el('textarea', { required: true, maxlength: '4000', rows: '3', placeholder: 'Task objective', 'aria-label': 'Work objective' });
+      objective.value = a.objective; on(objective, 'input', () => { a.objective = objective.value; });
+      const queue = el('button', { type: 'submit', text: 'Queue local Work' }); queue.disabled = busy;
+      form.append(title, objective, queue);
+      on(form, 'submit', event => {
+        event.preventDefault();
+        if (!a.title.trim() || !a.objective.trim()) return;
+        if (!a.pendingKey) {
+          if (typeof globalThis.crypto?.randomUUID !== 'function') {
+            a.error = 'Secure idempotency key unavailable; no Work queued.'; renderAgent(); return;
+          }
+          a.pendingKey = 'vivim:' + globalThis.crypto.randomUUID();
+        }
+        agentWrite('/work', 'POST', { expectedVersion: a.status.version,
+          title: a.title, objective: a.objective, idempotencyKey: a.pendingKey },
+          'Work queued locally; not dispatched to a provider.',
+          () => { a.pendingKey = null; a.title = ''; a.objective = ''; });
+      });
+      tasks.append(form);
+      const items = a.work?.items ?? [];
+      if (!a.loading && !items.length) tasks.append(el('p', { class: 'empty', text: 'No local Work yet.' }));
+      for (const item of [...items].reverse().slice(0, 50)) {
+        const row = el('article', { class: 'vivim-agent-work-row' }, [
+          el('strong', { text: item.title }),
+          el('p', { class: 'note', text: item.objective }),
+          el('p', { class: 'note', text: 'State: ' + item.status + ' · updated ' + item.updatedAt }),
+        ]);
+        if (item.nextAction) row.append(el('p', { class: 'note', text: 'Next: ' + item.nextAction }));
+        const allowed = AGENT_TRANSITIONS[item.status] ?? [];
+        if (allowed.length) {
+          const next = el('select', { 'aria-label': 'Next work state' });
+          for (const to of allowed) next.append(el('option', { value: to, text: to }));
+          next.value = allowed[0];
+          const note = el('input', { type: 'text', maxlength: '2000', placeholder: 'Reason if blocked', 'aria-label': 'Work reason' });
+          const refs = el('input', { type: 'text', maxlength: '1200', placeholder: 'Evidence references if completed', 'aria-label': 'Work evidence' });
+          const update = el('button', { type: 'button', text: 'Update Work' }); update.disabled = busy;
+          on(update, 'click', () => agentWrite('/work/' + encodeURIComponent(item.id) + '/transition', 'POST', {
+            expectedVersion: a.status.version, to: next.value, note: note.value,
+            evidence: refs.value.split(',').map(v => v.trim()).filter(Boolean),
+          }, 'Work state updated locally, not executed externally.'));
+          row.append(next, note, refs, update);
+        }
+        tasks.append(row);
+      }
+    } else tasks.append(el('p', { class: 'empty', text: 'Initialize your agent to manage Work.' }));
+    detailPane.replaceChildren(tasks);
+  }
   function renderSettings() {
     ensureFrame();
     const config = state.settings;
@@ -3020,6 +3224,12 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
       await Promise.all([loadNamespace(), fetchList('conversations'), fetchList('projects'), fetchList('notes')]);
       if (state.view === 'home') renderHome();
       if (!quiet) announce('Home.');
+      return;
+    }
+    if (view === 'agent') {
+      renderAgent();
+      await agentRefresh();
+      if (!quiet) announce('Personal Agent.');
       return;
     }
     if (view === 'settings') {

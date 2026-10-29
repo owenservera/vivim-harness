@@ -725,6 +725,19 @@ body.vivim-app {
   cursor: default; opacity: .8; }
 .vivim-app .vivim-chat-provider-strip .note { margin: 0; padding: 7px 0; }
 
+
+/* Native Personal Agent shares the existing World split panes and browser ownership. */
+#worldShell[data-active-view="agent"] #worldGrid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); }
+#worldShell[data-active-view="agent"] .vivim-info-card { margin-bottom: 12px; }
+#worldShell[data-active-view="agent"] form { display: grid; gap: 8px; margin: 10px 0; }
+#worldShell[data-active-view="agent"] form input,
+#worldShell[data-active-view="agent"] form textarea,
+#worldShell[data-active-view="agent"] form select { width: 100%; max-width: 100%; }
+#worldShell[data-active-view="agent"] .vivim-agent-work-row { border-top: 1px solid var(--line); padding: 12px 0; }
+#worldShell[data-active-view="agent"] .vivim-agent-work-row > * { margin-top: 6px; }
+@media (max-width: 850px) {
+  #worldShell[data-active-view="agent"] #worldGrid { grid-template-columns: minmax(0, 1fr); }
+}
 </style>
 </head>
 <body class="vivim-app">
@@ -735,13 +748,14 @@ body.vivim-app {
     <span class="vivim-local-label">Local-first</span>
     <a href="/">Advanced Studio</a>
     <a href="/drive">Calibrate sites</a>
-    <a href="/personal-agent">Personal Agent</a>
+    <a href="/personal-agent">Agent details</a>
   </div>
   <span id="connectionNote" class="note" role="status"></span>
 </header>
 
 <nav class="modes" id="shellModes" aria-label="Views">
   <button type="button" id="viewHome" data-view="home" aria-pressed="false" aria-controls="worldShell">Home</button>
+  <button type="button" id="viewAgent" data-view="agent" aria-pressed="false" aria-controls="worldShell">Personal Agent</button>
   <button type="button" id="viewCapture" data-view="capture" aria-pressed="true" aria-controls="chatApp">Capture</button>
   <button type="button" id="viewConversations" data-view="conversations" aria-pressed="false" aria-controls="worldShell">Saved conversations</button>
   <button type="button" id="viewProjects" data-view="projects" aria-pressed="false" aria-controls="worldShell">Projects</button>
