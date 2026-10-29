@@ -1131,6 +1131,26 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
           el('p', { class: 'note', text: 'State: ' + item.status + ' · updated ' + item.updatedAt }),
         ]);
         if (item.nextAction) row.append(el('p', { class: 'note', text: 'Next: ' + item.nextAction }));
+        const canPlan = ['queued', 'active', 'blocked'].includes(item.status);
+        if (canPlan) {
+          const action = el('textarea', {
+            rows: '2', maxlength: '1000', 'aria-label': 'Next action for ' + item.title,
+            placeholder: 'What is the next local step? No automatic execution.',
+          });
+          action.value = item.nextAction ?? '';
+          const saveAction = el('button', { type: 'button', text: 'Save next action' });
+          saveAction.disabled = busy;
+          on(saveAction, 'click', () => {
+            const trimmed = action.value.trim();
+            if (!trimmed && item.status === 'blocked') {
+              a.error = 'Blocked Work requires a next action or reason.'; renderAgent(); return;
+            }
+            agentWrite('/work/' + encodeURIComponent(item.id) + '/next-action', 'POST', {
+              expectedVersion: a.status.version, nextAction: trimmed || null,
+            }, 'Next action saved locally; no execution or provider send occurred.');
+          });
+          row.append(action, saveAction);
+        }
         const allowed = AGENT_TRANSITIONS[item.status] ?? [];
         if (allowed.length) {
           const next = el('select', { 'aria-label': 'Next work state' });
