@@ -1,0 +1,4394 @@
+{
+  "schema": "vivim.user-scenarios/1",
+  "generatedAt": "2026-10-29",
+  "product": "VIVIM local-first personal AI harness for user-owned web AI accounts, Work, personal apps and paired devices",
+  "personas": [
+    {
+      "id": "student",
+      "name": "Student",
+      "description": "Studies and organizes coursework"
+    },
+    {
+      "id": "parent",
+      "name": "Busy parent",
+      "description": "Coordinates family schedules and tasks"
+    },
+    {
+      "id": "freelancer",
+      "name": "Freelancer",
+      "description": "Manages clients and creative work"
+    },
+    {
+      "id": "developer",
+      "name": "Developer",
+      "description": "Uses CLI tools and diagnoses local services"
+    },
+    {
+      "id": "privacy",
+      "name": "Privacy-conscious user",
+      "description": "Keeps personal data under local control"
+    },
+    {
+      "id": "senior",
+      "name": "Non-technical senior",
+      "description": "Needs simple, understandable workflows"
+    },
+    {
+      "id": "owner",
+      "name": "Small-business owner",
+      "description": "Organizes business notes and work"
+    }
+  ],
+  "areas": [
+    {
+      "id": "onboarding",
+      "name": "onboarding",
+      "description": "Consumer workflows for onboarding",
+      "files": [
+        "src/studio/server.mjs",
+        "bin/commands/system.mjs"
+      ]
+    },
+    {
+      "id": "providers",
+      "name": "providers",
+      "description": "Consumer workflows for providers",
+      "files": [
+        "src/profiles/sites/index.mjs",
+        "src/capture/conversation-browser-adapter.mjs"
+      ]
+    },
+    {
+      "id": "conversations",
+      "name": "conversations",
+      "description": "Consumer workflows for conversations",
+      "files": [
+        "src/studio/conversation-api.mjs",
+        "src/studio/conversation-tools.mjs",
+        "src/capture/conversation-service.mjs",
+        "src/studio/ui/chat.mjs"
+      ]
+    },
+    {
+      "id": "mobile",
+      "name": "mobile",
+      "description": "Consumer workflows for mobile",
+      "files": [
+        "src/studio/lan-pair.mjs",
+        "src/studio/ui/mobile.mjs",
+        "src/studio/server.mjs",
+        "android/src/inc/vivim/app/MainActivity.java"
+      ]
+    },
+    {
+      "id": "personal-agent",
+      "name": "personal agent",
+      "description": "Consumer workflows for personal agent",
+      "files": [
+        "src/agents/personal-agent-service.mjs",
+        "src/agents/personal-agent-work.mjs",
+        "src/studio/personal-agent-routes.mjs",
+        "src/studio/ui/personal-agent.mjs"
+      ]
+    },
+    {
+      "id": "app-builder",
+      "name": "app builder",
+      "description": "Consumer workflows for app builder",
+      "files": [
+        "src/studio/personal-app-blueprint.mjs",
+        "src/studio/personal-app-routes.mjs",
+        "src/studio/personal-app-service.mjs",
+        "src/studio/ui/world-view.mjs"
+      ]
+    },
+    {
+      "id": "knowledge",
+      "name": "knowledge",
+      "description": "Consumer workflows for knowledge",
+      "files": [
+        "src/studio/world-service.mjs",
+        "src/studio/world-search.mjs",
+        "src/export/export.mjs",
+        "bin/commands/export.mjs"
+      ]
+    },
+    {
+      "id": "reliability",
+      "name": "reliability",
+      "description": "Consumer workflows for reliability",
+      "files": [
+        "src/studio/server.mjs",
+        "src/chrome/browser-ownership.mjs",
+        "src/capture/thread-turn-journal.mjs"
+      ]
+    },
+    {
+      "id": "privacy",
+      "name": "privacy",
+      "description": "Consumer workflows for privacy",
+      "files": [
+        "src/capture/privacy.mjs",
+        "src/capture/redact.mjs",
+        "src/studio/server.mjs"
+      ]
+    },
+    {
+      "id": "multi-provider",
+      "name": "multi provider",
+      "description": "Consumer workflows for multi provider",
+      "files": [
+        "src/profiles/sites/index.mjs",
+        "src/capture/conversation-runtime.mjs",
+        "src/studio/ui/universal-chat.mjs"
+      ]
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "S001",
+      "title": "Start the local assistant",
+      "persona": "student",
+      "area": "onboarding",
+      "priority": "P0",
+      "goal": "I want to start the local assistant.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Run studio launch with the dedicated profile",
+          "surface": "cli"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "cli"
+        }
+      ],
+      "expectedOutcome": "Studio and the dedicated browser are ready",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/server.mjs",
+          "bin/commands/system.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "B"
+    },
+    {
+      "id": "S002",
+      "title": "Check whether setup is healthy",
+      "persona": "parent",
+      "area": "onboarding",
+      "priority": "P0",
+      "goal": "I want to check whether setup is healthy.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Run studio doctor against port 38702",
+          "surface": "cli"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "cli"
+        }
+      ],
+      "expectedOutcome": "The diagnostic explains browser connectivity",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/server.mjs",
+          "bin/commands/system.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "B"
+    },
+    {
+      "id": "S003",
+      "title": "Open my World",
+      "persona": "freelancer",
+      "area": "onboarding",
+      "priority": "P0",
+      "goal": "I want to open my world.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Open the Studio root in a browser",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "My local World opens",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/server.mjs",
+          "bin/commands/system.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "B"
+    },
+    {
+      "id": "S004",
+      "title": "Find available capabilities",
+      "persona": "developer",
+      "area": "onboarding",
+      "priority": "P0",
+      "goal": "I want to find available capabilities.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Run studio tools list",
+          "surface": "cli"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "cli"
+        }
+      ],
+      "expectedOutcome": "The CLI lists callable tools",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/server.mjs",
+          "bin/commands/system.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "B"
+    },
+    {
+      "id": "S005",
+      "title": "Find a recipe for asking",
+      "persona": "privacy",
+      "area": "onboarding",
+      "priority": "P0",
+      "goal": "I want to find a recipe for asking.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Run recipe choose for a conversation question",
+          "surface": "cli"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "cli"
+        }
+      ],
+      "expectedOutcome": "A matching recipe is shown before execution",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/server.mjs",
+          "bin/commands/system.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "Protect provider drafts and never blindly resend an uncertain turn"
+      ],
+      "lane": "B"
+    },
+    {
+      "id": "S006",
+      "title": "Recover a missing browser",
+      "persona": "senior",
+      "area": "onboarding",
+      "priority": "P0",
+      "goal": "I want to recover a missing browser.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Check agent status and start the dedicated browser if absent",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "Status reflects the available browser",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/server.mjs",
+          "bin/commands/system.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "B"
+    },
+    {
+      "id": "S007",
+      "title": "Understand a sign-in requirement",
+      "persona": "owner",
+      "area": "onboarding",
+      "priority": "P0",
+      "goal": "I want to understand a sign-in requirement.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Open the chosen provider tab and sign in personally",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "The account is signed in without sharing a password with VIVIM",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/server.mjs",
+          "bin/commands/system.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "Protect provider drafts and never blindly resend an uncertain turn",
+        "Provider authentication is human-owned"
+      ],
+      "lane": "B"
+    },
+    {
+      "id": "S008",
+      "title": "Keep my existing profile",
+      "persona": "student",
+      "area": "onboarding",
+      "priority": "P0",
+      "goal": "I want to keep my existing profile.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Launch using the existing dedicated Chrome profile",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "My provider sign-ins remain in that profile",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/server.mjs",
+          "bin/commands/system.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "B"
+    },
+    {
+      "id": "S009",
+      "title": "Connect ChatGPT",
+      "persona": "parent",
+      "area": "providers",
+      "priority": "P0",
+      "goal": "I want to connect chatgpt.",
+      "preconditions": [
+        "Dedicated Chrome profile is available"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Sign in to ChatGPT in the dedicated browser",
+          "surface": "provider-tab"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "provider-tab"
+        }
+      ],
+      "expectedOutcome": "ChatGPT is available for conversation",
+      "status": "WORKS",
+      "evidence": "Owner-provided live verification, 2026-10-29; scenario-specific receipt not supplied",
+      "files": {
+        "existing": [
+          "src/profiles/sites/index.mjs",
+          "src/capture/conversation-browser-adapter.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "Provider authentication is human-owned"
+      ],
+      "lane": "A"
+    },
+    {
+      "id": "S010",
+      "title": "Connect Claude",
+      "persona": "freelancer",
+      "area": "providers",
+      "priority": "P0",
+      "goal": "I want to connect claude.",
+      "preconditions": [
+        "Dedicated Chrome profile is available"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Sign in to Claude in the dedicated browser",
+          "surface": "provider-tab"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "provider-tab"
+        }
+      ],
+      "expectedOutcome": "Claude is available for conversation",
+      "status": "WORKS",
+      "evidence": "Owner-provided live verification, 2026-10-29; scenario-specific receipt not supplied",
+      "files": {
+        "existing": [
+          "src/profiles/sites/index.mjs",
+          "src/capture/conversation-browser-adapter.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "Provider authentication is human-owned"
+      ],
+      "lane": "A"
+    },
+    {
+      "id": "S011",
+      "title": "Ask z.ai",
+      "persona": "developer",
+      "area": "providers",
+      "priority": "P0",
+      "goal": "I want to ask z.ai.",
+      "preconditions": [
+        "Dedicated Chrome profile is available"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Choose z.ai and drive a prompt",
+          "surface": "provider-tab"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "provider-tab"
+        }
+      ],
+      "expectedOutcome": "A z.ai reply is captured",
+      "status": "WORKS",
+      "evidence": "Owner-provided live verification, 2026-10-29; scenario-specific receipt not supplied",
+      "files": {
+        "existing": [
+          "src/profiles/sites/index.mjs",
+          "src/capture/conversation-browser-adapter.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "Protect provider drafts and never blindly resend an uncertain turn"
+      ],
+      "lane": "A"
+    },
+    {
+      "id": "S012",
+      "title": "Connect Gemini",
+      "persona": "privacy",
+      "area": "providers",
+      "priority": "P0",
+      "goal": "I want to connect gemini.",
+      "preconditions": [
+        "Dedicated Chrome profile is available"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Open Gemini and complete its sign-in",
+          "surface": "provider-tab"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "provider-tab"
+        }
+      ],
+      "expectedOutcome": "The composer can be read after sign-in",
+      "status": "PARTIAL",
+      "evidence": "Owner-provided status evidence, 2026-10-29; retest required",
+      "files": {
+        "existing": [
+          "src/profiles/sites/index.mjs",
+          "src/capture/conversation-browser-adapter.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "Provider authentication is human-owned"
+      ],
+      "lane": "A"
+    },
+    {
+      "id": "S013",
+      "title": "Connect DeepSeek",
+      "persona": "senior",
+      "area": "providers",
+      "priority": "P0",
+      "goal": "I want to connect deepseek.",
+      "preconditions": [
+        "Dedicated Chrome profile is available"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Sign in to DeepSeek and inspect conversation targets",
+          "surface": "provider-tab"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "provider-tab"
+        }
+      ],
+      "expectedOutcome": "The signed-in target is discoverable",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/profiles/sites/index.mjs",
+          "src/capture/conversation-browser-adapter.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "Provider authentication is human-owned"
+      ],
+      "lane": "A"
+    },
+    {
+      "id": "S014",
+      "title": "Connect Qwen",
+      "persona": "owner",
+      "area": "providers",
+      "priority": "P0",
+      "goal": "I want to connect qwen.",
+      "preconditions": [
+        "Dedicated Chrome profile is available"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Sign in to Qwen and inspect conversation targets",
+          "surface": "provider-tab"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "provider-tab"
+        }
+      ],
+      "expectedOutcome": "The signed-in target is discoverable",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/profiles/sites/index.mjs",
+          "src/capture/conversation-browser-adapter.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "Provider authentication is human-owned"
+      ],
+      "lane": "A"
+    },
+    {
+      "id": "S015",
+      "title": "Connect Kimi",
+      "persona": "student",
+      "area": "providers",
+      "priority": "P0",
+      "goal": "I want to connect kimi.",
+      "preconditions": [
+        "Dedicated Chrome profile is available"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Sign in to Kimi and inspect conversation targets",
+          "surface": "provider-tab"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "provider-tab"
+        }
+      ],
+      "expectedOutcome": "The signed-in target is discoverable",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/profiles/sites/index.mjs",
+          "src/capture/conversation-browser-adapter.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "Provider authentication is human-owned"
+      ],
+      "lane": "A"
+    },
+    {
+      "id": "S016",
+      "title": "Recognize a logged-out provider",
+      "persona": "parent",
+      "area": "providers",
+      "priority": "P0",
+      "goal": "I want to recognize a logged-out provider.",
+      "preconditions": [
+        "Dedicated Chrome profile is available"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Open a signed-out provider and inspect its readiness",
+          "surface": "provider-tab"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "provider-tab"
+        }
+      ],
+      "expectedOutcome": "I see that human sign-in is required",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/profiles/sites/index.mjs",
+          "src/capture/conversation-browser-adapter.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "Protect provider drafts and never blindly resend an uncertain turn"
+      ],
+      "lane": "A"
+    },
+    {
+      "id": "S017",
+      "title": "Avoid the wrong browser profile",
+      "persona": "freelancer",
+      "area": "providers",
+      "priority": "P0",
+      "goal": "I want to avoid the wrong browser profile.",
+      "preconditions": [
+        "Dedicated Chrome profile is available"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Check doctor and launch with the dedicated profile",
+          "surface": "provider-tab"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "provider-tab"
+        }
+      ],
+      "expectedOutcome": "VIVIM does not take over my ordinary Chrome profile",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/profiles/sites/index.mjs",
+          "src/capture/conversation-browser-adapter.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "A"
+    },
+    {
+      "id": "S018",
+      "title": "Reconnect after sign-out",
+      "persona": "developer",
+      "area": "providers",
+      "priority": "P0",
+      "goal": "I want to reconnect after sign-out.",
+      "preconditions": [
+        "Dedicated Chrome profile is available"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Sign in again in the provider tab and refresh targets",
+          "surface": "provider-tab"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "provider-tab"
+        }
+      ],
+      "expectedOutcome": "The existing account becomes available again",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/profiles/sites/index.mjs",
+          "src/capture/conversation-browser-adapter.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "Protect provider drafts and never blindly resend an uncertain turn",
+        "Provider authentication is human-owned"
+      ],
+      "lane": "A"
+    },
+    {
+      "id": "S019",
+      "title": "Start a ChatGPT chat",
+      "persona": "privacy",
+      "area": "conversations",
+      "priority": "P0",
+      "goal": "I want to start a chatgpt chat.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Create a ChatGPT conversation and submit a prompt",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "The saved conversation contains the reply",
+      "status": "WORKS",
+      "evidence": "Owner-provided live verification, 2026-10-29; scenario-specific receipt not supplied",
+      "files": {
+        "existing": [
+          "src/studio/conversation-api.mjs",
+          "src/studio/conversation-tools.mjs",
+          "src/capture/conversation-service.mjs",
+          "src/studio/ui/chat.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "Protect provider drafts and never blindly resend an uncertain turn"
+      ],
+      "lane": "A"
+    },
+    {
+      "id": "S020",
+      "title": "Start a Claude chat",
+      "persona": "senior",
+      "area": "conversations",
+      "priority": "P0",
+      "goal": "I want to start a claude chat.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Create a Claude conversation and submit a prompt",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "The saved conversation contains the reply",
+      "status": "WORKS",
+      "evidence": "Owner-provided live verification, 2026-10-29; scenario-specific receipt not supplied",
+      "files": {
+        "existing": [
+          "src/studio/conversation-api.mjs",
+          "src/studio/conversation-tools.mjs",
+          "src/capture/conversation-service.mjs",
+          "src/studio/ui/chat.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "Protect provider drafts and never blindly resend an uncertain turn"
+      ],
+      "lane": "A"
+    },
+    {
+      "id": "S021",
+      "title": "Read a previous conversation",
+      "persona": "owner",
+      "area": "conversations",
+      "priority": "P0",
+      "goal": "I want to read a previous conversation.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Use get_conversation with its conversation id",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "The stored conversation is returned",
+      "status": "WORKS",
+      "evidence": "Owner-provided live verification, 2026-10-29; scenario-specific receipt not supplied",
+      "files": {
+        "existing": [
+          "src/studio/conversation-api.mjs",
+          "src/studio/conversation-tools.mjs",
+          "src/capture/conversation-service.mjs",
+          "src/studio/ui/chat.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "A"
+    },
+    {
+      "id": "S022",
+      "title": "Finish a conversation",
+      "persona": "student",
+      "area": "conversations",
+      "priority": "P0",
+      "goal": "I want to finish a conversation.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Finish an active ChatGPT or Claude conversation",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "The conversation finishes and is available to read",
+      "status": "WORKS",
+      "evidence": "Owner-provided live verification, 2026-10-29; scenario-specific receipt not supplied",
+      "files": {
+        "existing": [
+          "src/studio/conversation-api.mjs",
+          "src/studio/conversation-tools.mjs",
+          "src/capture/conversation-service.mjs",
+          "src/studio/ui/chat.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "A"
+    },
+    {
+      "id": "S023",
+      "title": "Ask a follow-up",
+      "persona": "parent",
+      "area": "conversations",
+      "priority": "P0",
+      "goal": "I want to ask a follow-up.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Open a saved conversation and submit a follow-up",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "The reply belongs to the same thread",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/conversation-api.mjs",
+          "src/studio/conversation-tools.mjs",
+          "src/capture/conversation-service.mjs",
+          "src/studio/ui/chat.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "A"
+    },
+    {
+      "id": "S024",
+      "title": "See available conversation targets",
+      "persona": "freelancer",
+      "area": "conversations",
+      "priority": "P0",
+      "goal": "I want to see available conversation targets.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Call conversation_targets from the CLI",
+          "surface": "cli"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "cli"
+        }
+      ],
+      "expectedOutcome": "Available provider targets are listed",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/conversation-api.mjs",
+          "src/studio/conversation-tools.mjs",
+          "src/capture/conversation-service.mjs",
+          "src/studio/ui/chat.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "A"
+    },
+    {
+      "id": "S025",
+      "title": "List my conversations",
+      "persona": "developer",
+      "area": "conversations",
+      "priority": "P0",
+      "goal": "I want to list my conversations.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Call list_conversations from the CLI",
+          "surface": "cli"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "cli"
+        }
+      ],
+      "expectedOutcome": "Stored conversations are listed",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/conversation-api.mjs",
+          "src/studio/conversation-tools.mjs",
+          "src/capture/conversation-service.mjs",
+          "src/studio/ui/chat.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "A"
+    },
+    {
+      "id": "S026",
+      "title": "Resume a named chat",
+      "persona": "privacy",
+      "area": "conversations",
+      "priority": "P0",
+      "goal": "I want to resume a named chat.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Select an existing chat in World and open it",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "Its previous turns appear",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/conversation-api.mjs",
+          "src/studio/conversation-tools.mjs",
+          "src/capture/conversation-service.mjs",
+          "src/studio/ui/chat.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "A"
+    },
+    {
+      "id": "S027",
+      "title": "Watch a long answer finish",
+      "persona": "senior",
+      "area": "conversations",
+      "priority": "P0",
+      "goal": "I want to watch a long answer finish.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Submit a question and wait for generation to finish",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "The complete answer is displayed",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/conversation-api.mjs",
+          "src/studio/conversation-tools.mjs",
+          "src/capture/conversation-service.mjs",
+          "src/studio/ui/chat.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "Protect provider drafts and never blindly resend an uncertain turn"
+      ],
+      "lane": "A"
+    },
+    {
+      "id": "S028",
+      "title": "Send an explicit question",
+      "persona": "owner",
+      "area": "conversations",
+      "priority": "P0",
+      "goal": "I want to send an explicit question.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Write a prompt and deliberately select Send",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "One provider turn is submitted",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/conversation-api.mjs",
+          "src/studio/conversation-tools.mjs",
+          "src/capture/conversation-service.mjs",
+          "src/studio/ui/chat.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "Protect provider drafts and never blindly resend an uncertain turn"
+      ],
+      "lane": "A"
+    },
+    {
+      "id": "S029",
+      "title": "Handle a first-turn timeout",
+      "persona": "student",
+      "area": "conversations",
+      "priority": "P0",
+      "goal": "I want to handle a first-turn timeout.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Submit a first prompt and inspect a 504 or CONNECT_TIMEOUT",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "The UI explains the outcome without implying an uncertain send is safe to repeat",
+      "status": "BROKEN",
+      "evidence": "Owner-provided status evidence, 2026-10-29; retest required",
+      "files": {
+        "existing": [
+          "src/studio/conversation-api.mjs",
+          "src/studio/conversation-tools.mjs",
+          "src/capture/conversation-service.mjs",
+          "src/studio/ui/chat.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "Protect provider drafts and never blindly resend an uncertain turn"
+      ],
+      "lane": "A"
+    },
+    {
+      "id": "S030",
+      "title": "Recheck an uncertain turn",
+      "persona": "parent",
+      "area": "conversations",
+      "priority": "P0",
+      "goal": "I want to recheck an uncertain turn.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Reconcile the original stable key after a timeout",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "VIVIM reports whether the original turn landed without resending",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/conversation-api.mjs",
+          "src/studio/conversation-tools.mjs",
+          "src/capture/conversation-service.mjs",
+          "src/studio/ui/chat.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "Protect provider drafts and never blindly resend an uncertain turn"
+      ],
+      "lane": "A"
+    },
+    {
+      "id": "S031",
+      "title": "Pair my phone",
+      "persona": "freelancer",
+      "area": "mobile",
+      "priority": "P0",
+      "goal": "I want to pair my phone.",
+      "preconditions": [
+        "Studio and the dedicated browser are running; phone is on the same LAN where needed"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Open the tokenized LAN pairing URL on my phone",
+          "surface": "mobile-pwa"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "mobile-pwa"
+        }
+      ],
+      "expectedOutcome": "The /mobile page opens after pairing",
+      "status": "WORKS",
+      "evidence": "Owner-provided live verification, 2026-10-29; scenario-specific receipt not supplied",
+      "files": {
+        "existing": [
+          "src/studio/lan-pair.mjs",
+          "src/studio/ui/mobile.mjs",
+          "src/studio/server.mjs",
+          "android/src/inc/vivim/app/MainActivity.java"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "LAN token and device ownership"
+      ],
+      "lane": "B"
+    },
+    {
+      "id": "S032",
+      "title": "Block an unpaired phone",
+      "persona": "developer",
+      "area": "mobile",
+      "priority": "P0",
+      "goal": "I want to block an unpaired phone.",
+      "preconditions": [
+        "Studio and the dedicated browser are running; phone is on the same LAN where needed"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Request the mobile page without a token",
+          "surface": "mobile-pwa"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "mobile-pwa"
+        }
+      ],
+      "expectedOutcome": "The server returns 401",
+      "status": "WORKS",
+      "evidence": "Owner-provided live verification, 2026-10-29; scenario-specific receipt not supplied",
+      "files": {
+        "existing": [
+          "src/studio/lan-pair.mjs",
+          "src/studio/ui/mobile.mjs",
+          "src/studio/server.mjs",
+          "android/src/inc/vivim/app/MainActivity.java"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "LAN token and device ownership"
+      ],
+      "lane": "B"
+    },
+    {
+      "id": "S033",
+      "title": "Write a phone note",
+      "persona": "privacy",
+      "area": "mobile",
+      "priority": "P0",
+      "goal": "I want to write a phone note.",
+      "preconditions": [
+        "Studio and the dedicated browser are running; phone is on the same LAN where needed"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Open paired mobile and add a note",
+          "surface": "mobile-pwa"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "mobile-pwa"
+        }
+      ],
+      "expectedOutcome": "The note is stored",
+      "status": "WORKS",
+      "evidence": "Owner-provided live verification, 2026-10-29; scenario-specific receipt not supplied",
+      "files": {
+        "existing": [
+          "src/studio/lan-pair.mjs",
+          "src/studio/ui/mobile.mjs",
+          "src/studio/server.mjs",
+          "android/src/inc/vivim/app/MainActivity.java"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "LAN token and device ownership"
+      ],
+      "lane": "B"
+    },
+    {
+      "id": "S034",
+      "title": "Create a phone task",
+      "persona": "senior",
+      "area": "mobile",
+      "priority": "P0",
+      "goal": "I want to create a phone task.",
+      "preconditions": [
+        "Studio and the dedicated browser are running; phone is on the same LAN where needed"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Open paired mobile and add a task",
+          "surface": "mobile-pwa"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "mobile-pwa"
+        }
+      ],
+      "expectedOutcome": "The task is stored",
+      "status": "WORKS",
+      "evidence": "Owner-provided live verification, 2026-10-29; scenario-specific receipt not supplied",
+      "files": {
+        "existing": [
+          "src/studio/lan-pair.mjs",
+          "src/studio/ui/mobile.mjs",
+          "src/studio/server.mjs",
+          "android/src/inc/vivim/app/MainActivity.java"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "LAN token and device ownership"
+      ],
+      "lane": "B"
+    },
+    {
+      "id": "S035",
+      "title": "Ask my AI from my phone",
+      "persona": "owner",
+      "area": "mobile",
+      "priority": "P0",
+      "goal": "I want to ask my ai from my phone.",
+      "preconditions": [
+        "Studio and the dedicated browser are running; phone is on the same LAN where needed"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Use Ask my AI in mobile and submit a question",
+          "surface": "mobile-pwa"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "mobile-pwa"
+        }
+      ],
+      "expectedOutcome": "A provider reply appears on the phone",
+      "status": "PARTIAL",
+      "evidence": "Owner-provided status evidence, 2026-10-29; retest required",
+      "files": {
+        "existing": [
+          "src/studio/lan-pair.mjs",
+          "src/studio/ui/mobile.mjs",
+          "src/studio/server.mjs",
+          "android/src/inc/vivim/app/MainActivity.java"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "Protect provider drafts and never blindly resend an uncertain turn",
+        "LAN token and device ownership"
+      ],
+      "lane": "B"
+    },
+    {
+      "id": "S036",
+      "title": "Install the mobile PWA",
+      "persona": "student",
+      "area": "mobile",
+      "priority": "P2",
+      "goal": "I want to install the mobile pwa.",
+      "preconditions": [
+        "Studio and the dedicated browser are running; phone is on the same LAN where needed"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Open the paired mobile page and use the browser install option",
+          "surface": "mobile-pwa"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "mobile-pwa"
+        }
+      ],
+      "expectedOutcome": "The installed shell opens on the phone",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/lan-pair.mjs",
+          "src/studio/ui/mobile.mjs",
+          "src/studio/server.mjs",
+          "android/src/inc/vivim/app/MainActivity.java"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "LAN token and device ownership"
+      ],
+      "lane": "B"
+    },
+    {
+      "id": "S037",
+      "title": "Open mobile after reconnecting Wi-Fi",
+      "persona": "parent",
+      "area": "mobile",
+      "priority": "P1",
+      "goal": "I want to open mobile after reconnecting wi-fi.",
+      "preconditions": [
+        "Studio and the dedicated browser are running; phone is on the same LAN where needed"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Reconnect to the same LAN and reopen mobile",
+          "surface": "mobile-pwa"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "mobile-pwa"
+        }
+      ],
+      "expectedOutcome": "The paired local service is reachable",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/lan-pair.mjs",
+          "src/studio/ui/mobile.mjs",
+          "src/studio/server.mjs",
+          "android/src/inc/vivim/app/MainActivity.java"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "LAN token and device ownership"
+      ],
+      "lane": "B"
+    },
+    {
+      "id": "S038",
+      "title": "Keep API responses out of shell cache",
+      "persona": "freelancer",
+      "area": "mobile",
+      "priority": "P1",
+      "goal": "I want to keep api responses out of shell cache.",
+      "preconditions": [
+        "Studio and the dedicated browser are running; phone is on the same LAN where needed"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Use mobile after a service-worker installation",
+          "surface": "mobile-pwa"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "mobile-pwa"
+        }
+      ],
+      "expectedOutcome": "The worker does not cache or intercept API requests",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/lan-pair.mjs",
+          "src/studio/ui/mobile.mjs",
+          "src/studio/server.mjs",
+          "android/src/inc/vivim/app/MainActivity.java"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "LAN token and device ownership"
+      ],
+      "lane": "B"
+    },
+    {
+      "id": "S039",
+      "title": "Build Android shell",
+      "persona": "developer",
+      "area": "mobile",
+      "priority": "P1",
+      "goal": "I want to build android shell.",
+      "preconditions": [
+        "Studio and the dedicated browser are running; phone is on the same LAN where needed"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Run the Android build script",
+          "surface": "android-app"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "android-app"
+        }
+      ],
+      "expectedOutcome": "An APK is produced",
+      "status": "WORKS",
+      "evidence": "Owner-provided live verification, 2026-10-29; scenario-specific receipt not supplied",
+      "files": {
+        "existing": [
+          "src/studio/lan-pair.mjs",
+          "src/studio/ui/mobile.mjs",
+          "src/studio/server.mjs",
+          "android/src/inc/vivim/app/MainActivity.java"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "LAN token and device ownership"
+      ],
+      "lane": "B"
+    },
+    {
+      "id": "S040",
+      "title": "Install Android shell",
+      "persona": "privacy",
+      "area": "mobile",
+      "priority": "P2",
+      "goal": "I want to install android shell.",
+      "preconditions": [
+        "Studio and the dedicated browser are running; phone is on the same LAN where needed"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Install the built APK on an Android device or emulator",
+          "surface": "android-app"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "android-app"
+        }
+      ],
+      "expectedOutcome": "The native shell installs",
+      "status": "WORKS",
+      "evidence": "Owner-provided live verification, 2026-10-29; scenario-specific receipt not supplied",
+      "files": {
+        "existing": [
+          "src/studio/lan-pair.mjs",
+          "src/studio/ui/mobile.mjs",
+          "src/studio/server.mjs",
+          "android/src/inc/vivim/app/MainActivity.java"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "LAN token and device ownership"
+      ],
+      "lane": "B"
+    },
+    {
+      "id": "S041",
+      "title": "Load my paired Android page",
+      "persona": "senior",
+      "area": "mobile",
+      "priority": "P1",
+      "goal": "I want to load my paired android page.",
+      "preconditions": [
+        "Studio and the dedicated browser are running; phone is on the same LAN where needed"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Open the Android shell and enter the pairing URL",
+          "surface": "android-app"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "android-app"
+        }
+      ],
+      "expectedOutcome": "The paired mobile page loads inside the shell",
+      "status": "PARTIAL",
+      "evidence": "Owner-provided status evidence, 2026-10-29; retest required",
+      "files": {
+        "existing": [
+          "src/studio/lan-pair.mjs",
+          "src/studio/ui/mobile.mjs",
+          "src/studio/server.mjs",
+          "android/src/inc/vivim/app/MainActivity.java"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "LAN token and device ownership"
+      ],
+      "lane": "B"
+    },
+    {
+      "id": "S042",
+      "title": "Recover Android connection",
+      "persona": "owner",
+      "area": "mobile",
+      "priority": "P1",
+      "goal": "I want to recover android connection.",
+      "preconditions": [
+        "Studio and the dedicated browser are running; phone is on the same LAN where needed"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Reconnect the shell after a LAN address change",
+          "surface": "android-app"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "android-app"
+        }
+      ],
+      "expectedOutcome": "The shell can open the new pairing address",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/lan-pair.mjs",
+          "src/studio/ui/mobile.mjs",
+          "src/studio/server.mjs",
+          "android/src/inc/vivim/app/MainActivity.java"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "LAN token and device ownership"
+      ],
+      "lane": "B"
+    },
+    {
+      "id": "S043",
+      "title": "Use a phone on another network",
+      "persona": "student",
+      "area": "mobile",
+      "priority": "P1",
+      "goal": "I want to use a phone on another network.",
+      "preconditions": [
+        "Studio and the dedicated browser are running; phone is on the same LAN where needed"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Try the LAN pairing URL away from my home network",
+          "surface": "mobile-pwa"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "mobile-pwa"
+        }
+      ],
+      "expectedOutcome": "The product clearly reports that the local service is unreachable",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/lan-pair.mjs",
+          "src/studio/ui/mobile.mjs",
+          "src/studio/server.mjs",
+          "android/src/inc/vivim/app/MainActivity.java"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "LAN token and device ownership"
+      ],
+      "lane": "B"
+    },
+    {
+      "id": "S044",
+      "title": "Remove access from a shared phone",
+      "persona": "parent",
+      "area": "mobile",
+      "priority": "P2",
+      "goal": "I want to remove access from a shared phone.",
+      "preconditions": [
+        "Studio and the dedicated browser are running; phone is on the same LAN where needed"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Clear pairing credentials on a shared phone",
+          "surface": "mobile-pwa"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "mobile-pwa"
+        }
+      ],
+      "expectedOutcome": "The phone can no longer access the authenticated session",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/lan-pair.mjs",
+          "src/studio/ui/mobile.mjs",
+          "src/studio/server.mjs",
+          "android/src/inc/vivim/app/MainActivity.java"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "LAN token and device ownership"
+      ],
+      "lane": "B"
+    },
+    {
+      "id": "S045",
+      "title": "Turn a reply into work",
+      "persona": "freelancer",
+      "area": "personal-agent",
+      "priority": "P0",
+      "goal": "I want to turn a reply into work.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Apply a stored ChatGPT reply to a Work item",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "The Work item is updated from the stored reply",
+      "status": "WORKS",
+      "evidence": "Owner-provided live verification, 2026-10-29; scenario-specific receipt not supplied",
+      "files": {
+        "existing": [
+          "src/agents/personal-agent-service.mjs",
+          "src/agents/personal-agent-work.mjs",
+          "src/studio/personal-agent-routes.mjs",
+          "src/studio/ui/personal-agent.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "Protect provider drafts and never blindly resend an uncertain turn"
+      ],
+      "lane": "C"
+    },
+    {
+      "id": "S046",
+      "title": "Open my Work queue",
+      "persona": "developer",
+      "area": "personal-agent",
+      "priority": "P1",
+      "goal": "I want to open my work queue.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Open the Personal Agent panel and inspect Work",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "My Work items are shown",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/agents/personal-agent-service.mjs",
+          "src/agents/personal-agent-work.mjs",
+          "src/studio/personal-agent-routes.mjs",
+          "src/studio/ui/personal-agent.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "C"
+    },
+    {
+      "id": "S047",
+      "title": "Create a Work item",
+      "persona": "privacy",
+      "area": "personal-agent",
+      "priority": "P1",
+      "goal": "I want to create a work item.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Add a Work item describing a household task",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "The item is saved for later",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/agents/personal-agent-service.mjs",
+          "src/agents/personal-agent-work.mjs",
+          "src/studio/personal-agent-routes.mjs",
+          "src/studio/ui/personal-agent.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "C"
+    },
+    {
+      "id": "S048",
+      "title": "Inspect a Work item",
+      "persona": "senior",
+      "area": "personal-agent",
+      "priority": "P2",
+      "goal": "I want to inspect a work item.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Select a Work item in the Personal Agent panel",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "Its details and current state appear",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/agents/personal-agent-service.mjs",
+          "src/agents/personal-agent-work.mjs",
+          "src/studio/personal-agent-routes.mjs",
+          "src/studio/ui/personal-agent.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "C"
+    },
+    {
+      "id": "S049",
+      "title": "Continue work after restart",
+      "persona": "owner",
+      "area": "personal-agent",
+      "priority": "P1",
+      "goal": "I want to continue work after restart.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Restart Studio and reopen my Work queue",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "Stored Work survives the restart",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/agents/personal-agent-service.mjs",
+          "src/agents/personal-agent-work.mjs",
+          "src/studio/personal-agent-routes.mjs",
+          "src/studio/ui/personal-agent.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "C"
+    },
+    {
+      "id": "S050",
+      "title": "Track work progress",
+      "persona": "student",
+      "area": "personal-agent",
+      "priority": "P1",
+      "goal": "I want to track work progress.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Update an existing Work item and reopen it",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "The updated state is preserved",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/agents/personal-agent-service.mjs",
+          "src/agents/personal-agent-work.mjs",
+          "src/studio/personal-agent-routes.mjs",
+          "src/studio/ui/personal-agent.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "C"
+    },
+    {
+      "id": "S051",
+      "title": "Use stored context for work",
+      "persona": "parent",
+      "area": "personal-agent",
+      "priority": "P1",
+      "goal": "I want to use stored context for work.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Search personal memory while reviewing a Work item",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "Relevant stored context is returned",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/agents/personal-agent-service.mjs",
+          "src/agents/personal-agent-work.mjs",
+          "src/studio/personal-agent-routes.mjs",
+          "src/studio/ui/personal-agent.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "C"
+    },
+    {
+      "id": "S052",
+      "title": "Review before applying an AI reply",
+      "persona": "freelancer",
+      "area": "personal-agent",
+      "priority": "P2",
+      "goal": "I want to review before applying an ai reply.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Inspect the stored provider reply before applying it",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "I can decide whether to apply the content",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/agents/personal-agent-service.mjs",
+          "src/agents/personal-agent-work.mjs",
+          "src/studio/personal-agent-routes.mjs",
+          "src/studio/ui/personal-agent.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "Protect provider drafts and never blindly resend an uncertain turn"
+      ],
+      "lane": "C"
+    },
+    {
+      "id": "S053",
+      "title": "Avoid applying the wrong reply",
+      "persona": "developer",
+      "area": "personal-agent",
+      "priority": "P1",
+      "goal": "I want to avoid applying the wrong reply.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Choose the intended conversation and reply for a Work item",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "Only that reply is applied",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/agents/personal-agent-service.mjs",
+          "src/agents/personal-agent-work.mjs",
+          "src/studio/personal-agent-routes.mjs",
+          "src/studio/ui/personal-agent.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "Protect provider drafts and never blindly resend an uncertain turn"
+      ],
+      "lane": "C"
+    },
+    {
+      "id": "S054",
+      "title": "Recover an interrupted agent task",
+      "persona": "privacy",
+      "area": "personal-agent",
+      "priority": "P1",
+      "goal": "I want to recover an interrupted agent task.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Reopen the Work item after Studio restarts during a task",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "The state explains what remains to be done",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/agents/personal-agent-service.mjs",
+          "src/agents/personal-agent-work.mjs",
+          "src/studio/personal-agent-routes.mjs",
+          "src/studio/ui/personal-agent.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "C"
+    },
+    {
+      "id": "S055",
+      "title": "Find agent capabilities",
+      "persona": "senior",
+      "area": "personal-agent",
+      "priority": "P1",
+      "goal": "I want to find agent capabilities.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Open the Personal Agent and inspect its self-knowledge",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "Available agent capabilities are described",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/agents/personal-agent-service.mjs",
+          "src/agents/personal-agent-work.mjs",
+          "src/studio/personal-agent-routes.mjs",
+          "src/studio/ui/personal-agent.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "C"
+    },
+    {
+      "id": "S056",
+      "title": "Avoid duplicate work updates",
+      "persona": "owner",
+      "area": "personal-agent",
+      "priority": "P2",
+      "goal": "I want to avoid duplicate work updates.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Repeat a previously applied reply operation",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "The work item does not receive an unintended duplicate",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/agents/personal-agent-service.mjs",
+          "src/agents/personal-agent-work.mjs",
+          "src/studio/personal-agent-routes.mjs",
+          "src/studio/ui/personal-agent.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "Protect provider drafts and never blindly resend an uncertain turn"
+      ],
+      "lane": "C"
+    },
+    {
+      "id": "S057",
+      "title": "Create a meal planner blueprint",
+      "persona": "student",
+      "area": "app-builder",
+      "priority": "P0",
+      "goal": "I want to create a meal planner blueprint.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Create a personal app blueprint named Meal Planner",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "A blueprint is stored",
+      "status": "WORKS",
+      "evidence": "Owner-provided live verification, 2026-10-29; scenario-specific receipt not supplied",
+      "files": {
+        "existing": [
+          "src/studio/personal-app-blueprint.mjs",
+          "src/studio/personal-app-routes.mjs",
+          "src/studio/personal-app-service.mjs",
+          "src/studio/ui/world-view.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "LAN token and device ownership"
+      ],
+      "lane": "C"
+    },
+    {
+      "id": "S058",
+      "title": "Add a manual app screen",
+      "persona": "parent",
+      "area": "app-builder",
+      "priority": "P0",
+      "goal": "I want to add a manual app screen.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Add a screen manually to an existing blueprint",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "The screen is added",
+      "status": "WORKS",
+      "evidence": "Owner-provided live verification, 2026-10-29; scenario-specific receipt not supplied",
+      "files": {
+        "existing": [
+          "src/studio/personal-app-blueprint.mjs",
+          "src/studio/personal-app-routes.mjs",
+          "src/studio/personal-app-service.mjs",
+          "src/studio/ui/world-view.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "C"
+    },
+    {
+      "id": "S059",
+      "title": "Design screens with my AI",
+      "persona": "freelancer",
+      "area": "app-builder",
+      "priority": "P0",
+      "goal": "I want to design screens with my ai.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Choose Design with my AI and request a screen",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "A fresh provider reply yields a usable design proposal",
+      "status": "BROKEN",
+      "evidence": "Owner-provided status evidence, 2026-10-29; retest required",
+      "files": {
+        "existing": [
+          "src/studio/personal-app-blueprint.mjs",
+          "src/studio/personal-app-routes.mjs",
+          "src/studio/personal-app-service.mjs",
+          "src/studio/ui/world-view.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "Protect provider drafts and never blindly resend an uncertain turn"
+      ],
+      "lane": "C"
+    },
+    {
+      "id": "S060",
+      "title": "Open an existing personal app",
+      "persona": "developer",
+      "area": "app-builder",
+      "priority": "P2",
+      "goal": "I want to open an existing personal app.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Select a saved blueprint in World",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "Its app and screens open",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/personal-app-blueprint.mjs",
+          "src/studio/personal-app-routes.mjs",
+          "src/studio/personal-app-service.mjs",
+          "src/studio/ui/world-view.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "C"
+    },
+    {
+      "id": "S061",
+      "title": "Make a reading list app",
+      "persona": "privacy",
+      "area": "app-builder",
+      "priority": "P1",
+      "goal": "I want to make a reading list app.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Create a Reading List blueprint and add a list screen",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "A personal reading list app is ready to populate",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/personal-app-blueprint.mjs",
+          "src/studio/personal-app-routes.mjs",
+          "src/studio/personal-app-service.mjs",
+          "src/studio/ui/world-view.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "C"
+    },
+    {
+      "id": "S062",
+      "title": "Make a household task app",
+      "persona": "senior",
+      "area": "app-builder",
+      "priority": "P1",
+      "goal": "I want to make a household task app.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Create a household blueprint and add a task screen",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "A task screen is available",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/personal-app-blueprint.mjs",
+          "src/studio/personal-app-routes.mjs",
+          "src/studio/personal-app-service.mjs",
+          "src/studio/ui/world-view.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "C"
+    },
+    {
+      "id": "S063",
+      "title": "Make a notes app",
+      "persona": "owner",
+      "area": "app-builder",
+      "priority": "P1",
+      "goal": "I want to make a notes app.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Create a notes blueprint and add a notes screen",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "The notes screen is available",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/personal-app-blueprint.mjs",
+          "src/studio/personal-app-routes.mjs",
+          "src/studio/personal-app-service.mjs",
+          "src/studio/ui/world-view.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "C"
+    },
+    {
+      "id": "S064",
+      "title": "Name an app for its purpose",
+      "persona": "student",
+      "area": "app-builder",
+      "priority": "P2",
+      "goal": "I want to name an app for its purpose.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Enter a title and intent when creating a blueprint",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "The saved blueprint retains its title and purpose",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/personal-app-blueprint.mjs",
+          "src/studio/personal-app-routes.mjs",
+          "src/studio/personal-app-service.mjs",
+          "src/studio/ui/world-view.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "C"
+    },
+    {
+      "id": "S065",
+      "title": "Preview suggested changes",
+      "persona": "parent",
+      "area": "app-builder",
+      "priority": "P1",
+      "goal": "I want to preview suggested changes.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Request a proposal and preview its screens before applying",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "I can inspect the proposed changes",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/personal-app-blueprint.mjs",
+          "src/studio/personal-app-routes.mjs",
+          "src/studio/personal-app-service.mjs",
+          "src/studio/ui/world-view.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "C"
+    },
+    {
+      "id": "S066",
+      "title": "Apply a valid proposal",
+      "persona": "freelancer",
+      "area": "app-builder",
+      "priority": "P1",
+      "goal": "I want to apply a valid proposal.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Apply an approved proposal to the current blueprint version",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "The approved screens are added",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/personal-app-blueprint.mjs",
+          "src/studio/personal-app-routes.mjs",
+          "src/studio/personal-app-service.mjs",
+          "src/studio/ui/world-view.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "C"
+    },
+    {
+      "id": "S067",
+      "title": "Reject a stale proposal",
+      "persona": "developer",
+      "area": "app-builder",
+      "priority": "P1",
+      "goal": "I want to reject a stale proposal.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Change the app after a proposal is generated and try to apply it",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "A version conflict prevents overwriting newer changes",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/personal-app-blueprint.mjs",
+          "src/studio/personal-app-routes.mjs",
+          "src/studio/personal-app-service.mjs",
+          "src/studio/ui/world-view.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "C"
+    },
+    {
+      "id": "S068",
+      "title": "Protect a provider draft",
+      "persona": "privacy",
+      "area": "app-builder",
+      "priority": "P2",
+      "goal": "I want to protect a provider draft.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Start AI design while provider composer contains unsent text",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "The draft remains untouched and no new prompt is sent",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/personal-app-blueprint.mjs",
+          "src/studio/personal-app-routes.mjs",
+          "src/studio/personal-app-service.mjs",
+          "src/studio/ui/world-view.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "Protect provider drafts and never blindly resend an uncertain turn"
+      ],
+      "lane": "C"
+    },
+    {
+      "id": "S069",
+      "title": "Reject duplicate screens",
+      "persona": "senior",
+      "area": "app-builder",
+      "priority": "P1",
+      "goal": "I want to reject duplicate screens.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Apply a proposal that duplicates an existing screen",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "The existing screen remains intact and an error is shown",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/personal-app-blueprint.mjs",
+          "src/studio/personal-app-routes.mjs",
+          "src/studio/personal-app-service.mjs",
+          "src/studio/ui/world-view.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "C"
+    },
+    {
+      "id": "S070",
+      "title": "Use a stored AI reply for design",
+      "persona": "owner",
+      "area": "app-builder",
+      "priority": "P1",
+      "goal": "I want to use a stored ai reply for design.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Select a stored conversation reply as a design proposal",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "The proposal is extracted for review",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/personal-app-blueprint.mjs",
+          "src/studio/personal-app-routes.mjs",
+          "src/studio/personal-app-service.mjs",
+          "src/studio/ui/world-view.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "Protect provider drafts and never blindly resend an uncertain turn"
+      ],
+      "lane": "C"
+    },
+    {
+      "id": "S071",
+      "title": "Save personal app content",
+      "persona": "student",
+      "area": "app-builder",
+      "priority": "P1",
+      "goal": "I want to save personal app content.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Enter content in a supported app screen",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "The content is stored with the app",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/personal-app-blueprint.mjs",
+          "src/studio/personal-app-routes.mjs",
+          "src/studio/personal-app-service.mjs",
+          "src/studio/ui/world-view.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "C"
+    },
+    {
+      "id": "S072",
+      "title": "Reopen my app after restart",
+      "persona": "parent",
+      "area": "app-builder",
+      "priority": "P2",
+      "goal": "I want to reopen my app after restart.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Restart Studio and open a created app",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "Its blueprint and content are available",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/personal-app-blueprint.mjs",
+          "src/studio/personal-app-routes.mjs",
+          "src/studio/personal-app-service.mjs",
+          "src/studio/ui/world-view.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "C"
+    },
+    {
+      "id": "S073",
+      "title": "Search my saved notes",
+      "persona": "freelancer",
+      "area": "knowledge",
+      "priority": "P1",
+      "goal": "I want to search my saved notes.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Search World for a phrase in a note",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "Matching stored notes are shown",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/world-service.mjs",
+          "src/studio/world-search.mjs",
+          "src/export/export.mjs",
+          "bin/commands/export.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "C"
+    },
+    {
+      "id": "S074",
+      "title": "Reopen a phone note on Windows",
+      "persona": "developer",
+      "area": "knowledge",
+      "priority": "P1",
+      "goal": "I want to reopen a phone note on windows.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Create a note on mobile then open World",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "The same note is available",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/world-service.mjs",
+          "src/studio/world-search.mjs",
+          "src/export/export.mjs",
+          "bin/commands/export.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "LAN token and device ownership"
+      ],
+      "lane": "C"
+    },
+    {
+      "id": "S075",
+      "title": "Find a task later",
+      "persona": "privacy",
+      "area": "knowledge",
+      "priority": "P1",
+      "goal": "I want to find a task later.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Search or inspect the task created on mobile",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "The saved task is available",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/world-service.mjs",
+          "src/studio/world-search.mjs",
+          "src/export/export.mjs",
+          "bin/commands/export.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "LAN token and device ownership"
+      ],
+      "lane": "C"
+    },
+    {
+      "id": "S076",
+      "title": "Export a conversation transcript",
+      "persona": "senior",
+      "area": "knowledge",
+      "priority": "P2",
+      "goal": "I want to export a conversation transcript.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Run export transcript latest",
+          "surface": "cli"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "cli"
+        }
+      ],
+      "expectedOutcome": "A transcript export is produced",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/world-service.mjs",
+          "src/studio/world-search.mjs",
+          "src/export/export.mjs",
+          "bin/commands/export.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "C"
+    },
+    {
+      "id": "S077",
+      "title": "Inspect saved sessions",
+      "persona": "owner",
+      "area": "knowledge",
+      "priority": "P1",
+      "goal": "I want to inspect saved sessions.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Run session list",
+          "surface": "cli"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "cli"
+        }
+      ],
+      "expectedOutcome": "Saved local sessions are listed",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/world-service.mjs",
+          "src/studio/world-search.mjs",
+          "src/export/export.mjs",
+          "bin/commands/export.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "C"
+    },
+    {
+      "id": "S078",
+      "title": "Find relevant memory for work",
+      "persona": "student",
+      "area": "knowledge",
+      "priority": "P1",
+      "goal": "I want to find relevant memory for work.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Search agent memory for an existing phrase",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "Relevant stored matches are returned",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/world-service.mjs",
+          "src/studio/world-search.mjs",
+          "src/export/export.mjs",
+          "bin/commands/export.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "C"
+    },
+    {
+      "id": "S079",
+      "title": "Link related knowledge",
+      "persona": "parent",
+      "area": "knowledge",
+      "priority": "P1",
+      "goal": "I want to link related knowledge.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Create or inspect a relation between saved World items",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "The relationship is available when reopening them",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/world-service.mjs",
+          "src/studio/world-search.mjs",
+          "src/export/export.mjs",
+          "bin/commands/export.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "C"
+    },
+    {
+      "id": "S080",
+      "title": "Transfer my World data",
+      "persona": "freelancer",
+      "area": "knowledge",
+      "priority": "P2",
+      "goal": "I want to transfer my world data.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Use the World transfer facility for saved content",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "A transferable representation is produced",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/world-service.mjs",
+          "src/studio/world-search.mjs",
+          "src/export/export.mjs",
+          "bin/commands/export.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "C"
+    },
+    {
+      "id": "S081",
+      "title": "Prevent competing Studio processes",
+      "persona": "developer",
+      "area": "reliability",
+      "priority": "P0",
+      "goal": "I want to prevent competing studio processes.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Start a second Studio against the same Chrome",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "The second process is refused without killing the first owner",
+      "status": "BROKEN",
+      "evidence": "Owner-provided status evidence, 2026-10-29; retest required",
+      "files": {
+        "existing": [
+          "src/studio/server.mjs",
+          "src/chrome/browser-ownership.mjs",
+          "src/capture/thread-turn-journal.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "C"
+    },
+    {
+      "id": "S082",
+      "title": "Recover after a provider timeout",
+      "persona": "privacy",
+      "area": "reliability",
+      "priority": "P1",
+      "goal": "I want to recover after a provider timeout.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Inspect the original turn and reconcile its stable key",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "No duplicate prompt is sent",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/server.mjs",
+          "src/chrome/browser-ownership.mjs",
+          "src/capture/thread-turn-journal.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "Protect provider drafts and never blindly resend an uncertain turn"
+      ],
+      "lane": "C"
+    },
+    {
+      "id": "S083",
+      "title": "Recover after Studio restart",
+      "persona": "senior",
+      "area": "reliability",
+      "priority": "P0",
+      "goal": "I want to recover after studio restart.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Restart Studio while a task is incomplete",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "Saved state explains the interrupted operation",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/server.mjs",
+          "src/chrome/browser-ownership.mjs",
+          "src/capture/thread-turn-journal.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "C"
+    },
+    {
+      "id": "S084",
+      "title": "Show browser unavailable",
+      "persona": "owner",
+      "area": "reliability",
+      "priority": "P2",
+      "goal": "I want to show browser unavailable.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Stop the dedicated browser and request a conversation",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "The user sees a clear browser-unavailable error",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/server.mjs",
+          "src/chrome/browser-ownership.mjs",
+          "src/capture/thread-turn-journal.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "C"
+    },
+    {
+      "id": "S085",
+      "title": "Show provider reply interruption",
+      "persona": "student",
+      "area": "reliability",
+      "priority": "P1",
+      "goal": "I want to show provider reply interruption.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Interrupt a provider generation and inspect the result",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "The partial or interrupted result is clearly labeled",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/server.mjs",
+          "src/chrome/browser-ownership.mjs",
+          "src/capture/thread-turn-journal.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "Protect provider drafts and never blindly resend an uncertain turn"
+      ],
+      "lane": "C"
+    },
+    {
+      "id": "S086",
+      "title": "Recheck a delivery uncertainty",
+      "persona": "parent",
+      "area": "reliability",
+      "priority": "P1",
+      "goal": "I want to recheck a delivery uncertainty.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Use the same key to check the original submission",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "The original outcome is reconciled without a second send",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/server.mjs",
+          "src/chrome/browser-ownership.mjs",
+          "src/capture/thread-turn-journal.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "C"
+    },
+    {
+      "id": "S087",
+      "title": "Keep reply verification consistent",
+      "persona": "freelancer",
+      "area": "reliability",
+      "priority": "P0",
+      "goal": "I want to keep reply verification consistent.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Drive a reply through the adapter-container path",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "The verified field matches observed verification evidence",
+      "status": "BROKEN",
+      "evidence": "Owner-provided status evidence, 2026-10-29; retest required",
+      "files": {
+        "existing": [
+          "src/studio/server.mjs",
+          "src/chrome/browser-ownership.mjs",
+          "src/capture/thread-turn-journal.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "Protect provider drafts and never blindly resend an uncertain turn"
+      ],
+      "lane": "C"
+    },
+    {
+      "id": "S088",
+      "title": "Recover from a stale app draft",
+      "persona": "developer",
+      "area": "reliability",
+      "priority": "P2",
+      "goal": "I want to recover from a stale app draft.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Encounter DRAFT_PRESENT during AI design and inspect the provider tab",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "The user can preserve the draft and understand why design stopped",
+      "status": "PARTIAL",
+      "evidence": "Owner-provided status evidence, 2026-10-29; retest required",
+      "files": {
+        "existing": [
+          "src/studio/server.mjs",
+          "src/chrome/browser-ownership.mjs",
+          "src/capture/thread-turn-journal.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "Protect provider drafts and never blindly resend an uncertain turn"
+      ],
+      "lane": "C"
+    },
+    {
+      "id": "S089",
+      "title": "Diagnose an unreachable Studio",
+      "persona": "privacy",
+      "area": "reliability",
+      "priority": "P1",
+      "goal": "I want to diagnose an unreachable studio.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Run agent status when Studio is not reachable",
+          "surface": "cli"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "cli"
+        }
+      ],
+      "expectedOutcome": "The status reports the connection problem",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/server.mjs",
+          "src/chrome/browser-ownership.mjs",
+          "src/capture/thread-turn-journal.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "C"
+    },
+    {
+      "id": "S090",
+      "title": "Retain a saved conversation",
+      "persona": "senior",
+      "area": "reliability",
+      "priority": "P1",
+      "goal": "I want to retain a saved conversation.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Restart Studio and fetch a previously stored conversation",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "The stored conversation remains readable",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/studio/server.mjs",
+          "src/chrome/browser-ownership.mjs",
+          "src/capture/thread-turn-journal.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "C"
+    },
+    {
+      "id": "S091",
+      "title": "Keep provider passwords personal",
+      "persona": "owner",
+      "area": "privacy",
+      "priority": "P0",
+      "goal": "I want to keep provider passwords personal.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Sign in directly on the provider tab",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "VIVIM does not ask me to disclose the password",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/capture/privacy.mjs",
+          "src/capture/redact.mjs",
+          "src/studio/server.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "Protect provider drafts and never blindly resend an uncertain turn",
+        "Provider authentication is human-owned"
+      ],
+      "lane": "C"
+    },
+    {
+      "id": "S092",
+      "title": "Protect my unsent draft",
+      "persona": "student",
+      "area": "privacy",
+      "priority": "P0",
+      "goal": "I want to protect my unsent draft.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Leave text in a provider composer and start an automation",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "The existing text is not overwritten or sent",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/capture/privacy.mjs",
+          "src/capture/redact.mjs",
+          "src/studio/server.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "Protect provider drafts and never blindly resend an uncertain turn"
+      ],
+      "lane": "C"
+    },
+    {
+      "id": "S093",
+      "title": "Require explicit send authorization",
+      "persona": "parent",
+      "area": "privacy",
+      "priority": "P0",
+      "goal": "I want to require explicit send authorization.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Run a conversation recipe without authorize-send",
+          "surface": "cli"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "cli"
+        }
+      ],
+      "expectedOutcome": "No provider message is sent",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/capture/privacy.mjs",
+          "src/capture/redact.mjs",
+          "src/studio/server.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "Protect provider drafts and never blindly resend an uncertain turn"
+      ],
+      "lane": "C"
+    },
+    {
+      "id": "S094",
+      "title": "Keep LAN access gated",
+      "persona": "freelancer",
+      "area": "privacy",
+      "priority": "P0",
+      "goal": "I want to keep lan access gated.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Open the mobile endpoint without a pairing token",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "The request is rejected with 401",
+      "status": "WORKS",
+      "evidence": "Owner-provided live verification, 2026-10-29; scenario-specific receipt not supplied",
+      "files": {
+        "existing": [
+          "src/capture/privacy.mjs",
+          "src/capture/redact.mjs",
+          "src/studio/server.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "LAN token and device ownership"
+      ],
+      "lane": "C"
+    },
+    {
+      "id": "S095",
+      "title": "Avoid exposing private conversations in evidence",
+      "persona": "developer",
+      "area": "privacy",
+      "priority": "P1",
+      "goal": "I want to avoid exposing private conversations in evidence.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Record a live-check receipt without raw conversation text",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "The receipt contains references and outcome, not private transcript content",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/capture/privacy.mjs",
+          "src/capture/redact.mjs",
+          "src/studio/server.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "C"
+    },
+    {
+      "id": "S096",
+      "title": "Review export before sharing",
+      "persona": "privacy",
+      "area": "privacy",
+      "priority": "P2",
+      "goal": "I want to review export before sharing.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Export a transcript and inspect it before sharing",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "I control whether the exported content leaves my device",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/capture/privacy.mjs",
+          "src/capture/redact.mjs",
+          "src/studio/server.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [],
+      "lane": "C"
+    },
+    {
+      "id": "S097",
+      "title": "Choose a provider for a question",
+      "persona": "senior",
+      "area": "multi-provider",
+      "priority": "P1",
+      "goal": "I want to choose a provider for a question.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Select ChatGPT or Claude before sending a prompt",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "The chosen signed-in provider receives the prompt",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/profiles/sites/index.mjs",
+          "src/capture/conversation-runtime.mjs",
+          "src/studio/ui/universal-chat.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "Protect provider drafts and never blindly resend an uncertain turn"
+      ],
+      "lane": "A"
+    },
+    {
+      "id": "S098",
+      "title": "Compare two answers",
+      "persona": "owner",
+      "area": "multi-provider",
+      "priority": "P1",
+      "goal": "I want to compare two answers.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Ask the same question separately on two providers and compare replies",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "Both labeled answers are available for comparison",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/profiles/sites/index.mjs",
+          "src/capture/conversation-runtime.mjs",
+          "src/studio/ui/universal-chat.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "Protect provider drafts and never blindly resend an uncertain turn"
+      ],
+      "lane": "A"
+    },
+    {
+      "id": "S099",
+      "title": "Route around a signed-out provider",
+      "persona": "student",
+      "area": "multi-provider",
+      "priority": "P1",
+      "goal": "I want to route around a signed-out provider.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "See Gemini requires sign-in and select another signed-in provider",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "The other provider can be chosen without sending to Gemini",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/profiles/sites/index.mjs",
+          "src/capture/conversation-runtime.mjs",
+          "src/studio/ui/universal-chat.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "Protect provider drafts and never blindly resend an uncertain turn",
+        "Provider authentication is human-owned"
+      ],
+      "lane": "A"
+    },
+    {
+      "id": "S100",
+      "title": "Keep provider threads separate",
+      "persona": "parent",
+      "area": "multi-provider",
+      "priority": "P2",
+      "goal": "I want to keep provider threads separate.",
+      "preconditions": [
+        "Studio is available; required provider sign-in and permissions are in place"
+      ],
+      "actions": [
+        {
+          "step": 1,
+          "actor": "user",
+          "action": "Open separate conversations with Claude and ChatGPT",
+          "surface": "windows-world"
+        },
+        {
+          "step": 2,
+          "actor": "vivim",
+          "action": "Process the requested operation and report its outcome without assuming success.",
+          "surface": "windows-world"
+        }
+      ],
+      "expectedOutcome": "Each reply remains associated with its own provider thread",
+      "status": "UNKNOWN",
+      "evidence": null,
+      "files": {
+        "existing": [
+          "src/profiles/sites/index.mjs",
+          "src/capture/conversation-runtime.mjs",
+          "src/studio/ui/universal-chat.mjs"
+        ],
+        "toCreate": []
+      },
+      "risks": [
+        "Protect provider drafts and never blindly resend an uncertain turn"
+      ],
+      "lane": "A"
+    }
+  ],
+  "lanes": [
+    {
+      "id": "A",
+      "name": "Provider & Conversation Runtime",
+      "owns": [
+        "src/capture/**",
+        "src/profiles/sites/**",
+        "src/studio/conversation-*.mjs",
+        "src/studio/drive-api.mjs",
+        "bin/commands/chat.mjs",
+        "bin/commands/drive.mjs",
+        "bin/commands/capture.mjs"
+      ],
+      "mustNotTouch": [
+        "src/studio/ui/**",
+        "android/**",
+        "src/agents/**",
+        "src/studio/personal-app-*.mjs",
+        "src/studio/server.mjs",
+        "src/studio/integration-hub.mjs"
+      ],
+      "modelRouting": {
+        "default": "opencode/minimax-m3.1-flash-free#high (verify current catalog and access)",
+        "escalation": "openai/gpt-6.1-sol#medium (verify access)",
+        "cheap": "opencode/mimo-v2.6-flash-free (verify catalog and access)"
+      },
+      "inputs": [
+        "Prioritized scenario and current evidence",
+        "Owner-approved send authorization and observed revision"
+      ],
+      "outputs": [
+        "Scoped implementation and regression evidence",
+        "Handoff with revision, uncertainty, and requested live objective"
+      ],
+      "definitionOfDone": [
+        "Trace actual end-to-end path",
+        "Add focused regression coverage for changes",
+        "Single owner performs authorized live check or explicitly reports blocked",
+        "Evidence writer records outcome; no unverified live PASS"
+      ],
+      "cadence": "Continuously pick the highest-priority eligible item; daily integration reconciliation.",
+      "handoffProtocol": "Request cross-scope edits from owning lane; provide file, interface, reproduction, revision and evidence. Do not edit another lane scope.",
+      "liveCheckOwner": "Single designated browser/effect owner shared across all lanes",
+      "backlog": [
+        "S009",
+        "S010",
+        "S011",
+        "S012",
+        "S013",
+        "S014",
+        "S015",
+        "S016",
+        "S017",
+        "S018",
+        "S019",
+        "S020",
+        "S021",
+        "S022",
+        "S023",
+        "S024",
+        "S025",
+        "S026",
+        "S027",
+        "S028",
+        "S029",
+        "S030",
+        "S097",
+        "S098",
+        "S099",
+        "S100"
+      ]
+    },
+    {
+      "id": "B",
+      "name": "Product Surfaces",
+      "owns": [
+        "src/studio/ui/**",
+        "android/**",
+        "src/studio/lan-pair.mjs"
+      ],
+      "mustNotTouch": [
+        "src/capture/**",
+        "src/profiles/sites/**",
+        "src/studio/conversation-*.mjs",
+        "src/agents/**",
+        "src/studio/personal-app-*.mjs",
+        "src/studio/server.mjs",
+        "src/studio/integration-hub.mjs",
+        "bin/**"
+      ],
+      "modelRouting": {
+        "default": "opencode/minimax-m3.1-flash-free#high (verify current catalog and access)",
+        "escalation": "openai/gpt-6.1-sol#medium (verify access)",
+        "cheap": "opencode/mimo-v2.6-flash-free (verify catalog and access)"
+      },
+      "inputs": [
+        "Prioritized scenario and current evidence",
+        "Owner-approved send authorization and observed revision"
+      ],
+      "outputs": [
+        "Scoped implementation and regression evidence",
+        "Handoff with revision, uncertainty, and requested live objective"
+      ],
+      "definitionOfDone": [
+        "Trace actual end-to-end path",
+        "Add focused regression coverage for changes",
+        "Single owner performs authorized live check or explicitly reports blocked",
+        "Evidence writer records outcome; no unverified live PASS"
+      ],
+      "cadence": "Continuously pick the highest-priority eligible item; daily integration reconciliation.",
+      "handoffProtocol": "Request cross-scope edits from owning lane; provide file, interface, reproduction, revision and evidence. Do not edit another lane scope.",
+      "liveCheckOwner": "Single designated browser/effect owner shared across all lanes",
+      "backlog": [
+        "S001",
+        "S002",
+        "S003",
+        "S004",
+        "S005",
+        "S006",
+        "S007",
+        "S008",
+        "S031",
+        "S032",
+        "S033",
+        "S034",
+        "S035",
+        "S037",
+        "S038",
+        "S039",
+        "S041",
+        "S042",
+        "S043",
+        "S036",
+        "S040",
+        "S044"
+      ]
+    },
+    {
+      "id": "C",
+      "name": "Agent, App Builder & Platform Services",
+      "owns": [
+        "src/agents/**",
+        "src/studio/personal-agent-routes.mjs",
+        "src/studio/personal-app-*.mjs",
+        "src/studio/server.mjs",
+        "src/studio/integration-hub.mjs",
+        "src/studio/world-*.mjs",
+        "src/studio/cdp-owner-lock.mjs",
+        "src/chrome/**",
+        "src/export/**",
+        "bin/** except A-owned commands"
+      ],
+      "mustNotTouch": [
+        "src/capture/**",
+        "src/profiles/sites/**",
+        "src/studio/conversation-*.mjs",
+        "src/studio/drive-api.mjs",
+        "src/studio/ui/**",
+        "android/**",
+        "src/studio/lan-pair.mjs",
+        "bin/commands/chat.mjs",
+        "bin/commands/drive.mjs",
+        "bin/commands/capture.mjs"
+      ],
+      "modelRouting": {
+        "default": "opencode/minimax-m3.1-flash-free#high (verify current catalog and access)",
+        "escalation": "openai/gpt-6.1-sol#medium (verify access)",
+        "cheap": "opencode/mimo-v2.6-flash-free (verify catalog and access)"
+      },
+      "inputs": [
+        "Prioritized scenario and current evidence",
+        "Owner-approved send authorization and observed revision"
+      ],
+      "outputs": [
+        "Scoped implementation and regression evidence",
+        "Handoff with revision, uncertainty, and requested live objective"
+      ],
+      "definitionOfDone": [
+        "Trace actual end-to-end path",
+        "Add focused regression coverage for changes",
+        "Single owner performs authorized live check or explicitly reports blocked",
+        "Evidence writer records outcome; no unverified live PASS"
+      ],
+      "cadence": "Continuously pick the highest-priority eligible item; daily integration reconciliation.",
+      "handoffProtocol": "Request cross-scope edits from owning lane; provide file, interface, reproduction, revision and evidence. Do not edit another lane scope.",
+      "liveCheckOwner": "Single designated browser/effect owner shared across all lanes",
+      "backlog": [
+        "S045",
+        "S057",
+        "S058",
+        "S059",
+        "S081",
+        "S083",
+        "S087",
+        "S091",
+        "S092",
+        "S093",
+        "S094",
+        "S046",
+        "S047",
+        "S049",
+        "S050",
+        "S051",
+        "S053",
+        "S054",
+        "S055",
+        "S061",
+        "S062",
+        "S063",
+        "S065",
+        "S066",
+        "S067",
+        "S069",
+        "S070",
+        "S071",
+        "S073",
+        "S074",
+        "S075",
+        "S077",
+        "S078",
+        "S079",
+        "S082",
+        "S085",
+        "S086",
+        "S089",
+        "S090",
+        "S095",
+        "S048",
+        "S052",
+        "S056",
+        "S060",
+        "S064",
+        "S068",
+        "S072",
+        "S076",
+        "S080",
+        "S084",
+        "S088",
+        "S096"
+      ]
+    }
+  ],
+  "process": {
+    "loop": [
+      "Pick the next eligible P0 scenario in lane backlog, then P1 and P2",
+      "Trace existing files and actual end-to-end path",
+      "Implement within the lane-owned scope and add focused regression coverage",
+      "Request a short authorized live check through the single browser owner",
+      "Commit scoped changes",
+      "Have the single evidence writer update scenario status and evidence",
+      "Hand off cross-lane dependencies and unresolved uncertainty"
+    ],
+    "coordination": {
+      "browser": "One browser/effect owner uses the dedicated profile; one objective at a time; explicit send authorization, stable keys, and no blind resend.",
+      "ledger": "One coordinated writer appends canonical live evidence and reconciles scenario status; preserve previous receipts.",
+      "conflicts": "Exclusive write scopes; request owner handoff for cross-scope work. Shared files belong to C; do not overwrite concurrent edits.",
+      "integration": "Daily integration commit only after scoped changes are reconciled and owners agree; preserve existing work."
+    },
+    "statusRules": "WORKS requires concrete scenario-specific live evidence; owner-provided live status here is provisional where the precise receipt was not supplied. PARTIAL means some observed portion works or a known prerequisite blocks completion. BROKEN means an observed defect prevents the expected outcome. UNKNOWN means not established; NOT_BUILT requires affirmative evidence the feature does not exist. Never infer provider success from a fixture, 200, APK build, or registry entry."
+  },
+  "summary": {
+    "byStatus": {
+      "BROKEN": 4,
+      "PARTIAL": 4,
+      "UNKNOWN": 75,
+      "WORKS": 17
+    },
+    "byPriority": {
+      "P0": 46,
+      "P1": 38,
+      "P2": 16
+    },
+    "byLane": {
+      "A": 26,
+      "B": 22,
+      "C": 52
+    },
+    "byArea": {
+      "app-builder": 16,
+      "conversations": 12,
+      "knowledge": 8,
+      "mobile": 14,
+      "multi-provider": 4,
+      "onboarding": 8,
+      "personal-agent": 12,
+      "privacy": 6,
+      "providers": 10,
+      "reliability": 10
+    }
+  }
+}
