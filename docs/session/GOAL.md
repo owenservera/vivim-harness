@@ -16,8 +16,8 @@ Build and fully integrate the first functional, local-first VIVIM prototype acro
 6. **No tests, just code.** Don't write or run unit-test suites. Short live runtime checks are the evidence.
 7. **Never idle.** Keep independent work moving while downloads or subagents run.
 8. **Full authority.** Proceed without asking permission. Ask only for things only the owner can do, such as a provider sign-in.
-9. **Opus 5.5 upgrade pass.** Every new full code file gets a complete read-and-upgrade pass by Opus 5.5 (`cliproxy-claude/claude-opus-5-5`) after its writer lane finishes. See `AGENTS.md`.
-10. **Model routing (updated by owner).** Use `openai/gpt-6.1-sol` for all subagent implementation work; Opus 5.5 for the new-file review/upgrade pass. (Free-tier models hit usage limits mid-task — don't route lanes to them.)
+9. **New code file upgrade pass.** Every new full code file in core/risky code gets a complete read-and-upgrade pass by Opus 5.5 (`cliproxy-claude/claude-opus-5-5`) after its writer lane finishes. Tactical new files (scripts, launchers, docs tooling, simple UI glue) get the same pass from `openai/gpt-6.1-sol` instead — never Opus. See `AGENTS.md` for core/risky scope and review requirements.
+10. **Model routing (updated by owner).** Use `openai/gpt-6.1-sol` for all implementation lanes, including subagents. Reserve Opus 5.5 for whole-new-file core/risky review/upgrade passes only, never tactical files. (Free-tier models hit usage limits mid-task — don't route lanes to them.)
 11. **Scenario-driven continuous build.** `docs/product/USER-SCENARIOS-100.json` holds 100 user scenarios, a file map and a 3-lane process. Lanes have non-overlapping write scopes:
     - A — providers and conversation runtime;
     - B — product surfaces (UI, mobile, Android);
