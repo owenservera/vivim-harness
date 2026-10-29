@@ -4,7 +4,8 @@ import { browserWsUrl, listTargets } from '../cdp/discovery.mjs';
 import { CdpConnection } from '../cdp/client.mjs';
 import { listSessions } from '../store/session.mjs';
 import { Recorder } from './recorder.mjs';
-import { evaluate, findComposer, focusComposer, typeText, sendMessage, sendState, readTranscript, waitForCompletion, detectAuthWall, detectSiteFailure } from './actions.mjs';
+import { evaluate, findComposer, focusComposer, clearComposer, typeText, sendMessage, sendState, readTranscript, waitForCompletion, detectAuthWall, detectSiteFailure } from './actions.mjs';
+import { recordTypedPrompt, matchesTypedPrompt, isPrefixOfTyped } from './typed-prompt-ledger.mjs';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { parseThread, sameThread, isNewChatPath, idleControlSelectors, transcriptSpec, transcriptExpression, turnObservationExpression, boundTranscript, TRANSCRIPT_LIMITS } from './conversation-thread.mjs';
 
@@ -16,9 +17,13 @@ const digest = (text) => createHash('sha256').update(text, 'utf8').digest('hex')
 // newline beyond the payload. Only the readback is normalized/trimmed; the payload is never
 // altered, so a prompt that already ends in a newline still needs its own exact match first.
 // Anything else — mid-payload drift, two appended newlines, a non-string readback — does not match.
+// Editors also rewrite typography without changing the words: nbsp, zero-width characters and curly
+// quotes. Both sides are canonicalised for those only; newlines and every other character stay exact.
+const canon = (s) => s.replace(/\r\n/g, '\n').replace(/[\u00A0\u202F\u2007]/g, ' ').replace(/[\u200B-\u200D\u2060\uFEFF]/g, '')
+  .replace(/[\u2018\u2019\u201A\u2032]/g, "'").replace(/[\u201C\u201D\u201E\u2033]/g, '"');
 const readbackMatches = (readback, prompt) => {
   if (typeof readback !== 'string' || typeof prompt !== 'string') return false;
-  const want = prompt.replace(/\r\n/g, '\n'), got = readback.replace(/\r\n/g, '\n');
+  const want = canon(prompt), got = canon(readback);
   return got === want || got === `${want}\n`;
 };
 // The composer DOM settles after an insert: an immediate read of a multiline payload can report
@@ -79,10 +84,12 @@ export function createConversationBrowserAdapter({ paths, profileStore, familySt
   // a real quiet window with positively idle controls. Two fast identical samples are not enough:
   // a table/code block can render its header first, look idle between chunks, then add rows several
   // hundred ms later. This only lengthens OBSERVATION; it never sends, retries or grants acceptance.
-  const d = { listTargets, listSessions, Recorder, CdpConnection, browserWsUrl, fetch: globalThis.fetch, evaluate, findComposer, focusComposer,
+  const d = { listTargets, listSessions, Recorder, CdpConnection, browserWsUrl, fetch: globalThis.fetch, evaluate, findComposer, focusComposer, clearComposer,
+    recordTypedPrompt, matchesTypedPrompt,
     typeText, sendMessage, sendState, readTranscript, waitForCompletion, readUserTurns, detectAuthWall, detectSiteFailure,
     readTurnPage, readPrefixPage, sleep, now: () => Date.now(), replyPollMs: 250, replyTimeoutMs: 120000, replySettleMs: 2000, replySettlePolls: 2,
-    readinessTimeoutMs: 20000, readinessPollMs: 200, checkAgainTimeoutMs: 3000, fetchTimeoutMs: 10000, connectGraceMs: 2000, ...dependencies };
+    // A just-opened provider tab can take 10-30s to paint its composer on a loaded machine; a new tab gets a longer wait.
+    readinessTimeoutMs: freshTab ? 45000 : 20000, readinessPollMs: 200, checkAgainTimeoutMs: 3000, fetchTimeoutMs: 10000, connectGraceMs: 2000, ...dependencies };
   let recorder, binding, pending, stopResult, tap, idlePage, idleConn, connectHooks;
   const attempts = new Map();
   let mayOwnResources = false;
@@ -141,10 +148,45 @@ export function createConversationBrowserAdapter({ paths, profileStore, familySt
   function requireRecording() {
     if (!recorder?.page || recorder.state !== 'recording') throw problem('CAPTURE_NOT_ACTIVE');
   }
+  // Residue handling for Studio-owned tabs. Providers (Claude) persist UNSENT composer text and restore it
+  // into every new chat, so one failed typing would otherwise block every later send as DRAFT_PRESENT.
+  // Only text that is provably VIVIM's own is ever cleared; any other draft stays protected.
+  async function clearOwnText() {
+    const page = livePage();
+    try {
+      await page.send('Page.bringToFront', {});
+      const focus = await d.focusComposer(page, siteAdapter);
+      if (!focus?.ok) return false;
+      const cleared = await d.clearComposer(page);
+      return cleared?.ok === true;
+    } catch { return false; }
+  }
+  // Fresh, unthreaded Studio tab holding a draft that matches a prompt VIVIM typed earlier (ledger).
+  async function reclaimResidue(draftText) {
+    if (!freshTab || binding?.thread || typeof draftText !== 'string') return false;
+    let mine = false;
+    try { mine = d.matchesTypedPrompt(paths?.root, draftText) === true; } catch { mine = false; }
+    if (!mine || !await clearOwnText()) return false;
+    await d.sleep(300); // let the provider's editor state settle before the caller re-reads the composer
+    return true;
+  }
+  // After a typing/insert failure (or a proven-not-dispatched send): remove what VIVIM typed so the
+  // provider cannot persist it. Only when the composer text is a prefix of (or equal to) our prompt.
+  async function cleanupTypedFailure(prompt) {
+    if (!freshTab || typeof prompt !== 'string') return false;
+    try {
+      const page = await d.readTurnPage(livePage(), siteAdapter);
+      const text = page?.draft?.text;
+      if (typeof text !== 'string' || !text.trim() || !isPrefixOfTyped(text, prompt)) return false;
+      return await clearOwnText();
+    } catch { return false; }
+  }
+  const ledgerTyped = (prompt) => { try { d.recordTypedPrompt(paths?.root, prompt); } catch { /* ledger is best-effort protection */ } };
   // @serves 006
   async function readiness(end) {
     const blocked = (reason, draft = { present: null, chars: null }) => ({ ready: false, reason, draft });
     let lastReason = null; // Reset every tick: an earlier sample must never become the timeout verdict.
+    let residueTries = 0;
     do {
       lastReason = null;
       const target = (await d.listTargets({ port })).find((t) => t.id === binding.targetId);
@@ -200,7 +242,11 @@ export function createConversationBrowserAdapter({ paths, profileStore, familySt
               const page = await d.readTurnPage(livePage(), siteAdapter);
               if (!state.evalOk) { /* keep polling */ }
               else if (parseThread(siteAdapter.id, `${binding.origin}${page?.pathname ?? ''}`)) return blocked('PREEXISTING_THREAD');
-              else if (state.draftChars > 0 || page?.draft?.chars > 0) return blocked('DRAFT_PRESENT', { present: true, chars: state.draftChars });
+              else if (state.draftChars > 0 || page?.draft?.chars > 0) {
+                // VIVIM's own earlier (failed) typing, restored by the provider: clear it and re-check.
+                if (residueTries < 2 && ++residueTries && await reclaimResidue(page?.draft?.text)) continue;
+                return blocked('DRAFT_PRESENT', { present: true, chars: state.draftChars });
+              }
               else if (state.draftChars === 0 && freshComposerReady(page))
                 return { ready: true, draft: { present: false, chars: 0 }, reason: null, creation: { threadless: true } };
             }
@@ -305,7 +351,7 @@ export function createConversationBrowserAdapter({ paths, profileStore, familySt
     if (priorReplies.length) throw Object.assign(problem('PRIOR_REPLY_CHANGED'), { priorReplies });
     if (!idleControls(page.controls)) throw problem('GENERATION_CONTROLS_UNAVAILABLE_OR_BUSY');
     // An empty rich-text (ProseMirror) composer reports a lone trailing line break, not ''.
-    const trailing = (t) => String(t).replace(/\r\n/g, '\n').replace(/\n$/, '');
+    const trailing = (t) => canon(String(t)).replace(/\n$/, '');
     if (typeof page.draft?.text !== 'string' || trailing(page.draft.text) !== (empty ? '' : trailing(saved.prompt))) throw problem('COMPOSER_READBACK_MISMATCH');
     if (page.messages.length !== saved.baseline.length || !samePrefix(page, saved)) throw problem('TURN_BOUNDARY_CHANGED');
     if (submissionStopped) throw problem('SUBMISSION_STOPPED');
@@ -489,10 +535,15 @@ export function createConversationBrowserAdapter({ paths, profileStore, familySt
         if ((await d.detectAuthWall(recorder.page, siteAdapter)).blocked) throw problem('AUTH_WALL');
         if ((await d.detectSiteFailure(recorder.page, siteAdapter)).failed) throw problem('SITE_GATE');
         if (!composer.found) throw problem('COMPOSER_UNAVAILABLE');
-        const state = await d.sendState(recorder.page, siteAdapter);
+        let state = await d.sendState(recorder.page, siteAdapter);
         if (!state.evalOk) throw problem('COMPOSER_UNREADABLE');
-        const page = await d.readTurnPage(recorder.page, siteAdapter);
+        let page = await d.readTurnPage(recorder.page, siteAdapter);
         if (parseThread(siteAdapter.id, `${binding.origin}${page?.pathname ?? ''}`)) throw Object.assign(problem('PREEXISTING_THREAD'), { notDispatched: true, notTyped: true });
+        if ((state.draftChars !== 0 || page?.draft?.chars !== 0) && await reclaimResidue(page?.draft?.text)) {
+          state = await d.sendState(recorder.page, siteAdapter);
+          if (!state.evalOk) throw problem('COMPOSER_UNREADABLE');
+          page = await d.readTurnPage(recorder.page, siteAdapter);
+        }
         if (state.draftChars !== 0 || page?.draft?.chars !== 0) throw problem('DRAFT_PRESENT');
         if (!freshComposerReady(page)) throw problem('GENERATION_CONTROLS_UNAVAILABLE_OR_BUSY');
         const boundary = { sessionId: recorder.session.id, sequence: recorder.session.raw.seq, transcriptCount: 0 };
@@ -550,19 +601,26 @@ export function createConversationBrowserAdapter({ paths, profileStore, familySt
         await recorder.page.send('Page.bringToFront', {});
         const focus = await d.focusComposer(recorder.page, siteAdapter);
         if (!focus.ok) throw problem('COMPOSER_NOT_FOCUSED');
-        const state = await d.sendState(recorder.page, siteAdapter);
+        let state = await d.sendState(recorder.page, siteAdapter);
+        if (state.evalOk && state.draftChars !== 0) {
+          const page = await d.readTurnPage(recorder.page, siteAdapter);
+          if (await reclaimResidue(page?.draft?.text)) state = await d.sendState(recorder.page, siteAdapter);
+        }
         if (!state.evalOk || state.draftChars !== 0) throw problem('DRAFT_PRESENT');
         const saved = { ...pending, turnId, prompt, payloadDigest: digest(prompt), samples: [], creation: true };
         attempts.set(turnId, saved);
         recorder.session.kv.set(`CONVERSATION_ATTEMPT_${turnId}`, saved);
-        const typed = await d.typeText(recorder.page, prompt, { human: true, beforeInsert: async () => { await guard(); beforeEffect?.(); } });
-        await check();
-        const after = await settleTypingReadback(async () => {
-          const page = await d.readTurnPage(recorder.page, siteAdapter);
-          if (parseThread(siteAdapter.id, `${binding.origin}${page?.pathname ?? ''}`)) throw problem('PREEXISTING_THREAD');
-          return page;
-        }, prompt);
-        if (!typed.ok || !after) throw problem('TYPING_UNCONFIRMED');
+        ledgerTyped(prompt); // before the first character: a typing that dies half way must stay recognisable
+        try {
+          const typed = await d.typeText(recorder.page, prompt, { human: true, beforeInsert: async () => { await guard(); beforeEffect?.(); } });
+          await check();
+          const after = await settleTypingReadback(async () => {
+            const page = await d.readTurnPage(recorder.page, siteAdapter);
+            if (parseThread(siteAdapter.id, `${binding.origin}${page?.pathname ?? ''}`)) throw problem('PREEXISTING_THREAD');
+            return page;
+          }, prompt);
+          if (!typed.ok || !after) throw problem('TYPING_UNCONFIRMED');
+        } catch (e) { await cleanupTypedFailure(prompt); throw e; }
         return;
       }
       if (!pending) throw problem('THREAD_IDENTITY_UNVERIFIED');
@@ -574,12 +632,16 @@ export function createConversationBrowserAdapter({ paths, profileStore, familySt
       const saved = { ...pending, turnId, prompt, payloadDigest: digest(prompt), samples: [] };
       attempts.set(turnId, saved);
       recorder.session.kv.set(`CONVERSATION_ATTEMPT_${turnId}`, saved); // Protected local capture storage only.
-      const typed = await d.typeText(recorder.page, prompt, { human: true,
-        beforeInsert: () => effectPreflight(saved, beforeEffect, true) });
-      await check();
-      if (!typed.ok || !await settleTypingReadback(pageState, prompt)) throw problem('TYPING_UNCONFIRMED');
+      ledgerTyped(prompt);
+      try {
+        const typed = await d.typeText(recorder.page, prompt, { human: true,
+          beforeInsert: () => effectPreflight(saved, beforeEffect, true) });
+        await check();
+        if (!typed.ok || !await settleTypingReadback(pageState, prompt)) throw problem('TYPING_UNCONFIRMED');
+      } catch (e) { await cleanupTypedFailure(prompt); throw e; }
     },
     async submit(args) {
+      try {
       await check();
       requireRecording();
       const saved = attempts.get(args.turnId);
@@ -613,7 +675,13 @@ export function createConversationBrowserAdapter({ paths, profileStore, familySt
         // (dispatched undefined/true, dispatch errors, missing fields) stays ambiguous -> observation.
         if (result.sendStatus === 'not-attempted' && result.uncertain === false) throw Object.assign(problem('SEND_NOT_DISPATCHED'), { notDispatched: true });
       }
-      return observation(args);
+      return await observation(args);
+      } catch (e) {
+        // Proven NOT dispatched: the typed prompt is still sitting unsent in the composer, which the
+        // provider would persist. Remove VIVIM's own text (never anything else) before releasing.
+        if (e?.notDispatched === true) await cleanupTypedFailure(attempts.get(args?.turnId)?.prompt);
+        throw e;
+      }
     },
     reconcile: observation,
     async readReply(onUpdate, args = {}) {

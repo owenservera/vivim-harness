@@ -6,6 +6,7 @@ import { existsSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { isReachable, browserVersion, waitForReachable, discoveryProbe } from '../cdp/discovery.mjs';
 import { browserMarkerPath, recordBrowserOwner, verifyBrowserOwner } from './browser-ownership.mjs';
+import { assertNoForeignCdpOwner } from '../studio/cdp-owner-lock.mjs';
 
 // One implementation for native Windows, Linux, and macOS: no which/where shell.
 function searchDirs(env, platform) {
@@ -49,7 +50,7 @@ export function findChrome(env = process.env, platform = process.platform) {
   return hit;
 }
 
-export async function launchChrome({ profileDir, port = 9222, url = 'about:blank', headless = false, extraArgs = [] } = {}) {
+export async function launchChrome({ profileDir, port = 9222, url = 'about:blank', headless = false, extraArgs = [], dataRoot = null } = {}) {
   // Even when CDP is already reachable, it may belong to an unrelated browser.
   // No tab operations or sends are permitted before proving continuity with this profile.
   browserMarkerPath(profileDir);
@@ -58,6 +59,9 @@ export async function launchChrome({ profileDir, port = 9222, url = 'about:blank
     const ownership = await verifyBrowserOwner({ profileDir, port, version: v });
     return { alreadyRunning: true, port, browser: v.Browser, pid: null, ...ownership };
   }
+  // Not reachable, about to spawn. A caller that is not the CDP-port owner (chat/drive passing dataRoot)
+  // must not start a second Chrome on the owner's profile; the owner Studio or `studio launch` does that.
+  if (dataRoot) assertNoForeignCdpOwner(dataRoot, port);
   // Chrome 136+ refuses remote debugging on the default profile.
   mkdirSync(profileDir, { recursive: true });
   const exe = findChrome();

@@ -8,6 +8,7 @@ import { Recorder } from '../../src/capture/recorder.mjs';
 import { Session } from '../../src/store/session.mjs';
 import { derive } from '../../src/replay/derive.mjs';
 import { startStudio } from '../../src/studio/server.mjs';
+import { acquireCdpOwnerLock } from '../../src/studio/cdp-owner-lock.mjs';
 import { qrToTerminal } from '../../src/studio/lan-pair.mjs';
 import { exportTranscript, exportReport, exportKnowledge, exportBundle, exportSchemas, exportGraphRanked } from '../../src/export/export.mjs';
 import { define } from '../lib/registry.mjs';
@@ -71,16 +72,24 @@ async function runStudio(ctx, { launch }) {
   const { out, flags } = ctx;
   const lanPair = !!flags['lan-pair'] || process.env.CAPTURE_STUDIO_LAN_PAIR === '1';
   if (flags['lan-host'] && !lanPair) throw usageError('--lan-host only applies together with --lan-pair.');
+  // One Studio per CDP port, machine-wide. Taken BEFORE any browser launch so a non-owner can never
+  // relaunch or fight over the owner's Chrome.
+  const studioPort = Number(flags['studio-port'] ?? ctx.settings.studioPort);
+  let cdpLock;
+  try { cdpLock = await acquireCdpOwnerLock({ root: ctx.paths.root, cdpPort: ctx.port, studioPort }); }
+  catch (e) { if (e.code === 'CDP_OWNED') throw envError(e.message, `Only one VIVIM Studio may drive browser port ${ctx.port}. Open ${e.owner.url}, or stop that process (pid ${e.owner.pid}) first.`); throw e; }
   if (launch) {
     // Always validate the ownership marker, even when the CDP port is already listening.
-    const r = await launchChrome({ profileDir: ctx.paths.chromeProfile, port: ctx.port, url: flags.url ?? 'about:blank' });
+    let r;
+    try { r = await launchChrome({ profileDir: ctx.paths.chromeProfile, port: ctx.port, url: flags.url ?? 'about:blank' }); }
+    catch (e) { cdpLock.release(); throw e; }
     if (!r.alreadyRunning) out.info(`Capture browser opened (${r.browser}).`);
   }
   // LAN pairing forces token mode (CAPTURE_STUDIO_TOKEN if set, else a fresh random token); the default stays loopback/no-token.
   const lanOptions = lanPair ? { lanPair: true, accessMode: 'token', lanHost: flags['lan-host'], ...(process.env.CAPTURE_STUDIO_TOKEN ? { token: process.env.CAPTURE_STUDIO_TOKEN } : {}) } : { lanPair: false };
   let st;
   try { st = await startStudio({ paths: ctx.paths, profileStore: ctx.profiles(), familyStore: ctx.families(), cdpPort: ctx.port, port: Number(flags['studio-port'] ?? ctx.settings.studioPort), ...lanOptions }); }
-  catch (e) { if (lanPair && /LAN pairing|--lan-host/.test(e.message)) throw envError(e.message, 'Check the network connection, or drop --lan-pair to stay loopback-only.'); throw e; }
+  catch (e) { cdpLock.release(); if (lanPair && /LAN pairing|--lan-host/.test(e.message)) throw envError(e.message, 'Check the network connection, or drop --lan-pair to stay loopback-only.'); throw e; }
   out.emit({ url: st.url, port: st.port, ...(st.lan ? { lanPair: true, pairingUrl: st.pairingUrl, lanAddresses: st.lan.addresses } : {}) }, (o) => {
     o.result(`Capture Studio is running at\n  ${st.url}\nKeep this window open. Press Ctrl+C to stop (an active recording is saved first).`);
     if (!st.lan) return;
@@ -98,8 +107,9 @@ async function runStudio(ctx, { launch }) {
   let shutdown = null;
   const closeStudio = () => {
     shutdown ??= (async () => {
-      try { await st.close(); process.exit(0); }
+      try { await st.close(); cdpLock.release(); process.exit(0); }
       catch (error) {
+        cdpLock.release();
         console.error('Studio shutdown failed:', error);
         process.exit(1);
       }

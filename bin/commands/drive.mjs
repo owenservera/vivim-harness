@@ -90,7 +90,7 @@ define({
     }
 
     // One command for a live action, but never attach to an arbitrary Chrome CDP listener.
-    await launchChrome({ profileDir: ctx.paths.chromeProfile, port: ctx.port });
+    await launchChrome({ profileDir: ctx.paths.chromeProfile, port: ctx.port, dataRoot: ctx.paths.root });
     const dataDir = ctx.paths.home ?? path.dirname(ctx.paths.sessions);
     const result = await driveSite({
       adapter, prompt, port: ctx.port, dataDir, record, timeoutMs, freshTab: !flags['reuse-tab'],

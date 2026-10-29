@@ -24,7 +24,7 @@ export async function runChat(ctx, { factory = defaultConversationRuntime, sleep
   if (!flags['accept-sends']) throw usageError('Live sends require --execute --accept-sends. For the 100-scenario campaign, use studio live-100: never dispatch parallel studio chat workers.');
   // A single user command prepares (or verifies) the dedicated browser before any live send.
   // Injected like `factory` so an offline test can prove the one-shot lifecycle without a browser.
-  await launch({ profileDir: ctx.paths.chromeProfile, port: ctx.port });
+  await launch({ profileDir: ctx.paths.chromeProfile, port: ctx.port, dataRoot: ctx.paths.root });
   const runtime = await factory({ paths: ctx.paths, profileStore: ctx.profiles(), familyStore: ctx.families(), port: ctx.port });
   let conversation, finalized = false;
   try {

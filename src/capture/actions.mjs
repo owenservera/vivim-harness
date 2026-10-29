@@ -177,7 +177,7 @@ export async function clearComposer(page) {
   if (before === null) return { ok: false, cleared: false, reason: 'composer-unreadable' };
   if (!norm(before)) return { ok: true, cleared: false, before: '' };
   const ctrl = { modifiers: 2, windowsVirtualKeyCode: 65, nativeVirtualKeyCode: 65, key: 'a', code: 'KeyA' };
-  await page.send('Input.dispatchKeyEvent', { type: 'keyDown', ...ctrl });
+  await page.send('Input.dispatchKeyEvent', { type: 'keyDown', ...ctrl, commands: ['selectAll'] });
   await page.send('Input.dispatchKeyEvent', { type: 'keyUp', ...ctrl });
   await sleep(120);
   const bs = { windowsVirtualKeyCode: 8, nativeVirtualKeyCode: 8, key: 'Backspace', code: 'Backspace' };
