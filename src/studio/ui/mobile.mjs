@@ -239,6 +239,7 @@ export function mountMobile({
   async function loadIndex() {
     const ticket = ++requestTicket;
     state.scaffold = null; state.appId = null; state.content = null; state.agent = null;
+    state.busy = false; state.pendingKey = null;
     state.notice = ''; state.error = ''; state.loading = true; render();
     const result = await request(MOBILE_API);
     if (ticket !== requestTicket) return;
@@ -252,7 +253,7 @@ export function mountMobile({
       state.error = 'Invalid local app reference'; render(); return;
     }
     const ticket = ++requestTicket;
-    state.loading = true; state.notice = ''; state.error = ''; state.scaffold = null;
+    state.loading = true; state.busy = false; state.notice = ''; state.error = ''; state.scaffold = null;
     state.appId = id; state.content = null; state.agent = null;
     state.pendingKey = null; state.draftTitle = ''; state.draftBody = ''; render();
     const result = await request(MOBILE_API + '/' + encodeURIComponent(id) + '/scaffold');
@@ -270,8 +271,8 @@ export function mountMobile({
     if (!id || state.busy) return;
     state.busy = true; state.error = ''; render();
     const result = await request(MOBILE_API + '/' + encodeURIComponent(id) + '/content');
-    state.busy = false;
     if (ticket !== requestTicket || state.appId !== id) return;
+    state.busy = false;
     try {
       if (result.status !== 200) throw new Error('Local content unavailable (' + (result.data?.code ?? result.status) + ')');
       state.content = validateMobileContent(result.data, id);
@@ -296,18 +297,21 @@ export function mountMobile({
       state.pendingKey = 'mobile:' + key;
     }
     const title = state.draftTitle, body = state.draftBody;
+    const sentKey = state.pendingKey, ticket = requestTicket;
     state.busy = true; state.error = ''; state.notice = ''; render();
     const result = await request(MOBILE_API + '/' + id + '/content/items', {
       method: 'POST', body: { expectedVersion: content.version, idempotencyKey: state.pendingKey,
         kind, title, body },
     });
+    if (id !== state.appId || ticket !== requestTicket) return;
     state.busy = false;
-    if (id !== state.appId) return;
     if (result.status === 200 && result.data?.item &&
         result.data.item.kind === kind && result.data.content?.appId === id) {
       try {
         state.content = validateMobileContent(result.data.content, id);
-        state.draftTitle = ''; state.draftBody = ''; state.pendingKey = null;
+        if (state.draftTitle === title && state.draftBody === body && state.pendingKey === sentKey) {
+          state.draftTitle = ''; state.draftBody = ''; state.pendingKey = null;
+        }
         state.notice = result.data.replayed ? 'Recovered the previous local save.' : 'Saved on this PC.';
       } catch (error) { state.error = error.message; }
     } else {
@@ -317,14 +321,14 @@ export function mountMobile({
     render();
   }
   async function setComplete(itemId, completed) {
-    const id = state.appId, current = state.content;
+    const id = state.appId, current = state.content, ticket = requestTicket;
     if (!id || !current || !ITEM_ID.test(itemId) || state.busy) return;
     state.busy = true; state.error = ''; state.notice = ''; render();
     const result = await request(MOBILE_API + '/' + id + '/content/items/' + itemId + '/completion', {
       method: 'POST', body: { expectedVersion: current.version, completed },
     });
+    if (id !== state.appId || ticket !== requestTicket) return;
     state.busy = false;
-    if (id !== state.appId) return;
     if (result.status === 200 && result.data?.content) {
       try {
         state.content = validateMobileContent(result.data.content, id);
@@ -336,8 +340,10 @@ export function mountMobile({
   }
   async function readAgent() {
     if (state.busy) return;
+    const ticket = requestTicket, id = state.appId;
     state.busy = true; state.error = ''; render();
     const result = await request('/api/v1/personal-agent/status');
+    if (ticket !== requestTicket || id !== state.appId) return;
     state.busy = false;
     if (result.status === 200 && typeof result.data?.initialized === 'boolean') {
       state.agent = result.data;
