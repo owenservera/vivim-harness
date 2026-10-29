@@ -2,7 +2,7 @@
 // opens offline-capable. It deliberately has no handler for /api/ or any non-GET request: every
 // state-changing call, and every API read, goes straight to the live server and is never queued,
 // cached or replayed. Network-first so edits on the PC are picked up; cache is the offline fallback.
-const CACHE = 'vivim-mobile-shell-v4';
+const CACHE = 'vivim-mobile-shell-v5';
 const SHELL = new Map([
   ['/mobile', 'text/html'], ['/ui/mobile.mjs', 'text/javascript'],
   ['/mobile.webmanifest', 'application/manifest+json'],

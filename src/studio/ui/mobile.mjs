@@ -14,7 +14,19 @@ const SCREENS = new Set(['home', 'agent', 'builder', 'notes', 'tasks', 'dashboar
 const CONVERSATIONS_API = '/api/v1/conversations';
 const ASK_STORE = 'vivim.mobile.ask.v1';
 const ASK_POLL_MS = 2500;
-const ASK_SITES = { chatgpt: 'ChatGPT', claude: 'Claude' };
+// All six signed-in AI websites the phone may ask directly (same set the backend's create and compare
+// routes accept). "Ask my AI" lets the user pick any one of these, remembered on this phone.
+const ASK_SITES = { chatgpt: 'ChatGPT', claude: 'Claude', zai: 'Z.ai', qwen: 'Qwen', deepseek: 'DeepSeek', gemini: 'Gemini' };
+// "Design with my AI" only reuses the two sites personal-app-ai-design.mjs accepts today; it is not
+// widened here even though Ask my AI now offers six.
+const DESIGN_SITES = { chatgpt: 'ChatGPT', claude: 'Claude' };
+// "Ask several": one question sent to more than one AI at once, through the shared compare job runner
+// (src/studio/compare-service.mjs). Same no-resend rule as a single chat: polling only ever re-reads the
+// SAME job id; a new question is the only thing that starts a new job.
+const COMPARE_API = '/api/v1/compare';
+const COMPARE_JOB_ID = /^cmp-[a-f0-9]{24}$/;
+const COMPARE_ACTIVE = new Set(['queued', 'running']);
+const isCompareActive = job => Boolean(job && typeof job.state === 'string' && COMPARE_ACTIVE.has(job.state));
 // Recognized refusals get specific advice; every retry still requires a fresh stored read with no matching key.
 const ASK_BUSY_CODES = new Set(['DRIVE_LEASE_BUSY', 'CONVERSATION_OWNED_BY_ANOTHER_RUNTIME', 'CONVERSATION_NOT_WRITABLE', 'RUNTIME_CLOSED']);
 const ASK_REFUSAL_CODES = new Set([...ASK_BUSY_CODES, 'BROWSER_UNAVAILABLE', 'DRAFT_PRESENT',
@@ -68,9 +80,10 @@ export function mountMobile({
     builder: { kind: 'notes', label: '', preview: null, source: null,
       site: 'chatgpt', wish: '', job: null, timer: null, designChecked: false, replies: [], repliesLoaded: false },
     loading: false, draftTitle: '', draftBody: '', pendingKey: null, view: 'index',
-    ask: { site: 'chatgpt', conversationId: null, revision: null, snapshot: null, turns: [],
+    ask: { site: 'chatgpt', mode: 'single', conversationId: null, revision: null, snapshot: null, turns: [],
       pending: null, draft: '', status: '', error: '', notice: '', retry: false,
-      busy: false, reading: false, timer: null, pinBottom: false, checkAgain: false } };
+      busy: false, reading: false, timer: null, pinBottom: false, checkAgain: false },
+    compare: { sites: ['chatgpt', 'claude'], question: '', job: null, busy: false, error: '', notice: '', timer: null } };
   let requestTicket = 0;
   let designReadTicket = 0;
   function el(tag, text, cls) {
@@ -202,8 +215,8 @@ export function mountMobile({
     box.append(el('h3', 'Design with my AI'), el('p',
       'Ask your own AI account to suggest screens. This sends a request through your PC. You review everything before adding it.', 'muted'));
     const sites = el('div', undefined, 'row');
-    for (const site of Object.keys(ASK_SITES)) {
-      const choice = btn(ASK_SITES[site], () => { b.site = site; render(); });
+    for (const site of Object.keys(DESIGN_SITES)) {
+      const choice = btn(DESIGN_SITES[site], () => { b.site = site; render(); });
       attr(choice, 'aria-pressed', b.site === site); choice.disabled = state.busy; sites.append(choice);
     }
     box.append(sites);
@@ -652,6 +665,12 @@ export function mountMobile({
     const c = data?.conversation ?? data?.resource ?? data;
     return c && typeof c.id === 'string' && c.revision !== undefined ? c : null;
   };
+  // A comparison job is only ever trusted once its shape matches what compare-service.mjs returns.
+  const compareUnwrap = (data) => {
+    const job = data?.job;
+    return job && typeof job.id === 'string' && COMPARE_JOB_ID.test(job.id) &&
+      typeof job.state === 'string' && Array.isArray(job.results) ? job : null;
+  };
   const askTurns = () => (Array.isArray(state.ask.snapshot?.turns) ? state.ask.snapshot.turns : []);
   const askFindTurn = (key) => askTurns().find(turn => turn?.key === key) ?? null;
   function askStorage() { try { return globalThis.localStorage ?? null; } catch { return null; } }
@@ -660,8 +679,10 @@ export function mountMobile({
   function saveAsk() {
     const store = askStorage(); if (!store) return;
     try {
-      store.setItem(ASK_STORE, JSON.stringify({ site: state.ask.site, conversationId: state.ask.conversationId,
-        turns: state.ask.turns.slice(-40), pending: state.ask.pending, draft: state.ask.draft }));
+      store.setItem(ASK_STORE, JSON.stringify({ site: state.ask.site, mode: state.ask.mode,
+        conversationId: state.ask.conversationId, turns: state.ask.turns.slice(-40), pending: state.ask.pending,
+        draft: state.ask.draft, compareSites: state.compare.sites, compareQuestion: state.compare.question,
+        compareJobId: state.compare.job?.id ?? null }));
     } catch { /* private mode: the chat works, it just cannot resume after a refresh */ }
   }
   function restoreAsk() {
@@ -669,7 +690,8 @@ export function mountMobile({
     try {
       const saved = JSON.parse(store.getItem(ASK_STORE) ?? 'null');
       if (!saved || typeof saved !== 'object') return;
-      if (saved.site === 'chatgpt' || saved.site === 'claude') state.ask.site = saved.site;
+      if (Object.hasOwn(ASK_SITES, saved.site)) state.ask.site = saved.site;
+      if (saved.mode === 'several') state.ask.mode = 'several';
       state.ask.conversationId = typeof saved.conversationId === 'string' && saved.conversationId
         ? saved.conversationId : null;
       state.ask.turns = Array.isArray(saved.turns) ? saved.turns.filter(turn => turn &&
@@ -678,6 +700,15 @@ export function mountMobile({
       state.ask.pending = saved.pending && typeof saved.pending.key === 'string' &&
         typeof saved.pending.prompt === 'string' ? saved.pending : null;
       if (!state.ask.conversationId) state.ask.pending = null;
+      if (Array.isArray(saved.compareSites)) {
+        const sites = saved.compareSites.filter(site => Object.hasOwn(ASK_SITES, site));
+        if (sites.length) state.compare.sites = [...new Set(sites)];
+      }
+      if (typeof saved.compareQuestion === 'string') state.compare.question = saved.compareQuestion;
+      // Only the job id is restored; its real state is always re-read from the PC, never assumed.
+      if (typeof saved.compareJobId === 'string' && COMPARE_JOB_ID.test(saved.compareJobId)) {
+        state.compare.job = { id: saved.compareJobId };
+      }
     } catch { /* a damaged entry is ignored and the chat starts clean */ }
   }
   function askStopPolling() {
@@ -1007,6 +1038,98 @@ export function mountMobile({
     if (!ASK_SITES[site] || ask.conversationId || ask.busy) return;
     ask.site = site; ask.error = ''; ask.notice = ''; saveAsk(); render();
   }
+  function askSetMode(mode) {
+    if (mode !== 'single' && mode !== 'several') return;
+    if (state.ask.mode === mode) return;
+    state.ask.mode = mode; state.ask.error = ''; state.ask.notice = ''; saveAsk(); render();
+  }
+  /* ---------------- Ask several ---------------- */
+  // One question, several of the user's own AI accounts, through the shared compare job on the PC
+  // (src/studio/compare-service.mjs). Each answer is shown as a plain status line as it arrives; the
+  // phone never talks to a provider directly and never starts a second job for the same tap.
+  function compareToggleSite(site) {
+    const c = state.compare;
+    if (c.busy || isCompareActive(c.job) || !Object.hasOwn(ASK_SITES, site)) return;
+    const picked = new Set(c.sites);
+    if (picked.has(site)) picked.delete(site); else picked.add(site);
+    c.sites = Object.keys(ASK_SITES).filter(key => picked.has(key));
+    c.error = ''; saveAsk(); render();
+  }
+  function compareStopPolling() {
+    if (state.compare.timer) { globalThis.clearTimeout(state.compare.timer); state.compare.timer = null; }
+  }
+  function compareSchedulePoll() {
+    compareStopPolling();
+    const c = state.compare;
+    if (state.view !== 'ask' || !isCompareActive(c.job)) return;
+    c.timer = globalThis.setTimeout(() => { c.timer = null; compareRefresh(); }, ASK_POLL_MS);
+  }
+  // Read-only: the saved comparison exactly as the PC has it now. Polling only ever re-reads this SAME
+  // job id; it never posts anything, so a slow phone connection can never turn into a second question.
+  async function compareRefresh() {
+    const c = state.compare, jobId = c.job?.id;
+    if (!jobId) return;
+    const ticket = requestTicket;
+    const result = await request(COMPARE_API + '/' + encodeURIComponent(jobId), { timeoutMs: 20000 });
+    if (ticket !== requestTicket || state.compare.job?.id !== jobId) return;
+    const job = compareUnwrap(result.data);
+    if (result.status === 200 && job && job.id === jobId) {
+      c.job = job; c.error = ''; saveAsk();
+      if (isCompareActive(job)) compareSchedulePoll(); else compareStopPolling();
+      render(); return;
+    }
+    if (result.status === 401 || result.status === 403) {
+      compareStopPolling();
+      c.error = 'Your phone’s connection needs approval again. Open the connection link from VIVIM on your PC.';
+      render(); return;
+    }
+    if (result.status === 404) {
+      compareStopPolling(); c.job = null;
+      c.error = 'That comparison is no longer on your PC. Nothing was resent. Ask again.'; saveAsk(); render(); return;
+    }
+    // Cannot confirm anything right now: keep polling the same job, never start a new one.
+    compareSchedulePoll();
+  }
+  // The only place a comparison is started. A stable question + site set is the user's one tap; the PC
+  // itself refuses to start a second job for the same question and sites while one is still active.
+  async function compareStart() {
+    const c = state.compare, question = c.question.trim();
+    if (!question || c.sites.length < 2 || c.busy || isCompareActive(c.job)) return;
+    const ticket = requestTicket;
+    c.busy = true; c.error = ''; c.notice = ''; render();
+    const result = await request(COMPARE_API, { method: 'POST', timeoutMs: 20000, body: { question, sites: c.sites } });
+    if (ticket !== requestTicket) return;
+    c.busy = false;
+    const job = compareUnwrap(result.data);
+    if ((result.status === 200 || result.status === 202) && job) {
+      c.job = job; c.error = ''; saveAsk(); render();
+      if (isCompareActive(job)) compareSchedulePoll();
+      return;
+    }
+    c.error = result.status === 401 || result.status === 403
+      ? 'Your phone’s connection needs approval again. Open the connection link from VIVIM on your PC.'
+      : result.status === 400 ? 'Choose a question and at least two AIs, then try again.'
+      : 'Could not start this with your PC. Check the connection, then try again.';
+    render();
+  }
+  async function compareCancel() {
+    const c = state.compare, jobId = c.job?.id;
+    if (!jobId || c.busy || !isCompareActive(c.job)) return;
+    const ticket = requestTicket;
+    c.busy = true; render();
+    const result = await request(COMPARE_API + '/' + encodeURIComponent(jobId) + '/cancel', { method: 'POST', timeoutMs: 20000 });
+    if (ticket !== requestTicket) return;
+    c.busy = false;
+    const job = compareUnwrap(result.data);
+    if (result.status === 200 && job && job.id === jobId) { c.job = job; compareStopPolling(); saveAsk(); }
+    else c.error = 'Could not stop this comparison. Check the connection, then try again.';
+    render();
+  }
+  function compareReset() {
+    const c = state.compare;
+    if (c.busy || isCompareActive(c.job)) return;
+    compareStopPolling(); c.job = null; c.question = ''; c.error = ''; c.notice = ''; saveAsk(); render();
+  }
   function openAsk() {
     if (state.view === 'ask') return;
     ++requestTicket;
@@ -1015,6 +1138,7 @@ export function mountMobile({
     state.ask.error = ''; state.ask.notice = ''; state.ask.checkAgain = false; state.ask.pinBottom = true;
     render();
     if (state.ask.conversationId) askLoadOnOpen();
+    if (state.compare.job?.id) compareRefresh();
   }
   async function askLoadOnOpen() {
     if (state.ask.busy || state.ask.reading) return;
@@ -1050,6 +1174,7 @@ export function mountMobile({
         await askCheckAgain();
       } else if (state.view === 'index' && !state.busy && !state.loading) await loadIndex();
       else if (state.view === 'app' && state.active === 'builder' && !state.busy) await readDesign();
+      if (state.view === 'ask' && isCompareActive(state.compare.job) && !state.compare.busy) await compareRefresh();
     }
     render();
   }
@@ -1137,11 +1262,84 @@ export function mountMobile({
     if (blocked) form.append(el('p', blocked, 'muted'));
     return form;
   }
+  function renderCompare(page) {
+    const c = state.compare, active = isCompareActive(c.job);
+    const pick = el('section', undefined, 'card');
+    pick.append(el('h2', 'Ask several'), el('p',
+      'Pick two or more of your AIs. Each one gets the same question, through your own account, at the same time.', 'muted'));
+    const grid = el('div', undefined, 'seg');
+    attr(grid, 'role', 'group'); attr(grid, 'aria-label', 'Choose which AIs to ask');
+    for (const site of Object.keys(ASK_SITES)) {
+      const choice = btn(ASK_SITES[site], () => compareToggleSite(site));
+      attr(choice, 'aria-pressed', String(c.sites.includes(site)));
+      choice.disabled = c.busy || active;
+      grid.append(choice);
+    }
+    pick.append(grid);
+    const field = el('label', 'Your question', 'field');
+    attr(field, 'for', 'compareQuestion');
+    const area = el('textarea', undefined, 'field-input');
+    attr(area, 'id', 'compareQuestion'); attr(area, 'rows', '3'); attr(area, 'maxlength', '10000');
+    attr(area, 'aria-label', 'Question for several AIs');
+    attr(area, 'placeholder', 'Ask the same question to every AI you picked…');
+    area.value = c.question; area.disabled = c.busy || active;
+    const send = btn('Ask several', () => compareStart(), 'primary');
+    send.disabled = c.busy || active || !c.question.trim() || c.sites.length < 2;
+    on(area, 'input', () => { c.question = area.value; saveAsk();
+      send.disabled = c.busy || active || !c.question.trim() || c.sites.length < 2; });
+    field.append(area);
+    pick.append(field, send);
+    if (c.sites.length < 2) pick.append(el('p', 'Choose at least two AIs to compare.', 'muted'));
+    if (c.error) pick.append(el('p', c.error, 'notice error'));
+    if (c.notice) pick.append(el('p', c.notice, 'notice'));
+    page.append(pick);
+
+    if (!c.job) return;
+    const results = el('section', undefined, 'card');
+    attr(results, 'aria-live', 'polite');
+    results.append(el('h2', 'Answers'));
+    if (!Array.isArray(c.job.results)) {
+      results.append(el('p', 'Checking your last comparison…', 'muted'));
+      page.append(results); return;
+    }
+    if (typeof c.job.question === 'string' && c.job.question) results.append(el('p', 'Question: ' + c.job.question, 'muted'));
+    for (const r of c.job.results) {
+      const row = el('article', undefined, 'item');
+      row.append(el('strong', ASK_SITES[r?.site] ?? String(r?.site ?? 'AI')));
+      row.append(el('p', (typeof r?.message === 'string' && r.message) || (typeof r?.state === 'string' ? r.state : ''),
+        r?.state === 'ready' ? 'good' : 'muted'));
+      if (r?.state === 'ready') row.append(el('p', typeof r.answer === 'string' && r.answer ? r.answer : 'The answer came back empty.'));
+      results.append(row);
+    }
+    if (active) {
+      const stop = btn('Stop waiting', () => compareCancel());
+      stop.disabled = c.busy; results.append(stop);
+    } else {
+      const again = btn('Ask again', () => compareReset());
+      results.append(again);
+    }
+    page.append(results);
+  }
   function renderAsk(page) {
-    const ask = state.ask, name = askSite();
+    const ask = state.ask;
     const hero = el('section', undefined, 'card hero');
     hero.append(el('div', 'ASK MY AI', 'eyebrow'), el('h1', 'Ask my AI'),
-      el('p', 'Runs on your PC using your own ' + name + ' account.', 'muted'));
+      el('p', 'Runs on your PC using your own AI accounts.', 'muted'));
+    const modeRow = el('div', undefined, 'seg');
+    attr(modeRow, 'role', 'group'); attr(modeRow, 'aria-label', 'Ask one AI or several at once');
+    for (const [key, label] of [['single', 'One AI'], ['several', 'Ask several']]) {
+      const choice = btn(label, () => askSetMode(key));
+      attr(choice, 'aria-pressed', String(ask.mode === key));
+      modeRow.append(choice);
+    }
+    hero.append(modeRow);
+    page.append(hero);
+
+    if (ask.mode === 'several') { renderCompare(page); return; }
+
+    const name = askSite();
+    const siteCard = el('section', undefined, 'card');
+    siteCard.append(el('h2', 'Which AI'));
     const seg = el('div', undefined, 'seg');
     attr(seg, 'role', 'group'); attr(seg, 'aria-label', 'Which AI to ask');
     for (const site of Object.keys(ASK_SITES)) {
@@ -1150,9 +1348,9 @@ export function mountMobile({
       choice.disabled = Boolean(ask.conversationId) || ask.busy;
       seg.append(choice);
     }
-    hero.append(seg);
-    if (ask.conversationId) hero.append(el('p', 'Start a new chat to switch.', 'muted'));
-    page.append(hero);
+    siteCard.append(seg);
+    if (ask.conversationId) siteCard.append(el('p', 'Start a new chat to switch.', 'muted'));
+    page.append(siteCard);
 
     const thread = el('section', undefined, 'card');
     thread.append(el('h2', 'Conversation'));
