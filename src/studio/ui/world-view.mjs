@@ -6,11 +6,12 @@
 
 export const WORLD_API = '/api/v1/world';
 export const AGENT_API = '/api/v1/personal-agent';
+export const PERSONAL_APPS_API = '/api/v1/personal-apps';
 export const PAGE_LIMIT = 50;
 export const VIEWS = Object.freeze(['conversations', 'projects', 'notes']);
 export const FIND_KINDS = Object.freeze(['message', 'project', 'note', 'source-reference', 'selection']);
 const FIND_LABELS = { message: 'Messages', project: 'Projects', note: 'Notes', 'source-reference': 'Local objects', selection: 'Selections' };
-const SHELL_VIEWS = new Set(['capture', 'home', 'agent', 'settings', 'find', 'transfer', 'relations', 'workspace', ...VIEWS]);
+const SHELL_VIEWS = new Set(['capture', 'home', 'agent', 'builder', 'settings', 'find', 'transfer', 'relations', 'workspace', ...VIEWS]);
 export const AGENT_TRANSITIONS = Object.freeze({ queued: ['active','blocked','cancelled'], active: ['blocked','completed','cancelled'], blocked: ['active','cancelled'], completed: [], cancelled: [] });
 const STANDARD_RELATION_BASIS = 'local association; not native equality';
 const EXPORT_MODE_LABEL = { references: 'References only — no message text', transcript: 'Transcript — saved message text and simple formatting', 'full-saved': 'Full saved — every recorded block' };
@@ -742,6 +743,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     custody: 'observed',
     settings: { tab: 'providers', sites: [], loaded: false, loading: false, error: '' },
     agentHome: { status: null, loading: false, error: '' },
+    builder: { apps: [], selected: null, title: '', intent: '', pendingKey: null, kind: 'notes', label: '', busy: false, loading: false, error: '', notice: '' },
     agent: { status: null, work: null, loading: false, busy: false, error: '', notice: '', title: '', objective: '', pendingKey: null,
       tier: 'Immediate', memoryKey: '', memoryText: '', memoryEntries: [], workFilter: 'open', workLimit: 50, actionDrafts: new Map(),
       insightKind: null, insight: null, insightBusy: false, insightError: '',
@@ -962,7 +964,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     const breadcrumb = doc.getElementById?.('vivimViewBreadcrumb');
     if (breadcrumb) {
       const titles = {
-        capture: 'Chat', home: 'Home', agent: 'Personal Agent', settings: 'Settings', conversations: 'Saved conversations', projects: 'Projects',
+        capture: 'Chat', home: 'Home', agent: 'Personal Agent', builder: 'Build my VIVIM', settings: 'Settings', conversations: 'Saved conversations', projects: 'Projects',
         notes: 'Notes', find: 'Find', transfer: 'Transfer',
         relations: 'Relations', workspace: 'Workspace',
       };
@@ -1031,7 +1033,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
       el('h3', { text: 'Quick actions' }),
     ]);
     for (const [view, title] of [
-      ['capture', 'Start a conversation'], ['agent', 'Your Personal Agent'], ['find', 'Find saved content'],
+      ['capture', 'Start a conversation'], ['builder', 'Build my VIVIM'], ['agent', 'Your Personal Agent'], ['find', 'Find saved content'],
       ['workspace', 'Explore workspace'], ['relations', 'Explore relationships'],
     ]) {
       const action = el('button', { type: 'button', text: title });
@@ -1301,6 +1303,160 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     } else tasks.append(el('p', { class: 'empty', text: 'Initialize your agent to manage Work.' }));
     detailPane.replaceChildren(tasks);
   }
+
+  // A small real product loop: explicit intent -> durable local blueprint ->
+  // declarative mobile preview -> user-directed revision. No model result is fabricated.
+  async function builderCall(route, { method = 'GET', body } = {}) {
+    try {
+      const response = await fetchImpl(PERSONAL_APPS_API + route, {
+        method, credentials: 'same-origin', cache: 'no-store',
+        headers: body ? { 'content-type': 'application/json' } : undefined,
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      let data = null;
+      try { data = await response.json(); } catch { /* keep actual HTTP failure */ }
+      return { status: response.status, data };
+    } catch { return { status: 0, data: null }; }
+  }
+  async function refreshBuilder() {
+    const b = state.builder;
+    if (b.loading || b.busy) return;
+    b.loading = true; b.error = '';
+    if (state.view === 'builder') renderBuilder();
+    const result = await builderCall('');
+    b.loading = false;
+    if (result.status === 200 && Array.isArray(result.data?.items)) {
+      b.apps = result.data.items;
+      if (!b.apps.some(item => item.id === b.selected?.id)) b.selected = null;
+    } else b.error = result.data?.code || 'Local app blueprint service is unavailable.';
+    if (state.view === 'builder') renderBuilder();
+  }
+  async function createBuilderApp() {
+    const b = state.builder;
+    if (b.busy || !b.title.trim() || !b.intent.trim()) return;
+    if (!b.pendingKey) {
+      if (typeof globalThis.crypto?.randomUUID !== 'function') {
+        b.error = 'Secure idempotency key unavailable. No app was created.';
+        renderBuilder(); return;
+      }
+      b.pendingKey = 'vivim-build:' + globalThis.crypto.randomUUID();
+    }
+    b.busy = true; b.error = ''; b.notice = '';
+    renderBuilder();
+    const result = await builderCall('', {
+      method: 'POST', body: { title: b.title, intent: b.intent, idempotencyKey: b.pendingKey },
+    });
+    if (result.status === 200 && result.data?.app) {
+      b.selected = result.data.app;
+      b.title = ''; b.intent = ''; b.pendingKey = null;
+      b.notice = result.data.replayed
+        ? 'Reconnected to the same locally saved blueprint.'
+        : 'Your personal app blueprint is saved locally. No provider was called.';
+    } else b.error = result.data?.code || 'App creation was not confirmed; retry uses the same request key.';
+    b.busy = false;
+    if (state.view === 'builder') renderBuilder();
+    if (result.status === 200) await refreshBuilder();
+  }
+  async function selectBuilderApp(id) {
+    const b = state.builder;
+    if (b.busy || b.loading) return;
+    b.loading = true; b.error = '';
+    renderBuilder();
+    const result = await builderCall('/' + encodeURIComponent(id));
+    b.loading = false;
+    if (result.status === 200 && result.data?.id === id) b.selected = result.data;
+    else b.error = result.data?.code || 'Saved app could not be read.';
+    if (state.view === 'builder') renderBuilder();
+  }
+  async function addBuilderScreen() {
+    const b = state.builder;
+    if (!b.selected || b.busy || !b.label.trim()) return;
+    b.busy = true; b.error = ''; b.notice = '';
+    renderBuilder();
+    const result = await builderCall('/' + encodeURIComponent(b.selected.id) + '/screens', {
+      method: 'POST', body: { expectedVersion: b.selected.version, kind: b.kind, label: b.label },
+    });
+    if (result.status === 200 && result.data?.app) {
+      b.selected = result.data.app;
+      b.label = '';
+      b.notice = 'Declarative screen added to your local blueprint. No code or provider effects executed.';
+    } else b.error = result.data?.code || 'Screen edit was not confirmed. Refresh before retrying.';
+    b.busy = false;
+    if (state.view === 'builder') renderBuilder();
+    if (result.status === 200) await refreshBuilder();
+  }
+  function renderBuilder() {
+    ensureFrame();
+    const b = state.builder, locked = b.busy || b.loading;
+    const head = el('div', { class: 'vivim-section-head' }, [
+      el('span', { class: 'vivim-eyebrow', text: 'YOUR PERSONAL APP FACTORY' }),
+      el('h2', { text: 'Build my VIVIM' }),
+      el('p', { class: 'note', text: 'Describe your personal mobile app. Start with a tiny blueprint; evolve it safely. AI construction and APK installation are not yet connected.' }),
+    ]);
+    const notice = el('div', { id: 'worldBuilderNotice', role: b.error ? 'alert' : 'status' });
+    if (b.error) notice.append(el('p', { class: 'err', text: b.error }));
+    if (b.notice) notice.append(el('p', { class: 'note', text: b.notice }));
+    const form = el('form', { id: 'worldBuilderCreateForm' });
+    const name = el('input', { type: 'text', required: true, maxlength: '80',
+      'aria-label': 'Your app name', placeholder: 'My personal AI world' });
+    name.value = b.title;
+    on(name, 'input', () => { b.title = name.value; });
+    const intent = el('textarea', { required: true, rows: '5', maxlength: '2000',
+      'aria-label': 'What should your app become?', placeholder: 'I want an assistant that...' });
+    intent.value = b.intent;
+    on(intent, 'input', () => { b.intent = intent.value; });
+    const create = el('button', { type: 'submit', text: 'Create local starter app' });
+    create.disabled = locked;
+    on(form, 'submit', event => { event.preventDefault(); createBuilderApp(); });
+    form.append(name, intent, create);
+    const library = el('section', { id: 'worldBuilderLibrary', class: 'vivim-info-card' }, [
+      el('h3', { text: 'My app blueprints' }),
+      el('p', { class: 'note', text: 'Saved in the local VIVIM data directory, not in provider accounts.' }),
+    ]);
+    if (b.loading) library.append(el('p', { class: 'note', text: 'Reading saved blueprints…' }));
+    for (const item of b.apps) {
+      const select = el('button', { type: 'button', text: item.title + ' · ' + item.screenCount + ' screens' });
+      select.disabled = locked;
+      on(select, 'click', () => selectBuilderApp(item.id));
+      library.append(select);
+    }
+    if (!b.loading && !b.apps.length) library.append(el('p', { class: 'empty', text: 'No personal app blueprints saved yet.' }));
+    listPane.replaceChildren(head, notice, form, library);
+    const preview = el('section', { id: 'worldBuilderPreview', class: 'vivim-info-card' }, [
+      el('h3', { text: b.selected ? b.selected.title + ' — mobile starter' : 'Your mobile starter' }),
+    ]);
+    if (!b.selected) {
+      preview.append(el('p', { class: 'note', text: 'Start with Home, My Agent and Build. Your own screens will appear here after you create an app.' }));
+    } else {
+      preview.append(el('p', { class: 'note', text: 'Blueprint revision ' + b.selected.version +
+        ' · source: user-authored · AI execution: not attempted · APK: not built · phone pairing: not configured.' }));
+      const phone = el('div', { class: 'vivim-builder-phone', id: 'worldBuilderPhone' });
+      phone.append(el('strong', { text: b.selected.title }));
+      const nav = el('div', { class: 'vivim-builder-screen-grid' });
+      for (const screen of b.selected.screens) nav.append(el('div', { class: 'vivim-builder-screen' }, [
+        el('strong', { text: screen.label }),
+        el('p', { class: 'note', text: screen.kind + ' · ' +
+          (screen.origin === 'base-scaffold' ? 'starter screen' : 'user-added screen') }),
+      ]));
+      phone.append(nav);
+      preview.append(phone, el('p', { class: 'note', text: 'This is a data-only layout preview. It does not run generated code or contact an AI provider.' }));
+      const add = el('form', { id: 'worldBuilderAddScreenForm' });
+      const kind = el('select', { 'aria-label': 'New screen kind' });
+      for (const type of ['notes', 'tasks', 'dashboard', 'blank']) kind.append(el('option', { value: type, text: type }));
+      kind.value = b.kind;
+      on(kind, 'change', () => { b.kind = kind.value; });
+      const label = el('input', { type: 'text', required: true, maxlength: '64',
+        'aria-label': 'New screen label', placeholder: 'My Tasks' });
+      label.value = b.label; on(label, 'input', () => { b.label = label.value; });
+      const button = el('button', { type: 'submit', text: 'Add screen to blueprint' });
+      button.disabled = locked;
+      on(add, 'submit', event => { event.preventDefault(); addBuilderScreen(); });
+      add.append(el('h3', { text: 'Evolve your app' }), kind, label, button);
+      preview.append(add);
+    }
+    detailPane.replaceChildren(preview);
+  }
+
   function renderSettings() {
     ensureFrame();
     const config = state.settings;
@@ -3425,6 +3581,12 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
       await Promise.all([loadNamespace(), fetchList('conversations'), fetchList('projects'), fetchList('notes'), loadAgentHomeStatus()]);
       if (state.view === 'home') renderHome();
       if (!quiet) announce('Home.');
+      return;
+    }
+    if (view === 'builder') {
+      renderBuilder();
+      await refreshBuilder();
+      if (!quiet) announce('Build my VIVIM.');
       return;
     }
     if (view === 'agent') {
