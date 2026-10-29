@@ -1,6 +1,6 @@
 // Registration only: every handler delegates to the Studio server's EXISTING runtime owner.
 // This module never constructs a runtime, recorder, CDP connection, or MCP actor.
-import { validateConversationBody } from './conversation-api.mjs';
+import { validateConversationBody, CREATE_SITES } from './conversation-api.mjs';
 import { object, problem } from './http.mjs';
 import { TRANSCRIPT_LIMITS } from '../capture/conversation-thread.mjs';
 import { CHAT_INDEX_LIMITS } from '../capture/chatgpt-chat-index.mjs';
@@ -14,7 +14,7 @@ const bounds = (spec) => ({ type: 'integer', minimum: spec.min, maximum: spec.ma
 const indexBody = schema({ targetId: string(256), site: { type: 'string', enum: ['chatgpt', 'claude'], default: 'chatgpt' },
   ...Object.fromEntries(Object.entries(CHAT_INDEX_LIMITS).map(([name, spec]) => [name, bounds(spec)])),
   containers: { type: 'array', maxItems: 8, items: schema({ label: { ...string(40), pattern: '^(?!unknown$)[a-z][a-z-]{0,39}$' }, selector: string(200) }, ['label', 'selector']) } }, ['targetId']);
-const createBody = schema({ site: { type: 'string', enum: ['chatgpt', 'claude'] } }, ['site']);
+const createBody = schema({ site: { type: 'string', enum: [...CREATE_SITES] } }, ['site']);
 const connectBody = schema({ site: { type: 'string', enum: ['chatgpt', 'claude'] }, targetId: string(256),
   expectedThread: { ...string(200), pattern: threadPattern }, freshTab: { type: 'boolean', const: false } }, ['site', 'targetId', 'expectedThread']);
 const readBody = schema({ maxMessages: bounds(TRANSCRIPT_LIMITS.maxMessages), maxChars: bounds(TRANSCRIPT_LIMITS.maxChars) });

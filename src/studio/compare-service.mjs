@@ -13,7 +13,12 @@ import { executeConversationTool } from './conversation-tools.mjs';
 import { problem } from './http.mjs';
 
 const SCHEMA = 'vivim.compare/1';
-const LABELS = { chatgpt: 'ChatGPT', claude: 'Claude' };
+// Every site here must also be accepted by conversation-api.mjs's 'create' fresh-conversation gate
+// (src/studio/conversation-api.mjs) and have a working adapter in src/profiles/sites. Owner's four
+// signed-in accounts (2026-10-30): ChatGPT, Claude, Z.ai, Qwen.
+const LABELS = { chatgpt: 'ChatGPT', claude: 'Claude', zai: 'Z.ai', qwen: 'Qwen' };
+export const COMPARE_SITES = Object.keys(LABELS);
+const MAX_SITES = COMPARE_SITES.length;
 const ID = /^cmp-[a-f0-9]{24}$/;
 const CODE = /^[A-Z][A-Z0-9_]{1,79}$/;
 const ACTIVE = new Set(['queued', 'running']);
@@ -43,7 +48,7 @@ const pidAlive = pid => {
   try { process.kill(pid, 0); return true; } catch (e) { return e.code !== 'ESRCH'; }
 };
 const validJob = (job, id) => job?.schema === SCHEMA && job.id === id && typeof job.question === 'string' && typeof job.state === 'string'
-  && Array.isArray(job.results) && job.results.length >= 1 && job.results.length <= 2
+  && Array.isArray(job.results) && job.results.length >= 1 && job.results.length <= MAX_SITES
   && job.results.every(r => Object.hasOwn(LABELS, r?.site) && r.key === id + '-' + r.site && typeof r.state === 'string');
 
 function message(code, site) {
@@ -129,9 +134,10 @@ export function createCompareJobs({ paths, conversations, sleep = ms => new Prom
     return entries.length > 0 && entries.every(authBlocked);
   }
   function skip(job, result) {
-    const other = LABELS[result.site === 'claude' ? 'chatgpt' : 'claude'];
+    const others = job.sites.filter(site => site !== result.site).map(site => LABELS[site]);
     result.state = 'skipped';
-    result.message = LABELS[result.site] + " isn't signed in on your PC. Sign in to " + LABELS[result.site] + ' in your VIVIM browser, or choose ' + other + '.';
+    result.message = LABELS[result.site] + " isn't signed in on your PC. Sign in to " + LABELS[result.site] + ' in your VIVIM browser'
+      + (others.length ? ', or choose ' + others.join(' or ') + '.' : '.');
     persist(job);
   }
   // A fresh tab sends nothing. A create that outlives its bound is finished when it lands, so no
@@ -151,7 +157,9 @@ export function createCompareJobs({ paths, conversations, sleep = ms => new Prom
     let pending = null, outcome = null;
     try {
       checkCancel(job);
-      result.state = 'waiting'; result.message = 'Waiting for ' + label + '…'; persist(job);
+      result.state = 'waiting'; result.message = 'Waiting for ' + label + '…';
+      if (!result.startedAt) result.startedAt = new Date().toISOString(); // asked-at, set once, never moved by a retry/resume.
+      persist(job);
       if (!result.attempted && await signedOut(result.site)) { skip(job, result); return; }
       if (!result.conversationId) {
         if (resumed) throw coded('INTERRUPTED');
@@ -199,7 +207,7 @@ export function createCompareJobs({ paths, conversations, sleep = ms => new Prom
           if (answer) result.message = label + ' is answering…';
           persist(job);
         } else heartbeat(job);
-        if (turn.reply?.state === 'ready') { result.state = 'ready'; result.message = 'Answer ready'; persist(job); return; }
+        if (turn.reply?.state === 'ready') { result.state = 'ready'; result.message = 'Answer ready'; result.answeredAt = new Date().toISOString(); persist(job); return; }
         if (turn.phase === 'blocked' || turn.reply?.state === 'interrupted') throw coded(CODE.test(turn.reason ?? '') ? turn.reason : 'REPLY_INTERRUPTED');
         const uncertain = turn.send?.state === 'uncertain' || ['uncertain', 'needs-reconciliation'].includes(turn.phase) || stored.state === 'needs-reconciliation';
         const unwatched = turn.reply?.state === 'unknown' && turn.send?.state === 'observed';
@@ -302,7 +310,7 @@ export function createCompareJobs({ paths, conversations, sleep = ms => new Prom
     start({ question, sites = ['chatgpt', 'claude'] } = {}) {
       const text = typeof question === 'string' ? question.trim() : '';
       if (!text || text.length > 10000) throw problem(400, 'Write a question under 10,000 characters', 'COMPARE_INVALID');
-      if (!Array.isArray(sites) || !sites.length || sites.length > 2 || sites.some(site => !Object.hasOwn(LABELS, site)) || new Set(sites).size !== sites.length) throw problem(400, 'Choose ChatGPT, Claude, or both', 'COMPARE_INVALID');
+      if (!Array.isArray(sites) || !sites.length || sites.length > MAX_SITES || sites.some(site => !Object.hasOwn(LABELS, site)) || new Set(sites).size !== sites.length) throw problem(400, 'Choose one or more of: ' + COMPARE_SITES.map(site => LABELS[site]).join(', '), 'COMPARE_INVALID');
       // A double tap or a lost response never means a second provider send.
       const existing = [...jobs.values()].find(job => ACTIVE.has(job.state) && job.question === text && JSON.stringify(job.sites) === JSON.stringify(sites));
       if (existing) return { job: view(existing) };
@@ -310,7 +318,8 @@ export function createCompareJobs({ paths, conversations, sleep = ms => new Prom
       const job = { schema: SCHEMA, id, ownerPid: process.pid, ownerToken: token, question: text, sites: [...sites],
         state: 'queued', createdAt: new Date().toISOString(), results: sites.map(site => ({ site, label: LABELS[site],
           key: id + '-' + site, attempted: false, state: 'queued', answer: '',
-          message: behind ? 'Waiting for your earlier comparison to finish…' : 'Waiting for ' + LABELS[site] + '…', conversationId: null, turnId: null })) };
+          message: behind ? 'Waiting for your earlier comparison to finish…' : 'Waiting for ' + LABELS[site] + '…', conversationId: null, turnId: null,
+          startedAt: null, answeredAt: null })) };
       try { save(job); } catch { throw problem(503, 'Could not save your comparison. Check that your PC has free disk space, then try again.', 'COMPARE_SAVE_FAILED'); }
       jobs.set(id, job); launch(job); prune();
       return { job: view(job) };

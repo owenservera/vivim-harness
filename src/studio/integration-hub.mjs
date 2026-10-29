@@ -27,6 +27,7 @@ import { registerPersonalAppRoutes } from './personal-app-routes.mjs';
 import { registerCommandRoutes } from './commands.mjs';
 import { registerAgenticFileRoutes } from './agentic-files.mjs';
 import { registerCompareRoutes } from './compare-routes.mjs';
+import { registerProviderPerformanceRoutes } from './provider-performance-routes.mjs';
 
 const str = { type: 'string' };
 const pagination = { offset: { type: 'integer', minimum: 0, maximum: 1000000 }, limit: { type: 'integer', minimum: 1, maximum: 1000 } };
@@ -115,6 +116,7 @@ export function createIntegrationHub({ paths, profileStore, learner, recorder, c
   }
   registerConversationTools({ add, conversationRuntime });
   registerCompareRoutes({ add, paths, conversationRuntime });
+  registerProviderPerformanceRoutes({ add, paths });
   registerHarnessTools({ add, harnessApi });
   registerRecipeRoutes({ add, harnessApi, conversationRuntime });
   registerWorldRoutes({ add, paths, isSessionActive: (id, request) => conversationRuntime?.isSessionActive(id, request) ?? false });

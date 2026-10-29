@@ -8,13 +8,20 @@ export async function defaultConversationRuntime(options) {
   return createConversationRuntime(options);
 }
 
+// Sites the fresh-conversation ('create') path accepts. Narrower than src/profiles/sites'
+// ADAPTER_IDS on purpose: this is the create-a-tab-and-type gate, kept to accounts the owner has
+// actually signed into and that compare/ask exercise (chatgpt, claude, zai, qwen as of 2026-10-30).
+// runtime.connect() (src/capture/conversation-runtime.mjs) independently re-checks against the
+// full adapter registry; this list only needs to grow when another account is wired up end to end.
+export const CREATE_SITES = Object.freeze(['chatgpt', 'claude', 'zai', 'qwen']);
+
 export function validateConversationBody(kind, body) {
   object(body);
   const fields = { create: ['site'], connect: ['site', 'targetId', 'freshTab', 'expectedThread', 'prefixSource'], prefix: ['site', 'targetId', 'expectedThread', 'source', 'promptAttestation'], submit: ['key', 'prompt', 'confirm', 'expectedRevision'], reconcile: ['expectedRevision', 'turnId'], finish: ['closeTab'],
     chatIndex: ['targetId', 'site', 'maxEntries', 'maxTitleChars', 'scanLimit', 'containers'], read: ['maxMessages', 'maxChars'] }[kind];
   if (Object.keys(body).some((key) => !fields.includes(key))) throw problem(400, 'Unexpected request field');
   if (kind === 'create') {
-    if (body.site !== 'chatgpt' && body.site !== 'claude') throw problem(400, 'Only ChatGPT and Claude fresh conversation creation is supported', 'INVALID_CREATE');
+    if (!CREATE_SITES.includes(body.site)) throw problem(400, 'Choose ChatGPT, Claude, Z.ai or Qwen for a fresh conversation', 'INVALID_CREATE');
   }
   if (kind === 'connect') {
     text(body.site, 'site', 128);

@@ -33,6 +33,8 @@ import './commands/campaign.mjs';
 import './commands/tools.mjs';
 import './commands/personal-agent.mjs';
 import './commands/recipes.mjs';
+import './commands/ask.mjs';
+import './commands/providers.mjs';
 
 // A closed pipe (studio … | head) is a normal way to finish, not an error.
 process.stdout.on('error', (e) => { if (e.code === 'EPIPE') process.exit(0); });
