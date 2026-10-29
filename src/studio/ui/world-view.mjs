@@ -762,6 +762,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
   let readerHeadNode = null, readerStatusNode = null, readerBodyNode = null;
 
   let agentTicket = 0;
+  let agentInsightTicket = 0;
   let searchTicket = 0;
   let searchAbort = null;
   const tickets = {
@@ -889,9 +890,11 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
       continuity: '/sitrep',
     };
     if (a.insightBusy || !Object.hasOwn(paths, kind)) return;
+    const ticket = ++agentInsightTicket;
     a.insightBusy = true; a.insightError = ''; a.insightKind = kind; a.insight = null;
     if (state.view === 'agent') renderAgent();
     const result = await agentCall(paths[kind]);
+    if (ticket !== agentInsightTicket || state.view !== 'agent') return;
     if (result.status === 200 && result.data && typeof result.data === 'object') a.insight = result.data;
     else a.insightError = agentError(result);
     a.insightBusy = false;
@@ -3245,6 +3248,8 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     if (!SHELL_VIEWS.has(view)) return;
     if (state.view !== view) {
       if (state.view === 'agent' && view !== 'agent') {
+        agentInsightTicket++;
+        state.agent.insightBusy = false;
         // Explicitly loaded private continuity must not survive navigation in UI state.
         state.agent.insight = null; state.agent.insightKind = null; state.agent.insightError = '';
       }
