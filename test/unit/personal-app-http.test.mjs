@@ -55,6 +55,31 @@ test('same-owner app factory survives Studio restart with token and origin guard
   });
   assert.equal(screen.status, 200);
   assert.equal(screen.data.app.version, 2);
+  const proposal = { schema: 'vivim.personal-app-change/1', appId: id, baseVersion: 2,
+    operations: [{ type: 'add-screen', kind: 'notes', label: 'Idea Garden' }] };
+  const preview = await request('/' + id + '/preview-change', 'POST', { proposal });
+  assert.equal(preview.status, 200);
+  assert.equal(preview.data.scaffold.screens.length, 5);
+  assert.equal(preview.data.effects, 'none');
+  assert.equal((await request('/' + id)).data.version, 2,
+    'preview is read-only and may not advance a revision');
+  assert.equal((await request('/' + id + '/apply-change', 'POST', {
+    expectedVersion: 2, proposal,
+  })).status, 400, 'missing approval is not permitted');
+  const applied = await request('/' + id + '/apply-change', 'POST', {
+    expectedVersion: 2, proposal, approval: 'user-confirmed',
+  });
+  assert.equal(applied.status, 200);
+  assert.equal(applied.data.app.version, 3);
+  assert.equal(applied.data.deployed, false);
+  assert.equal((await request('/' + id + '/apply-change', 'POST', {
+    expectedVersion: 2, proposal, approval: 'user-confirmed',
+  })).status, 409);
+  const unsafe = await request('/' + id + '/preview-change', 'POST', {
+    proposal: { ...proposal, execute: true },
+  });
+  assert.equal(unsafe.status, 400);
+
   assert.equal((await request('/' + id + '/screens', 'POST', {
     expectedVersion: 1, kind: 'blank', label: 'Stale Screen',
   })).status, 409);
@@ -62,7 +87,7 @@ test('same-owner app factory survives Studio restart with token and origin guard
   assert.equal((await request('/' + id + '/screens', 'POST', {
     expectedVersion: 2, kind: 'javascript', label: 'Code injection',
   })).status, 400);
-  const toolManifest = await fetch(base() + '/api/v1/tools', { headers });
+  const toolManifest = await fetch(base() + '/api/v1/integrations/tools', { headers });
   if (toolManifest.ok) {
     const content = JSON.stringify(await toolManifest.json());
     assert.equal(content.includes('/personal-apps'), false,
@@ -70,6 +95,6 @@ test('same-owner app factory survives Studio restart with token and origin guard
   }
   await studio.close(); studio = await start();
   assert.equal((await request('')).data.total, 1);
-  assert.equal((await request('/' + id)).data.screens.length, 4);
+  assert.equal((await request('/' + id)).data.screens.length, 5);
   assert.equal((await request('/' + id + '/scaffold')).data.scaffold.intelligence.dispatch, 'disabled');
 });
