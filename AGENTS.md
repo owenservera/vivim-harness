@@ -20,6 +20,12 @@ This repository is the runnable VIVIM product. Take initiative: do useful work, 
 - A repair agent traces the actual complete CLI → Studio → browser → provider UI → capture/persistence/reconciliation code path, reproduces the live failure shape in tests, fixes the root cause and hands a revision to the single live operator for retest. Keep **source unit pass** and **live provider pass** separate.
 - Avoid repeated full sweeps, duplicate browser agents, competing ledger writes and speculative architecture work. Independent read-only analysis may parallelize; one owner performs effects and one writer updates evidence.
 
+## New code file review (owner rule)
+Every **new full code file** (a file that did not exist before the change, not a small edit) gets a complete read-and-upgrade pass by **Opus 5.5** (`cliproxy-claude/claude-opus-5-5`) once its writing lane finishes, before the work is reported done.
+- The pass reads the whole file plus the callers/contracts it depends on, fixes real bugs (correctness, security, edge cases, consumer UX), simplifies, and preserves public exports used elsewhere.
+- Run it only after the file's writer lane has finished; never while another lane is still editing that file.
+- It commits its own focused change and reports per file: bugs found (severity), changes made, what was deliberately left.
+
 ## Working style
 - Report observed commands, responses, resulting source revision and what remains unverified.
 - Minimize user commands, repetitive discovery, model/token cost and unnecessary delegation.
