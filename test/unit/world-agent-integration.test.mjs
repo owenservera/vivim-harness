@@ -125,6 +125,17 @@ function fixture() {
       if (data.expectedVersion !== state.version) return reply(409, { code: 'PERSONAL_AGENT_VERSION_CONFLICT' });
       item.status = data.to; state.version++; return reply(200, { version: state.version, item });
     }
+    if (route === '/search-memory' && method === 'POST') {
+      if (state.deferMemorySearch) await new Promise(resolve => { state.releaseMemorySearch = resolve; });
+      const all = state.memory.filter(row => data.tier === 'all' || row.tier === data.tier);
+      const matches = all.filter(row => (row.key + ' ' + row.text).toLowerCase().includes(data.query.toLowerCase()));
+      return reply(200, {
+        total: matches.length, shown: Math.min(matches.length, data.limit),
+        truncated: matches.length > data.limit,
+        items: matches.slice(0, data.limit).map(row => ({ key: row.key, tier: row.tier, preview: row.text,
+          match: row.key.includes(data.query) ? 'key' : 'text', source: 'user-authored' })),
+      });
+    }
     if (route.startsWith('/memory/') && method === 'GET') {
       const tier = route.split('/')[2];
       return reply(200, { version: state.version,
@@ -380,4 +391,48 @@ test('unsaved Work next-action drafts survive inspector refresh, filters and sta
   assert.equal(f.state.work[0].nextAction, 'UNSAVED_LOCAL_PLAN');
   assert.equal(actionInput().value, 'UNSAVED_LOCAL_PLAN');
   assert.equal(f.calls.filter(c => c.url.endsWith('/next-action')).length, 1);
+});
+
+test('native World memory search is opt-in, scoped and does not leak private query in URL', async () => {
+  const f = fixture(); await f.world.choose('agent'); await byId(f.root, 'worldAgentStart').click();
+  f.state.memory.push({ key: 'priority', text: 'PRIVATE_LOCAL_ONLY_SEARCH_MARKER', tier: 'CANON' });
+  f.state.memory.push({ key: 'other', text: 'PUBLIC_TEST_NOTE', tier: 'Immediate' });
+  await f.world.choose('agent');
+  assert.equal(f.calls.some(c => c.url.includes('search-memory')), false,
+    'entering World must not search private memory automatically');
+  const form = byId(f.root, 'worldAgentMemorySearchForm');
+  const query = nodes(form, node => node.tag === 'input')[0];
+  const tier = nodes(form, node => node.tag === 'select')[0];
+  await type(query, 'LOCAL_ONLY');
+  tier.value = 'CANON'; await tier.fire('change');
+  await form.fire('submit');
+  const searchCalls = f.calls.filter(c => c.url.endsWith('/search-memory'));
+  assert.equal(searchCalls.length, 1);
+  assert.equal(searchCalls[0].method, 'POST');
+  assert.deepEqual(searchCalls[0].data, { query: 'LOCAL_ONLY', tier: 'CANON', limit: 20 });
+  assert.equal(searchCalls[0].url.includes('LOCAL_ONLY'), false, 'search term must stay out of URL');
+  assert.match(byId(f.root, 'worldAgentMemorySearchResults').textContent, /PRIVATE_LOCAL_ONLY_SEARCH_MARKER/);
+  assert.doesNotMatch(byId(f.root, 'worldAgentMemorySearchResults').textContent, /PUBLIC_TEST_NOTE/);
+  assert.equal(f.calls.some(c => /chatgpt|conversation.ask|submit_conversation_turn/.test(c.url)), false);
+  await f.world.choose('home');
+  await f.world.choose('agent');
+  assert.doesNotMatch(byId(f.root, 'worldAgentMemorySearchResults').textContent, /PRIVATE_LOCAL_ONLY_SEARCH_MARKER/);
+});
+
+test('late private memory search reply is dropped after leaving World Agent', async () => {
+  const f = fixture(); await f.world.choose('agent'); await byId(f.root, 'worldAgentStart').click();
+  f.state.memory.push({ key: 'secret', text: 'ONLY_WHEN_SEARCHED', tier: 'CANON' });
+  f.state.deferMemorySearch = true;
+  const form = byId(f.root, 'worldAgentMemorySearchForm');
+  await type(nodes(form, node => node.tag === 'input')[0], 'ONLY_WHEN');
+  const pending = form.fire('submit');
+  for (let i = 0; i < 5; i++) await Promise.resolve();
+  assert.equal(typeof f.state.releaseMemorySearch, 'function');
+  await f.world.choose('capture');
+  f.state.deferMemorySearch = false;
+  f.state.releaseMemorySearch();
+  await pending;
+  await f.world.choose('agent');
+  assert.equal(byId(f.root, 'worldAgentMemorySearchResults').textContent.includes('ONLY_WHEN_SEARCHED'), false);
+  assert.equal(byId(f.root, 'worldAgentMemorySearchForm').textContent.includes('ONLY_WHEN'), false);
 });
