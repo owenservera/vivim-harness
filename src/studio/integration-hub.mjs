@@ -13,7 +13,7 @@ import { transcriptFromSession, transcriptFromLivePage, probesFromLivePage } fro
 import { getReadAdapter, listReadAdapters } from '../profiles/sites/index.mjs';
 import { AdapterFactoryError } from './adapter-factory-service.mjs';
 import { validateExpectedVersion } from '../store/versioned.mjs';
-import { VERSION } from '../config.mjs';
+import { VERSION, TOOL_ROOT } from '../config.mjs';
 import { EventFeed, EVENT_TYPES } from './event-feed.mjs';
 import { Webhooks } from './webhooks.mjs';
 import { registerCapabilities, LIVE_EVENTS } from './capabilities.mjs';
@@ -24,6 +24,8 @@ import { registerRecipeRoutes } from './recipe-routes.mjs';
 import { registerWorldRoutes } from './world-service.mjs';
 import { registerPersonalAgentRoutes } from './personal-agent-routes.mjs';
 import { registerPersonalAppRoutes } from './personal-app-routes.mjs';
+import { registerCommandRoutes } from './commands.mjs';
+import { registerAgenticFileRoutes } from './agentic-files.mjs';
 
 const str = { type: 'string' };
 const pagination = { offset: { type: 'integer', minimum: 0, maximum: 1000000 }, limit: { type: 'integer', minimum: 1, maximum: 1000 } };
@@ -116,6 +118,13 @@ export function createIntegrationHub({ paths, profileStore, learner, recorder, c
   registerWorldRoutes({ add, paths, isSessionActive: (id) => conversationRuntime?.isSessionActive(id) ?? false });
   registerPersonalAgentRoutes({ add, paths, getTools: () => toolsManifest().tools });
   registerPersonalAppRoutes({ add, paths });
+  // C-10 semantic command catalog: describe + preview only. The routes themselves carry no
+  // execution path (canProceed means "arguments parsed", wouldRequireConfirmation is future
+  // tense only), so mounting adds no capability.
+  registerCommandRoutes({ add });
+  // C-11 agentic file library: read-only inventory/read whose only root is this harness
+  // checkout. Files stay inert data; no execution, no send grant, trust untrusted-until-confirmed.
+  registerAgenticFileRoutes({ add, roots: [{ path: TOOL_ROOT, id: 'harness', untrusted: true }] });
 
   add('GET', '/health', 'Studio process health without probing Chrome', () => ({ version: VERSION, apiVersion: 1, time: new Date().toISOString(), recorder: recorder.status(), events: feed.info() }), { tool: 'studio_health' });
   add('GET', '/sessions', 'List and filter saved recordings', ({ q }) => page(selectedSessions(q), q), { query: sessionQuery, tool: 'list_sessions' });
