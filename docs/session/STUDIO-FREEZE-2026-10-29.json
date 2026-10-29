@@ -1,0 +1,432 @@
+{
+  "schema": "vivim.studio-freeze-evidence/1",
+  "date": "2026-10-29",
+  "originalPid": 3040,
+  "originalPort": 38730,
+  "before": {
+    "tcp": "accepting",
+    "health": "5s HTTP timeout",
+    "chrome": "CDP endpoint HTTP 200",
+    "memory": {
+      "rss": 148471808,
+      "heapUsed": 51481808
+    },
+    "stacks": [
+      {
+        "at": "2026-10-29T21:06:32.629Z",
+        "reason": "other",
+        "frames": [
+          {
+            "function": "",
+            "url": "node:internal/fs/utils",
+            "line": 725,
+            "column": 16
+          },
+          {
+            "function": "wrappedFn",
+            "url": "node:internal/errors",
+            "line": 540,
+            "column": 14
+          },
+          {
+            "function": "readdirSync",
+            "url": "node:fs",
+            "line": 1621,
+            "column": 10
+          },
+          {
+            "function": "",
+            "url": "file:///C:/0-BlackBoxProject-0/vivim-harness/src/store/session.mjs",
+            "line": 281,
+            "column": 44
+          },
+          {
+            "function": "listSessions",
+            "url": "file:///C:/0-BlackBoxProject-0/vivim-harness/src/store/session.mjs",
+            "line": 276,
+            "column": 6
+          },
+          {
+            "function": "allMetadata",
+            "url": "file:///C:/0-BlackBoxProject-0/vivim-harness/src/studio/world-service.mjs",
+            "line": 54,
+            "column": 29
+          },
+          {
+            "function": "resolve",
+            "url": "file:///C:/0-BlackBoxProject-0/vivim-harness/src/studio/world-service.mjs",
+            "line": 78,
+            "column": 15
+          },
+          {
+            "function": "conversation",
+            "url": "file:///C:/0-BlackBoxProject-0/vivim-harness/src/studio/world-service.mjs",
+            "line": 124,
+            "column": 17
+          },
+          {
+            "function": "search",
+            "url": "file:///C:/0-BlackBoxProject-0/vivim-harness/src/studio/world-search.mjs",
+            "line": 160,
+            "column": 32
+          },
+          {
+            "function": "",
+            "url": "file:///C:/0-BlackBoxProject-0/vivim-harness/src/studio/world-search.mjs",
+            "line": 381,
+            "column": 18
+          },
+          {
+            "function": "handle",
+            "url": "file:///C:/0-BlackBoxProject-0/vivim-harness/src/studio/integration-hub.mjs",
+            "line": 547,
+            "column": 32
+          },
+          {
+            "function": "",
+            "url": "file:///C:/0-BlackBoxProject-0/vivim-harness/src/studio/server.mjs",
+            "line": 272,
+            "column": 21
+          }
+        ]
+      },
+      {
+        "at": "2026-10-29T21:06:34.190Z",
+        "reason": "other",
+        "frames": [
+          {
+            "function": "join",
+            "url": "node:path",
+            "line": 507,
+            "column": 14
+          },
+          {
+            "function": "",
+            "url": "file:///C:/0-BlackBoxProject-0/vivim-harness/src/store/session.mjs",
+            "line": 281,
+            "column": 93
+          },
+          {
+            "function": "listSessions",
+            "url": "file:///C:/0-BlackBoxProject-0/vivim-harness/src/store/session.mjs",
+            "line": 276,
+            "column": 6
+          },
+          {
+            "function": "allMetadata",
+            "url": "file:///C:/0-BlackBoxProject-0/vivim-harness/src/studio/world-service.mjs",
+            "line": 54,
+            "column": 29
+          },
+          {
+            "function": "resolve",
+            "url": "file:///C:/0-BlackBoxProject-0/vivim-harness/src/studio/world-service.mjs",
+            "line": 78,
+            "column": 15
+          },
+          {
+            "function": "conversation",
+            "url": "file:///C:/0-BlackBoxProject-0/vivim-harness/src/studio/world-service.mjs",
+            "line": 124,
+            "column": 17
+          },
+          {
+            "function": "search",
+            "url": "file:///C:/0-BlackBoxProject-0/vivim-harness/src/studio/world-search.mjs",
+            "line": 160,
+            "column": 32
+          },
+          {
+            "function": "",
+            "url": "file:///C:/0-BlackBoxProject-0/vivim-harness/src/studio/world-search.mjs",
+            "line": 381,
+            "column": 18
+          },
+          {
+            "function": "handle",
+            "url": "file:///C:/0-BlackBoxProject-0/vivim-harness/src/studio/integration-hub.mjs",
+            "line": 547,
+            "column": 32
+          },
+          {
+            "function": "",
+            "url": "file:///C:/0-BlackBoxProject-0/vivim-harness/src/studio/server.mjs",
+            "line": 272,
+            "column": 21
+          }
+        ]
+      }
+    ]
+  },
+  "followup": {
+    "explanation": "Metadata reuse alone left nested per-candidate ownership journal and raw-session scans; direct metadata lookup alone still repeatedly parsed every journal.",
+    "stack": [
+      {
+        "name": "processTimers",
+        "url": "node:internal/timers",
+        "line": 604
+      }
+    ],
+    "underLoadStacks": [
+      [
+        {
+          "name": "isSessionActive",
+          "url": "file:///C:/0-BlackBoxProject-0/vivim-harness/src/capture/conversation-runtime.mjs",
+          "line": 564
+        },
+        {
+          "name": "isSessionActive",
+          "url": "file:///C:/0-BlackBoxProject-0/vivim-harness/src/studio/integration-hub.mjs",
+          "line": 120
+        },
+        {
+          "name": "active",
+          "url": "file:///C:/0-BlackBoxProject-0/vivim-harness/src/studio/world-service.mjs",
+          "line": 56
+        },
+        {
+          "name": "",
+          "url": "file:///C:/0-BlackBoxProject-0/vivim-harness/src/studio/world-service.mjs",
+          "line": 107
+        },
+        {
+          "name": "conversations",
+          "url": "file:///C:/0-BlackBoxProject-0/vivim-harness/src/studio/world-service.mjs",
+          "line": 107
+        },
+        {
+          "name": "",
+          "url": "file:///C:/0-BlackBoxProject-0/vivim-harness/src/studio/world-search.mjs",
+          "line": 157
+        },
+        {
+          "name": "collect",
+          "url": "file:///C:/0-BlackBoxProject-0/vivim-harness/src/studio/world-search.mjs",
+          "line": 49
+        },
+        {
+          "name": "searchSteps",
+          "url": "file:///C:/0-BlackBoxProject-0/vivim-harness/src/studio/world-search.mjs",
+          "line": 157
+        },
+        {
+          "name": "searchAsync",
+          "url": "file:///C:/0-BlackBoxProject-0/vivim-harness/src/studio/world-search.mjs",
+          "line": 396
+        }
+      ],
+      [
+        {
+          "name": "isSessionActive",
+          "url": "file:///C:/0-BlackBoxProject-0/vivim-harness/src/capture/conversation-runtime.mjs",
+          "line": 564
+        },
+        {
+          "name": "isSessionActive",
+          "url": "file:///C:/0-BlackBoxProject-0/vivim-harness/src/studio/integration-hub.mjs",
+          "line": 120
+        },
+        {
+          "name": "active",
+          "url": "file:///C:/0-BlackBoxProject-0/vivim-harness/src/studio/world-service.mjs",
+          "line": 56
+        },
+        {
+          "name": "",
+          "url": "file:///C:/0-BlackBoxProject-0/vivim-harness/src/studio/world-service.mjs",
+          "line": 107
+        },
+        {
+          "name": "conversations",
+          "url": "file:///C:/0-BlackBoxProject-0/vivim-harness/src/studio/world-service.mjs",
+          "line": 107
+        },
+        {
+          "name": "",
+          "url": "file:///C:/0-BlackBoxProject-0/vivim-harness/src/studio/world-search.mjs",
+          "line": 157
+        },
+        {
+          "name": "collect",
+          "url": "file:///C:/0-BlackBoxProject-0/vivim-harness/src/studio/world-search.mjs",
+          "line": 49
+        },
+        {
+          "name": "searchSteps",
+          "url": "file:///C:/0-BlackBoxProject-0/vivim-harness/src/studio/world-search.mjs",
+          "line": 157
+        },
+        {
+          "name": "searchAsync",
+          "url": "file:///C:/0-BlackBoxProject-0/vivim-harness/src/studio/world-search.mjs",
+          "line": 396
+        }
+      ],
+      [
+        {
+          "name": "isSessionActive",
+          "url": "file:///C:/0-BlackBoxProject-0/vivim-harness/src/capture/conversation-runtime.mjs",
+          "line": 564
+        },
+        {
+          "name": "isSessionActive",
+          "url": "file:///C:/0-BlackBoxProject-0/vivim-harness/src/studio/integration-hub.mjs",
+          "line": 120
+        },
+        {
+          "name": "active",
+          "url": "file:///C:/0-BlackBoxProject-0/vivim-harness/src/studio/world-service.mjs",
+          "line": 56
+        },
+        {
+          "name": "",
+          "url": "file:///C:/0-BlackBoxProject-0/vivim-harness/src/studio/world-service.mjs",
+          "line": 107
+        },
+        {
+          "name": "conversations",
+          "url": "file:///C:/0-BlackBoxProject-0/vivim-harness/src/studio/world-service.mjs",
+          "line": 107
+        },
+        {
+          "name": "",
+          "url": "file:///C:/0-BlackBoxProject-0/vivim-harness/src/studio/world-search.mjs",
+          "line": 157
+        },
+        {
+          "name": "collect",
+          "url": "file:///C:/0-BlackBoxProject-0/vivim-harness/src/studio/world-search.mjs",
+          "line": 49
+        },
+        {
+          "name": "searchSteps",
+          "url": "file:///C:/0-BlackBoxProject-0/vivim-harness/src/studio/world-search.mjs",
+          "line": 157
+        },
+        {
+          "name": "searchAsync",
+          "url": "file:///C:/0-BlackBoxProject-0/vivim-harness/src/studio/world-search.mjs",
+          "line": 396
+        }
+      ]
+    ]
+  },
+  "fix": [
+    "Reuse one ownership-journal snapshot for each World request, including search pagination and conversation reads.",
+    "For journals awaiting sessionId, read only the candidate session metadata, never enumerate all sessions/raw segments.",
+    "Allow metadata-only session enumeration, retaining rawBytes by default for existing callers.",
+    "Cooperative bounded HTTP search and metadata reuse landed in concurrent commit c9d4f95."
+  ],
+  "after": {
+    "at": "2026-10-29T21:28:35.491Z",
+    "healthDuringSearch": [
+      {
+        "status": 200,
+        "ms": 844
+      },
+      {
+        "status": 200,
+        "ms": 90
+      },
+      {
+        "status": 200,
+        "ms": 143
+      },
+      {
+        "status": 200,
+        "ms": 78
+      },
+      {
+        "status": 200,
+        "ms": 69
+      },
+      {
+        "status": 200,
+        "ms": 10
+      },
+      {
+        "status": 200,
+        "ms": 54
+      },
+      {
+        "status": 200,
+        "ms": 13
+      },
+      {
+        "status": 200,
+        "ms": 15
+      },
+      {
+        "status": 200,
+        "ms": 6
+      }
+    ],
+    "search": {
+      "status": 200,
+      "ms": 3855,
+      "total": 2,
+      "coverage": {
+        "complete": true,
+        "scope": "all",
+        "custody": "all",
+        "scanned": {
+          "conversations": 181,
+          "observedConversations": 181,
+          "importedConversations": 0,
+          "messages": 155,
+          "projects": 1,
+          "notes": 1,
+          "appNotes": 1,
+          "tasks": 1,
+          "sourceReferences": 0,
+          "selections": 0
+        },
+        "absent": {
+          "conversations": 15,
+          "observedConversations": 15,
+          "importedConversations": 0
+        },
+        "indexed": 159,
+        "matching": 2,
+        "tokenTruncated": 0,
+        "failures": [],
+        "truncated": false,
+        "reasons": [],
+        "limits": {
+          "conversations": 500,
+          "messages": 20000,
+          "projects": 500,
+          "notes": 500,
+          "objects": 500,
+          "selections": 500,
+          "pageSize": 1000
+        },
+        "qualification": "total counts matches in a transient index built from bounded current local reads; complete describes scan coverage only, not that unread or remote content does not exist; active/excluded or unknown availability is reported as unavailable and is not evidence of deletion"
+      }
+    }
+  },
+  "compare": {
+    "at": "2026-10-29T21:28:45.334Z",
+    "status": 200,
+    "state": "failed",
+    "results": [
+      {
+        "site": "chatgpt",
+        "state": "failed",
+        "conversationId": "0a4e2a8e-12d4-4108-885c-7a08d232c38a",
+        "turnId": "96de277e-60ec-4b14-bcad-1456b772b636",
+        "message": "VIVIM restarted while ChatGPT was answering. Nothing was sent twice. Check its tab for the full answer.",
+        "answerLength": 0
+      },
+      {
+        "site": "claude",
+        "state": "failed",
+        "conversationId": null,
+        "turnId": null,
+        "message": "VIVIM restarted before sending this question to Claude. Start a new comparison when you are ready.",
+        "answerLength": 0
+      }
+    ]
+  },
+  "unitTests": "Not run: owner explicitly prohibits unit tests."
+}

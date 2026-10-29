@@ -269,7 +269,7 @@ export class Session {
   }
 }
 
-export function listSessions(sessionsDir) {
+export function listSessions(sessionsDir, { includeRawBytes = true } = {}) {
   if (!existsSync(sessionsDir)) return [];
   return readdirSync(sessionsDir)
     .filter((d) => existsSync(path.join(sessionsDir, d, 'session.json')))
@@ -278,8 +278,8 @@ export function listSessions(sessionsDir) {
       try { meta = JSON.parse(readFileSync(path.join(sessionsDir, d, 'session.json'), 'utf8')); } catch { meta = { id: d, status: 'unreadable_metadata' }; }
       let bytes = 0;
       const raw = path.join(sessionsDir, d, 'raw');
-      if (existsSync(raw)) for (const f of readdirSync(raw)) { try { bytes += statSync(path.join(raw, f)).size; } catch { /* ignore */ } }
-      return { ...meta, rawBytes: bytes };
+      if (includeRawBytes && existsSync(raw)) for (const f of readdirSync(raw)) { try { bytes += statSync(path.join(raw, f)).size; } catch { /* ignore */ } }
+      return includeRawBytes ? { ...meta, rawBytes: bytes } : meta;
     })
     // Newest first. Unreadable metadata has no createdAt and sorts last; equal keys keep a stable
     // order (the old `a < b ? 1 : -1` comparator was inconsistent for them).

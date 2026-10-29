@@ -53,7 +53,7 @@ export function createWorldService({ paths, isSessionActive = () => false }) {
   };
   // World projections need metadata only, never a synchronous walk of every raw segment.
   const allMetadata = () => listSessions(paths.sessions, { includeRawBytes: false }).filter((m) => typeof m.id === 'string' && /^[a-z0-9][a-z0-9._-]{0,127}$/i.test(m.id));
-  const active = (m) => ['recording', 'stopping'].includes(m.status) || isSessionActive(m.id);
+  const active = (m, request) => ['recording', 'stopping'].includes(m.status) || isSessionActive(m.id, request);
   const importedConversation = (id) => {
     if (!importedConversationId(id)) return null;
     let record;
@@ -70,8 +70,8 @@ export function createWorldService({ paths, isSessionActive = () => false }) {
     request.metadata ??= allMetadata();
     const m = request.metadata.find((m) => conversationId(m.id) === id);
     if (!m) throw problem(404, 'Source metadata no longer exists', 'WORLD_NOT_FOUND');
-    return { ...metadata(m), availability: active(m) || m.status === 'unreadable_metadata' ? 'unavailable' : 'metadata-only',
-      availabilityReason: active(m) ? 'SOURCE_ACTIVE' : m.status === 'unreadable_metadata' ? 'METADATA_UNREADABLE' : 'EVIDENCE_NOT_READ' };
+    return { ...metadata(m), availability: active(m, request) || m.status === 'unreadable_metadata' ? 'unavailable' : 'metadata-only',
+      availabilityReason: active(m, request) ? 'SOURCE_ACTIVE' : m.status === 'unreadable_metadata' ? 'METADATA_UNREADABLE' : 'EVIDENCE_NOT_READ' };
   };
   const resolve = (id, request = {}) => {
     check(typeof id === 'string' && /^c-(?:[a-f0-9]{40}|i[a-f0-9]{38})$/.test(id), 'Invalid conversation ID');
@@ -79,7 +79,7 @@ export function createWorldService({ paths, isSessionActive = () => false }) {
     request.metadata ??= allMetadata();
     const m = request.metadata.find((m) => conversationId(m.id) === id);
     if (!m) throw problem(404, 'Saved conversation not found', 'WORLD_NOT_FOUND');
-    if (active(m)) throw problem(409, 'Source is active; saved evidence read unavailable', 'WORLD_SOURCE_ACTIVE');
+    if (active(m, request)) throw problem(409, 'Source is active; saved evidence read unavailable', 'WORLD_SOURCE_ACTIVE');
     return m;
   };
   const save = (id, value, expectedVersion) => publicRecord(store.compareAndSave(id, value, { expectedVersion }));
@@ -104,7 +104,7 @@ export function createWorldService({ paths, isSessionActive = () => false }) {
       const mode = q.custody ?? 'observed';
       check(['observed', 'imported', 'all'].includes(mode), 'custody must be observed, imported or all');
       request.metadata ??= allMetadata();
-      const rows = request.metadata, observed = rows.filter((m) => !active(m)).map((m) => ({ ...metadata(m), custody: 'observed', importedFrom: null }));
+      const rows = request.metadata, observed = rows.filter((m) => !active(m, request)).map((m) => ({ ...metadata(m), custody: 'observed', importedFrom: null }));
       const imported = mode === 'observed' ? [] : store.names().filter(importedConversationId).map(importedConversation)
         .filter(Boolean).map((r) => ({ id: r.id, sessionId: null, title: r.title, status: 'imported', createdAt: r.importedFrom?.observedAt ?? null,
           identity: r.identity, source: sanitizedSource(r.source), custody: 'imported', importedFrom: r.importedFrom }));

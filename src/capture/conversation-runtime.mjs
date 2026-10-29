@@ -552,23 +552,33 @@ export function createConversationRuntime({ paths, profileStore, familyStore, po
     // Pure read: never loads/recovers an entry, never writes a snapshot, never throws. Anything that
     // cannot be proven finished (corrupt/unreadable snapshot or directory) counts as active so no
     // caller can steal or replay a session that may still be owned.
-    isSessionActive(id) {
+    isSessionActive(id, request = {}) {
       if (!id) return false;
+      // This id is used for one direct metadata read below, never a directory scan.
+      if (typeof id !== 'string' || !/^[a-z0-9][a-z0-9._-]{0,127}$/i.test(id)) return true;
       const finished = (s) => s.finish.captureStopped === true || s.finish.phase === 'done';
       try {
-        const memory = new Map([...entries].map(([key, entry]) => [key, entry.service.read()]));
-        for (const [key, s] of memory) if (s.sessionId === id && !finished(s)) return true;
-        let owned;
-        for (const key of ids()) {
-          if (memory.has(key)) continue;
-          let s; try { s = JSON.parse(readFileSync(path.join(directory, `${key}.conversation.json`), 'utf8')); } catch { return true; }
-          if (!s || typeof s !== 'object' || !s.finish || typeof s.finish !== 'object') return true;
-          if (finished(s)) continue;
-          if (s.sessionId === id) return true;
-          if (!s.sessionId) { // attach/save window: the owner id lives only in the recorder's session metadata
-            owned ??= d.listSessions(paths.sessions);
-            if (owned.some((x) => x.id === id && x.conversationOwner?.conversationId === key)) return true;
+        // A World request checks many sessions. Read each ownership journal once for
+        // that request, not once per session (and again for each search page).
+        if (!request.sessionActivity) {
+          const snapshot = { sessions: new Set(), pendingOwners: new Set(), uncertain: false };
+          const memory = new Map([...entries].map(([key, entry]) => [key, entry.service.read()]));
+          for (const key of new Set([...memory.keys(), ...ids()])) {
+            let s;
+            try { s = memory.get(key) ?? JSON.parse(readFileSync(path.join(directory, `${key}.conversation.json`), 'utf8')); }
+            catch { snapshot.uncertain = true; break; }
+            if (!s || typeof s !== 'object' || !s.finish || typeof s.finish !== 'object') { snapshot.uncertain = true; break; }
+            if (finished(s)) continue;
+            if (s.sessionId) snapshot.sessions.add(s.sessionId);
+            else snapshot.pendingOwners.add(key);
           }
+          request.sessionActivity = snapshot;
+        }
+        const snapshot = request.sessionActivity;
+        if (snapshot.uncertain || snapshot.sessions.has(id)) return true;
+        if (snapshot.pendingOwners.size) {
+          const owned = JSON.parse(readFileSync(path.join(paths.sessions, id, 'session.json'), 'utf8'));
+          if (snapshot.pendingOwners.has(owned.conversationOwner?.conversationId)) return true;
         }
         return false;
       } catch { return true; }

@@ -117,7 +117,7 @@ export function createIntegrationHub({ paths, profileStore, learner, recorder, c
   registerCompareRoutes({ add, paths, conversationRuntime });
   registerHarnessTools({ add, harnessApi });
   registerRecipeRoutes({ add, harnessApi, conversationRuntime });
-  registerWorldRoutes({ add, paths, isSessionActive: (id) => conversationRuntime?.isSessionActive(id) ?? false });
+  registerWorldRoutes({ add, paths, isSessionActive: (id, request) => conversationRuntime?.isSessionActive(id, request) ?? false });
   registerPersonalAgentRoutes({ add, paths, getTools: () => toolsManifest().tools, readStoredConversation: conversationRuntime && typeof conversationRuntime.get === 'function' ? (id) => conversationRuntime.get(id) : undefined });
   // Stored-snapshot reader only (get_conversation seam): the app builder can never send or read live.
   registerPersonalAppRoutes({ add, paths, conversationRuntime, readStoredConversation: conversationRuntime && typeof conversationRuntime.get === 'function' ? (id) => conversationRuntime.get(id) : undefined });
