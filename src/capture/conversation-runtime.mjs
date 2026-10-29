@@ -26,12 +26,18 @@ function outward(e) {
 // be occupied, so callers keep reporting it instead of silently claiming a free host.
 const leaseFailure = (e) => ({ code: /^[A-Z][A-Z0-9_]{0,79}$/.test(e?.code ?? '') ? e.code : 'LEASE_RELEASE_FAILED',
   at: new Date().toISOString(), message: String(e?.message ?? e).slice(0, 300) });
+async function boundedReplyWait(promise, ms) {
+  let timer;
+  try { return await Promise.race([promise, new Promise((_, reject) => {
+    timer = setTimeout(() => reject(fail(504, 'REPLY_OBSERVATION_TIMEOUT')), ms);
+  })]); } finally { clearTimeout(timer); }
+}
 
 export function createConversationRuntime({ paths, profileStore, familyStore, port = 9222, dependencies = {} } = {}) {
   const d = { listTargets, getAdapter, createAdapter: createConversationBrowserAdapter, acquireLease: acquireDriveLease,
     listSessions, readChatIndex, captureEvidence: captureConversationEvidence,
     ownerIsAlive: (pid) => { try { process.kill(pid, 0); return true; } catch (e) { return e.code !== 'ESRCH'; } },
-    maxDurationMs: 15 * 60 * 1000, maxBytes: 256 * 1024 * 1024, sleep, prefixStabilityMs: 1500, ...dependencies };
+    maxDurationMs: 15 * 60 * 1000, maxBytes: 256 * 1024 * 1024, replyObservationMs: 125000, replyFinalizationMs: 10000, sleep, prefixStabilityMs: 1500, ...dependencies };
   const directory = path.join(paths.root, 'conversations');
   mkdirSync(directory, { recursive: true });
   const entries = new Map(); let closed = false;
@@ -158,41 +164,66 @@ export function createConversationRuntime({ paths, profileStore, familyStore, po
         ...(pending ? ['Stored snapshot read without recovery; the owning process is gone, so its state is stale until an explicit reconcile, finish or recover'] : [])] };
   }
   function observeReply(entry, attempt = entry.service.read().attempts.at(-1)) {
-    if (!attempt || entry.finishing || entry.recovered) return;
+    if (!attempt || attempt.reply?.settled || entry.finishing || entry.recovered) return;
     entry.replyWorks ??= new Map();
+    // A timed-out read may still be unwinding inside the adapter. Never start a
+    // competing observer for that turn or accept late callbacks from the old one.
+    if (entry.replyPending?.has(attempt.id)) return entry.replyWorks.get(attempt.id);
     if (entry.replyWorks.has(attempt.id)) return entry.replyWorks.get(attempt.id);
     const work = (async () => {
       await entry.service.recordReply({ turnId: attempt.id, state: 'waiting' });
-      let writes = Promise.resolve(), ended = false;
-      const publish = (update) => {
-        if (ended || entry.finishing || update.turnId !== attempt.id) return Promise.resolve();
+      let writes = Promise.resolve(), ended = false, terminalHandled = false;
+      const persistUpdate = (update) => {
         writes = writes.then(async () => {
           const saved = await entry.service.recordReply(update);
-          if (update.state === 'ready' || update.state === 'interrupted' || update.state === 'unknown') {
+          const reply = saved.attempts.find(a => a.id === attempt.id)?.reply;
+          // Only the service's journal-validated result can terminate observation.
+          // An adapter claiming ready without readiness evidence remains partial.
+          if (!terminalHandled && ['ready', 'interrupted', 'unknown'].includes(reply?.state)) {
+            terminalHandled = true;
             // Only a confirmed stop makes capture idle (a next turn may then arm a fresh one); a failed stop
             // is recorded as incomplete and blocks the next turn instead of pretending it was finalized.
             let stopped = true;
-            noteEvidence(entry, 'reply-terminal', { turnId: attempt.id, state: update.state,
+            noteEvidence(entry, 'reply-terminal', { turnId: attempt.id, state: reply.state,
               chars: typeof update.text === 'string' ? update.text.length : null,
               sequence: update.evidence?.sequence ?? null, identity: update.evidence?.identity ?? null,
               readiness: update.readiness?.rule ?? null });
-            await entry.adapter.stopTurnCapture?.().catch(() => { stopped = false; });
+            await boundedReplyWait(Promise.resolve().then(() => entry.adapter.stopTurnCapture?.()), d.replyFinalizationMs).catch(() => { stopped = false; });
             await entry.service.recordCapture({ state: stopped ? 'idle' : 'incomplete' }).catch(() => {});
             noteEvidence(entry, 'turn-capture-stopped', { turnId: attempt.id, state: stopped ? 'idle' : 'incomplete' });
-            await preserveEvidence(entry, 'turn');
+            await boundedReplyWait(preserveEvidence(entry, 'turn'), d.replyFinalizationMs).catch(() => {});
           }
           return saved;
         }); return writes;
       };
+      const publish = update => ended || entry.finishing || update.turnId !== attempt.id ? Promise.resolve() : persistUpdate(update);
       try {
-        const result = await entry.adapter.readReply(publish, { turnId: attempt.id, payloadDigest: attempt.payloadDigest,
-          boundary: attempt.boundary, threadKey: attempt.journal?.threadKey ?? entry.service.threadKey() });
-        await writes; ended = true;
-        await entry.service.recordReply(entry.finishing ? { turnId: attempt.id, state: 'interrupted' } : { ...result, turnId: attempt.id });
+        entry.replyPending ??= new Set(); entry.replyPending.add(attempt.id);
+        const reader = Promise.resolve().then(() => entry.adapter.readReply(publish, { turnId: attempt.id, payloadDigest: attempt.payloadDigest,
+          boundary: attempt.boundary, threadKey: attempt.journal?.threadKey ?? entry.service.threadKey() }));
+        reader.then(() => entry.replyPending.delete(attempt.id), () => entry.replyPending.delete(attempt.id));
+        const result = await boundedReplyWait(reader, d.replyObservationMs);
+        await writes;
+        if (entry.finishing) await entry.service.recordReply({ turnId: attempt.id, state: 'interrupted' });
+        else {
+          const saved = await publish({ ...result, turnId: attempt.id });
+          const reply = saved?.attempts.find(a => a.id === attempt.id)?.reply;
+          // A returned reader is no longer streaming. Without validated settlement,
+          // retain the observed text as partial rather than leaving a perpetual wait.
+          if (reply && !reply.settled && !['unknown', 'interrupted'].includes(reply.state)) {
+            await publish({ turnId: attempt.id, state: 'unknown' });
+          }
+        }
+        ended = true;
       } catch {
         ended = true; await writes.catch(() => {});
-        await entry.service.recordReply({ turnId: attempt.id, state: entry.finishing ? 'interrupted' : 'unknown' });
-      }
+        // No new send and no invented completion. Keep any partial text, and keep
+        // the old read fenced until it actually settles after a deadline.
+        writes = Promise.resolve();
+        if (entry.finishing) await entry.service.recordReply({ turnId: attempt.id, state: 'interrupted' });
+        else await persistUpdate({ turnId: attempt.id, state: 'unknown' });
+        ended = true;
+      } finally { ended = true; }
     })();
     entry.replyWorks.set(attempt.id, work); work.finally(() => { work.settled = true; }).catch(() => {});
     return work;
@@ -703,6 +734,9 @@ export function createConversationRuntime({ paths, profileStore, familyStore, po
         // journal fences it (THREAD_FENCED) and the uncertain-send lock stays.
         const prior = s.attempts.at(-1);
         if (prior?.send.state === 'observed' && prior.journal?.readiness?.state === 'ready') await entry.work.catch(() => {});
+        if (entry.replyPending?.size && [...(entry.replyWorks?.values() ?? [])].some(work => work.settled)) {
+          throw fail(409, 'PRIOR_REPLY_OBSERVER_PENDING');
+        }
         scheduleBudget(entry); // The duration clock starts at explicit send, not at idle connect.
         let resolve, reject;
         const ack = new Promise((yes, no) => { resolve = yes; reject = no; });
@@ -718,12 +752,16 @@ export function createConversationRuntime({ paths, profileStore, familyStore, po
             if (attempt.send.state === 'observed' && !entry.finishing && entry.service.read().attempts.some((a) => a.id === attempt.id)) await observeReply(entry, attempt);
           } finally {
             if (!entry.finishing) {
-              await entry.adapter.stopTurnCapture?.().catch(() => {});
-              await preserveEvidence(entry, 'turn');
+              if (entry.service.read().capture.state !== 'idle') {
+                await boundedReplyWait(Promise.resolve().then(() => entry.adapter.stopTurnCapture?.()), d.replyFinalizationMs)
+                  .catch(() => entry.service.recordCapture({ state: 'incomplete' }).catch(() => {}));
+              }
+              await boundedReplyWait(preserveEvidence(entry, 'turn'), d.replyFinalizationMs).catch(() => {});
             }
           }
         }).catch(async (e) => {
-          await entry.adapter.stopTurnCapture?.().catch(() => {});
+          await boundedReplyWait(Promise.resolve().then(() => entry.adapter.stopTurnCapture?.()), d.replyFinalizationMs)
+            .catch(() => entry.service.recordCapture({ state: 'incomplete' }).catch(() => {}));
           reject(outward(e));
         });
         execution.catch((e) => reject(outward(e)));
@@ -739,10 +777,12 @@ export function createConversationRuntime({ paths, profileStore, familyStore, po
       try {
         await entry.service.reconcile(body, { writer: entry.writer });
         const attempt = body.turnId ? entry.service.read().attempts.find((a) => a.id === body.turnId) : entry.service.read().attempts.at(-1);
-        if (attempt?.send.state === 'observed') {
+        if (attempt?.send.state === 'observed' && !attempt.reply?.settled) {
           // Explicit reconciliation may restart a completed read-only observer for this exact turn.
-          if (entry.replyWorks?.get(attempt.id)?.settled) entry.replyWorks.delete(attempt.id);
-          observeReply(entry, attempt);
+          if (!entry.replyPending?.has(attempt.id)) {
+            if (entry.replyWorks?.get(attempt.id)?.settled) entry.replyWorks.delete(attempt.id);
+            observeReply(entry, attempt)?.catch(() => {});
+          }
         }
         return view(entry);
       } catch (e) { throw outward(e); }

@@ -133,9 +133,28 @@ export function createConversationService({ dataDir, id = randomUUID(), adapter,
         if (turn) { a.journal = turn; a.readiness = turn.readiness; a.completion = turn.completion; }
       }
     }
-    s.reply = structuredClone(s.attempts.at(-1)?.reply ?? s.reply);
+    for (const a of s.attempts) a.reply = replyView(a);
+    s.reply = structuredClone(s.attempts.at(-1)?.reply ?? replyView({ reply: s.reply }));
     return s;
   };
+  function replyView(a) {
+    const reply = { ...a.reply }, turn = a.journal, evidence = turn?.reply?.evidence;
+    const text = typeof reply.text === 'string' ? reply.text : '';
+    reply.text = text; reply.chars = text.length;
+    // Attribution, interactive settlement and network completion are separate facts.
+    // Neither an adapter's "ready" label nor a persisted boolean is verification.
+    reply.verified = a.send?.state === 'observed' && turn?.delivery?.state === 'observed'
+      && turn?.reply?.state === 'observed' && !!evidence && evidence.turnId === a.id
+      && evidence.payloadDigest === a.payloadDigest && evidence.chars === text.length
+      && evidence.contentDigest === createHash('sha256').update(text).digest('hex');
+    reply.settled = reply.verified && text.length > 0 && turn?.readiness?.state === 'ready';
+    reply.partial = text.length > 0 && !reply.settled;
+    if (reply.settled) reply.state = 'ready';
+    else if (reply.state === 'ready') reply.state = text.length ? 'streaming' : 'unknown';
+    else if (!['waiting', 'streaming', 'interrupted', 'unknown'].includes(reply.state)) reply.state = text.length ? 'streaming' : 'unknown';
+    reply.completion = turn?.completion?.state ?? 'unknown';
+    return reply;
+  }
   const serial = (fn) => { const result = chain.then(() => { if (poisoned) throw error('PERSISTENCE_FAILED_REOPEN_REQUIRED'); return fn(); }); chain = result.catch(() => {}); return result; };
   // Flush the entire replacement before rename, then sync the named final file explicitly.
   // Directory fsync is not portable on Windows; cross-process/durable-host guarantees are not claimed.
@@ -209,9 +228,12 @@ export function createConversationService({ dataDir, id = randomUUID(), adapter,
       ? threadJournal().read().turns.find((a) => a.key === key) : null);
     if (!prior) return null;
     if (prior.payloadDigest !== payloadDigest) throw error('IDEMPOTENCY_CONFLICT');
-    return local ?? { ...prior, journal: prior, phase: prior.phase === 'delivered' ? 'observed' : prior.phase,
+    if (local) return local;
+    const replay = { ...prior, journal: prior, phase: prior.phase === 'delivered' ? 'observed' : prior.phase,
       send: { state: prior.delivery.state === 'observed' ? 'observed' : prior.phase === 'blocked' ? 'not-attempted' : 'uncertain', evidence: prior.delivery.evidence },
       reply: { ...prior.reply, text: '', completion: prior.completion.state } };
+    replay.reply = replyView(replay);
+    return replay;
   }
   function invalidatePrior(ids = []) {
     for (const id of ids) {
@@ -291,15 +313,19 @@ export function createConversationService({ dataDir, id = randomUUID(), adapter,
       attempt.creationFailureDetail = { subStep, code: e?.code ?? null, message: e?.message ?? null,
         ...(detail === undefined ? {} : { detail }) };
     };
+    // Persist and acknowledge the caller's key before capture/preflight/type/send.
+    // A slow first-turn bind must never make the caller invent a replacement key.
+    snapshot.attempts.push(attempt); snapshot.state = 'busy'; save();
+    registered?.(view(), structuredClone(attempt));
     await ensureCapture();
     let preflight;
     try { preflight = await adapter.preflight(structuredClone(snapshot.binding), { priorTurns: [] }); }
     catch (e) {
       const code = /^[A-Z][A-Z0-9_]{0,79}$/.test(e?.code ?? '') ? e.code : 'PREFLIGHT_FAILED';
-      if (e?.code === 'PREEXISTING_THREAD') { snapshot.attempts.push(attempt); prove(); return finish(); }
+      if (e?.code === 'PREEXISTING_THREAD') { prove(); return finish(); }
       // Proven pre-effect block: nothing was typed or dispatched, so the receipt is persisted,
       // capture is disarmed, and the key is consumed - then the same error still propagates.
-      snapshot.attempts.push(attempt); prove();
+      prove();
       attempt.reason = code;
       snapshot.readiness = { ready: false, draft: { present: null, chars: null }, reason: code };
       snapshot.state = 'blocked'; snapshot.uncertainty = null;
@@ -313,11 +339,11 @@ export function createConversationService({ dataDir, id = randomUUID(), adapter,
     const idle = controls?.observed === true && ['idle', 'terminal'].includes(controls.state) && controls.idleControlPresent === true && controls.stopPresent === false && controls.composerEnabled === true;
     const draftOk = preflight?.draft?.present === false && preflight?.draft?.chars === 0 && preflight?.ready === true;
     const boundaryOk = Number.isSafeInteger(preflight?.boundary?.sequence) && preflight.boundary.sequence >= 0 && Number.isSafeInteger(preflight?.boundary?.transcriptCount) && preflight.boundary.transcriptCount >= 0;
-    if (preflight?.targetThread || preflight?.pageThread) { snapshot.attempts.push(attempt); prove(); return finish(); }
+    if (preflight?.targetThread || preflight?.pageThread) { prove(); return finish(); }
     if (!threadless || !idle || !draftOk || !boundaryOk || !exactBinding(snapshot.binding, preflight?.binding)) throw error('THREAD_IDENTITY_UNVERIFIED');
     attempt.boundary = { sequence: preflight.boundary.sequence, transcriptCount: preflight.boundary.transcriptCount };
     attempt.baseline = baselineOf(preflight.baseline); attempt.cursor = cursorOf(preflight.cursor);
-    snapshot.attempts.push(attempt); snapshot.state = 'busy'; save();
+    snapshot.state = 'busy'; save();
     const stopEarly = () => {
       if (!submissionStopped) return false;
       if (!attempt.typingStartedAt) { prove(); attempt.reason = 'SUBMISSION_STOPPED'; return true; }
@@ -447,6 +473,7 @@ export function createConversationService({ dataDir, id = randomUUID(), adapter,
             const replay = { ...prior, journal: prior, phase: prior.phase === 'delivered' ? 'observed' : prior.phase,
               send: { state: prior.delivery.state === 'observed' ? 'observed' : prior.phase === 'blocked' ? 'not-attempted' : 'uncertain', evidence: prior.delivery.evidence },
               reply: { ...prior.reply, text: '', completion: prior.completion.state } };
+            replay.reply = replyView(replay);
             registered?.(view(), replay); return structuredClone(replay);
           }
         }
@@ -607,7 +634,7 @@ export function createConversationService({ dataDir, id = randomUUID(), adapter,
           && !snapshot.uncertainty && snapshot.capture.state === 'idle';
         // A previous turn that completed safely (delivered, reply finalized and ready) is not an
         // unresolved observation: an unscoped "Check again" refreshes readiness for the NEXT turn.
-        const settled = (a) => a?.send?.state === 'observed' && a.reply?.state === 'ready' && a.journal?.readiness?.state === 'ready';
+        const settled = (a) => !!a && replyView({ ...a, journal: a.journal ? journalTurn(a) : null }).settled;
         if (!snapshot.sessionId && !deferredIdle) { save(); return view(); }
         // A pre-typing rejection is not a send attempt. "Check again" only refreshes current
         // readiness; the original blocked key remains blocked/idempotent, and a new key is needed.

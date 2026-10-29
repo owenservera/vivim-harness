@@ -24,7 +24,7 @@ const reconcileBody = schema({ expectedRevision: revision, turnId: string(200, '
 const finishBody = schema({ closeTab: { type: 'boolean', default: false, description: 'Explicit optional close of a Studio-owned tab only; never an owner-selected tab.' } });
 const withConversation = (body = schema()) => schema({ conversation, ...body.properties }, ['conversation', ...body.required]);
 const annotations = (readOnlyHint, openWorldHint = true) => ({ readOnlyHint, destructiveHint: false, idempotentHint: readOnlyHint, openWorldHint });
-const evidence = 'Page readiness, network protocol completion and capture acceptance are independent; no account or live capability availability is implied.';
+const evidence = 'reply.verified means saved text matches attributed delivery/reply journal evidence; reply.settled means matching interactive-readiness evidence, not network completion. Non-settled saved text is partial. Page readiness, network protocol completion and capture acceptance are independent; no account or live capability availability is implied.';
 
 export const CONVERSATION_TOOLS = Object.freeze([
   { name: 'conversation_targets', method: 'GET', path: '/conversation-targets', runtime: 'targets',
@@ -52,7 +52,7 @@ export const CONVERSATION_TOOLS = Object.freeze([
     description: 'Read bounded currently rendered transcript from a live exact-bound conversation. Read-only: no focus, scrolling, insertion or send; coverage is incomplete and page-visible only.',
     inputSchema: withConversation(readBody), annotations: annotations(true), wrapper: 'transcript' },
   { name: 'submit_conversation_turn', method: 'POST', path: '/conversations/{conversation}/turns', runtime: 'submit', kind: 'submit', body: submitBody, status: 202,
-    description: `EXTERNAL EFFECT: insert/submit one confirmed keyed turn, subject to durable exact-thread fencing and expectedRevision. Same key+payload replays read-only. NEVER automatically retry or replace the key after timeout/unknown delivery. ${evidence}`,
+    description: `EXTERNAL EFFECT: insert/submit one confirmed keyed turn, subject to durable exact-thread fencing and expectedRevision. Registration acknowledgement is not delivery or reply completion; observe get_conversation, then reconcile uncertainty. Same key+payload replays read-only. NEVER automatically retry or replace the key after timeout/unknown delivery. ${evidence}`,
     inputSchema: withConversation(submitBody), annotations: annotations(false), wrapper: 'conversation' },
   { name: 'reconcile_conversation', method: 'POST', path: '/conversations/{conversation}/reconcile', runtime: 'reconcile', kind: 'reconcile', body: reconcileBody,
     description: 'Explicit reconciliation of the current or selected historical turn: may inspect browser and persist evidence; NEVER inserts or submits. Not-found/timeout/user assertions cannot clear unknown delivery.',
