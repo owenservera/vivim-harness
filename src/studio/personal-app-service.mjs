@@ -13,12 +13,28 @@ const fail = (status, message, code = 'PERSONAL_APP_INVALID') => problem(status,
 export function createPersonalAppService({ paths, clock = () => new Date().toISOString() } = {}) {
   if (!paths?.root || !path.isAbsolute(paths.root)) throw new TypeError('Absolute paths.root is required');
   const store = new VersionedStore(path.join(paths.root, 'personal-apps'), { kind: 'personal app' });
+  const readProblem = error => {
+    if (['PERSONAL_APP_CORRUPT', 'STORE_CURRENT_CORRUPT', 'STORE_RECORD_CORRUPT',
+      'STORE_NO_SUCH_VERSION', 'STORE_NO_SUCH_ITEM'].includes(error?.code)) {
+      return fail(500, 'Your saved app could not be opened. Nothing was replaced. Keep the saved files on your PC and ask for help restoring them.', 'PERSONAL_APP_CORRUPT');
+    }
+    return storeProblem(error);
+  };
+  const exists = id => {
+    try {
+      if (store.has(id)) return true;
+      if (store.versions(id).length) throw fail(500, 'Saved app pointer is missing', 'PERSONAL_APP_CORRUPT');
+      return false;
+    } catch (error) { throw readProblem(error); }
+  };
   const load = id => {
     if (!isPersonalAppId(id)) throw fail(400, 'Invalid personal app ID');
-    if (!store.has(id)) throw fail(404, 'Personal app not found', 'PERSONAL_APP_NOT_FOUND');
-    const app = store.load(id);
-    assertPersonalAppBlueprint(app);
-    return app;
+    if (!exists(id)) throw fail(404, 'This app is not saved on this PC. Open your app library and choose another app.', 'PERSONAL_APP_NOT_FOUND');
+    try {
+      const app = store.load(id);
+      assertPersonalAppBlueprint(app);
+      return app;
+    } catch (error) { throw readProblem(error); }
   };
   const commit = (id, value, expectedVersion, note) => {
     try { return store.compareAndSave(id, value, { expectedVersion, changeNote: note }); }
@@ -45,7 +61,7 @@ export function createPersonalAppService({ paths, clock = () => new Date().toISO
       blueprint.template = template.id;
       for (const screen of template.screens) blueprint = addPersonalAppScreen(blueprint, { ...screen, now: clock() });
     }
-    if (store.has(id)) {
+    if (exists(id)) {
       const previous = load(id);
       if (previous.title !== blueprint.title || previous.intent !== blueprint.intent || previous.template !== blueprint.template) {
         throw fail(409, 'This creation key was used for another request', 'PERSONAL_APP_IDEMPOTENCY_CONFLICT');

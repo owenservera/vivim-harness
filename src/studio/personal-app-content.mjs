@@ -46,9 +46,23 @@ export function createPersonalAppContentService({ paths, apps, clock = () => new
   const store = new VersionedStore(path.join(paths.root, 'personal-app-content'), { kind: 'personal app content' });
   function get(id) {
     apps.get(id); // Validates id and enforces that the blueprint is owned locally.
-    if (!store.has(id)) return { schema: PERSONAL_APP_CONTENT_SCHEMA, appId: id,
-      version: 0, items: [], authority: 'local-pc', remoteSync: 'not-configured' };
-    return assertPersonalAppContent(store.load(id), id);
+    try {
+      if (!store.has(id)) {
+        // Missing CURRENT is only an empty app when no saved snapshots exist. Never
+        // disguise interrupted/damaged persistence as an empty list or initialize over it.
+        if (store.versions(id).length) throw fail(500, 'PERSONAL_APP_CONTENT_CORRUPT', 'Saved content pointer is missing');
+        return { schema: PERSONAL_APP_CONTENT_SCHEMA, appId: id,
+          version: 0, items: [], authority: 'local-pc', remoteSync: 'not-configured' };
+      }
+      return assertPersonalAppContent(store.load(id), id);
+    } catch (error) {
+      if (['PERSONAL_APP_CONTENT_CORRUPT', 'STORE_CURRENT_CORRUPT', 'STORE_RECORD_CORRUPT',
+        'STORE_NO_SUCH_VERSION', 'STORE_NO_SUCH_ITEM'].includes(error?.code)) {
+        throw fail(500, 'PERSONAL_APP_CONTENT_CORRUPT',
+          'Your saved notes and tasks could not be opened. Nothing was replaced. Keep the saved files on your PC and ask for help restoring them before saving again.');
+      }
+      throw storeProblem(error);
+    }
   }
   const save = (id, before, next, message) => {
     try {
@@ -58,7 +72,7 @@ export function createPersonalAppContentService({ paths, apps, clock = () => new
     } catch (error) { throw storeProblem(error); }
   };
   function createItem({ id, expectedVersion, idempotencyKey, kind, title, body = '' } = {}) {
-    if (!KEY.test(idempotencyKey ?? '') || !KINDS.has(kind)) {
+    if (typeof idempotencyKey !== 'string' || !KEY.test(idempotencyKey) || !KINDS.has(kind)) {
       throw fail(400, 'PERSONAL_APP_CONTENT_INVALID', 'Valid idempotency key and note/task kind required');
     }
     const name = clean(title, 'title', 160), detail = clean(body, 'body', 4000, true);
@@ -83,7 +97,7 @@ export function createPersonalAppContentService({ paths, apps, clock = () => new
     return { content, item, replayed: false };
   }
   function setTaskComplete({ id, itemId, expectedVersion, completed } = {}) {
-    if (!ITEM_ID.test(itemId ?? '') || typeof completed !== 'boolean') {
+    if (typeof itemId !== 'string' || !ITEM_ID.test(itemId) || typeof completed !== 'boolean') {
       throw fail(400, 'PERSONAL_APP_CONTENT_INVALID', 'Valid item ID and completed flag required');
     }
     const before = get(id), old = before.items.find(item => item.id === itemId);
