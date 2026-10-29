@@ -1,29 +1,3 @@
-name: VIVIM full-suite integration gate
-on:
-  push:
-    branches:
-      - main
-      - integration/full-sprint-20261028
-  pull_request:
-    branches:
-      - main
-  workflow_dispatch:
-permissions:
-  contents: read
-jobs:
-  full-unit-suite:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - name: Repository and runtime identity
-        run: |
-          git rev-parse HEAD
-          bun --version
-          node --version
-      - name: Complete unit test suite
-        run: bun run test
+# GitHub Actions retired by owner directive.
+# No workflow, event triggers or jobs are defined.
+# Validation is local-only: bun run verify:local.
