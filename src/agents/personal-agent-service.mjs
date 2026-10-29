@@ -283,11 +283,14 @@ export function createPersonalAgentService({ paths, skillsRoot = TOOL_ROOT, getT
     if (result.changed) versioned(result.state, state.version, 'User-created Work item');
     return { ...status(), item: result.item, replayed: !result.changed };
   }
-  function transitionWorkItem({ expectedVersion, id, to, note, evidence } = {}) {
-    const state = requireWorkVersion(expectedVersion);
-    const result = transitionWork(state, { id, to, note, evidence, now: clock() });
-    versioned(result.state, state.version, `User Work transition: ${to}`);
-    return { ...status(), item: result.item };
+  function transitionWorkItem({ expectedVersion, id, to, note, evidence, idempotencyKey } = {}) {
+    if (!Number.isSafeInteger(expectedVersion) || expectedVersion < 1) throw bad('expectedVersion required', 'PERSONAL_AGENT_EXPECTED_VERSION');
+    const state = read();
+    if (!state) throw problem(404, 'Initialize Personal Agent first', 'PERSONAL_AGENT_NOT_INITIALIZED');
+    const result = transitionWork(state, { id, to, note, evidence, idempotencyKey, now: clock() });
+    if (result.changed && state.version !== expectedVersion) throw problem(409, 'Work changed; refresh before updating', 'PERSONAL_AGENT_VERSION_CONFLICT');
+    if (result.changed) versioned(result.state, state.version, `User Work transition: ${to}`);
+    return { ...status(), item: result.item, replayed: !result.changed };
   }
   function updateWorkNextAction({ expectedVersion, id, nextAction } = {}) {
     const state = requireWorkVersion(expectedVersion);

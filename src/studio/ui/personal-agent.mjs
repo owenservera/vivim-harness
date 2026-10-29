@@ -14,10 +14,16 @@ async function request(endpoint, options = {}) {
     credentials: 'same-origin',
     cache: 'no-store',
     headers: { 'content-type': 'application/json' }, ...options,
-  });
+  }).catch(() => { throw new Error('Studio is unavailable right now. Keep this page open and try Refresh shortly.'); });
   const data = await response.json();
   if (!response.ok) {
-    const error = new Error(data.error || data.message || 'Local Studio request failed');
+    const friendly = response.status === 409
+      ? 'Your saved information changed. Refresh, review it, and try again.'
+      : response.status === 401 || response.status === 403
+        ? 'Open Personal Agent from your paired Studio to continue.'
+        : response.status >= 500 ? 'Studio could not complete this. Your draft is still here; try again shortly.'
+          : 'This could not be saved. Check the details you entered and try again.';
+    const error = new Error(friendly);
     error.code = data.code || String(response.status);
     throw error;
   }
@@ -36,17 +42,17 @@ function message(text, error = false) {
 function showStatus(status) {
   snapshot = status;
   $('state').textContent = status.initialized
-    ? status.nextStage ? 'Bootstrap in progress' : 'Bootstrap complete (local discovery)'
-    : 'Not initialized';
+    ? status.nextStage ? 'Ready for local Work · setup can be continued' : 'Ready · local setup complete'
+    : 'Set up your Personal Agent to begin';
   $('scope').textContent = status.initialized
-    ? `Local-only identity · state version ${status.version} · remote account unverified`
+    ? 'Saved on this computer. Nothing is sent to an AI unless you choose to send it.'
     : 'Local-only identity; no agent memory has been created';
   $('bootstrap').disabled = false;
   $('saveMemory').disabled = !status.initialized;
   $('workCreate').disabled = !status.initialized;
   $('replyLoad').disabled = !status.initialized;
   const w = status.work;
-  $('workSummary').textContent = w ? `Total ${w.total} · Active ${w.byStatus.active} · Blocked ${w.byStatus.blocked} · Completed (user-attested) ${w.byStatus.completed}` : 'Initialize the Personal Agent to use Work.';
+  $('workSummary').textContent = w ? `${w.total} saved · ${w.byStatus.queued} to do · ${w.byStatus.active} in progress · ${w.byStatus.blocked} waiting · ${w.byStatus.completed} done` : 'Set up your Personal Agent to use Work.';
   $('bootstrap').textContent = status.initialized ? 'Resume / Verify bootstrap' : 'Initialize and bootstrap';
   $('memoryCounts').replaceChildren();
   for (const [tier, count] of Object.entries(status.memoryCounts ?? {})) {
@@ -65,7 +71,7 @@ function showStatus(status) {
 }
 async function refresh() {
   try { showStatus(await request('/status')); }
-  catch (e) { message(`Status: ${e.code} — ${e.message}`, true); }
+  catch (e) { message(`Could not refresh. ${e.message}`, true); }
 }
 async function bootstrap() {
   $('bootstrap').disabled = true;
@@ -76,8 +82,9 @@ async function bootstrap() {
       method: 'POST', body: JSON.stringify({ expectedVersion: before.initialized ? before.version : null }),
     });
     showStatus(result);
+    await readMemory(); await loadWork();
     message(result.nextStage ? 'Bootstrap paused: review the first incomplete stage.' : 'Local bootstrap complete. No provider action was executed.');
-  } catch (e) { message(`Bootstrap: ${e.code} — ${e.message}`, true); await refresh(); }
+  } catch (e) { message(`Could not finish setup. ${e.message}`, true); await refresh(); }
 }
 async function discover() {
   $('discover').disabled = true;
@@ -95,7 +102,7 @@ async function discover() {
     }, null, 2));
     details.append(summary, pre);
     area.append(details);
-  } catch (e) { $('discovery').replaceChildren(element('p', `Discovery: ${e.code} — ${e.message}`)); }
+  } catch (e) { $('discovery').replaceChildren(element('p', `Could not load capabilities. ${e.message}`)); }
   finally { $('discover').disabled = false; }
 }
 async function readMemory() {
@@ -121,12 +128,12 @@ async function readMemory() {
           message('Entry removed from current local memory.');
           $('memorySearchResults').replaceChildren(element('p', 'Memory changed. Search again to see current results.'));
           await refresh(); await readMemory();
-        } catch (e) { message(`Remove: ${e.code} — ${e.message}`, true); remove.disabled = false; }
+        } catch (e) { message(`Could not remove the note. ${e.message}`, true); remove.disabled = false; }
       });
       note.append(element('strong', entry.key), element('p', entry.text), remove);
       area.append(note);
     }
-  } catch (e) { area.replaceChildren(element('p', `Memory: ${e.code} — ${e.message}`)); }
+  } catch (e) { area.replaceChildren(element('p', `Could not load notes. ${e.message}`)); }
 }
 async function saveMemory(event) {
   event.preventDefault();
@@ -142,10 +149,10 @@ async function saveMemory(event) {
     $('memorySearchResults').replaceChildren(element('p', 'Memory changed. Search again to see current results.'));
     message('Saved in locally versioned Personal Agent memory.');
     await refresh(); await readMemory();
-  } catch (e) { message(`Memory: ${e.code} — ${e.message}`, true); await refresh(); }
+  } catch (e) { message(`Could not save your note. ${e.message}`, true); await refresh(); }
   finally { $('saveMemory').disabled = !snapshot?.initialized; }
 }
-$('refresh').addEventListener('click', refresh);
+$('refresh').addEventListener('click', async () => { await refresh(); await loadWork(); });
 $('bootstrap').addEventListener('click', bootstrap);
 $('discover').addEventListener('click', discover);
 $('tier').addEventListener('change', readMemory);
@@ -158,6 +165,8 @@ const workTransitions = {
   completed: [], cancelled: [],
 };
 let pendingWorkKey = null;
+let pendingWorkSignature = null;
+const workStatusLabels = { queued: 'To do', active: 'In progress', blocked: 'Waiting for you', completed: 'Done', cancelled: 'Cancelled' };
 const workActionDrafts = new Map();
 async function loadWork() {
   const area = $('workList');
@@ -170,7 +179,7 @@ async function loadWork() {
       (filter === 'open' ? ['queued', 'active', 'blocked'].includes(item.status)
         : item.status === filter));
     $('workCoverage').textContent = 'Showing ' + visible.length + ' of ' + data.items.length +
-      ' locally saved Work records; no provider execution inferred.';
+      ' saved Work items. Your progress stays here when you close Studio.';
     if (!visible.length) area.append(element('p', data.items.length
       ? 'No Work matches this status filter.' : 'No Work items yet.', 'subtle'));
     for (const item of visible.slice().reverse()) {
@@ -178,8 +187,27 @@ async function loadWork() {
       card.style.borderTop = '1px solid var(--border)';
       card.style.padding = '12px 0';
       card.append(element('strong', item.title), element('p', item.objective),
-        element('p', `State: ${item.status} · Last updated ${item.updatedAt}`, 'subtle'));
+        element('p', `${workStatusLabels[item.status] ?? item.status} · Updated ${new Date(item.updatedAt).toLocaleString()}`, 'subtle'));
       if (item.nextAction) card.append(element('p', 'Next: ' + item.nextAction, 'subtle'));
+      else if (item.status === 'active') card.append(element('p', 'Ready to continue. Add your next step below; nothing runs automatically.', 'subtle'));
+      const history = element('details');
+      history.append(element('summary', 'Details and progress'));
+      history.append(element('p', `Saved ${new Date(item.createdAt).toLocaleString()} · ${item.source === 'user-authored' ? 'Created by you' : 'AI suggestion'}`));
+      for (const event of item.events ?? []) {
+        const description = event.type === 'created' ? 'Added to Work'
+          : event.type === 'transition' ? `${workStatusLabels[event.from]} → ${workStatusLabels[event.to]}`
+            : event.nextAction ? 'Next step: ' + event.nextAction : 'Next step updated';
+        history.append(element('p', `${new Date(event.at).toLocaleString()} · ${description}${event.note ? ': ' + event.note : ''}`));
+      }
+      card.append(history);
+      const context = element('button', 'Find saved context', 'secondary');
+      context.type = 'button';
+      context.addEventListener('click', () => {
+        $('memorySearchQuery').value = item.title.slice(0, 120);
+        $('memorySearchQuery').focus();
+        $('memorySearchForm').requestSubmit();
+      });
+      card.append(context);
       if (['queued', 'active', 'blocked'].includes(item.status)) {
         const next = element('textarea');
         next.maxLength = 1000;
@@ -205,7 +233,7 @@ async function loadWork() {
             message('Next action saved in local Work history. Nothing was executed.');
             await refresh(); await loadWork();
           } catch (error) {
-            message('Plan: ' + error.code + ' — ' + error.message, true);
+            message('Could not save your next step. ' + error.message, true);
             save.disabled = false; // keep the user's unsaved draft
           }
         });
@@ -219,7 +247,7 @@ async function loadWork() {
         const select = element('select');
         select.setAttribute('aria-label', `Next status for ${item.title}`);
         for (const status of transitions) {
-          const option = element('option', status);
+          const option = element('option', workStatusLabels[status]);
           option.value = status;
           select.append(option);
         }
@@ -233,21 +261,24 @@ async function loadWork() {
         evidence.setAttribute('aria-label', `Evidence for ${item.title}`);
         const button = element('button', 'Update Work', 'secondary');
         button.type = 'button';
+        let pendingUpdate = null;
         button.addEventListener('click', async () => {
           button.disabled = true;
           try {
             const current = await request('/status');
             const refs = evidence.value.split(',').map(ref => ref.trim()).filter(Boolean);
+            const payload = { to: select.value, note: note.value, evidence: refs };
+            const signature = JSON.stringify(payload);
+            if (pendingUpdate?.signature !== signature) pendingUpdate = { signature, key: crypto.randomUUID() };
             await request('/work/' + encodeURIComponent(item.id) + '/transition', {
               method: 'POST', body: JSON.stringify({
-                expectedVersion: current.version, to: select.value,
-                note: note.value, evidence: refs,
+                expectedVersion: current.version, ...payload, idempotencyKey: pendingUpdate.key,
               }),
             });
             message('Work updated in local version history; no external action executed.');
             await refresh(); await loadWork();
           } catch (error) {
-            message(`Work: ${error.code} — ${error.message}`, true);
+            message(`Could not update Work. ${error.message}`, true);
             button.disabled = false;
           }
         });
@@ -259,12 +290,16 @@ async function loadWork() {
       }
       area.append(card);
     }
-  } catch (e) { area.replaceChildren(element('p', `Work: ${e.code} — ${e.message}`)); }
+  } catch (e) { area.replaceChildren(element('p', `Could not load Work. ${e.message}`)); }
 }
 async function createWork(event) {
   event.preventDefault();
   if (!snapshot?.initialized) return;
-  pendingWorkKey ??= crypto.randomUUID();
+  const signature = JSON.stringify({ title: $('workTitle').value, objective: $('workObjective').value });
+  if (!pendingWorkKey || signature !== pendingWorkSignature) {
+    pendingWorkKey = crypto.randomUUID();
+    pendingWorkSignature = signature;
+  }
   $('workCreate').disabled = true;
   try {
     const latest = await request('/status');
@@ -273,10 +308,11 @@ async function createWork(event) {
       objective: $('workObjective').value, idempotencyKey: pendingWorkKey,
     }) });
     pendingWorkKey = null;
+    pendingWorkSignature = null;
     $('workForm').reset();
-    message('Work queued locally. No provider operation was dispatched.');
+    message('Saved to your Work list. Nothing was sent or started automatically.');
     await refresh(); await loadWork();
-  } catch (e) { message(`Create Work: ${e.code} — ${e.message}`, true); }
+  } catch (e) { message(`Could not add Work. ${e.message}`, true); }
   finally { $('workCreate').disabled = !snapshot?.initialized; }
 }
 /* Opt-in: propose Work from an ALREADY-STORED settled reply. Read-only list (never a send); the
@@ -286,6 +322,7 @@ let replyPreviewToken = 0;
 async function loadReplyChoices() {
   const area = $('replyChoices'), button = $('replyLoad');
   button.disabled = true;
+  ++replyPreviewToken;
   $('replyPreview').replaceChildren();
   area.replaceChildren(element('p', 'Reading saved replies…'));
   try {
@@ -308,14 +345,14 @@ async function loadReplyChoices() {
     if (!items.length) area.append(element('p', 'No settled replies are stored yet.', 'subtle'));
     for (const choice of items.slice(0, 12)) {
       const row = element('div');
-      const pick = element('button', `Preview ${choice.site} reply${choice.chars === null ? '' : ' (' + choice.chars + ' chars)'}`, 'secondary');
+      const pick = element('button', `Review ${choice.site} reply · ${choice.conversation} / ${choice.turnId}${choice.chars === null ? '' : ' (' + choice.chars + ' characters)'}`, 'secondary');
       pick.type = 'button';
       pick.setAttribute('aria-label', `Preview Work from ${choice.site} reply ${choice.turnId}`);
       pick.addEventListener('click', () => previewReply(choice));
       row.append(pick);
       area.append(row);
     }
-  } catch (e) { area.replaceChildren(element('p', `Saved replies: ${e.code ?? 'ERROR'} — ${e.message}`)); }
+  } catch (e) { area.replaceChildren(element('p', `Could not load saved replies. ${e.message}`)); }
   finally { button.disabled = !snapshot?.initialized; }
 }
 async function previewReply(choice) {
@@ -339,9 +376,10 @@ async function previewReply(choice) {
       element('strong', data.proposal.title), element('pre', data.proposal.objective),
       element('p', `Source: stored ${choice.site} reply · digest ${from.replyDigest.slice(0, 16)} · tags ${data.proposal.tags.join(', ')}`, 'subtle'),
       element('p', data.note, 'subtle'));
-    const save = element('button', 'Save as Work item (I approve)');
+    if (data.alreadySaved) card.append(element('p', `Already saved in Work · ${workStatusLabels[data.alreadySaved.status] ?? data.alreadySaved.status}. No duplicate will be added.`, 'subtle'));
+    const save = element('button', data.alreadySaved ? 'Already saved in Work' : 'Save as Work item (I approve)');
     save.type = 'button';
-    save.disabled = data.canApply !== true;
+    save.disabled = data.canApply !== true || Boolean(data.alreadySaved);
     save.addEventListener('click', async () => {
       if (!window.confirm('Save this AI-proposed, unverified text as a local queued Work item? Nothing will be sent or executed.')) return;
       save.disabled = true;
@@ -351,17 +389,17 @@ async function previewReply(choice) {
           conversation: choice.conversation, turnId: choice.turnId, replyDigest: from.replyDigest,
           expectedVersion: latest.version, approval: 'user-confirmed',
         }) });
-        area.replaceChildren();
+        if (token === replyPreviewToken) area.replaceChildren(element('p', 'Saved in Work. This reply will not be added twice.'));
         message('AI-proposed Work saved locally (unverified). No provider request was made and nothing was executed.');
         await refresh(); await loadWork();
       } catch (e) {
-        message(`Save proposed Work: ${e.code} — ${e.message}`, true);
+        message(`Could not save this suggestion. ${e.message}`, true);
         save.disabled = false;
       }
     });
     card.append(save);
     area.replaceChildren(card);
-  } catch (e) { if (token === replyPreviewToken) area.replaceChildren(element('p', `Preview: ${e.code} — ${e.message}`)); }
+   } catch (e) { if (token === replyPreviewToken) area.replaceChildren(element('p', `Could not review this reply. ${e.message}`)); }
 }
 async function showKnowledge() {
   const area = $('selfKnowledge');
@@ -379,7 +417,7 @@ async function showKnowledge() {
         element('p', result.qualification, 'subtle'));
       area.append(card);
     }
-  } catch (e) { area.replaceChildren(element('p', `Self-knowledge: ${e.code} — ${e.message}`)); }
+  } catch (e) { area.replaceChildren(element('p', `Could not load agent details. ${e.message}`)); }
 }
 
 
@@ -389,8 +427,8 @@ async function showSitrep() {
   try {
     const packet = await request('/sitrep');
     output.textContent = JSON.stringify(packet, null, 2);
-    message('Private SITREP loaded. No provider request was made.');
-  } catch (e) { output.textContent = `SITREP: ${e.code} — ${e.message}`; }
+      message('Your saved progress is ready. Nothing was sent to an AI.');
+  } catch (e) { output.textContent = `Could not load saved progress. ${e.message}`; }
 }
 async function exportAgent() {
   const button = $('exportAgent');
@@ -413,7 +451,7 @@ async function exportAgent() {
       link.remove();
     } finally { URL.revokeObjectURL(uri); }
     message('Local snapshot exported. Keep the JSON private: it is not encrypted.');
-  } catch (e) { message(`Export: ${e.code} — ${e.message}`, true); }
+  } catch (e) { message(`Could not export your data. ${e.message}`, true); }
   finally { button.disabled = false; }
 }
 
@@ -448,7 +486,7 @@ async function searchPrivateMemory(event) {
       area.append(card);
     }
   } catch (error) {
-    area.replaceChildren(element('p', 'Memory search: ' + error.code + ' — ' + error.message));
+    area.replaceChildren(element('p', 'Could not search saved notes. ' + error.message));
   } finally { button.disabled = false; }
 }
 

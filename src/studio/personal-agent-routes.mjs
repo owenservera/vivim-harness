@@ -64,10 +64,11 @@ export function registerPersonalAgentRoutes({ add, paths, getTools, readStoredCo
       approval: { type: 'string', enum: ['user-confirmed'] },
     }, ['replyDigest', 'expectedVersion', 'approval']) });
   add('POST', '/personal-agent/work/{id}/transition', 'Explicit local Work status update; completion references are user-attested',
-    ({ p, body }) => agent.transitionWorkItem({ ...ensureBody(body, ['expectedVersion', 'to', 'note', 'evidence']), id: p.id }),
+    ({ p, body }) => agent.transitionWorkItem({ ...ensureBody(body, ['expectedVersion', 'to', 'note', 'evidence', 'idempotencyKey']), id: p.id }),
     { body: { type: 'object', properties: {
       expectedVersion: { type: 'integer', minimum: 1 },
       to: { type: 'string', enum: ['queued', 'active', 'blocked', 'completed', 'cancelled'] },
+      idempotencyKey: { type: 'string', minLength: 8, maxLength: 128 },
       note: { type: 'string', maxLength: 2000 },
       evidence: { type: 'array', maxItems: 20, items: { type: 'string', maxLength: 256 } },
     }, required: ['expectedVersion', 'to'], additionalProperties: false } });

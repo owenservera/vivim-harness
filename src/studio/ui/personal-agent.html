@@ -62,17 +62,17 @@ pre{max-height:360px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}
 </section>
 <section>
 <h2>Agent Work</h2>
-<p class="subtle">User-directed local tasks with durable states and evidence receipts. Creating or updating Work never sends to an AI provider.</p>
+<p class="subtle">Keep tasks and progress on this computer, even after you close Studio. You decide every update. Nothing is sent to an AI or started automatically.</p>
 <form id="workForm">
-<label><span>Task title</span><input id="workTitle" maxlength="160" required placeholder="Research integration"></label>
-<label><span>Objective</span><textarea id="workObjective" maxlength="4000" required placeholder="Define the deliverable and acceptance condition"></textarea></label>
+<label><span>Task title</span><input id="workTitle" maxlength="160" required placeholder="Plan the weekly groceries"></label>
+<label><span>What needs to be done?</span><textarea id="workObjective" maxlength="4000" required placeholder="Describe the task and what finished looks like"></textarea></label>
 <button id="workCreate" type="submit" disabled>Add Work item</button>
 </form>
 <div id="workSummary" class="subtle" aria-live="polite"></div>
 <label><span>Filter Work</span><select id="workFilter" aria-label="Filter local Work by status">
 <option value="open">Open Work</option><option value="all">All Work</option>
-<option value="queued">Queued</option><option value="active">Active</option>
-<option value="blocked">Blocked</option><option value="completed">Completed</option>
+<option value="queued">To do</option><option value="active">In progress</option>
+<option value="blocked">Waiting for you</option><option value="completed">Done</option>
 <option value="cancelled">Cancelled</option>
 </select></label>
 <p id="workCoverage" class="subtle" role="status">No local Work loaded yet.</p>
@@ -80,7 +80,7 @@ pre{max-height:360px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}
 </section>
 <section id="providerReplyWork">
 <h2>Propose Work from a saved AI reply</h2>
-<p class="subtle">Optional. Lists replies the Harness has already stored. Loading, previewing and saving never send anything to an AI provider. A proposed item is AI-written and unverified; nothing is saved until you click Save.</p>
+<p class="subtle">Choose a saved reply, review the suggestion, then decide whether to save it as Work. AI suggestions can be wrong. Nothing is saved without your approval, and nothing is sent to an AI.</p>
 <button id="replyLoad" type="button" class="secondary" disabled>Load saved replies</button>
 <div id="replyChoices" aria-live="polite"></div>
 <div id="replyPreview" aria-live="polite"></div>
@@ -98,9 +98,9 @@ pre{max-height:360px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}
 <div id="selfKnowledge" class="subtle" aria-live="polite"></div>
 </section>
 <section>
-<h2>Session continuity & local export</h2>
-<p class="subtle">SITREP collects your latest user-owned memory and outstanding Work for a new session. It is private to this local Studio and never automatically sent to a model.</p>
-<button id="sitrepRefresh" type="button" class="secondary">Generate private SITREP</button>
+<h2>Pick up where you left off</h2>
+<p class="subtle">Review your saved notes, unfinished tasks and next steps. This summary stays private on this computer and is never sent to an AI automatically.</p>
+<button id="sitrepRefresh" type="button" class="secondary">Review saved progress</button>
 <details><summary>Private continuity packet</summary><pre id="sitrepOutput">Not loaded</pre></details>
 <p class="subtle">Export is a local JSON download. Private memory and Work details are excluded unless selected. The export is not encrypted.</p>
 <label><input id="exportMemory" type="checkbox" style="width:auto;min-height:0"> Include private memory</label>

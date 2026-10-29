@@ -75,32 +75,44 @@ export function setWorkNextAction(state, { id, nextAction, now }) {
   if (!Array.isArray(old.events) || old.events.length >= 100) {
     throw err('PERSONAL_AGENT_WORK_LIMIT', 'Work event history reached capacity', 409);
   }
-  const event = { type: 'next-action', at: now, basis: 'user-authored-local-plan' };
+  const event = { type: 'next-action', at: now, nextAction: action, basis: 'user-authored-local-plan' };
   const item = { ...old, nextAction: action, updatedAt: now, events: [...old.events, event] };
   return { state: { ...state, updatedAt: now, work: work.map(row => row.id === id ? item : row) },
     item, changed: true };
 }
 
-export function transitionWork(state, { id, to, note, evidence = [], now }) {
+export function transitionWork(state, { id, to, note, evidence = [], idempotencyKey, now }) {
+  if (note !== undefined && (typeof note !== 'string' || note.length > 2000)) throw err('PERSONAL_AGENT_WORK_INVALID', 'Note must be at most 2000 characters');
+  if (!Array.isArray(evidence) || evidence.length > 20 || evidence.some(ref => typeof ref !== 'string' || !/^[-a-zA-Z0-9_./:#?=]{4,256}$/.test(ref))) {
+    throw err('PERSONAL_AGENT_WORK_INVALID', 'Evidence must contain at most 20 bounded reference tokens');
+  }
   if (typeof id !== 'string' || !/^work-[a-f0-9]{32}$/.test(id)) throw err('PERSONAL_AGENT_WORK_INVALID', 'Invalid Work ID');
   if (!WORK_STATES.includes(to)) throw err('PERSONAL_AGENT_WORK_INVALID', 'Invalid Work status');
   const work = existing(state);
   const old = work.find(item => item.id === id);
   if (!old) throw err('PERSONAL_AGENT_WORK_NOT_FOUND', 'Work item not found', 404);
-  if (!WORK_TRANSITIONS[old.status]?.includes(to)) throw err('PERSONAL_AGENT_WORK_TRANSITION', 'Work transition not permitted', 409);
-  if (!Array.isArray(evidence) || evidence.length > 20 || evidence.some(ref => typeof ref !== 'string' || !/^[-a-zA-Z0-9_./:#?=]{4,256}$/.test(ref))) {
-    throw err('PERSONAL_AGENT_WORK_INVALID', 'Evidence must contain at most 20 bounded reference tokens');
+  if (idempotencyKey !== undefined) {
+    if (typeof idempotencyKey !== 'string' || !keyPattern.test(idempotencyKey)) throw err('PERSONAL_AGENT_WORK_INVALID', 'Invalid update key');
+    const previous = old.events.find(event => event.idempotencyKey === idempotencyKey);
+    if (previous) {
+      if (previous.to !== to || previous.note !== (note?.trim() || null) ||
+          JSON.stringify(previous.evidence.map(item => item.ref)) !== JSON.stringify(evidence)) {
+        throw err('PERSONAL_AGENT_WORK_IDEMPOTENCY_CONFLICT', 'This update key was already used for different changes', 409);
+      }
+      return { state, item: old, changed: false };
+    }
   }
+  if (!WORK_TRANSITIONS[old.status]?.includes(to)) throw err('PERSONAL_AGENT_WORK_TRANSITION', 'Work transition not permitted', 409);
   if (to === 'completed' && evidence.length === 0) throw err('PERSONAL_AGENT_WORK_EVIDENCE_REQUIRED', 'Completion requires explicit evidence references');
   if (to === 'blocked' && (typeof note !== 'string' || !note.trim())) throw err('PERSONAL_AGENT_WORK_INVALID', 'Blocked Work requires a reason');
-  if (note !== undefined && (typeof note !== 'string' || note.length > 2000)) throw err('PERSONAL_AGENT_WORK_INVALID', 'Note must be at most 2000 characters');
   const event = {
     type: 'transition', from: old.status, to, at: now,
+    ...(idempotencyKey === undefined ? {} : { idempotencyKey }),
     note: note?.trim() || null,
     evidence: evidence.map(ref => ({ ref, basis: 'user-attested; unverified-for-live-execution' })),
   };
   const item = { ...old, status: to, updatedAt: now,
-    nextAction: to === 'blocked' ? event.note : to === 'active' && old.status === 'queued' ? (old.nextAction ?? null) : null,
+    nextAction: to === 'blocked' ? event.note : to === 'active' ? (old.nextAction ?? null) : null,
     evidence: [...old.evidence, ...event.evidence], events: [...old.events, event] };
   if (item.events.length > 100) throw err('PERSONAL_AGENT_WORK_LIMIT', 'Work event history reached capacity', 409);
   return { state: { ...state, updatedAt: now, work: work.map(row => row.id === id ? item : row) }, item, changed: true };
