@@ -15,7 +15,11 @@ define({
   async run(ctx) {
     const words = ctx.args;
     const { out } = ctx;
-    if (!words.length) { out.raw(`${renderRootHelp({ version: VERSION, dataDir: ctx.paths.root })}\n`); return; }
+    if (!words.length) {
+      out.raw(`${renderRootHelp({ version: VERSION, dataDir: ctx.paths.root })}\n`);
+      out.raw('Windows: double-click scripts/windows/VIVIM.cmd to open your local World.\nVIVIM uses your own AI website accounts, not API keys. Sign in yourself in the dedicated VIVIM browser; never share your password with VIVIM.\n');
+      return;
+    }
     if (allGroups().has(words[0]) && !words[1]) { out.raw(`${renderGroupHelp(words[0])}\n`); return; }
     const { def } = resolveCommand(words);
     out.raw(`${renderCommandHelp(def)}\n`);
@@ -32,7 +36,7 @@ define({
 
 // ---------------------------------------------------------------------------------------------
 define({
-  name: 'doctor', section: 'Get started', summary: 'Check Node, Chrome, DevTools, data folder, learner and profiles',
+  name: 'doctor', section: 'Get started', summary: 'Check whether your computer and VIVIM browser are ready',
   description: 'Runs environment and data-health checks. Exits 5 when something required is missing, 0 otherwise (a stopped capture browser is only a warning).',
   flags: { fix: { type: 'boolean', desc: 'Print the suggested fix for every non-ok check' } },
   async run(ctx) {
@@ -48,7 +52,7 @@ define({
 
     const up = await isReachable({ port });
     let browser = null; if (up) { try { browser = (await browserVersion({ port })).Browser; } catch { /* raced */ } }
-    add('devtools', up ? 'ok' : 'warn', up ? `127.0.0.1:${port} (${browser ?? 'unknown'})` : `127.0.0.1:${port} not running`, up ? '' : 'Run "studio launch" to open the capture browser.');
+    add('devtools', up ? 'ok' : 'warn', up ? `VIVIM browser connection available at 127.0.0.1:${port} (${browser ?? 'unknown'}); profile and sign-in not checked` : `VIVIM browser is not available at 127.0.0.1:${port}`, up ? '' : 'On Windows, double-click scripts/windows/VIVIM.cmd. It checks for an existing VIVIM before opening the dedicated browser. Keep your normal browser open.');
 
     let writable = true; try { accessSync(paths.root, constants.W_OK); } catch { writable = false; }
     add('data-dir', writable ? 'ok' : 'fail', paths.root, writable ? '' : 'Choose a writable --data-dir.');
@@ -75,12 +79,19 @@ define({
     add('config', problems.length ? 'warn' : 'ok', existsSync(paths.config) ? `${paths.config}${problems.length ? ` (${problems.join('; ')})` : ''}` : 'defaults (no config file)', problems.length ? 'Fix or remove the config entries listed.' : '');
 
     const failed = checks.some((c) => c.level === 'fail');
-    out.emit({ ok: !failed, checks }, (o) => {
+    const nextSteps = [
+      'On Windows, double-click scripts/windows/VIVIM.cmd to open your World.',
+      'Sign in to ChatGPT or Claude yourself in the dedicated VIVIM browser. VIVIM uses your website account, not an API key; never send VIVIM your password.',
+      'A browser connection alone does not prove the right profile or a signed-in account. Existing sign-ins stay in the dedicated profile; do not delete it to fix a connection problem.',
+    ];
+    out.emit({ ok: !failed, checks, nextSteps }, (o) => {
       const mark = { ok: o.c.green('ok  '), warn: o.c.yellow('warn'), fail: o.c.red('FIX ') };
       for (const c of checks) {
         o.line(`${mark[c.level]} ${c.name.padEnd(9)} ${c.detail}`);
         if (c.fix && c.level !== 'ok') o.line(`     ${o.c.dim(c.fix)}`);
       }
+      o.line('');
+      for (const step of nextSteps) o.line(step);
     });
     if (failed) process.exitCode = EXIT.ENVIRONMENT;
   },
