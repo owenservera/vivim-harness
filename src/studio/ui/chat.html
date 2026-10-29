@@ -221,6 +221,12 @@ ul.convs button { align-items: baseline; }
 .world #worldWorkspaceStart, .world #worldWorkspaceId, .world #worldWorkspaceShow, .world #worldWorkspaceRefocus { min-height: 44px; }
 .world #worldWorkspaceResults .rowbtn { min-height: 44px; }
 #viewWorkspace { min-height: 44px; }
+.world #worldComposeStart, .world #worldComposeId, .world #worldComposeLoad { min-height: 44px; }
+.world #worldComposeSurface .rowbtn { min-height: 44px; }
+#viewCompose { min-height: 44px; }
+.world .compose-section, .world .compose-reading { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--line); }
+/* Programmatic focus on the composed reading heading positions the reader; no flash. */
+.world #worldComposeReadHead:focus { outline: none; }
 .world .workspace-note { white-space: pre-wrap; }
 /* Programmatic focus on the reading-pane heading only positions the reader; no flash. */
 .world #worldWorkspaceReadHead:focus { outline: none; }
@@ -786,6 +792,7 @@ body.vivim-app {
   <button type="button" id="viewTransfer" data-view="transfer" aria-pressed="false" aria-controls="worldShell">Transfer</button>
   <button type="button" id="viewRelations" data-view="relations" aria-pressed="false" aria-controls="worldShell">Relations</button>
   <button type="button" id="viewWorkspace" data-view="workspace" aria-pressed="false" aria-controls="worldShell">Workspace</button>
+  <button type="button" id="viewCompose" data-view="compose" aria-pressed="false" aria-controls="worldShell">Composed workspace</button>
   <button type="button" id="viewSettings" data-view="settings" aria-pressed="false" aria-controls="worldShell">Settings</button>
 </nav>
 <p class="note modes-note" id="viewNote">Build your personal mobile app blueprint, browse saved conversations, and keep your locally owned world together. Local edits do not change provider content. Your open view is remembered for this tab.</p>

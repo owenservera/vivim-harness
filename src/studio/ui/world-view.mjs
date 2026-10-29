@@ -11,7 +11,7 @@ export const PAGE_LIMIT = 50;
 export const VIEWS = Object.freeze(['conversations', 'projects', 'notes']);
 export const FIND_KINDS = Object.freeze(['message', 'project', 'note', 'source-reference', 'selection']);
 const FIND_LABELS = { message: 'Messages', project: 'Projects', note: 'Notes', 'source-reference': 'Local objects', selection: 'Selections' };
-const SHELL_VIEWS = new Set(['capture', 'home', 'agent', 'builder', 'settings', 'find', 'transfer', 'relations', 'workspace', ...VIEWS]);
+const SHELL_VIEWS = new Set(['capture', 'home', 'agent', 'builder', 'settings', 'find', 'transfer', 'relations', 'workspace', 'compose', ...VIEWS]);
 export const AGENT_TRANSITIONS = Object.freeze({ queued: ['active','blocked','cancelled'], active: ['blocked','completed','cancelled'], blocked: ['active','cancelled'], completed: [], cancelled: [] });
 const STANDARD_RELATION_BASIS = 'local association; not native equality';
 const EXPORT_MODE_LABEL = { references: 'References only — no message text', transcript: 'Transcript — saved message text and simple formatting', 'full-saved': 'Full saved — every recorded block' };
@@ -752,6 +752,13 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
       memorySearch: { query: '', tier: 'all', busy: false, error: '', result: null } },
     relations: { id: '', typed: '', map: null, error: '', status: '', loading: false, recordId: null },
     workspace: { id: '', typed: '', map: null, error: '', status: '', loading: false, item: null, readingId: '', readingNode: null, readingError: '', readingLoading: false },
+    // Composed workspace (VD-0057): one saved conversation with the project, notes and
+    // related saved objects that the local /map and the loaded World lists actually report.
+    compose: {
+      id: '', typed: '', loading: false, error: '', status: '', map: null, conversation: null, conversationError: '',
+      projects: [], projectsHidden: 0, notes: [], notesHidden: 0, objects: [], objectsHidden: 0, relatedConversations: [],
+      readingId: '', readingNode: null, readingItem: null, readingError: '', readingLoading: false,
+    },
     transfer: {
       exportMode: 'references', exportParts: { reasoning: false, toolActivity: false }, selected: {}, bundle: null, blobUrl: '', exportError: '', exportStatus: '',
       importText: '', importError: '', importStatus: '', check: null, checkText: '', dryRun: null, confirm: false, restore: null, loading: '',
@@ -765,6 +772,11 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
   let relationsAbort = null;
   let workspaceReadTicket = 0;
   let workspaceReadAbort = null;
+  let composeTicket = 0;
+  let composeAbort = null;
+  let composeReadTicket = 0;
+  let composeReadAbort = null;
+  let composeReadHeadNode = null;
   let readerHeadNode = null, readerStatusNode = null, readerBodyNode = null;
 
   let agentHomeTicket = 0;
@@ -970,7 +982,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
       const titles = {
         capture: 'Chat', home: 'Home', agent: 'Personal Agent', builder: 'Build my VIVIM', settings: 'Settings', conversations: 'Saved conversations', projects: 'Projects',
         notes: 'Notes', find: 'Find', transfer: 'Transfer',
-        relations: 'Relations', workspace: 'Workspace',
+        relations: 'Relations', workspace: 'Workspace', compose: 'Composed workspace',
       };
       breadcrumb.textContent = 'Your AI World / ' + (titles[state.view] ?? 'Chat');
     }
@@ -1038,7 +1050,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     ]);
     for (const [view, title] of [
       ['capture', 'Start a conversation'], ['builder', 'Build my VIVIM'], ['agent', 'Your Personal Agent'], ['find', 'Find saved content'],
-      ['workspace', 'Explore workspace'], ['relations', 'Explore relationships'],
+      ['workspace', 'Explore workspace'], ['compose', 'Composed workspace'], ['relations', 'Explore relationships'],
     ]) {
       const action = el('button', { type: 'button', text: title });
       on(action, 'click', () => choose(view));
@@ -3677,6 +3689,314 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
       if (state.view === 'relations') renderRelations();
     }
   }
+  // ---- Composed workspace (VD-0057) --------------------------------------------
+  // One saved conversation, the project that links it, the notes linked to that project
+  // and the saved objects that reference it, on ONE surface. Every row comes from the same
+  // local sources the Relations view reads: GET /map for associations, the already-loaded
+  // World lists for titles/counts, and a bounded read per row. Nothing is inferred, written
+  // or sent, and a local association is never presented as provider identity.
+  const COMPOSE_ENDPOINT = { conversation: 'conversations', project: 'projects', note: 'notes', 'source-reference': 'objects', selection: 'selections' };
+
+  function kindOfRecordId(id) {
+    if (ID_RE.conversations.test(id || '')) return 'conversation';
+    if (ID_RE.projects.test(id || '')) return 'project';
+    if (ID_RE.notes.test(id || '')) return 'note';
+    if (String(id).startsWith('o-')) return 'source-reference';
+    if (String(id).startsWith('s-')) return 'selection';
+    return 'unknown';
+  }
+  function composeBucket(buckets, id, node, why, seen) {
+    if (typeof id !== 'string' || !id || seen.has(id)) return;
+    seen.add(id);
+    const kind = typeof node?.kind === 'string' && node.kind ? node.kind : kindOfRecordId(id);
+    const bucket = kind === 'project' ? buckets.projects
+      : kind === 'note' ? buckets.notes
+        : kind === 'conversation' ? buckets.relatedConversations
+          : buckets.objects;
+    bucket.push({ id, node: node ?? { id }, why, kind });
+  }
+  // Same /map payload, split into what a reader actually asks for. A project node carries the
+  // note ids the project editor saves, so notes reachable only through the project are included.
+  function composeBuckets(conversationId, map) {
+    const nodes = new Map((Array.isArray(map?.nodes) ? map.nodes : [])
+      .filter((node) => node && typeof node.id === 'string').map((node) => [node.id, node]));
+    const buckets = { projects: [], notes: [], objects: [], relatedConversations: [] };
+    const seen = new Set([conversationId]);
+    for (const group of relationGroups(conversationId, map)) {
+      for (const row of group.rows) {
+        const node = nodes.get(row.id) ?? row.node ?? { id: row.id };
+        composeBucket(buckets, row.id, node, `${group.label} this saved conversation`, seen);
+      }
+    }
+    for (const project of buckets.projects.slice()) {
+      const noteIds = Array.isArray(project.node?.noteIds) ? project.node.noteIds : [];
+      for (const noteId of noteIds) {
+        composeBucket(buckets, noteId, nodes.get(noteId), `Linked by project ${project.node?.title || project.id}`, seen);
+      }
+    }
+    // The map is bounded. If it reported no project at all, fall back to the loaded project list
+    // so a real local link is never hidden by the map's own bounds.
+    if (!buckets.projects.length) {
+      for (const item of state.lists.projects.items) {
+        const ids = [...(Array.isArray(item?.conversationIds) ? item.conversationIds : []), ...(Array.isArray(item?.memberIds) ? item.memberIds : [])];
+        if (ids.includes(conversationId)) composeBucket(buckets, item.id, item, 'Links this conversation in the loaded project list', seen);
+      }
+    }
+    return buckets;
+  }
+  function composeStatus(map, buckets) {
+    const total = buckets.projects.length + buckets.notes.length + buckets.objects.length + buckets.relatedConversations.length;
+    const noun = total === 1 ? 'linked saved item' : 'linked saved items';
+    const more = map?.truncated === true || map?.complete === false;
+    return more ? `Composed ${total} ${noun}. The local map stopped early, so more may exist.`
+      : map?.complete === true ? `Composed ${total} ${noun}.`
+        : `Composed ${total} ${noun}. Whether more exist was not reported.`;
+  }
+  // Bounded reads: at most 8 rows per section, so a heavily linked conversation cannot turn one
+  // surface into hundreds of local reads. The remainder is stated, never silently dropped.
+  async function composeHydrate(rows, limit = 8) {
+    const picked = rows.slice(0, limit);
+    const read = await Promise.all(picked.map(async (row) => {
+      const endpoint = COMPOSE_ENDPOINT[row.kind];
+      if (!endpoint || !validWorldId(row.id)) return { ...row, error: 'Cannot be read here: unrecognised id' };
+      const result = await call(`/${endpoint}/${encodeURIComponent(row.id)}`);
+      if (result.status === 200 && result.data?.id === row.id) return { ...row, record: result.data };
+      return { ...row, record: findListedRecord(row.id) ?? null,
+        error: result.status === 404 ? 'Not on this computer anymore.'
+          : result.status === 409 ? 'Currently unavailable; it was not marked deleted.'
+            : result.status === 0 ? 'Studio didn’t answer.' : problemText(result.data) };
+    }));
+    return { rows: read, hidden: Math.max(0, rows.length - picked.length) };
+  }
+  async function loadCompose(id) {
+    const c = state.compose;
+    const raw = typeof id === 'string' ? id.trim() : '';
+    if (!raw) { c.error = 'Choose a saved conversation or paste its id first. Nothing was loaded.'; c.status = ''; if (state.view === 'compose') renderCompose(); return; }
+    if (!ID_RE.conversations.test(raw)) {
+      c.error = 'This surface starts from a saved conversation. Enter a conversation id exactly as it was saved (c-…). Nothing was loaded.';
+      c.status = '';
+      if (state.view === 'compose') renderCompose();
+      return;
+    }
+    const ticket = ++composeTicket;
+    composeAbort?.abort();
+    composeReadAbort?.abort();
+    composeReadTicket += 1;
+    const controller = typeof AbortController === 'function' ? new AbortController() : null;
+    composeAbort = controller;
+    Object.assign(c, { id: raw, loading: true, error: '', status: 'Loading this conversation and its local links…',
+      map: null, conversation: null, conversationError: '', projects: [], projectsHidden: 0, notes: [], notesHidden: 0,
+      objects: [], objectsHidden: 0, relatedConversations: [],
+      readingId: '', readingNode: null, readingItem: null, readingError: '', readingLoading: false });
+    if (state.view === 'compose') renderCompose();
+    const params = new URLSearchParams({ id: raw, limit: '100' });
+    const [mapResult, conversationResult] = await Promise.all([
+      call('/map?' + params.toString(), { signal: controller?.signal }),
+      call('/conversations/' + encodeURIComponent(raw), { signal: controller?.signal }),
+    ]);
+    if (ticket !== composeTicket) return;
+    if (mapResult.aborted) { c.loading = false; c.status = ''; if (state.view === 'compose') renderCompose(); return; }
+    if (mapResult.status !== 200 || !Array.isArray(mapResult.data?.nodes) || !Array.isArray(mapResult.data?.edges)) {
+      c.loading = false;
+      c.status = '';
+      c.error = mapResult.status === 0 ? 'Studio didn’t answer. Nothing new was shown.' : problemText(mapResult.data);
+      if (state.view === 'compose') renderCompose();
+      return;
+    }
+    const buckets = composeBuckets(raw, mapResult.data);
+    const [notes, projects, objects] = await Promise.all([
+      composeHydrate(buckets.notes), composeHydrate(buckets.projects), composeHydrate(buckets.objects),
+    ]);
+    if (ticket !== composeTicket) return;
+    c.loading = false;
+    c.map = mapResult.data;
+    c.conversation = conversationResult.status === 200 && conversationResult.data?.id === raw
+      ? conversationResult.data : (findListedRecord(raw) ?? { id: raw, title: '' });
+    c.conversationError = conversationResult.status === 200 ? ''
+      : conversationResult.status === 404 ? 'These saved messages are not on this computer anymore. The links below are still local.'
+        : conversationResult.status === 409 ? 'This recording is still active, so its saved messages are not available yet. Nothing was changed.'
+          : conversationResult.status === 0 ? 'Studio didn’t answer for the saved messages. The links below are still local.'
+            : `The saved messages could not be read. ${problemText(conversationResult.data)}`;
+    c.projects = projects.rows; c.projectsHidden = projects.hidden;
+    c.notes = notes.rows; c.notesHidden = notes.hidden;
+    c.objects = objects.rows; c.objectsHidden = objects.hidden;
+    c.relatedConversations = buckets.relatedConversations;
+    c.status = composeStatus(mapResult.data, buckets);
+    c.error = '';
+    if (state.view === 'compose') renderCompose();
+  }
+  function composeRowElement(row) {
+    const chip = readerProvenanceChip(row.node, row.record ?? null);
+    const listed = findListedRecord(row.id);
+    const title = row.record?.title || row.node?.title || listed?.title || row.id;
+    const button = el('button', { type: 'button', class: 'rowbtn', 'aria-label': `Read ${row.id} on this surface` }, [
+      el('span', { class: 'conv-title', text: title }),
+      el('span', { class: 'note', text: `${row.kind === 'source-reference' ? 'local object' : row.kind} · ${row.id}` }),
+      el('span', { class: `pill ${chip[1]}`, text: chip[0] }),
+    ]);
+    if (COMPOSE_ENDPOINT[row.kind] && validWorldId(row.id)
+      && row.node?.availability !== 'unresolved' && row.node?.availabilityReason !== 'NOT_SCANNED') on(button, 'click', () => composeOpen(row));
+    else button.disabled = true;
+    const body = typeof row.record?.body === 'string' ? row.record.body.replace(/\s+/g, ' ').trim() : '';
+    return el('div', { class: 'member' }, [
+      button,
+      body ? el('p', { class: 'note', text: clip(body, 160) }) : null,
+      row.why ? el('p', { class: 'note', text: row.why }) : null,
+      availabilityLabel(row.node) ? el('p', { text: availabilityLabel(row.node) }) : null,
+      row.error ? el('p', { class: 'note', text: row.error }) : null,
+    ]);
+  }
+  function composeSection(title, note, rows, emptyText, hidden = 0) {
+    const box = el('section', { class: 'compose-section' }, [
+      el('h3', { text: title }),
+      el('p', { class: 'note', text: note }),
+    ]);
+    if (!rows.length) box.append(el('p', { class: 'empty', text: emptyText }));
+    for (const row of rows) box.append(composeRowElement(row));
+    if (hidden > 0) box.append(el('p', { class: 'note', text: `${hidden} more ${title.toLowerCase()} are linked but were not read here. Relations lists the complete set.` }));
+    return box;
+  }
+  function composeReading() {
+    const c = state.compose;
+    const head = el('h3', { id: 'worldComposeReadHead', tabindex: '-1', text: 'Read here' });
+    composeReadHeadNode = head;
+    const box = el('section', { class: 'compose-reading' }, [
+      head,
+      el('p', { class: 'note', id: 'worldComposeReadStatus', role: 'status', 'aria-live': 'polite',
+        text: c.readingLoading ? 'Loading saved item…'
+          : c.readingError || (c.readingItem ? 'Saved item opened here.' : 'Choose a linked item to read it without leaving this surface.') }),
+    ]);
+    const item = c.readingItem;
+    if (c.readingId) box.append(el('p', { class: 'mono', text: c.readingId }));
+    if (item) {
+      if (ID_RE.conversations.test(item.id)) box.append(conversationReading(item, null, null, null));
+      else if (ID_RE.notes.test(item.id)) box.append(el('article', { class: 'panel pad local-mark' }, [
+        el('h2', { text: item.title || 'Saved note' }),
+        chips([readerProvenanceChip(c.readingNode, item)]),
+        el('div', { class: 'workspace-note', text: typeof item.body === 'string' ? item.body : 'No saved note body was recorded.' }),
+      ]));
+      else if (ID_RE.projects.test(item.id)) box.append(el('article', { class: 'panel pad local-mark' }, [
+        el('h2', { text: item.title || 'Project' }),
+        chips([readerProvenanceChip(c.readingNode, item)]),
+        kv([
+          { label: 'Saved conversations linked', value: String(item.conversationIds?.length ?? 0) },
+          { label: 'Notes linked', value: String(item.noteIds?.length ?? 0) },
+          { label: 'Other items linked', value: String(item.memberIds?.length ?? 0) },
+        ]),
+      ]));
+      else box.append(el('article', { class: 'panel pad local-mark' }, [
+        el('h2', { text: item.title || recordLabel(item.id) }),
+        chips([readerProvenanceChip(c.readingNode, item)]),
+        availabilityLabel(item) ? el('p', { text: availabilityLabel(item) }) : null,
+        kv(referenceReaderRows(item)),
+        el('p', { class: 'note', text: 'Saved reference only. This does not include the source content.' }),
+      ]));
+    }
+    return box;
+  }
+  function composeSurface() {
+    const c = state.compose;
+    if (!c.id) {
+      return el('p', { class: 'empty', text: 'Nothing is composed yet. Choose a saved conversation to see its project, its notes and the saved objects related to it on one surface.' });
+    }
+    const conversation = c.conversation ?? { id: c.id };
+    const node = (Array.isArray(c.map?.nodes) ? c.map.nodes : []).find((entry) => entry && entry.id === c.id) ?? null;
+    const surface = el('article', { class: 'panel pad local-mark', id: 'worldComposeSurface' }, [
+      el('h2', { text: conversation.title || 'Saved conversation' }),
+      el('p', { class: 'mono', text: c.id }),
+      chips([readerProvenanceChip(node, conversation)]),
+      c.conversationError ? el('p', { class: 'note', text: c.conversationError }) : null,
+      el('p', { class: 'note', text: 'One surface: the saved conversation, the project that links it, the notes linked through that project, and the saved objects that reference it.' }),
+    ]);
+    if (c.projects.length) {
+      surface.append(el('p', { class: 'note', text: 'Start with the project below: it is the one record that already names this conversation.' }));
+    }
+    surface.append(
+      composeSection('Linked projects', 'Every loaded project that names this saved conversation.',
+        c.projects, 'No loaded project links this saved conversation.', c.projectsHidden),
+      composeSection('Linked notes', 'Notes the linked project keeps, plus any note the local map reports.',
+        c.notes, 'No loaded note is linked to this conversation or its project.', c.notesHidden),
+      composeSection('Related saved objects', 'Local objects and selections the map reports as related to this conversation.',
+        c.objects, 'No saved object references this conversation.', c.objectsHidden),
+    );
+    if (c.relatedConversations.length) {
+      surface.append(composeSection('Other saved conversations', 'Saved conversations the map places beside this one.',
+        c.relatedConversations, 'No other saved conversation is adjacent here.'));
+    }
+    surface.append(
+      el('p', { class: 'note', text: 'These are local associations kept on this computer. They are not proof that two records are the same thing on a provider.' }),
+      composeReading(),
+    );
+    return surface;
+  }
+  function renderCompose() {
+    ensureFrame();
+    const c = state.compose;
+    const choices = relationChoices().filter((choice) => choice.kind === 'conversation');
+    const select = el('select', { id: 'worldComposeStart', 'aria-label': 'Saved conversation for the composed workspace' });
+    select.append(el('option', { value: '', text: choices.length ? 'Choose a saved conversation' : 'No saved conversations loaded' }));
+    for (const choice of choices) {
+      select.append(el('option', { value: choice.id, text: choice.title && choice.title !== choice.id ? `${choice.title} · ${choice.id}` : choice.id }));
+    }
+    select.value = choices.some((choice) => choice.id === c.id) ? c.id : '';
+    const typed = el('input', { id: 'worldComposeId', type: 'text', 'aria-label': 'Paste an exact conversation id',
+      placeholder: 'Or paste an exact conversation id (c-)' });
+    typed.value = c.typed ?? '';
+    const open = el('button', { type: 'button', id: 'worldComposeLoad', text: c.loading ? 'Loading workspace…' : 'Open this conversation' });
+    open.disabled = c.loading || !(select.value || typed.value.trim());
+    on(select, 'change', () => {
+      typed.value = '';
+      c.typed = '';
+      open.disabled = c.loading || !select.value;
+    });
+    on(typed, 'change', () => {
+      c.typed = typed.value;
+      open.disabled = c.loading || !(select.value || typed.value.trim());
+    });
+    on(open, 'click', () => loadCompose(select.value || typed.value));
+    listPane.replaceChildren(
+      el('h2', { text: 'Composed workspace' }),
+      el('p', { class: 'note', text: 'Pick one saved conversation. Its linked project, its linked notes and the saved objects related to it stay on one surface; nothing here changes a record.' }),
+      el('label', { class: 'lab', for: 'worldComposeStart', text: 'Saved conversation' }),
+      select,
+      typed,
+      el('div', { class: 'row' }, [open]),
+      el('div', { id: 'worldComposeStatus', role: 'status', 'aria-live': 'polite', text: c.status }),
+      el('div', { class: 'err', id: 'worldComposeError', role: 'alert', text: c.error }),
+      el('p', { class: 'note', text: 'Links come from the same local map the Relations view reads. A local association is not provider identity.' }),
+    );
+    detailPane.replaceChildren(composeSurface());
+  }
+  async function composeOpen(row) {
+    const c = state.compose;
+    if (!validWorldId(row?.id)) return;
+    const endpoint = COMPOSE_ENDPOINT[row.kind];
+    if (!endpoint) return;
+    const ticket = ++composeReadTicket;
+    composeReadAbort?.abort();
+    const controller = typeof AbortController === 'function' ? new AbortController() : null;
+    composeReadAbort = controller;
+    Object.assign(c, { readingId: row.id, readingNode: row.node ?? null, readingItem: row.record ?? null,
+      readingLoading: !row.record, readingError: '' });
+    if (state.view === 'compose') renderCompose();
+    if (row.record) { focusComposeReading(); return; }
+    const result = await call(`/${endpoint}/${encodeURIComponent(row.id)}`, { signal: controller?.signal });
+    if (ticket !== composeReadTicket || state.view !== 'compose') return;
+    c.readingLoading = false;
+    if (result.aborted) return;
+    if (result.status === 200 && result.data?.id === row.id) c.readingItem = result.data;
+    else c.readingError = result.status === 404 ? 'This saved item is missing or stale. That is not proof it was deleted on a provider.'
+      : result.status === 409 ? 'This saved item is currently unavailable. It was not marked deleted.'
+        : result.status === 0 ? 'Studio didn’t answer. No saved content was opened.'
+          : `This item could not be read. ${problemText(result.data)}`;
+    if (state.view !== 'compose') return;
+    renderCompose();
+    focusComposeReading();
+  }
+  function focusComposeReading() {
+    if (state.view !== 'compose' || !composeReadHeadNode) return;
+    composeReadHeadNode.focus?.();
+  }
   async function choose(view, { quiet = false } = {}) {
     if (!SHELL_VIEWS.has(view)) return;
     if (state.view !== view) {
@@ -3693,6 +4013,10 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
       state.workspace.loading = false;
       state.relations.status = '';
       state.workspace.status = '';
+      composeAbort?.abort(); composeTicket += 1;
+      composeReadAbort?.abort(); composeReadTicket += 1;
+      state.compose.loading = false;
+      state.compose.readingLoading = false;
       clearWorkspaceReading();
     }
     state.view = view;
@@ -3734,6 +4058,14 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
       await Promise.all([fetchList('conversations'), fetchList('projects'), fetchList('notes')]);
       if (state.view === 'transfer') renderTransfer();
       if (!quiet) announce('Transfer.');
+      return;
+    }
+    if (view === 'compose') {
+      loadNamespace();
+      renderCompose();
+      await Promise.all([fetchList('conversations'), fetchList('projects'), fetchList('notes')]);
+      if (state.view === 'compose') renderCompose();
+      if (!quiet) announce('Composed workspace.');
       return;
     }
     if (view === 'relations' || view === 'workspace') {
