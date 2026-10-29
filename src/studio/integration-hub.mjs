@@ -117,7 +117,8 @@ export function createIntegrationHub({ paths, profileStore, learner, recorder, c
   registerRecipeRoutes({ add, harnessApi, conversationRuntime });
   registerWorldRoutes({ add, paths, isSessionActive: (id) => conversationRuntime?.isSessionActive(id) ?? false });
   registerPersonalAgentRoutes({ add, paths, getTools: () => toolsManifest().tools });
-  registerPersonalAppRoutes({ add, paths });
+  // Stored-snapshot reader only (get_conversation seam): the app builder can never send or read live.
+  registerPersonalAppRoutes({ add, paths, readStoredConversation: conversationRuntime && typeof conversationRuntime.get === 'function' ? (id) => conversationRuntime.get(id) : undefined });
   // C-10 semantic command catalog: describe + preview only. The routes themselves carry no
   // execution path (canProceed means "arguments parsed", wouldRequireConfirmation is future
   // tense only), so mounting adds no capability.

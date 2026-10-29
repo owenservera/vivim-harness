@@ -7,6 +7,7 @@
 export const WORLD_API = '/api/v1/world';
 export const AGENT_API = '/api/v1/personal-agent';
 export const PERSONAL_APPS_API = '/api/v1/personal-apps';
+const CONVERSATIONS_API = '/api/v1/conversations'; // read-only stored list (list_conversations); never a send
 export const PAGE_LIMIT = 50;
 export const VIEWS = Object.freeze(['conversations', 'projects', 'notes']);
 export const FIND_KINDS = Object.freeze(['message', 'project', 'note', 'source-reference', 'selection']);
@@ -745,6 +746,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     agentHome: { status: null, loading: false, error: '' },
     builder: { apps: [], selected: null, title: '', intent: '', pendingKey: null, kind: 'notes', label: '',
       proposalText: '', proposalPreview: null, previewSource: null,
+      replyChoices: { loading: false, items: [], error: '', loaded: false },
       busy: false, loading: false, error: '', notice: '' },
     agent: { status: null, work: null, loading: false, busy: false, error: '', notice: '', title: '', objective: '', pendingKey: null,
       tier: 'Immediate', memoryKey: '', memoryText: '', memoryEntries: [], workFilter: 'open', workLimit: 50, actionDrafts: new Map(),
@@ -1433,20 +1435,82 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     }
     if (state.view === 'builder') renderBuilder();
   }
+  // Opt-in: list settled replies ALREADY stored by the Harness (read-only list route; no browser,
+  // no send). The user picks one; it is previewed through the same strict compiler.
+  async function loadStoredReplyChoices() {
+    const b = state.builder;
+    if (b.busy || b.replyChoices.loading) return;
+    b.replyChoices = { loading: true, items: [], error: '', loaded: false };
+    renderBuilder();
+    let items = [], error = '';
+    try {
+      const response = await fetchImpl(CONVERSATIONS_API, { method: 'GET', credentials: 'same-origin', cache: 'no-store' });
+      const data = await response.json();
+      if (response.status !== 200 || !Array.isArray(data?.conversations)) error = data?.code || 'Stored conversations are unavailable.';
+      else {
+        for (const conversation of data.conversations) {
+          for (const turn of Array.isArray(conversation?.turns) ? conversation.turns : []) {
+            if (turn?.reply?.state === 'ready' && typeof conversation.id === 'string' && typeof turn.id === 'string') {
+              items.push({ conversation: conversation.id, turnId: turn.id,
+                site: typeof conversation.site === 'string' ? conversation.site : 'provider',
+                chars: Number.isSafeInteger(turn.reply.chars) ? turn.reply.chars : null });
+            }
+          }
+        }
+        items = items.slice(0, 12);
+      }
+    } catch { error = 'Stored conversations are unavailable.'; }
+    b.replyChoices = { loading: false, items, error, loaded: true };
+    if (state.view === 'builder') renderBuilder();
+  }
+  async function previewProviderReply(choice) {
+    const b = state.builder;
+    if (!b.selected || b.busy || !choice?.conversation || !choice?.turnId) return;
+    const id = b.selected.id, version = b.selected.version, input = b.proposalText;
+    b.proposalPreview = null; b.previewSource = null;
+    b.busy = true; b.error = ''; b.notice = '';
+    renderBuilder();
+    const result = await builderCall('/' + encodeURIComponent(id) + '/preview-provider-reply', {
+      method: 'POST', body: { conversation: choice.conversation, turnId: choice.turnId },
+    });
+    b.busy = false;
+    const data = result.data;
+    if (b.selected?.id !== id || b.selected?.version !== version || b.proposalText !== input) {
+      b.error = 'App or proposal changed while checking. Preview the stored reply again.';
+    } else if (result.status === 200 && data?.source === 'provider-reply' &&
+      data?.provenance?.source === 'provider-reply' && data.provenance.humanAuthored === false &&
+      data.provenance.conversationId === choice.conversation && data.provenance.turnId === choice.turnId &&
+      data?.canApply === true && data?.effects === 'none' && data?.appId === id &&
+      data?.baseVersion === version && Array.isArray(data?.diff) && data?.approvalRequired === true) {
+      b.proposalPreview = data; b.previewSource = input;
+      b.notice = 'Validated locally from a stored AI reply; saved app unchanged. Review the difference before applying.';
+    } else b.error = data?.code || 'No verified preview from that reply. Nothing was changed.';
+    if (state.view === 'builder') renderBuilder();
+  }
   async function applyBuilderProposal() {
     const b = state.builder, preview = b.proposalPreview, current = b.selected;
     if (b.busy || !current || !preview || b.previewSource !== b.proposalText ||
       preview.appId !== current.id || preview.baseVersion !== current.version ||
       preview.canApply !== true || preview.effects !== 'none') return;
     const id = current.id, version = current.version;
+    // A provider-sourced preview is applied only via its own route, which re-reads the stored reply.
+    const from = preview.source === 'provider-reply' ? preview.provenance : null;
+    if (preview.source === 'provider-reply' && !(from?.source === 'provider-reply' &&
+      typeof from.conversationId === 'string' && typeof from.turnId === 'string' &&
+      /^[a-f0-9]{64}$/.test(from.replyDigest || ''))) return;
     // Only the user's click here confers approval. Nothing received from a model can do so.
     b.busy = true; b.error = ''; b.notice = '';
     renderBuilder();
-    const result = await builderCall('/' + encodeURIComponent(id) + '/apply-change', {
-      method: 'POST', body: {
-        expectedVersion: version, proposal: preview.change, approval: 'user-confirmed',
-      },
-    });
+    const result = from
+      ? await builderCall('/' + encodeURIComponent(id) + '/apply-provider-reply', {
+        method: 'POST', body: { conversation: from.conversationId, turnId: from.turnId,
+          replyDigest: from.replyDigest, expectedVersion: version, approval: 'user-confirmed' },
+      })
+      : await builderCall('/' + encodeURIComponent(id) + '/apply-change', {
+        method: 'POST', body: {
+          expectedVersion: version, proposal: preview.change, approval: 'user-confirmed',
+        },
+      });
     b.busy = false;
     b.proposalPreview = null; b.previewSource = null;
     if (result.status === 200 && result.data?.app?.id === id &&
@@ -1454,7 +1518,9 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
         result.data.app.version > version) {
       b.selected = result.data.app;
       b.proposalText = '';
-      b.notice = 'Approved changes saved locally. No AI provider was contacted and no app was deployed.';
+      b.notice = from
+        ? 'Approved AI-proposed changes (from a stored reply) saved locally. No AI provider was contacted and no app was deployed.'
+        : 'Approved changes saved locally. No AI provider was contacted and no app was deployed.';
     } else {
       // On an uncertain response, NEVER re-send an approved edit. Preserve the draft,
       // and let the owner re-read the saved blueprint before deciding what happened.
@@ -1571,10 +1637,35 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
       on(propose, 'submit', event => { event.preventDefault(); previewBuilderProposal(); });
       on(apply, 'click', () => applyBuilderProposal());
       propose.append(draft, example, check);
+      // Opt-in AI-proposal source: already-stored replies only; picking one never sends anything.
+      const replies = el('section', { id: 'worldBuilderStoredReplies' }, [
+        el('p', { class: 'note', text: 'Or use an AI reply already saved by VIVIM. This only reads saved text; it never sends a message to any provider.' }),
+      ]);
+      const load = el('button', { type: 'button', id: 'worldBuilderLoadReplies', text: 'Choose a saved AI reply' });
+      load.disabled = locked || b.replyChoices.loading;
+      on(load, 'click', () => loadStoredReplyChoices());
+      replies.append(load);
+      if (b.replyChoices.loading) replies.append(el('p', { class: 'note', text: 'Reading saved replies…' }));
+      if (b.replyChoices.error) replies.append(el('p', { class: 'err', text: b.replyChoices.error }));
+      if (b.replyChoices.loaded && !b.replyChoices.error && !b.replyChoices.items.length) {
+        replies.append(el('p', { class: 'empty', text: 'No settled saved AI replies found.' }));
+      }
+      for (const choice of b.replyChoices.items) {
+        const pick = el('button', { type: 'button', class: 'worldBuilderPickReply',
+          text: 'Preview ' + choice.site + ' reply · conversation ' + choice.conversation +
+            ' · turn ' + choice.turnId + (choice.chars === null ? '' : ' · ' + choice.chars + ' characters') });
+        pick.disabled = locked;
+        on(pick, 'click', () => previewProviderReply(choice));
+        replies.append(pick);
+      }
+      propose.append(replies);
       if (b.proposalPreview) {
-        diffArea.append(el('p', { class: 'note', text:
-          'Read-only preview · from revision ' + b.proposalPreview.baseVersion +
-          ' · no code execution or provider effects.' }));
+        const fromReply = b.proposalPreview.source === 'provider-reply' ? b.proposalPreview.provenance : null;
+        diffArea.append(el('p', { class: 'note', text: fromReply
+          ? 'AI-proposed, NOT written by you · stored reply from conversation ' + fromReply.conversationId +
+            ', turn ' + fromReply.turnId + ' · authenticity not verified · nothing is applied until you approve.'
+          : 'Read-only preview · from revision ' + b.proposalPreview.baseVersion +
+            ' · no code execution or provider effects.' }));
         const changes = el('ul');
         for (const change of b.proposalPreview.diff) {
           changes.append(el('li', { text: 'Add ' + change.kind + ' screen: ' + change.label }));

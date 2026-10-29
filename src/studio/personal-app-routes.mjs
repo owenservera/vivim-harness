@@ -2,6 +2,7 @@
 // These endpoints are intentionally absent from model-tool discovery.
 import { createPersonalAppService } from './personal-app-service.mjs';
 import { createPersonalAppContentService } from './personal-app-content.mjs';
+import { createProviderReplyBuilder } from './personal-app-provider-reply.mjs';
 import { problem } from './http.mjs';
 
 const idPattern = '^app-[a-f0-9]{32}$';
@@ -12,9 +13,10 @@ const strict = (body, allowed) => {
   }
   return body;
 };
-export function registerPersonalAppRoutes({ add, paths } = {}) {
+export function registerPersonalAppRoutes({ add, paths, readStoredConversation } = {}) {
   if (typeof add !== 'function') throw new TypeError('Studio add() required');
   const apps = createPersonalAppService({ paths });
+  const providerReply = createProviderReplyBuilder({ apps, readStoredConversation });
   const content = createPersonalAppContentService({ paths, apps });
   add('GET', '/personal-apps', 'List local user-owned personal mobile app blueprints',
     () => apps.list());
@@ -68,6 +70,23 @@ export function registerPersonalAppRoutes({ add, paths } = {}) {
       proposal: { type: ['string', 'object'] },
       approval: { type: 'string', enum: ['user-confirmed'] },
     }, required: ['expectedVersion', 'proposal', 'approval'], additionalProperties: false } });
+  // Opt-in: consume an already-stored provider reply (stored snapshot only; never sends/reads live).
+  const replyBody = (extra = {}, required = []) => ({ type: 'object', properties: {
+    conversation: { type: 'string', minLength: 1, maxLength: 128, pattern: '^[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}$' },
+    turnId: { type: 'string', minLength: 1, maxLength: 200 }, ...extra,
+  }, required: ['conversation', 'turnId', ...required], additionalProperties: false });
+  add('POST', '/personal-apps/{id}/preview-provider-reply',
+    'Preview an app change compiled from an already-stored provider reply; read-only, no provider call',
+    ({ p, body }) => providerReply.preview({ id: p.id, ...strict(body, ['conversation', 'turnId']) }),
+    { body: replyBody(), pathParameters: { id: { type: 'string', pattern: idPattern } } });
+  add('POST', '/personal-apps/{id}/apply-provider-reply',
+    'Apply a previewed provider-reply change after explicit user approval with CAS; no provider call',
+    ({ p, body }) => providerReply.apply({ id: p.id, ...strict(body, ['conversation', 'turnId', 'replyDigest', 'expectedVersion', 'approval']) }),
+    { body: replyBody({
+      replyDigest: { type: 'string', pattern: '^[a-f0-9]{64}$' },
+      expectedVersion: { type: 'integer', minimum: 1 },
+      approval: { type: 'string', enum: ['user-confirmed'] },
+    }, ['replyDigest', 'expectedVersion', 'approval']), pathParameters: { id: { type: 'string', pattern: idPattern } } });
   add('POST', '/personal-apps/{id}/screens', 'Add one validated user-directed mobile screen; no provider or code execution',
     ({ p, body }) => apps.addScreen({ id: p.id, ...strict(body, ['expectedVersion', 'kind', 'label']) }),
     { body: { type: 'object', properties: {
