@@ -120,7 +120,7 @@ function fixture() {
               typeof op.label !== 'string')) return reply(400, { code: 'PERSONAL_APP_INVALID' });
         if (proposal.baseVersion !== app.version) return reply(409, { code: 'PERSONAL_APP_VERSION_CONFLICT' });
         const changes = proposal.operations.map(op => ({ type: 'add-screen', kind: op.kind,
-          label: op.label, key: 'custom-' + op.label.toLowerCase().replace(/\\s+/g, '-') }));
+          label: op.label, key: 'custom-' + op.label.toLowerCase().replace(/\s+/g, '-') }));
         if (route.endsWith('/preview-change')) return reply(200, {
           appId: id, baseVersion: app.version, canApply: true, approvalRequired: true,
           effects: 'none', change: proposal, diff: changes,
