@@ -2,7 +2,7 @@
 // opens offline-capable. It deliberately has no handler for /api/ or any non-GET request: every
 // state-changing call, and every API read, goes straight to the live server and is never queued,
 // cached or replayed. Network-first so edits on the PC are picked up; cache is the offline fallback.
-const CACHE = 'vivim-mobile-shell-v1';
+const CACHE = 'vivim-mobile-shell-v2';
 const SHELL = new Set(['/mobile', '/ui/mobile.mjs']);
 
 self.addEventListener('install', (event) => {
