@@ -112,7 +112,11 @@ export function transitionWork(state, { id, to, note, evidence = [], idempotency
     evidence: evidence.map(ref => ({ ref, basis: 'user-attested; unverified-for-live-execution' })),
   };
   const item = { ...old, status: to, updatedAt: now,
-    nextAction: to === 'blocked' ? event.note : to === 'active' ? (old.nextAction ?? null) : null,
+    // Waiting is a status, not a replacement for the user's saved plan. Keep the
+    // reason in history; only use it as the next step when no plan exists yet.
+    // Reasons allow 2000 characters, but the editable next-action field allows 1000.
+    nextAction: to === 'blocked' ? (old.nextAction ?? event.note.slice(0, 1000))
+      : to === 'active' ? (old.nextAction ?? null) : null,
     evidence: [...old.evidence, ...event.evidence], events: [...old.events, event] };
   if (item.events.length > 100) throw err('PERSONAL_AGENT_WORK_LIMIT', 'Work event history reached capacity', 409);
   return { state: { ...state, updatedAt: now, work: work.map(row => row.id === id ? item : row) }, item, changed: true };

@@ -265,13 +265,6 @@ export function createPersonalAgentService({ paths, skillsRoot = TOOL_ROOT, getT
     return { version: state.version, items: structuredClone(state.work ?? []),
       execution: 'not-dispatched', disclosure: 'Private local Work; no provider action' };
   }
-  function requireWorkVersion(expectedVersion) {
-    if (!Number.isSafeInteger(expectedVersion) || expectedVersion < 1) throw bad('expectedVersion required', 'PERSONAL_AGENT_EXPECTED_VERSION');
-    const state = read();
-    if (!state) throw problem(404, 'Initialize Personal Agent first', 'PERSONAL_AGENT_NOT_INITIALIZED');
-    if (state.version !== expectedVersion) throw problem(409, 'Work version changed; refresh first', 'PERSONAL_AGENT_VERSION_CONFLICT');
-    return state;
-  }
   function createWorkItem({ expectedVersion, title, objective, idempotencyKey } = {}) {
     // A response lost after commit may be retried with its original stale version.
     // Return the existing same-key/same-payload item, never create a duplicate.
@@ -293,8 +286,13 @@ export function createPersonalAgentService({ paths, skillsRoot = TOOL_ROOT, getT
     return { ...status(), item: result.item, replayed: !result.changed };
   }
   function updateWorkNextAction({ expectedVersion, id, nextAction } = {}) {
-    const state = requireWorkVersion(expectedVersion);
+    if (!Number.isSafeInteger(expectedVersion) || expectedVersion < 1) throw bad('expectedVersion required', 'PERSONAL_AGENT_EXPECTED_VERSION');
+    const state = read();
+    if (!state) throw problem(404, 'Initialize Personal Agent first', 'PERSONAL_AGENT_NOT_INITIALIZED');
     const result = setWorkNextAction(state, { id, nextAction, now: clock() });
+    // A save may commit before its response is lost. An exact no-change retry is
+    // safe after restart; a different plan still needs the current version.
+    if (result.changed && state.version !== expectedVersion) throw problem(409, 'Work version changed; refresh first', 'PERSONAL_AGENT_VERSION_CONFLICT');
     if (result.changed) versioned(result.state, state.version, 'User-updated Work next action');
     return { ...status(), item: result.item, replayed: !result.changed };
   }
