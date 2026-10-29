@@ -3,6 +3,12 @@
 ## Objective
 Build and fully integrate the first functional, local-first VIVIM prototype across Windows, Android, Personal Agent, AI providers and AI-powered app creation. Implementation comes first; use subagents with cost-optimized model routing.
 
+## North star (owner, 2026-10-30)
+Assume a future where the **only AI available is the user's own web AI accounts** (ChatGPT, Claude, Gemini, DeepSeek, Z.ai, Qwen in the dedicated browser). VIVIM must then be good enough that a web AI can be the **primary agent**: it plans, delegates subtasks to the other web AIs (fan-out, council, race, fallback, relay, judge, auto-routed), reads and edits local files, runs approved commands, checks results and reports, the way a coding orchestrator works today. Build every orchestration piece so it can be driven by a web-AI planner, not only by a CLI or a human:
+- a structured action protocol the web AI writes in its replies (read file, propose edit, run command, ask other AIs, save to Work, finish), parsed tolerantly (smart quotes, fences);
+- explicit owner approval gates for effects (file writes, commands, sends to other AIs over a budget), with plain-language summaries;
+- workspace scoping, step budgets, resumable loops, no-resend safety and full timing/outcome tracking per AI so routing improves with use.
+
 ## Owner specifics (added during the session)
 1. **What VIVIM is.** VIVIM is a new kind of harness. It works through the **user's own AI webapp accounts** (ChatGPT, Claude, and later Gemini, z.ai and others) in a dedicated, signed-in Chrome. It uses no API keys. Every feature is built around that.
 2. **Consumer grade.** Real people must be able to use it. Copy is plain language, with no internal jargon (revision, turn, capture). There are no raw error codes in the main UI; each failure gets a friendly explanation and a next step. Waits are handled for the user ("Waiting for your AI…"), never surfaced as timeouts.
