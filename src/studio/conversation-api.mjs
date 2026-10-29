@@ -14,7 +14,7 @@ export function validateConversationBody(kind, body) {
     chatIndex: ['targetId', 'site', 'maxEntries', 'maxTitleChars', 'scanLimit', 'containers'], read: ['maxMessages', 'maxChars'] }[kind];
   if (Object.keys(body).some((key) => !fields.includes(key))) throw problem(400, 'Unexpected request field');
   if (kind === 'create') {
-    if (body.site !== 'chatgpt') throw problem(400, 'Only ChatGPT fresh conversation creation is supported', 'INVALID_CREATE');
+    if (body.site !== 'chatgpt' && body.site !== 'claude') throw problem(400, 'Only ChatGPT and Claude fresh conversation creation is supported', 'INVALID_CREATE');
   }
   if (kind === 'connect') {
     text(body.site, 'site', 128);

@@ -11,11 +11,11 @@ const conversation = { ...string(128), pattern: '^[a-zA-Z0-9][a-zA-Z0-9_-]{0,127
 const revision = { type: 'integer', minimum: 0, maximum: Number.MAX_SAFE_INTEGER };
 const threadPattern = '^chatgpt-c:[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$';
 const bounds = (spec) => ({ type: 'integer', minimum: spec.min, maximum: spec.max, default: spec.default });
-const indexBody = schema({ targetId: string(256), site: { type: 'string', enum: ['chatgpt'], default: 'chatgpt' },
+const indexBody = schema({ targetId: string(256), site: { type: 'string', enum: ['chatgpt', 'claude'], default: 'chatgpt' },
   ...Object.fromEntries(Object.entries(CHAT_INDEX_LIMITS).map(([name, spec]) => [name, bounds(spec)])),
   containers: { type: 'array', maxItems: 8, items: schema({ label: { ...string(40), pattern: '^(?!unknown$)[a-z][a-z-]{0,39}$' }, selector: string(200) }, ['label', 'selector']) } }, ['targetId']);
-const createBody = schema({ site: { type: 'string', enum: ['chatgpt'] } }, ['site']);
-const connectBody = schema({ site: { type: 'string', enum: ['chatgpt'] }, targetId: string(256),
+const createBody = schema({ site: { type: 'string', enum: ['chatgpt', 'claude'] } }, ['site']);
+const connectBody = schema({ site: { type: 'string', enum: ['chatgpt', 'claude'] }, targetId: string(256),
   expectedThread: { ...string(200), pattern: threadPattern }, freshTab: { type: 'boolean', const: false } }, ['site', 'targetId', 'expectedThread']);
 const readBody = schema({ maxMessages: bounds(TRANSCRIPT_LIMITS.maxMessages), maxChars: bounds(TRANSCRIPT_LIMITS.maxChars) });
 const submitBody = schema({ key: string(200, 'Caller-owned durable request key. Never generate a replacement key on timeout/unknown effect.'),
