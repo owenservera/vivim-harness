@@ -358,7 +358,7 @@
       ],
       "expectedOutcome": "Status reflects the available browser",
       "status": "WORKS",
-      "evidence": "agent status chromeReachable; recovery not exercised. Update 2026-10-29 (9892430, docs/session/BROWSER-RECOVERY-2026-10-29.json): dedicated Chrome was found stopped (CDP unreachable, chromeReachable:false); VIVIM relaunched it via the live launch path and a follow-up agent status + conversation_targets call returned chromeReachable:true, browserProfileVerified:true, and verified the same browser identity (no second browser launched) \u2014 recovery actually exercised live.",
+      "evidence": "agent status chromeReachable; recovery not exercised. Update 2026-10-29 (9892430, docs/session/BROWSER-RECOVERY-2026-10-29.json): dedicated Chrome was found stopped (CDP unreachable, chromeReachable:false); VIVIM relaunched it via the live launch path and a follow-up agent status + conversation_targets call returned chromeReachable:true, browserProfileVerified:true, and verified the same browser identity (no second browser launched) — recovery actually exercised live.",
       "files": {
         "existing": [
           "src/studio/server.mjs",
@@ -395,7 +395,7 @@
       ],
       "expectedOutcome": "The account is signed in without sharing a password with VIVIM",
       "status": "PARTIAL",
-      "evidence": "doctor sign-in guidance in plain words; human sign-in not exercised. Related source fix 2026-10-29 (aae7270, src/capture/actions.mjs): required-auth adapters now override a guest-usable composer when an auth-wall selector matches, so a real sign-in requirement is no longer masked by a guest-mode composer (Qwen-style); source-only, not live-verified \u2014 status unchanged.",
+      "evidence": "doctor sign-in guidance in plain words; human sign-in not exercised. Related source fix 2026-10-29 (aae7270, src/capture/actions.mjs): required-auth adapters now override a guest-usable composer when an auth-wall selector matches, so a real sign-in requirement is no longer masked by a guest-mode composer (Qwen-style); source-only, not live-verified — status unchanged.",
       "files": {
         "existing": [
           "src/studio/server.mjs",
@@ -745,7 +745,7 @@
       ],
       "expectedOutcome": "I see that human sign-in is required",
       "status": "UNKNOWN",
-      "evidence": "Source fix 2026-10-29 (aae7270, src/capture/actions.mjs): required-auth adapters now take priority over a guest-usable composer when an auth-wall selector matches, preventing a logged-out provider from being read as ready; source-only, no live sign-out/sign-in cycle observed \u2014 status remains UNKNOWN.",
+      "evidence": "Source fix 2026-10-29 (aae7270, src/capture/actions.mjs): required-auth adapters now take priority over a guest-usable composer when an auth-wall selector matches, preventing a logged-out provider from being read as ready; source-only, no live sign-out/sign-in cycle observed — status remains UNKNOWN.",
       "files": {
         "existing": [
           "src/profiles/sites/index.mjs",
@@ -1060,7 +1060,7 @@
       ],
       "expectedOutcome": "Available provider targets are listed",
       "status": "WORKS",
-      "evidence": "Update 2026-10-29 (9892430, docs/session/BROWSER-RECOVERY-2026-10-29.json): conversation_targets called through the native CLI against the live running Studio returned the real 10-provider site list (chatgpt, claude, gemini, deepseek, zai, qwen, lmarena, minimax, kimi, duck-ai); the targets array was empty only because no AI tabs were open at capture time \u2014 live-observed, not a fixture.",
+      "evidence": "Update 2026-10-29 (9892430, docs/session/BROWSER-RECOVERY-2026-10-29.json): conversation_targets called through the native CLI against the live running Studio returned the real 10-provider site list (chatgpt, claude, gemini, deepseek, zai, qwen, lmarena, minimax, kimi, duck-ai); the targets array was empty only because no AI tabs were open at capture time — live-observed, not a fixture.",
       "files": {
         "existing": [
           "src/studio/conversation-api.mjs",
@@ -1505,7 +1505,7 @@
       ],
       "expectedOutcome": "A provider reply appears on the phone",
       "status": "PARTIAL",
-      "evidence": "60f50d4 mobile Ask my AI; offline smoke 1 key/1 post; no live phone run. Source fix 2026-10-29 (da6c454, src/studio/ui/mobile.mjs): Ask-my-AI polling now distinguishes an actual PC-connection problem from a normal wait, surfaces a \"Check connection\" recovery control, and never retries a send; source-only, not retested live on a phone \u2014 status remains PARTIAL.",
+      "evidence": "60f50d4 mobile Ask my AI; offline smoke 1 key/1 post; no live phone run. Source fix 2026-10-29 (da6c454, src/studio/ui/mobile.mjs): Ask-my-AI polling now distinguishes an actual PC-connection problem from a normal wait, surfaces a \"Check connection\" recovery control, and never retries a send; source-only, not retested live on a phone — status remains PARTIAL.",
       "files": {
         "existing": [
           "src/studio/lan-pair.mjs",
@@ -1588,7 +1588,7 @@
       ],
       "expectedOutcome": "The paired local service is reachable",
       "status": "UNKNOWN",
-      "evidence": "Source fix 2026-10-29 (da6c454, src/studio/ui/mobile.mjs): mobile now detects an offline/approval-needed PC connection on any API call and shows an explicit recovery prompt instead of a generic error after reconnecting Wi-Fi; source-only, not retested live on a phone \u2014 status remains UNKNOWN.",
+      "evidence": "Source fix 2026-10-29 (da6c454, src/studio/ui/mobile.mjs): mobile now detects an offline/approval-needed PC connection on any API call and shows an explicit recovery prompt instead of a generic error after reconnecting Wi-Fi; source-only, not retested live on a phone — status remains UNKNOWN.",
       "files": {
         "existing": [
           "src/studio/lan-pair.mjs",
@@ -1629,7 +1629,7 @@
       ],
       "expectedOutcome": "The worker does not cache or intercept API requests",
       "status": "UNKNOWN",
-      "evidence": "Source fix 2026-10-29 (da6c454, src/studio/ui/mobile-sw.js): cache bumped to v4; the worker now verifies origin, path and content-type before treating a response as a cacheable shell asset, still never touches /api/ or non-GET requests, and explicitly bypasses the cache for pairing links carrying a token; source-only, not independently re-verified live \u2014 status remains UNKNOWN.",
+      "evidence": "Source fix 2026-10-29 (da6c454, src/studio/ui/mobile-sw.js): cache bumped to v4; the worker now verifies origin, path and content-type before treating a response as a cacheable shell asset, still never touches /api/ or non-GET requests, and explicitly bypasses the cache for pairing links carrying a token; source-only, not independently re-verified live — status remains UNKNOWN.",
       "files": {
         "existing": [
           "src/studio/lan-pair.mjs",
@@ -1670,7 +1670,7 @@
       ],
       "expectedOutcome": "An APK is produced",
       "status": "WORKS",
-      "evidence": "Owner-provided live verification, 2026-10-29; scenario-specific receipt not supplied. Concrete receipt now available (ce2016a, android/README.md verification receipt): pwsh android/build.ps1 (second, background invocation) passed all seven stages including `apksigner verify --print-certs`; produced android/build/vivim.apk (20.6 KB), debug-signed, certificate SHA-256 7c9172356e2a288f354c3094bf929f2bd7f6bb36fe72ec84de58f3dc83ea0b32 \u2014 build-only: no unit tests run, no emulator started, no install.",
+      "evidence": "Owner-provided live verification, 2026-10-29; scenario-specific receipt not supplied. Concrete receipt now available (ce2016a, android/README.md verification receipt): pwsh android/build.ps1 (second, background invocation) passed all seven stages including `apksigner verify --print-certs`; produced android/build/vivim.apk (20.6 KB), debug-signed, certificate SHA-256 7c9172356e2a288f354c3094bf929f2bd7f6bb36fe72ec84de58f3dc83ea0b32 — build-only: no unit tests run, no emulator started, no install.",
       "files": {
         "existing": [
           "src/studio/lan-pair.mjs",
@@ -1711,7 +1711,7 @@
       ],
       "expectedOutcome": "The native shell installs",
       "status": "PARTIAL",
-      "evidence": "Owner-provided live verification, 2026-10-29; scenario-specific receipt not supplied. Correction 2026-10-29 (ce2016a, 7faecc6; android/README.md verification receipt): the actual build-and-verify pass explicitly records \"No APK installed, no phone UI observed, and no Studio/Chrome lifecycle changed.\" No install or device evidence exists; downgrading WORKS\u2192PARTIAL per the no-offline/no-unverified-claim-as-live-WORKS rule (signed APK ready; device install still unobserved).",
+      "evidence": "Owner-provided live verification, 2026-10-29; scenario-specific receipt not supplied. Correction 2026-10-29 (ce2016a, 7faecc6; android/README.md verification receipt): the actual build-and-verify pass explicitly records \"No APK installed, no phone UI observed, and no Studio/Chrome lifecycle changed.\" No install or device evidence exists; downgrading WORKS→PARTIAL per the no-offline/no-unverified-claim-as-live-WORKS rule (signed APK ready; device install still unobserved).",
       "files": {
         "existing": [
           "src/studio/lan-pair.mjs",
@@ -1752,7 +1752,7 @@
       ],
       "expectedOutcome": "The paired mobile page loads inside the shell",
       "status": "PARTIAL",
-      "evidence": "Owner-provided status evidence, 2026-10-29; retest required. Source fix 2026-10-29 (7faecc6, android/src/inc/vivim/app/MainActivity.java): added a 20s navigation deadline with return-to-pairing-screen recovery and a root Back menu (Reload/Re-pair/Close/Cancel). android/README.md verification receipt confirms only a signed build was produced; it explicitly states \"No APK installed, no phone UI observed\" \u2014 status remains PARTIAL.",
+      "evidence": "Owner-provided status evidence, 2026-10-29; retest required. Source fix 2026-10-29 (7faecc6, android/src/inc/vivim/app/MainActivity.java): added a 20s navigation deadline with return-to-pairing-screen recovery and a root Back menu (Reload/Re-pair/Close/Cancel). android/README.md verification receipt confirms only a signed build was produced; it explicitly states \"No APK installed, no phone UI observed\" — status remains PARTIAL.",
       "files": {
         "existing": [
           "src/studio/lan-pair.mjs",
@@ -1793,7 +1793,7 @@
       ],
       "expectedOutcome": "The shell can open the new pairing address",
       "status": "UNKNOWN",
-      "evidence": "Source fix 2026-10-29 (7faecc6, android/src/inc/vivim/app/MainActivity.java): Re-pair now cancels any pending page load before accepting a new link, and a saved pairing link survives WebView renderer loss; still unverified on a device (build-only receipt, no install) \u2014 status remains UNKNOWN.",
+      "evidence": "Source fix 2026-10-29 (7faecc6, android/src/inc/vivim/app/MainActivity.java): Re-pair now cancels any pending page load before accepting a new link, and a saved pairing link survives WebView renderer loss; still unverified on a device (build-only receipt, no install) — status remains UNKNOWN.",
       "files": {
         "existing": [
           "src/studio/lan-pair.mjs",
@@ -1834,7 +1834,7 @@
       ],
       "expectedOutcome": "The product clearly reports that the local service is unreachable",
       "status": "UNKNOWN",
-      "evidence": "Source fix 2026-10-29 (da6c454, src/studio/ui/mobile.mjs): off-Wi-Fi/unreachable-PC state now shows explicit guidance (\"Your PC isn\u2019t reachable. Connect to the same WiFi\u2026\") instead of a generic error; source-only, not retested live off-network \u2014 status remains UNKNOWN.",
+      "evidence": "Source fix 2026-10-29 (da6c454, src/studio/ui/mobile.mjs): off-Wi-Fi/unreachable-PC state now shows explicit guidance (\"Your PC isn’t reachable. Connect to the same WiFi…\") instead of a generic error; source-only, not retested live off-network — status remains UNKNOWN.",
       "files": {
         "existing": [
           "src/studio/lan-pair.mjs",
@@ -1957,7 +1957,7 @@
       ],
       "expectedOutcome": "My Work items are shown",
       "status": "PARTIAL",
-      "evidence": "c9e139b GET work 200; UI not observed. Source fix 2026-10-29 (c8e437b, src/studio/ui/personal-agent.mjs/.html): Work retries and the last-reviewed saved-reply state now survive a tab reload (sessionStorage-backed continuity), and a stale next-action edit blocks a status update until saved; UI still not live-observed \u2014 status remains PARTIAL.",
+      "evidence": "c9e139b GET work 200; UI not observed. Source fix 2026-10-29 (c8e437b, src/studio/ui/personal-agent.mjs/.html): Work retries and the last-reviewed saved-reply state now survive a tab reload (sessionStorage-backed continuity), and a stale next-action edit blocks a status update until saved; UI still not live-observed — status remains PARTIAL.",
       "files": {
         "existing": [
           "src/agents/personal-agent-service.mjs",
@@ -2035,7 +2035,7 @@
       ],
       "expectedOutcome": "Its details and current state appear",
       "status": "PARTIAL",
-      "evidence": "c9e139b. Related source fix 2026-10-29 (c8e437b): Work item detail/history now also renders saved completion-evidence references; UI still not live-observed \u2014 status remains PARTIAL.",
+      "evidence": "c9e139b. Related source fix 2026-10-29 (c8e437b): Work item detail/history now also renders saved completion-evidence references; UI still not live-observed — status remains PARTIAL.",
       "files": {
         "existing": [
           "src/agents/personal-agent-service.mjs",
@@ -2074,7 +2074,7 @@
       ],
       "expectedOutcome": "Stored Work survives the restart",
       "status": "PARTIAL",
-      "evidence": "fresh-process read persisted v5. Related source fixes 2026-10-29 (c8e437b UI continuity; e5dd203, src/agents/personal-agent-service.mjs + personal-agent-work.mjs): reload-safe retry/review state plus idempotent next-action saves reduce the chance of losing in-progress Work review across a restart; not independently re-verified live \u2014 status remains PARTIAL.",
+      "evidence": "fresh-process read persisted v5. Related source fixes 2026-10-29 (c8e437b UI continuity; e5dd203, src/agents/personal-agent-service.mjs + personal-agent-work.mjs): reload-safe retry/review state plus idempotent next-action saves reduce the chance of losing in-progress Work review across a restart; not independently re-verified live — status remains PARTIAL.",
       "files": {
         "existing": [
           "src/agents/personal-agent-service.mjs",
@@ -2113,7 +2113,7 @@
       ],
       "expectedOutcome": "The updated state is preserved",
       "status": "WORKS",
-      "evidence": "plan/advance CLI next step persisted. Source fix 2026-10-29 (e5dd203, src/agents/personal-agent-service.mjs + personal-agent-work.mjs): next-action saves are now safely replayable (a lost-response retry with the same plan no longer needs the stale expectedVersion), and a transition to \"waiting\" no longer overwrites an existing saved next action with its reason text; source-only, not re-verified live \u2014 status remains WORKS on the prior evidence.",
+      "evidence": "plan/advance CLI next step persisted. Source fix 2026-10-29 (e5dd203, src/agents/personal-agent-service.mjs + personal-agent-work.mjs): next-action saves are now safely replayable (a lost-response retry with the same plan no longer needs the stale expectedVersion), and a transition to \"waiting\" no longer overwrites an existing saved next action with its reason text; source-only, not re-verified live — status remains WORKS on the prior evidence.",
       "files": {
         "existing": [
           "src/agents/personal-agent-service.mjs",
@@ -2191,7 +2191,7 @@
       ],
       "expectedOutcome": "I can decide whether to apply the content",
       "status": "PARTIAL",
-      "evidence": "preview effects=none; apply w/o approval 400. Related source fix 2026-10-29 (c8e437b): the saved-reply review panel now restores the last-reviewed reply (including whether it was already saved) after a reload instead of forgetting it; source-only \u2014 status remains PARTIAL.",
+      "evidence": "preview effects=none; apply w/o approval 400. Related source fix 2026-10-29 (c8e437b): the saved-reply review panel now restores the last-reviewed reply (including whether it was already saved) after a reload instead of forgetting it; source-only — status remains PARTIAL.",
       "files": {
         "existing": [
           "src/agents/personal-agent-service.mjs",
@@ -2273,7 +2273,7 @@
       ],
       "expectedOutcome": "The state explains what remains to be done",
       "status": "PARTIAL",
-      "evidence": "continuity read; no controlled interruption. Related source fix 2026-10-29 (e5dd203): waiting/blocked Work now retains its previously saved next action instead of replacing it with the block reason, so reopening after an interruption shows the real plan, not just why it stopped; source-only \u2014 status remains PARTIAL.",
+      "evidence": "continuity read; no controlled interruption. Related source fix 2026-10-29 (e5dd203): waiting/blocked Work now retains its previously saved next action instead of replacing it with the block reason, so reopening after an interruption shows the real plan, not just why it stopped; source-only — status remains PARTIAL.",
       "files": {
         "existing": [
           "src/agents/personal-agent-service.mjs",
@@ -2471,8 +2471,8 @@
         }
       ],
       "expectedOutcome": "A fresh provider reply yields a usable design proposal",
-      "status": "BROKEN",
-      "evidence": "Owner-provided status evidence, 2026-10-29; retest required",
+      "status": "WORKS",
+      "evidence": "2026-10-30 live: job aid-bc7b7c7456842d75cbbc18c0 (Claude) reached ready-to-review, approved; app app-ea8674db844f4db10ebd641dc9fc2818 read back v1->v2 with custom-study-sessions (tasks). Fix 19f5ceb (smart-quote JSON). | earlier: Owner-provided status evidence, 2026-10-29; retest required",
       "files": {
         "existing": [
           "src/studio/personal-app-blueprint.mjs",
@@ -2707,8 +2707,8 @@
         }
       ],
       "expectedOutcome": "I can inspect the proposed changes",
-      "status": "PARTIAL",
-      "evidence": "read-only preview offline",
+      "status": "WORKS",
+      "evidence": "Live preview of AI proposal before approval: 2026-10-30 live: job aid-bc7b7c7456842d75cbbc18c0 (Claude) reached ready-to-review, approved; app app-ea8674db844f4db10ebd641dc9fc2818 read back v1->v2 with custom-study-sessions (tasks). Fix 19f5ceb (smart-quote JSON). | earlier: read-only preview offline",
       "files": {
         "existing": [
           "src/studio/personal-app-blueprint.mjs",
@@ -2746,8 +2746,8 @@
         }
       ],
       "expectedOutcome": "The approved screens are added",
-      "status": "PARTIAL",
-      "evidence": "apply offline",
+      "status": "WORKS",
+      "evidence": "Live apply of valid proposal: 2026-10-30 live: job aid-bc7b7c7456842d75cbbc18c0 (Claude) reached ready-to-review, approved; app app-ea8674db844f4db10ebd641dc9fc2818 read back v1->v2 with custom-study-sessions (tasks). Fix 19f5ceb (smart-quote JSON). | earlier: apply offline",
       "files": {
         "existing": [
           "src/studio/personal-app-blueprint.mjs",
@@ -2946,7 +2946,7 @@
       ],
       "expectedOutcome": "The content is stored with the app",
       "status": "UNKNOWN",
-      "evidence": "Source fix 2026-10-29 (2549e21, src/studio/personal-app-content.mjs, S071-S072): a corrupt/missing content pointer now fails loudly (PERSONAL_APP_CONTENT_CORRUPT) instead of silently resetting to an empty app, preserving damaged saved content on reopen; source-only, no live save/reopen cycle run \u2014 status remains UNKNOWN.",
+      "evidence": "Source fix 2026-10-29 (2549e21, src/studio/personal-app-content.mjs, S071-S072): a corrupt/missing content pointer now fails loudly (PERSONAL_APP_CONTENT_CORRUPT) instead of silently resetting to an empty app, preserving damaged saved content on reopen; source-only, no live save/reopen cycle run — status remains UNKNOWN.",
       "files": {
         "existing": [
           "src/studio/personal-app-blueprint.mjs",
@@ -2985,7 +2985,7 @@
       ],
       "expectedOutcome": "Its blueprint and content are available",
       "status": "PARTIAL",
-      "evidence": "fresh service reload offline. Related source fix 2026-10-29 (2549e21, src/studio/personal-app-service.mjs, S071-S072): a missing-pointer-with-existing-versions case now throws PERSONAL_APP_CORRUPT instead of masquerading as \"not found\", protecting a damaged app from silent data loss on reopen; still only exercised offline, not live \u2014 status remains PARTIAL.",
+      "evidence": "fresh service reload offline. Related source fix 2026-10-29 (2549e21, src/studio/personal-app-service.mjs, S071-S072): a missing-pointer-with-existing-versions case now throws PERSONAL_APP_CORRUPT instead of masquerading as \"not found\", protecting a damaged app from silent data loss on reopen; still only exercised offline, not live — status remains PARTIAL.",
       "files": {
         "existing": [
           "src/studio/personal-app-blueprint.mjs",
@@ -3024,7 +3024,7 @@
       ],
       "expectedOutcome": "Matching stored notes are shown",
       "status": "WORKS",
-      "evidence": "Update 2026-10-29 (20d5785, docs/session/STUDIO-FREEZE-2026-10-29.json \"after\" block, landed with c9d4f95): live /world/search executed against the real running Studio store (181 real conversations, 155 messages indexed) and returned total:2 real matches in 3.855s after the nested-session-scan freeze was bounded \u2014 genuine live search confirmed, not a fixture.",
+      "evidence": "Update 2026-10-29 (20d5785, docs/session/STUDIO-FREEZE-2026-10-29.json \"after\" block, landed with c9d4f95): live /world/search executed against the real running Studio store (181 real conversations, 155 messages indexed) and returned total:2 real matches in 3.855s after the nested-session-scan freeze was bounded — genuine live search confirmed, not a fixture.",
       "files": {
         "existing": [
           "src/studio/world-service.mjs",
@@ -3063,7 +3063,7 @@
       ],
       "expectedOutcome": "The same note is available",
       "status": "UNKNOWN",
-      "evidence": "Source fix 2026-10-29 (c9d4f95, S073-S080,S095,S096, src/studio/world-service.mjs + world-search.mjs): cross-device note metadata handling was hardened alongside the search/freeze fix; no cross-device live retest was performed here \u2014 status remains UNKNOWN.",
+      "evidence": "Source fix 2026-10-29 (c9d4f95, S073-S080,S095,S096, src/studio/world-service.mjs + world-search.mjs): cross-device note metadata handling was hardened alongside the search/freeze fix; no cross-device live retest was performed here — status remains UNKNOWN.",
       "files": {
         "existing": [
           "src/studio/world-service.mjs",
@@ -3104,7 +3104,7 @@
       ],
       "expectedOutcome": "The saved task is available",
       "status": "UNKNOWN",
-      "evidence": "Source fix 2026-10-29 (c9d4f95, S073-S080,S095,S096): same World search/service hardening as S073-S074; this scenario's exact mobile-created-task lookup path was not independently re-run \u2014 status remains UNKNOWN.",
+      "evidence": "Source fix 2026-10-29 (c9d4f95, S073-S080,S095,S096): same World search/service hardening as S073-S074; this scenario's exact mobile-created-task lookup path was not independently re-run — status remains UNKNOWN.",
       "files": {
         "existing": [
           "src/studio/world-service.mjs",
@@ -3145,7 +3145,7 @@
       ],
       "expectedOutcome": "A transcript export is produced",
       "status": "UNKNOWN",
-      "evidence": "Source fix 2026-10-29 (c9d4f95, bin/commands/export.mjs + src/export/export.mjs): \"export transcript\" now defaults to a masked review-only preview and requires an explicit --confirm to write, with a --receipt option that emits counts only; this CLI path was not actually run here \u2014 status remains UNKNOWN.",
+      "evidence": "Source fix 2026-10-29 (c9d4f95, bin/commands/export.mjs + src/export/export.mjs): \"export transcript\" now defaults to a masked review-only preview and requires an explicit --confirm to write, with a --receipt option that emits counts only; this CLI path was not actually run here — status remains UNKNOWN.",
       "files": {
         "existing": [
           "src/studio/world-service.mjs",
@@ -3223,7 +3223,7 @@
       ],
       "expectedOutcome": "Relevant stored matches are returned",
       "status": "UNKNOWN",
-      "evidence": "Source fix 2026-10-29 (c9d4f95 + 20d5785): the underlying World search engine was hardened against the freeze and shown real matching evidence against live data (see S073); this scenario's exact agent-memory query path was not independently re-verified \u2014 status remains UNKNOWN.",
+      "evidence": "Source fix 2026-10-29 (c9d4f95 + 20d5785): the underlying World search engine was hardened against the freeze and shown real matching evidence against live data (see S073); this scenario's exact agent-memory query path was not independently re-verified — status remains UNKNOWN.",
       "files": {
         "existing": [
           "src/studio/world-service.mjs",
@@ -3301,7 +3301,7 @@
       ],
       "expectedOutcome": "A transferable representation is produced",
       "status": "UNKNOWN",
-      "evidence": "Source fix 2026-10-29 (c9d4f95, src/studio/world-transfer.mjs): transfer bundles now run every value through the same redaction pass used for exports (credential/secret patterns masked) before hashing; not exercised via a live transfer run here \u2014 status remains UNKNOWN.",
+      "evidence": "Source fix 2026-10-29 (c9d4f95, src/studio/world-transfer.mjs): transfer bundles now run every value through the same redaction pass used for exports (credential/secret patterns masked) before hashing; not exercised via a live transfer run here — status remains UNKNOWN.",
       "files": {
         "existing": [
           "src/studio/world-service.mjs",
@@ -3340,7 +3340,7 @@
       ],
       "expectedOutcome": "The second process is refused without killing the first owner",
       "status": "WORKS",
-      "evidence": "c6439df: second serve refused exit 5 with owner URL; stale lock takeover live. Additional 2026-10-29 evidence (20d5785, docs/session/STUDIO-FREEZE-2026-10-29.json): a separate freeze cause (unbounded nested session-ownership scans during World search) was reproduced live (before: 5s+ health-probe hang with captured stack traces in src/store/session.mjs) and fixed (after: 10 consecutive 200s, search returns in <4s) \u2014 corroborates reliability work in this area; does not by itself retest competing-process refusal.",
+      "evidence": "c6439df: second serve refused exit 5 with owner URL; stale lock takeover live. Additional 2026-10-29 evidence (20d5785, docs/session/STUDIO-FREEZE-2026-10-29.json): a separate freeze cause (unbounded nested session-ownership scans during World search) was reproduced live (before: 5s+ health-probe hang with captured stack traces in src/store/session.mjs) and fixed (after: 10 consecutive 200s, search returns in <4s) — corroborates reliability work in this area; does not by itself retest competing-process refusal.",
       "files": {
         "existing": [
           "src/studio/server.mjs",
@@ -3418,7 +3418,7 @@
       ],
       "expectedOutcome": "Saved state explains the interrupted operation",
       "status": "WORKS",
-      "evidence": "Update 2026-10-29 (20d5785, docs/session/STUDIO-FREEZE-2026-10-29.json \"compare\" block): Studio was restarted while ChatGPT/Claude were mid-generation; the compare endpoint reported each interrupted turn by name \u2014 \"VIVIM restarted while ChatGPT was answering\u2026 Check its tab for the full answer\" and \"VIVIM restarted before sending this question to Claude\" \u2014 explaining the interrupted operation exactly as expected, live-observed.",
+      "evidence": "Update 2026-10-29 (20d5785, docs/session/STUDIO-FREEZE-2026-10-29.json \"compare\" block): Studio was restarted while ChatGPT/Claude were mid-generation; the compare endpoint reported each interrupted turn by name — \"VIVIM restarted while ChatGPT was answering… Check its tab for the full answer\" and \"VIVIM restarted before sending this question to Claude\" — explaining the interrupted operation exactly as expected, live-observed.",
       "files": {
         "existing": [
           "src/studio/server.mjs",
@@ -3652,7 +3652,7 @@
       ],
       "expectedOutcome": "The status reports the connection problem",
       "status": "WORKS",
-      "evidence": "Update 2026-10-29 (9892430, docs/session/BROWSER-RECOVERY-2026-10-29.json \"before\" block): with the dedicated Chrome actually down, agent status (chromeReachable:false) and the conversation_targets probe (503 BROWSER_UNAVAILABLE) correctly reported the real connection problem \u2014 live-observed diagnosis, not a synthetic case.",
+      "evidence": "Update 2026-10-29 (9892430, docs/session/BROWSER-RECOVERY-2026-10-29.json \"before\" block): with the dedicated Chrome actually down, agent status (chromeReachable:false) and the conversation_targets probe (503 BROWSER_UNAVAILABLE) correctly reported the real connection problem — live-observed diagnosis, not a synthetic case.",
       "files": {
         "existing": [
           "src/studio/server.mjs",
@@ -3889,7 +3889,7 @@
       ],
       "expectedOutcome": "The receipt contains references and outcome, not private transcript content",
       "status": "UNKNOWN",
-      "evidence": "Source fix 2026-10-29 (c9d4f95, bin/commands/export.mjs): added \"export transcript --receipt\", which emits only inclusion counts and privacy outcome (message/timeline/stream counts, redactedValues, includes/excludes) and is designed to never include raw conversation text; not exercised against a real run here \u2014 status remains UNKNOWN pending a live check that confirms no raw text appears.",
+      "evidence": "Source fix 2026-10-29 (c9d4f95, bin/commands/export.mjs): added \"export transcript --receipt\", which emits only inclusion counts and privacy outcome (message/timeline/stream counts, redactedValues, includes/excludes) and is designed to never include raw conversation text; not exercised against a real run here — status remains UNKNOWN pending a live check that confirms no raw text appears.",
       "files": {
         "existing": [
           "src/capture/privacy.mjs",
@@ -3927,7 +3927,7 @@
       ],
       "expectedOutcome": "I control whether the exported content leaves my device",
       "status": "UNKNOWN",
-      "evidence": "Source fix 2026-10-29 (c9d4f95, src/export/export.mjs + bin/commands/export.mjs): \"export transcript\" now defaults to review-only (masked preview, nothing written) and requires an explicit --confirm to save locally, with a reminder to inspect the file before sharing; not exercised live here \u2014 status remains UNKNOWN.",
+      "evidence": "Source fix 2026-10-29 (c9d4f95, src/export/export.mjs + bin/commands/export.mjs): \"export transcript\" now defaults to review-only (masked preview, nothing written) and requires an explicit --confirm to save locally, with a reminder to inspect the file before sharing; not exercised live here — status remains UNKNOWN.",
       "files": {
         "existing": [
           "src/capture/privacy.mjs",
@@ -3965,7 +3965,7 @@
       ],
       "expectedOutcome": "The chosen signed-in provider receives the prompt",
       "status": "PARTIAL",
-      "evidence": "81dc070 compare; live job stalled with Studio hang. Update 2026-10-29 (20d5785 server fix + 7a4efa7 client fix, src/studio/ui/chat.mjs): the underlying Studio hang that stalled this job is fixed (see docs/session/STUDIO-FREEZE-2026-10-29.json), and chat.mjs no longer tries to resurrect a server-forgotten compare job \u2014 a 404 COMPARE_NOT_FOUND now clears local state with a no-resend notice instead of looping \"Reconnecting\u2026\". No successful live dual-provider comparison has been re-run since the fix; status remains PARTIAL pending retest.",
+      "evidence": "81dc070 compare; live job stalled with Studio hang. Update 2026-10-29 (20d5785 server fix + 7a4efa7 client fix, src/studio/ui/chat.mjs): the underlying Studio hang that stalled this job is fixed (see docs/session/STUDIO-FREEZE-2026-10-29.json), and chat.mjs no longer tries to resurrect a server-forgotten compare job — a 404 COMPARE_NOT_FOUND now clears local state with a no-resend notice instead of looping \"Reconnecting…\". No successful live dual-provider comparison has been re-run since the fix; status remains PARTIAL pending retest.",
       "files": {
         "existing": [
           "src/profiles/sites/index.mjs",
@@ -4005,7 +4005,7 @@
       ],
       "expectedOutcome": "Both labeled answers are available for comparison",
       "status": "PARTIAL",
-      "evidence": "81dc070. Update 2026-10-29 (20d5785 server fix + 7a4efa7 client fix): same underlying hang-and-stale-job fix as S097; no successful live dual-provider comparison re-run since the fix \u2014 status remains PARTIAL pending retest.",
+      "evidence": "81dc070. Update 2026-10-29 (20d5785 server fix + 7a4efa7 client fix): same underlying hang-and-stale-job fix as S097; no successful live dual-provider comparison re-run since the fix — status remains PARTIAL pending retest.",
       "files": {
         "existing": [
           "src/profiles/sites/index.mjs",
@@ -4363,10 +4363,10 @@
   },
   "summary": {
     "byStatus": {
-      "PARTIAL": 30,
-      "WORKS": 31,
+      "PARTIAL": 28,
+      "WORKS": 34,
       "UNKNOWN": 36,
-      "BROKEN": 3
+      "BROKEN": 2
     },
     "byPriority": {
       "P0": 46,
@@ -4390,8 +4390,8 @@
       "privacy": 6,
       "multi-provider": 4
     },
-    "updatedAt": "2026-10-29",
-    "reconciliationNote": "Reconciled 2026-10-29 against commits since 69de56f (aae7270, c9d4f95, 20d5785, 9892430, 7faecc6, ce2016a, 7a4efa7, c8e437b, da6c454, 2549e21, e5dd203, d62ef0f). Status deltas from prior pass (PARTIAL:30\u219230, WORKS:27\u219231, UNKNOWN:40\u219236, BROKEN:3\u21923): S006 PARTIAL\u2192WORKS and S024/S073/S083/S089 UNKNOWN\u2192WORKS on concrete live receipts (docs/session/BROWSER-RECOVERY-2026-10-29.json, docs/session/STUDIO-FREEZE-2026-10-29.json); S040 WORKS\u2192PARTIAL corrected because its only prior evidence was an unreceipted owner claim while the actual android/README.md build receipt explicitly records no install/device observation. Remaining commits (aae7270, c9d4f95 for S074-S080/S095/S096, 7a4efa7, c8e437b, da6c454, 2549e21, e5dd203, 7faecc6) are source-only fixes with no attached runtime receipt; their target scenarios keep their prior status with an appended note \u2014 per rule, source edits or offline/syntax checks alone never establish live WORKS. d62ef0f (FILE-MAP.json/.md) is architecture documentation with no scenario-level runtime claim.",
-    "modelRoutingNote": "Factual, 2026-10-29: openai/gpt-6.1-sol hit its usage limit. The owner authorized using cliproxy-claude/claude-sonnet-5 or cliproxy-grok/grok-4.7 for implementation lanes (including subagents) until Sol's quota returns; free-tier models stay excluded (they failed mid-task previously). Opus 5.5 (cliproxy-claude/claude-opus-5-5) remains reserved for the whole-new-file core/risky review pass only \u2014 never tactical files, never general implementation. See AGENTS.md and docs/session/GOAL.md for the authoritative routing text."
+    "updatedAt": "2026-10-30",
+    "reconciliationNote": "Reconciled 2026-10-29 against commits since 69de56f (aae7270, c9d4f95, 20d5785, 9892430, 7faecc6, ce2016a, 7a4efa7, c8e437b, da6c454, 2549e21, e5dd203, d62ef0f). Status deltas from prior pass (PARTIAL:30→30, WORKS:27→31, UNKNOWN:40→36, BROKEN:3→3): S006 PARTIAL→WORKS and S024/S073/S083/S089 UNKNOWN→WORKS on concrete live receipts (docs/session/BROWSER-RECOVERY-2026-10-29.json, docs/session/STUDIO-FREEZE-2026-10-29.json); S040 WORKS→PARTIAL corrected because its only prior evidence was an unreceipted owner claim while the actual android/README.md build receipt explicitly records no install/device observation. Remaining commits (aae7270, c9d4f95 for S074-S080/S095/S096, 7a4efa7, c8e437b, da6c454, 2549e21, e5dd203, 7faecc6) are source-only fixes with no attached runtime receipt; their target scenarios keep their prior status with an appended note — per rule, source edits or offline/syntax checks alone never establish live WORKS. d62ef0f (FILE-MAP.json/.md) is architecture documentation with no scenario-level runtime claim.",
+    "modelRoutingNote": "Factual, 2026-10-29: openai/gpt-6.1-sol hit its usage limit. The owner authorized using cliproxy-claude/claude-sonnet-5 or cliproxy-grok/grok-4.7 for implementation lanes (including subagents) until Sol's quota returns; free-tier models stay excluded (they failed mid-task previously). Opus 5.5 (cliproxy-claude/claude-opus-5-5) remains reserved for the whole-new-file core/risky review pass only — never tactical files, never general implementation. See AGENTS.md and docs/session/GOAL.md for the authoritative routing text."
   }
 }
