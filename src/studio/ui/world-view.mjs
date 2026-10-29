@@ -742,7 +742,8 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
     custody: 'observed',
     settings: { tab: 'providers', sites: [], loaded: false, loading: false, error: '' },
     agent: { status: null, work: null, loading: false, busy: false, error: '', notice: '', title: '', objective: '', pendingKey: null,
-      tier: 'Immediate', memoryKey: '', memoryText: '', memoryEntries: [] },
+      tier: 'Immediate', memoryKey: '', memoryText: '', memoryEntries: [],
+      insightKind: null, insight: null, insightBusy: false, insightError: '' },
     relations: { id: '', typed: '', map: null, error: '', status: '', loading: false, recordId: null },
     workspace: { id: '', typed: '', map: null, error: '', status: '', loading: false, item: null, readingId: '', readingNode: null, readingError: '', readingLoading: false },
     transfer: {
@@ -761,6 +762,7 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
   let readerHeadNode = null, readerStatusNode = null, readerBodyNode = null;
 
   let agentTicket = 0;
+  let agentInsightTicket = 0;
   let searchTicket = 0;
   let searchAbort = null;
   const tickets = {
@@ -876,6 +878,26 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
       a.error = agentError(response);
     }
     a.busy = false;
+    if (state.view === 'agent') renderAgent();
+  }
+  // Explicit, read-only inspection of existing local Personal Agent projections.
+  // SITREP includes private user-authored memory: never auto-load it on navigation.
+  async function agentInspect(kind) {
+    const a = state.agent;
+    const paths = {
+      capabilities: '/capabilities',
+      knowledge: '/self-knowledge?topic=all',
+      continuity: '/sitrep',
+    };
+    if (a.insightBusy || !Object.hasOwn(paths, kind)) return;
+    const ticket = ++agentInsightTicket;
+    a.insightBusy = true; a.insightError = ''; a.insightKind = kind; a.insight = null;
+    if (state.view === 'agent') renderAgent();
+    const result = await agentCall(paths[kind]);
+    if (ticket !== agentInsightTicket || state.view !== 'agent') return;
+    if (result.status === 200 && result.data && typeof result.data === 'object') a.insight = result.data;
+    else a.insightError = agentError(result);
+    a.insightBusy = false;
     if (state.view === 'agent') renderAgent();
   }
   function applyVisibility() {
@@ -1050,7 +1072,27 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
       }
       memory.append(existing);
     } else memory.append(el('p', { class: 'note', text: 'Initialize your agent to save memory.' }));
-    listPane.replaceChildren(head, bootstrap, notice, refresh, memory,
+    const insights = el('section', { class: 'vivim-info-card', id: 'worldAgentInsights' }, [
+      el('h3', { text: 'Agent knowledge and continuity' }),
+      el('p', { class: 'note', text: 'Read local evidence on demand. Capability registration is not execution proof. SITREP can contain private memory.' }),
+    ]);
+    for (const [kind, title] of [
+      ['capabilities', 'Inspect skills and tools'],
+      ['knowledge', 'Inspect grounded self-knowledge'],
+      ['continuity', 'Read private SITREP'],
+    ]) {
+      const button = el('button', { type: 'button', id: 'worldAgentInspect_' + kind, text: title });
+      button.disabled = a.insightBusy || busy || !status?.initialized;
+      on(button, 'click', () => agentInspect(kind));
+      insights.append(button);
+    }
+    if (a.insightBusy) insights.append(el('p', { class: 'note', text: 'Reading local agent evidence…' }));
+    if (a.insightError) insights.append(el('p', { class: 'err', text: a.insightError }));
+    if (a.insight) {
+      insights.append(el('p', { class: 'note', text: 'Local inspection: ' + a.insightKind + ' · not a live provider result' }));
+      insights.append(el('pre', { id: 'worldAgentInsightOutput', text: JSON.stringify(a.insight, null, 2) }));
+    }
+    listPane.replaceChildren(head, bootstrap, notice, refresh, memory, insights,
       el('a', { href: '/personal-agent', class: 'hit', text: 'Advanced agent inspector' }));
 
     const tasks = el('section', { class: 'vivim-info-card', id: 'worldAgentWork' }, [
@@ -3205,6 +3247,12 @@ export function mountWorldView({ document: doc, root, modes, chat, rich = null, 
   async function choose(view, { quiet = false } = {}) {
     if (!SHELL_VIEWS.has(view)) return;
     if (state.view !== view) {
+      if (state.view === 'agent' && view !== 'agent') {
+        agentInsightTicket++;
+        state.agent.insightBusy = false;
+        // Explicitly loaded private continuity must not survive navigation in UI state.
+        state.agent.insight = null; state.agent.insightKind = null; state.agent.insightError = '';
+      }
       relationsAbort?.abort(); relationsTicket += 1;
       state.relations.loading = false;
       state.workspace.loading = false;
