@@ -214,9 +214,10 @@ export function mountMobile({
     }
     const meta = el('p', 'On this PC · Blueprint v' + state.version, 'eyebrow');
     page.append(meta);
-    const tabs = el('nav', undefined, 'tabs'); attr(tabs, 'aria-label', 'App screens');
+    const tabs = el('nav', undefined, 'tabs'); attr(tabs, 'aria-label', 'App screens'); attr(tabs, 'role', 'tablist');
     for (const screen of state.scaffold.screens) {
       const control = btn(screen.label, () => chooseScreen(screen.key));
+      attr(control, 'role', 'tab');
       attr(control, 'aria-selected', String(screen.key === state.active));
       tabs.append(control);
     }
