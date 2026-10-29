@@ -1975,16 +1975,31 @@ function boot() {
   const comparePanel = document.getElementById('comparePanel');
   if (inBrowser && comparePanel) {
     const el = id => document.getElementById(id);
-    let compareJob = null, compareTimer = null, posting = false;
+    let compareJob = null, compareTimer = null, posting = false, compareVersion = 0;
     const liveCompare = job => ['queued', 'running'].includes(job?.state);
     const compareRequest = async (url, body) => {
       const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 15000);
       try {
         const response = await fetch(API + url, { method: body === undefined ? 'GET' : 'POST', credentials: 'same-origin',
           ...(body === undefined ? {} : { headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }), signal: controller.signal });
-        if (!response.ok) throw new Error('Comparison unavailable');
+        if (!response.ok) {
+          const detail = await response.json().catch(() => null);
+          throw Object.assign(new Error('Comparison unavailable'), { status: response.status, code: detail?.code });
+        }
         return await response.json();
       } finally { clearTimeout(timeout); }
+    };
+    const missingCompare = error => error?.status === 404 && error?.code === 'COMPARE_NOT_FOUND';
+    const forgetCompare = () => {
+      clearTimeout(compareTimer);
+      compareVersion++;
+      compareJob = null;
+      try { localStorage.removeItem('vivim.compare.job'); } catch { /* storage optional */ }
+      el('compareStart').disabled = posting;
+      el('compareCancel').disabled = true;
+      el('compareRefresh').hidden = true;
+      el('compareRefresh').disabled = false;
+      el('compareStatus').textContent = 'This saved comparison is no longer available. Nothing will be sent again automatically. Check your provider tabs for any answers before starting a new comparison.';
     };
     const renderCompare = job => {
       compareJob = job;
@@ -2001,8 +2016,23 @@ function boot() {
     const pollCompare = async () => {
       clearTimeout(compareTimer);
       if (!compareJob?.id) return;
-      try { renderCompare((await compareRequest('/compare/' + encodeURIComponent(compareJob.id))).job); el('compareRefresh').hidden = true; }
-      catch { el('compareStatus').textContent = 'Reconnecting to your saved comparison… Nothing will be sent again.'; el('compareRefresh').hidden = false; }
+      // A read started before Stop or a new comparison must not restore the older state or timer.
+      const id = compareJob.id, version = ++compareVersion;
+      el('compareRefresh').disabled = true;
+      try {
+        const data = await compareRequest('/compare/' + encodeURIComponent(id));
+        if (version !== compareVersion) return;
+        renderCompare(data.job); el('compareRefresh').hidden = true;
+      } catch (error) {
+        if (version !== compareVersion) return;
+        if (missingCompare(error)) { forgetCompare(); return; }
+        el('compareStatus').textContent = 'Reconnecting to your saved comparison… Nothing will be sent again.';
+        el('compareRefresh').hidden = false;
+        el('compareCancel').disabled = !liveCompare(compareJob);
+      } finally {
+        if (version === compareVersion) el('compareRefresh').disabled = false;
+      }
+      if (version !== compareVersion) return;
       if (liveCompare(compareJob)) compareTimer = setTimeout(pollCompare, 2500);
     };
     el('viewCompare').addEventListener('click', () => {
@@ -2020,6 +2050,8 @@ function boot() {
       if (posting || liveCompare(compareJob)) return;
       const sites = [...document.querySelectorAll('input[name="compareSite"]:checked')].map(input => input.value);
       if (!sites.length) { el('compareStatus').textContent = 'Choose at least one provider.'; return; }
+      clearTimeout(compareTimer); compareVersion++;
+      el('compareRefresh').hidden = true; el('compareRefresh').disabled = false;
       posting = true; el('compareStart').disabled = true;
       try {
         const data = await compareRequest('/compare', { question: el('compareQuestion').value, sites });
@@ -2033,14 +2065,30 @@ function boot() {
     });
     el('compareCancel').addEventListener('click', async () => {
       if (!compareJob?.id) return;
+      clearTimeout(compareTimer);
+      const id = compareJob.id, version = ++compareVersion;
       el('compareCancel').disabled = true;
-      try { renderCompare((await compareRequest('/compare/' + encodeURIComponent(compareJob.id) + '/cancel', {})).job); clearTimeout(compareTimer); }
-      catch { el('compareStatus').textContent = 'Could not confirm it stopped. Checking the saved comparison…'; pollCompare(); }
+      el('compareRefresh').disabled = true;
+      try {
+        const data = await compareRequest('/compare/' + encodeURIComponent(id) + '/cancel', {});
+        if (version !== compareVersion) return;
+        renderCompare(data.job); el('compareRefresh').hidden = true;
+      } catch (error) {
+        if (version !== compareVersion) return;
+        if (missingCompare(error)) { forgetCompare(); return; }
+        el('compareStatus').textContent = 'Could not confirm it stopped. Checking the saved comparison…'; pollCompare();
+      } finally {
+        if (version === compareVersion) el('compareRefresh').disabled = false;
+      }
     });
     el('compareRefresh').addEventListener('click', pollCompare);
     try {
       const id = localStorage.getItem('vivim.compare.job');
-      if (/^cmp-[a-f0-9]{24}$/.test(id ?? '')) { compareJob = { id, state: 'running' }; pollCompare(); }
+      if (/^cmp-[a-f0-9]{24}$/.test(id ?? '')) {
+        compareJob = { id, state: 'running' };
+        el('compareStart').disabled = true; el('compareCancel').disabled = false;
+        pollCompare();
+      }
     } catch { /* storage optional */ }
   }
   // Same dynamic-import rule as U1 so the offline page tests never resolve the module.
