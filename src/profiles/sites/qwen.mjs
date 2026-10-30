@@ -43,9 +43,18 @@ export default {
     doneWhen: 'text-stable',
   },
   preflight: {
+    // Measured 2026-10-30 on the owner's signed-in chat.qwen.ai tab: the only account control is
+    // <button class="user-menu-btn"> holding <img class="user-img" alt="User profile"> plus the account
+    // name and plan badge. It does not exist on a signed-out page, so it is positive sign-in proof.
+    signedInSelectors: [
+      'button.user-menu-btn',
+      'img.user-img[alt*="User profile" i]',
+    ],
     authWallSelectors: [
       // Both "Log in" and "Sign up" are buttons with this class, not links.
-      // A guest composer can still be visible; its presence is not sign-in proof.
+      // A guest composer can still be visible; its presence is not sign-in proof. The class is also
+      // reused by header controls after sign-in, which is why a matched selector alone is only a weak
+      // signal and `signedInSelectors` above outranks it (src/capture/actions.mjs detectAuthWall).
       'button.header-right-auth-button',
       'a[href*="/auth"]',
       'a[href*="/login"]',

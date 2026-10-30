@@ -1,107 +1,187 @@
 {
   "schema": "vivim.provider-readiness/1",
-  "scenarioRefs": ["S012", "S013", "S014", "S015", "S016"],
-  "generatedAt": "2026-10-29T23:22:00Z",
-  "method": "For each site: agent status + conversation_targets (baseline), then create_conversation (opens/binds a Studio-owned tab and runs readiness/auth-wall detection), then get_conversation to read readiness, then finish_conversation with closeTab:true for any tab opened here that held no turns. submit_conversation_turn was never called. No account identifiers, emails, or conversation text were captured or stored in this file.",
+  "scenarioRefs": [
+    "S012",
+    "S013",
+    "S014",
+    "S029"
+  ],
+  "generatedAt": "2026-10-30T00:00:00Z",
+  "method": "For each site: agent status + conversation_targets (baseline), then create_conversation (opens/binds a Studio-owned fresh tab and runs readiness/auth-wall detection), then get_conversation to read readiness, then finish_conversation with closeTab:true for any tab opened here that held no turns. submit_conversation_turn was called once per deepseek and gemini (stable key, no resend); it stalled at the pre-existing creation type/send pipeline (phase preparing, send not-attempted) so no submit/reply ms were recorded for those two. chatgpt/claude/zai create-only (not submitted this run). No account identifiers, emails, or conversation text were captured or stored in this file.",
   "studio": {
     "studioPort": 38730,
     "cdpPort": 38702,
-    "dataDir": "C:\\Users\\VIVIM.inc\\AppData\\Local\\AION\\capture-studio",
+    "dataDir": "C:\\\\Users\\\\VIVIM.inc\\\\AppData\\\\Local\\\\AION\\\\capture-studio",
     "chromeReachable": true,
     "browserProfileVerified": true,
     "browserAccountState": "unverified (Studio does not assert account identity; readiness is inferred per-site from composer + auth-wall DOM evidence only)"
-  },
-  "preexistingState": {
-    "note": "A pre-existing claude target (thread claude-chat:c1dcb1ca-...) was already bound with content before this run. It was not touched, not read, and not closed.",
-    "targetId": "C31D59A84B77755386341C0B2F66A8EA"
   },
   "results": [
     {
       "site": "chatgpt",
       "status": "ready",
-      "conversationId": "615499c0-2c41-4d47-ad3b-a24c5a2d4944",
-      "readiness": { "ready": true, "reason": null },
-      "timeToReadyMs": 10887,
-      "notes": "create_conversation returned a tool-level error (STUDIO_REQUEST_UNKNOWN, HTTP 504) after ~10.9s even though the underlying conversation was actually created and reached ready state. Found via list_conversations by targetId after the error; get_conversation confirmed readiness.ready=true, reason=null (composer found, no auth-wall selector matched). Tab closed via finish_conversation(closeTab:true); no turns held.",
-      "friction": ["create_conversation call timed out at the tool/HTTP layer (504) despite successful underlying creation; caller must re-discover the conversation id via list_conversations when this happens."]
+      "signedIn": "unverified",
+      "conversationId": "834b34cb-6a1c-49a2-ac5c-99654209db47",
+      "readiness": {
+        "ready": true,
+        "reason": null
+      },
+      "createMs": 20055,
+      "submitMs": null,
+      "replyMs": null,
+      "notes": "create_conversation returned ready directly; no tool-level 504/STUDIO_REQUEST_UNKNOWN within the 60s default tool deadline. Tab closed via finish_conversation(closeTab:true); no turns held.",
+      "friction": [],
+      "toolErrors": []
     },
     {
       "site": "claude",
       "status": "ready",
-      "conversationId": "df89aa7b-d672-4b7e-b87f-1b65fa568a91",
-      "readiness": { "ready": true, "reason": null },
-      "timeToReadyMs": 10924,
-      "notes": "Same 504/STUDIO_REQUEST_UNKNOWN pattern as chatgpt: tool call errored but the fresh conversation was created and ready (composer found, no auth-wall selector matched). Recovered the conversation id via list_conversations. Tab closed via finish_conversation(closeTab:true); no turns held. Did not touch the separate pre-existing bound claude thread.",
-      "friction": ["Same create_conversation 504 pattern as chatgpt."]
+      "signedIn": "unverified",
+      "conversationId": "3492b8f7-e336-4ef8-bf8f-ff570eb8f31b",
+      "readiness": {
+        "ready": true,
+        "reason": null
+      },
+      "createMs": 6536,
+      "submitMs": null,
+      "replyMs": null,
+      "notes": "create_conversation returned ready directly; no tool-level error. Pre-existing bound claude thread (claude-chat:c1dcb1ca-...) left untouched. Tab closed via finish_conversation(closeTab:true); no turns held.",
+      "friction": [],
+      "toolErrors": []
     },
     {
       "site": "zai",
       "status": "ready",
-      "conversationId": "2012228c-46e2-4b75-8cec-8073e419a4ef",
-      "readiness": { "ready": true, "reason": null },
-      "timeToReadyMs": 6997,
-      "notes": "create_conversation succeeded directly (no tool-level error this time). get_conversation confirmed readiness.ready=true, reason=null. Tab closed via finish_conversation(closeTab:true); no turns held.",
-      "friction": []
+      "signedIn": "unverified",
+      "conversationId": "4b8e7f0c-c2f7-41e9-a7b7-9fea01e985bb",
+      "readiness": {
+        "ready": true,
+        "reason": null
+      },
+      "createMs": 14686,
+      "submitMs": null,
+      "replyMs": null,
+      "notes": "create_conversation returned ready directly; no tool-level error. Tab closed via finish_conversation(closeTab:true); no turns held.",
+      "friction": [],
+      "toolErrors": []
     },
     {
       "site": "qwen",
-      "status": "signed-out (reported) / likely FALSE POSITIVE",
-      "conversationId": "35a72351-a1a4-4f50-8d9b-c479e0b334be",
-      "readiness": { "ready": false, "reason": "AUTH_WALL" },
-      "timeToReadyMs": 4674,
-      "notes": "create_conversation returned state=blocked, readiness.reason='AUTH_WALL' in 4.67s. The owner reports being signed in to Qwen in this browser, so this is suspected to be a false signed-out detection, not a real auth wall.",
-      "rootCauseAnalysis": {
-        "summary": "Qwen is the only one of the four create_conversation-eligible sites that reported AUTH_WALL. The short-circuit introduced by the commit the owner flagged (aae7270) makes any requiresAuth:true site with a matching authWallSelector report blocked, even when a usable composer is present.",
-        "codePath": [
-          "src/capture/actions.mjs:941 — `if (requiresAuth === true && hits.length) return { blocked: true, reason: 'auth wall selector matched, sign-in required: ' + hits.slice(0,3).join(', ') }` runs BEFORE the composerUsable check at line 942. For a requiresAuth site, a single matching authWallSelector unconditionally blocks the conversation regardless of whether the composer is actually present and enabled (i.e. regardless of real sign-in state).",
-          "src/capture/conversation-browser-adapter.mjs:240 and :260 — `if (auth.blocked) return blocked('AUTH_WALL')` collapses the detailed `auth.reason` string (which names the exact matched selector(s), e.g. 'auth wall selector matched, sign-in required: button.header-right-auth-button') down to the bare code 'AUTH_WALL' before it reaches get_conversation/conversation_capsule. This is a second, independent gap: even when the detection is correct, the operator-visible API loses the diagnostic detail needed to confirm which selector fired."
-        ],
-        "likelySelector": {
-          "file": "src/profiles/sites/qwen.mjs",
-          "selectorListLines": "lines 46-53 (preflight.authWallSelectors)",
-          "mostProbable": "button.header-right-auth-button",
-          "why": "This is the first selector in qwen.mjs's authWallSelectors list, and its own in-file comment (line 48-49) already warns: \"Both 'Log in' and 'Sign up' are buttons with this class, not links. A guest composer can still be visible; its presence is not sign-in proof.\" The comment was written from a logged-OUT capture, so this selector was never validated against a logged-IN Qwen page. If chat.qwen.ai reuses the `header-right-auth-button` class for any other header control once signed in (e.g. an upgrade/account-menu entry point, or the class simply stays in the DOM but hidden only via CSS state the `vis()` visibility check in actions.mjs does not treat as hidden), the selector keeps matching after sign-in and permanently blocks the site.",
-          "otherCandidates": [
-            "a[href*=\"/auth\"]",
-            "a[href*=\"/login\"]",
-            "form[action*=\"login\"]"
-          ],
-          "whyNotConfirmed": "Neither get_conversation nor conversation_capsule surfaces the matched-selector list (see codePath above), and no Studio log file recorded the raw detectAuthWall() output for this run (checked always-on.log — no qwen entries; no per-session capture directory was created for qwen because capture never started on a blocked conversation). Confirming the exact selector would require either (a) restoring the dropped auth.reason detail to an operator-visible field, or (b) a live DOM inspection of the signed-in chat.qwen.ai page, both out of scope for this read-only receipt (no source edits, no raw CDP)."
-        },
-        "recommendedFixNotApplied": [
-          "Preserve detectAuthWall's full `reason` string (with matched selector names) through conversation-browser-adapter.mjs's blocked() call into an evidence/diagnostic field the operator can read via get_conversation, instead of collapsing it to the bare 'AUTH_WALL' code.",
-          "For requiresAuth sites, let composerUsable evidence override a matched authWallSelector when the matched selector is broad/reused (header-right-auth-button) rather than letting selector presence unconditionally win over a usable composer — i.e. reorder/soften the aae7270 priority so a verified usable composer is not discarded by a single ambiguous selector hit.",
-          "Re-measure qwen.mjs's authWallSelectors against a confirmed signed-in chat.qwen.ai session and drop or scope button.header-right-auth-button if it is present post-login."
-        ]
+      "status": "ready",
+      "signedIn": true,
+      "conversationId": "d7b08e61-ab62-4fde-a47b-10a73457dd1c",
+      "readiness": {
+        "ready": true,
+        "reason": null
       },
-      "friction": ["No selector-level diagnostic reaches get_conversation/conversation_capsule; reason is truncated to the code 'AUTH_WALL'."]
+      "createMs": 11424,
+      "submitMs": null,
+      "replyMs": null,
+      "notes": "FIXED. Previously false AUTH_WALL (button.header-right-auth-button matched while signed in). Now signed-in: create_conversation returned ready in 11.4s, reason=null, diagnostic=null. Live DOM confirmed owner's signed-in shell: button.user-menu-btn with img.user-img alt=\"User profile\" present, header-right-auth-button absent. Signed-in account control (src/profiles/sites/qwen.mjs signedInSelectors) outranks the reused authWallSelectors in detectAuthWall (src/capture/actions.mjs). Auth-wall selectors unchanged so a real sign-in page is still detected. Tab closed via finish_conversation(closeTab:true); no turns held.",
+      "friction": [],
+      "toolErrors": []
     },
     {
       "site": "deepseek",
-      "status": "error (tool unsupported for this site)",
-      "conversationId": null,
-      "readiness": null,
-      "timeToReadyMs": 1590,
-      "notes": "create_conversation's own input schema restricts `site` to the enum [chatgpt, claude, zai, qwen]. Calling it with site=deepseek returned INVALID_CREATE (HTTP 400) in 1.59s before any tab was opened — no cleanup needed. conversation_targets independently shows the pre-existing deepseek target as identity.state='unbound', reason='SITE_UNSUPPORTED', consistent with deepseek not yet having create/bind support in this Studio build. This is a harness capability gap, not a provider sign-in result; readiness for deepseek is NOT_TESTED, not signed-out.",
-      "friction": ["create_conversation tool does not support deepseek; no readiness/auth-wall check could be run through the sanctioned native-tool path."]
+      "status": "ready",
+      "signedIn": "unverified",
+      "conversationId": "a19fbde3-ecf9-411d-906a-43a5d71f2c57",
+      "readiness": {
+        "ready": true,
+        "reason": null
+      },
+      "createMs": 4734,
+      "submitMs": null,
+      "replyMs": null,
+      "notes": "create_conversation returned ready directly (4.7s); INVALID_CREATE resolved (site added to CREATE_SITES + deepseek.mjs adapter registered). One real turn attempted with stable key ds-ready-1: submit reached phase=preparing, send=not-attempted, no reply - stalled at the pre-existing creation type/send pipeline, not a timeout and not a 504. Tab closed via finish_conversation(closeTab:true). Round-trip NOT proven.",
+      "friction": [
+        "First-turn send stalled at creation pipeline (phase preparing, send not-attempted) - pre-existing stalled-lane type/send path; create/connect readiness itself proven."
+      ],
+      "toolErrors": []
     },
     {
       "site": "gemini",
-      "status": "error (tool unsupported for this site)",
-      "conversationId": null,
-      "readiness": null,
-      "timeToReadyMs": 1655,
-      "notes": "Same as deepseek: create_conversation's site enum excludes gemini. Calling it with site=gemini returned INVALID_CREATE (HTTP 400) in 1.66s before any tab was opened — no cleanup needed. conversation_targets independently shows the pre-existing gemini target as identity.state='unbound', reason='SITE_UNSUPPORTED'. Readiness for gemini is NOT_TESTED, not signed-out.",
-      "friction": ["create_conversation tool does not support gemini; no readiness/auth-wall check could be run through the sanctioned native-tool path."]
+      "status": "ready",
+      "signedIn": true,
+      "conversationId": "c8d91323-bbdd-4001-bbac-073135d702c8",
+      "readiness": {
+        "ready": true,
+        "reason": null
+      },
+      "createMs": 4076,
+      "submitMs": null,
+      "replyMs": null,
+      "notes": "create_conversation returned ready directly (4.1s); INVALID_CREATE resolved (site added to CREATE_SITES + gemini.mjs adapter registered). Signed-in: Google Account button + accounts.google.com/SignOutOptions link detected via signedInSelectors outranking authWallSelectors. New-chat path /app added to SITE_NEW_CHAT_PATHS (src/capture/conversation-thread.mjs). One real turn attempted with stable key gm-ready-1: submit reached phase=preparing, send=not-attempted, no reply - stalled at the pre-existing creation type/send pipeline, not a timeout and not a 504. Tab closed via finish_conversation(closeTab:true). Round-trip NOT proven.",
+      "friction": [
+        "First-turn send stalled at creation pipeline (phase preparing, send not-attempted) - pre-existing stalled-lane type/send path; create/connect readiness itself proven."
+      ],
+      "toolErrors": []
     }
   ],
   "summaryTable": [
-    { "site": "chatgpt", "status": "ready", "timeToReadyMs": 10887 },
-    { "site": "claude", "status": "ready", "timeToReadyMs": 10924 },
-    { "site": "zai", "status": "ready", "timeToReadyMs": 6997 },
-    { "site": "qwen", "status": "signed-out (AUTH_WALL) — suspected false positive, see rootCauseAnalysis", "timeToReadyMs": 4674 },
-    { "site": "deepseek", "status": "NOT_TESTED — create_conversation tool does not accept this site", "timeToReadyMs": null },
-    { "site": "gemini", "status": "NOT_TESTED — create_conversation tool does not accept this site", "timeToReadyMs": null }
+    {
+      "site": "chatgpt",
+      "status": "ready",
+      "signedIn": "unverified",
+      "createMs": 20055,
+      "submitMs": null,
+      "replyMs": null,
+      "toolErrors": []
+    },
+    {
+      "site": "claude",
+      "status": "ready",
+      "signedIn": "unverified",
+      "createMs": 6536,
+      "submitMs": null,
+      "replyMs": null,
+      "toolErrors": []
+    },
+    {
+      "site": "zai",
+      "status": "ready",
+      "signedIn": "unverified",
+      "createMs": 14686,
+      "submitMs": null,
+      "replyMs": null,
+      "toolErrors": []
+    },
+    {
+      "site": "qwen",
+      "status": "ready",
+      "signedIn": true,
+      "createMs": 11424,
+      "submitMs": null,
+      "replyMs": null,
+      "toolErrors": []
+    },
+    {
+      "site": "deepseek",
+      "status": "ready",
+      "signedIn": "unverified",
+      "createMs": 4734,
+      "submitMs": null,
+      "replyMs": null,
+      "toolErrors": [],
+      "note": "create ready; first-turn send stalled at pre-existing creation pipeline"
+    },
+    {
+      "site": "gemini",
+      "status": "ready",
+      "signedIn": true,
+      "createMs": 4076,
+      "submitMs": null,
+      "replyMs": null,
+      "toolErrors": [],
+      "note": "create ready; first-turn send stalled at pre-existing creation pipeline"
+    }
+  ],
+  "keyFindings": [
+    "qwen no longer false-AUTH_WALLs when signed in (11.4s ready, diagnostic null); signed-in user-menu/avatar control outranks the reused header-right-auth-button selector.",
+    "deepseek + gemini create_conversation now accepted and reach ready (4.7s / 4.1s); INVALID_CREATE eliminated.",
+    "No 504/STUDIO_REQUEST_UNKNOWN on any of the six sites within the 60s default tool deadline (bin/commands/tools.mjs 60s default kept from stalled lane).",
+    "Fresh-tab create under the tool deadline for all six sites (4.0s-20.1s).",
+    "First-turn real send stalled at the pre-existing creation type/send pipeline (phase preparing, send not-attempted) for deepseek and gemini - not a timeout, not a 504, not caused by this lane's changes; round-trip unproven."
   ],
   "cleanup": {
     "allOpenedTabsClosed": true,

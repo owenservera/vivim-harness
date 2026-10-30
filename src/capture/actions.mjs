@@ -908,6 +908,14 @@ export async function detectAuthWall(page, adapter = null) {
       try { els = [...document.querySelectorAll(sel)]; } catch (e) { continue; }
       for (const el of els) { if (vis(el)) { hits.push(sel); break; } }
     }
+    // Positive signed-in evidence, declared per site: a control that only an authenticated session
+    // renders (account menu, avatar, account settings link). A signed-out page cannot show it.
+    const signedIn = [];
+    for (const sel of ${JSON.stringify(Array.isArray(adapter?.preflight?.signedInSelectors) ? adapter.preflight.signedInSelectors : [])}) {
+      let els = [];
+      try { els = [...document.querySelectorAll(sel)]; } catch (e) { continue; }
+      for (const el of els) { if (vis(el)) { signedIn.push(sel); break; } }
+    }
 
     const url = location.href;
     let pathname = '';
@@ -938,6 +946,11 @@ export async function detectAuthWall(page, adapter = null) {
 
     // Account-required adapters explicitly identify signed-out UI. A guest composer (Qwen)
     // must not override that evidence; guest-enabled adapters retain the usable-composer path.
+    // Signed-in proof wins over an auth-like selector, because sites reuse sign-in classes/links for
+    // controls that only exist AFTER sign-in (Qwen's header button, Gemini's accounts.google.com
+    // SignOutOptions link). It never wins over a login URL or an open login modal, which cannot
+    // co-exist with an authenticated account control.
+    if (signedIn.length && !urlWall && !modalWall) return { blocked: false, reason: 'signed-in account control present: ' + signedIn.slice(0, 2).join(', ') + (hits.length ? ' (auth-like selectors also present: ' + hits.slice(0, 2).join(', ') + ')' : '') };
     if (${JSON.stringify(adapter?.preflight?.requiresAuth === true)} && hits.length) return { blocked: true, reason: 'auth wall selector matched, sign-in required: ' + hits.slice(0, 3).join(', ') };
     if (composerUsable && !urlWall && !modalWall) return { blocked: false, reason: hits.length ? 'auth-like selectors present but a composer is usable' : 'composer available' };
     if (urlWall) return { blocked: true, reason: 'login URL: ' + url };

@@ -187,7 +187,12 @@ export function createConversationBrowserAdapter({ paths, profileStore, familySt
   const ledgerTyped = (prompt) => { try { d.recordTypedPrompt(paths?.root, prompt); } catch { /* ledger is best-effort protection */ } };
   // @serves 006
   async function readiness(end) {
-    const blocked = (reason, draft = { present: null, chars: null }) => ({ ready: false, reason, draft });
+    // `diagnostic` is additive-only: the plain coded `reason` (AUTH_WALL etc.) that every existing
+    // caller/consumer-facing surface already keys off of is unchanged. Only auth-wall call sites pass
+    // a diagnostic today, carrying detectAuthWall's own reason string (which selector/URL/modal
+    // matched) through to an operator-visible field instead of being discarded at the bare code.
+    const blocked = (reason, draft = { present: null, chars: null }, diagnostic = null) =>
+      ({ ready: false, reason, draft, ...(diagnostic ? { diagnostic } : {}) });
     let lastReason = null; // Reset every tick: an earlier sample must never become the timeout verdict.
     let residueTries = 0;
     do {
@@ -237,34 +242,38 @@ export function createConversationBrowserAdapter({ paths, profileStore, familySt
             if (!isNewChatPath(siteAdapter.id, loc.targetPath) || !isNewChatPath(siteAdapter.id, loc.pathname)) return blocked('BINDING_CHANGED');
             const composer = await d.findComposer(livePage(), siteAdapter);
             const auth = await d.detectAuthWall(livePage(), siteAdapter);
-            if (auth.blocked) return blocked('AUTH_WALL');
-            const gate = await d.detectSiteFailure(livePage(), siteAdapter);
-            if (gate.failed) return blocked('SITE_GATE');
-            if (composer.found) {
-              const state = await d.sendState(livePage(), siteAdapter);
-              const page = await d.readTurnPage(livePage(), siteAdapter);
-              if (!state.evalOk) { /* keep polling */ }
-              else if (parseThread(siteAdapter.id, `${binding.origin}${page?.pathname ?? ''}`)) return blocked('PREEXISTING_THREAD');
-              else if (state.draftChars > 0 || page?.draft?.chars > 0) {
-                // VIVIM's own earlier (failed) typing, restored by the provider: clear it and re-check.
-                if (residueTries < 2 && ++residueTries && await reclaimResidue(page?.draft?.text)) continue;
-                return blocked('DRAFT_PRESENT', { present: true, chars: state.draftChars });
+            if (auth.blocked) { lastReason = 'AUTH_WALL'; } else {
+              const gate = await d.detectSiteFailure(livePage(), siteAdapter);
+              if (gate.failed) return blocked('SITE_GATE');
+              if (composer.found) {
+                const state = await d.sendState(livePage(), siteAdapter);
+                const page = await d.readTurnPage(livePage(), siteAdapter);
+                if (!state.evalOk) { /* keep polling */ }
+                else if (parseThread(siteAdapter.id, `${binding.origin}${page?.pathname ?? ''}`)) return blocked('PREEXISTING_THREAD');
+                else if (state.draftChars > 0 || page?.draft?.chars > 0) {
+                  // VIVIM's own earlier (failed) typing, restored by the provider: clear it and re-check.
+                  if (residueTries < 2 && ++residueTries && await reclaimResidue(page?.draft?.text)) continue;
+                  return blocked('DRAFT_PRESENT', { present: true, chars: state.draftChars });
+                }
+                else if (state.draftChars === 0 && freshComposerReady(page))
+                  return { ready: true, draft: { present: false, chars: 0 }, reason: null, creation: { threadless: true } };
               }
-              else if (state.draftChars === 0 && freshComposerReady(page))
-                return { ready: true, draft: { present: false, chars: 0 }, reason: null, creation: { threadless: true } };
             }
           }
         } else {
           const composer = await d.findComposer(livePage(), siteAdapter);
           const auth = await d.detectAuthWall(livePage(), siteAdapter);
-          if (auth.blocked) return blocked('AUTH_WALL');
-          const gate = await d.detectSiteFailure(livePage(), siteAdapter);
-          if (gate.failed) return blocked('SITE_GATE');
-          if (composer.found) {
-            const state = await d.sendState(livePage(), siteAdapter);
-            if (state.evalOk) {
-              const draft = { present: state.draftChars > 0, chars: state.draftChars };
-              return draft.present ? blocked('DRAFT_PRESENT', draft) : { ready: true, draft, reason: null };
+          if (auth.blocked) {
+            lastReason = 'AUTH_WALL';
+          } else {
+            const gate = await d.detectSiteFailure(livePage(), siteAdapter);
+            if (gate.failed) return blocked('SITE_GATE');
+            if (composer.found) {
+              const state = await d.sendState(livePage(), siteAdapter);
+              if (state.evalOk) {
+                const draft = { present: state.draftChars > 0, chars: state.draftChars };
+                return draft.present ? blocked('DRAFT_PRESENT', draft) : { ready: true, draft, reason: null };
+              }
             }
           }
         }

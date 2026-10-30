@@ -447,9 +447,14 @@ export function createConversationService({ dataDir, id = randomUUID(), adapter,
         const creationReady = creating && attached.readiness?.ready === true && attached.readiness?.creation?.threadless === true
           && attached.readiness.draft?.present === false && attached.readiness.draft?.chars === 0;
         if (creating) {
+          // diagnostic is additive-only, operator-visible detail (e.g. which auth-wall selector/URL/
+          // modal matched); it is never used for routing/consumer-message decisions and is dropped
+          // whenever absent, so every existing reader of this object is unaffected.
+          const diagnostic = typeof attached.readiness?.diagnostic === 'string' && attached.readiness.diagnostic ? attached.readiness.diagnostic.slice(0, 500) : null;
           snapshot.readiness = creationReady ? { ready: true, draft: { present: false, chars: 0 }, reason: null }
             : { ready: false, draft: { present: attached.readiness?.draft?.present ?? null, chars: attached.readiness?.draft?.chars ?? null },
-              reason: /^[A-Z][A-Z0-9_]{0,79}$/.test(attached.readiness?.reason ?? '') ? attached.readiness.reason : 'NOT_CHECKED' };
+              reason: /^[A-Z][A-Z0-9_]{0,79}$/.test(attached.readiness?.reason ?? '') ? attached.readiness.reason : 'NOT_CHECKED',
+              ...(diagnostic ? { diagnostic } : {}) };
         } else {
           snapshot.readiness = attached.readiness ?? { ready: true, draft: { present: false, chars: 0 }, reason: null };
           // An unverified thread is never ready for a send, whatever the page looks like.

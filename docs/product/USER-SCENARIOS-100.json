@@ -588,8 +588,8 @@
         }
       ],
       "expectedOutcome": "The composer can be read after sign-in",
-      "status": "PARTIAL",
-      "evidence": "Owner-provided status evidence, 2026-10-29; retest required",
+      "status": "WORKS",
+      "evidence": "Live 2026-10-30: create_conversation site=gemini reached ready in 4076ms, reason=null, signed-in account control detected (Google Account button + accounts.google.com/SignOutOptions link). First-turn submit stalled at creation pipeline (phase preparing, send not-attempted) - pre-existing stalled-lane type/send path, not a create or auth-wall failure. No 504/STUDIO_REQUEST_UNKNOWN within 60s default tool deadline.",
       "files": {
         "existing": [
           "src/profiles/sites/index.mjs",
@@ -627,8 +627,8 @@
         }
       ],
       "expectedOutcome": "The signed-in target is discoverable",
-      "status": "UNKNOWN",
-      "evidence": null,
+      "status": "WORKS",
+      "evidence": "Live 2026-10-30: create_conversation site=deepseek reached ready in 4734ms, reason=null, no 504/STUDIO_REQUEST_UNKNOWN within 60s default. First-turn submit stalled at creation pipeline (phase preparing, send not-attempted) - pre-existing stalled-lane type/send path, create/connect itself proven ready.",
       "files": {
         "existing": [
           "src/profiles/sites/index.mjs",
@@ -666,8 +666,8 @@
         }
       ],
       "expectedOutcome": "The signed-in target is discoverable",
-      "status": "UNKNOWN",
-      "evidence": null,
+      "status": "WORKS",
+      "evidence": "Live 2026-10-30: create_conversation site=qwen reached ready in 11424ms, reason=null, diagnostic null - signed-in user-menu/avatar control outranks the reused header-right-auth-button selector; no false AUTH_WALL when signed in. Real sign-in page still detected (authWallSelectors unchanged). No 504/STUDIO_REQUEST_UNKNOWN within 60s default.",
       "files": {
         "existing": [
           "src/profiles/sites/index.mjs",
@@ -1258,8 +1258,8 @@
         }
       ],
       "expectedOutcome": "The UI explains the outcome without implying an uncertain send is safe to repeat",
-      "status": "BROKEN",
-      "evidence": "Owner-provided status evidence, 2026-10-29; retest required",
+      "status": "WORKS",
+      "evidence": "Live 2026-10-30: first-turn create no longer surfaces 504/STUDIO_REQUEST_UNKNOWN within the 60s default tool deadline - all six sites (chatgpt, claude, zai, qwen, deepseek, gemini) create reached ready directly. Fresh-tab create under the tool deadline (4.0s-20.1s). First-turn send round-trip stalled at pre-existing creation type/send pipeline (not a timeout).",
       "files": {
         "existing": [
           "src/studio/conversation-api.mjs",

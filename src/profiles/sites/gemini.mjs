@@ -43,6 +43,14 @@ export default {
     doneWhen: 'text-stable',
   },
   preflight: {
+    // Measured 2026-10-30 on the owner's signed-in gemini.google.com/app tab. The Google account
+    // button is an <a> whose aria-label starts "Google Account:" and whose href is
+    // accounts.google.com/SignOutOptions — i.e. the site's own accounts.google.com link is a SIGNED-IN
+    // control, not a wall, which is why signedInSelectors must outrank authWallSelectors below.
+    signedInSelectors: [
+      'a[aria-label*="Google Account" i]',
+      'a[href*="accounts.google.com/SignOutOptions"]',
+    ],
     authWallSelectors: [
       'a[href*="accounts.google.com"]',
       'a[href*="/signin"]',

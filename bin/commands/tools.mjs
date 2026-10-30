@@ -8,10 +8,17 @@ import { metadataOnly } from '../../src/studio/tool-result.mjs';
 
 const clientFlags = {
   'studio-port': { type: 'number', valueName: 'PORT', desc: 'Running loopback Studio port (default: configured studioPort)' },
-  timeout: { type: 'number', default: 10, valueName: 'SECONDS', desc: 'HTTP deadline 1–60 seconds; never retries' },
+  // A fresh-tab create_conversation/connect_conversation can legitimately take 10-25s (worst case
+  // the adapter's own readinessTimeoutMs 45s + connectGraceMs 2s = 47s) before the underlying
+  // conversation is actually ready. The old default of 10s fired this client-side HTTP deadline
+  // first, so the tool call reported STUDIO_REQUEST_UNKNOWN/504 even though creation succeeded a
+  // few seconds later; the caller then had to recover the conversation id via list_conversations.
+  // 60s (the hard cap this flag already validates below) covers that envelope with margin and
+  // matches the precedent already used for effectful calls in bin/commands/recipes.mjs.
+  timeout: { type: 'number', default: 60, valueName: 'SECONDS', desc: 'HTTP deadline 1–60 seconds; never retries. Fresh-tab create/connect can take up to ~47s; the default covers that' },
 };
 function connect(ctx, dependencies) {
-  const seconds = ctx.flags.timeout ?? 10;
+  const seconds = ctx.flags.timeout ?? 60;
   if (!Number.isSafeInteger(seconds) || seconds < 1 || seconds > 60) throw usageError('timeout must be 1–60 seconds');
   const env = dependencies.env ?? process.env;
   return (dependencies.client ?? createStudioToolClient)({ port: ctx.flags['studio-port'] ?? ctx.settings.studioPort,

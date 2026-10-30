@@ -22,7 +22,17 @@ export const THREAD_REF_PATTERN = new RegExp(`^(?:${THREAD_KINDS.join('|')}):${U
 export const THREAD_SITES = Object.freeze(Object.keys(SITE_THREADS));
 export const threadSupported = (siteId) => THREAD_SITES.includes(siteId);
 // The exact blank-composer routes of a site, before any thread exists. Unknown sites: only `/`.
-export const isNewChatPath = (siteId, pathname) => (SITE_THREADS[siteId]?.newChatPaths ?? ['/']).includes(pathname);
+// Declared separately from SITE_THREADS: a site can have a known blank-composer route (Gemini's
+// /app) without the harness yet having a measured thread-URL identity for its chats.
+const SITE_NEW_CHAT_PATHS = Object.freeze({
+  ...Object.fromEntries(Object.entries(SITE_THREADS).map(([id, site]) => [id, site.newChatPaths])),
+  // Measured 2026-10-30 on the owner's signed-in tab: the fresh Gemini chat is /app.
+  gemini: ['/', '/app'],
+  deepseek: ['/'],
+  zai: ['/'],
+  qwen: ['/'],
+});
+export const isNewChatPath = (siteId, pathname) => (SITE_NEW_CHAT_PATHS[siteId] ?? ['/']).includes(pathname);
 
 // @serves 003,009,013,100
 export function parseThread(siteId, url) {

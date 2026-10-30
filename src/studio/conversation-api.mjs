@@ -21,7 +21,7 @@ export function validateConversationBody(kind, body) {
     chatIndex: ['targetId', 'site', 'maxEntries', 'maxTitleChars', 'scanLimit', 'containers'], read: ['maxMessages', 'maxChars'] }[kind];
   if (Object.keys(body).some((key) => !fields.includes(key))) throw problem(400, 'Unexpected request field');
   if (kind === 'create') {
-    if (!CREATE_SITES.includes(body.site)) throw problem(400, 'Choose ChatGPT, Claude, Z.ai or Qwen for a fresh conversation', 'INVALID_CREATE');
+    if (!CREATE_SITES.includes(body.site)) throw problem(400, `Choose ${CREATE_SITES.map((s) => (s === 'zai' ? 'Z.ai' : s[0].toUpperCase() + s.slice(1))).join(', ')} for a fresh conversation`, 'INVALID_CREATE');
   }
   if (kind === 'connect') {
     text(body.site, 'site', 128);
