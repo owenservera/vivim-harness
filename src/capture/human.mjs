@@ -184,7 +184,7 @@ async function dispatchBackspace(page) {
 // Typing
 // ---------------------------------------------------------------------------------------------
 // @serves 031,032
-export async function humanType(page, text, { pace = DEFAULT_PACE, human = false, beforeInsert } = {}) {
+export async function humanType(page, text, { pace = DEFAULT_PACE, human = false, beforeInsert, chunked = false } = {}) {
   const startedAt = Date.now();
   const p = paceOf(pace);
   // CRLF / lone CR become one newline: '\r' has no key mapping and would otherwise be inserted raw.
@@ -209,10 +209,21 @@ export async function humanType(page, text, { pace = DEFAULT_PACE, human = false
   // The binding/thread fence must run ONCE before the first text effect in either mode.
   // A failed guard propagates without dispatching a character or repeating the insertion.
   if (beforeInsert) await beforeInsert();
-  if (!human) {
+  if (!human || chunked) {
     try {
-      await page.send('Input.insertText', { text: s });
-      stats.methodCounts.insertText++;
+      if (chunked) {
+        // Long prompts: one insertion per line and one LF insertion per newline, exactly what the
+        // per-character path does for newlines (a single multi-line insertText makes rich editors
+        // double or drop breaks), without ~70 ms of CDP key events per character.
+        for (const part of s.split(/(\n)/)) {
+          if (!part) continue;
+          await page.send('Input.insertText', { text: part });
+          stats.methodCounts.insertText++;
+        }
+      } else {
+        await page.send('Input.insertText', { text: s });
+        stats.methodCounts.insertText++;
+      }
     } catch (e) {
       errors.push('bulk insertion not confirmed: ' + msg(e));
     }

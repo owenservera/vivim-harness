@@ -14,9 +14,12 @@ const problem = (code) => Object.assign(new Error(code), { code, status: 409 });
 const digest = (text) => createHash('sha256').update(text, 'utf8').digest('hex');
 // Key-by-key typing costs ~0.1s per character and holds the one shared writer window the whole time:
 // a 5,000-character prompt blocked every other AI for 10+ minutes (live fan-out, 2026-10-30). Only short
-// prompts are typed; longer ones go in with one insertion, then the composer is read back as before.
+// prompts keep the human pauses; longer ones are typed at machine speed.
+// A single bulk insertion is NOT an option for long prompts: rich editors (ChatGPT, Claude) rewrite
+// newlines and code blocks on insertText, the strict read-back then fails (TYPING_UNCONFIRMED). So
+// long prompts are inserted one line at a time (see `chunked` in human.mjs), newlines one by one.
 const HUMAN_TYPE_MAX_CHARS = 400;
-const humanTypable = (prompt) => String(prompt ?? '').length <= HUMAN_TYPE_MAX_CHARS;
+const typeOptions = (prompt) => ({ human: true, chunked: String(prompt ?? '').length > HUMAN_TYPE_MAX_CHARS });
 // Typed-text readback contract for rich composers. A contenteditable (ProseMirror/Lexical) reports
 // the trailing block break as one extra newline, so the readback may carry exactly ONE appended
 // newline beyond the payload. Only the readback is normalized/trimmed; the payload is never
@@ -633,7 +636,7 @@ export function createConversationBrowserAdapter({ paths, profileStore, familySt
         recorder.session.kv.set(`CONVERSATION_ATTEMPT_${turnId}`, saved);
         ledgerTyped(prompt); // before the first character: a typing that dies half way must stay recognisable
         try {
-          const typed = await d.typeText(recorder.page, prompt, { human: humanTypable(prompt), beforeInsert: async () => { await guard(); beforeEffect?.(); } });
+          const typed = await d.typeText(recorder.page, prompt, { ...typeOptions(prompt), beforeInsert: async () => { await guard(); beforeEffect?.(); } });
           await check();
           const after = await settleTypingReadback(async () => {
             const page = await d.readTurnPage(recorder.page, siteAdapter);
@@ -655,7 +658,7 @@ export function createConversationBrowserAdapter({ paths, profileStore, familySt
       recorder.session.kv.set(`CONVERSATION_ATTEMPT_${turnId}`, saved); // Protected local capture storage only.
       ledgerTyped(prompt);
       try {
-        const typed = await d.typeText(recorder.page, prompt, { human: humanTypable(prompt),
+        const typed = await d.typeText(recorder.page, prompt, { ...typeOptions(prompt),
           beforeInsert: () => effectPreflight(saved, beforeEffect, true) });
         await check();
         if (!typed.ok || !await settleTypingReadback(pageState, prompt)) throw problem('TYPING_UNCONFIRMED');

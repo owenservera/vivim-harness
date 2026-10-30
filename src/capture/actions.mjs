@@ -198,7 +198,7 @@ export async function clearComposer(page) {
 // keep their own editor state: a DOM write shows text the app does not believe exists, so Enter
 // silently does nothing. The pacing itself lives in src/capture/human.mjs.
 // @serves 031,032
-export async function typeText(page, text, { human = true, pace = DEFAULT_PACE, beforeInsert, requireEmpty = false } = {}) {
+export async function typeText(page, text, { human = true, pace = DEFAULT_PACE, beforeInsert, requireEmpty = false, chunked = false } = {}) {
   const s = String(text ?? '');
   if (!s) return { ok: false, typed: '', method: 'none' };
 
@@ -218,7 +218,7 @@ export async function typeText(page, text, { human = true, pace = DEFAULT_PACE, 
   const before = await composerText(page);
   if (before === null) return { ok: false, typed: '', method: 'none', reason: 'composer-unreadable' };
   if (requireEmpty && norm(before)) return { ok: false, typed: '', method: 'none', reason: 'draft-not-cleared' };
-  const res = await humanType(page, s, { pace, human, beforeInsert });
+  const res = await humanType(page, s, { pace, human, beforeInsert, chunked });
   const after = res.typed ?? await composerText(page);
   return {
     ok: !!res.ok,
