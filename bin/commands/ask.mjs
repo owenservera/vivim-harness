@@ -26,6 +26,7 @@ import { usageError, envError, CliError, fmtMs, truncate } from '../lib/ui.mjs';
 import { EXIT, TOOL_ROOT } from '../../src/config.mjs';
 import { createStudioToolClient } from '../../src/studio/tool-client.mjs';
 import { ROLE_NAMES, buildPrompt, isSecretPath, secretPathsInDiff } from '../../src/studio/ask-prompts.mjs';
+import { PATTERN_NAMES, PATTERN_CHOICES, PATTERNS, buildPlanSpec } from '../../src/studio/orchestrator-patterns.mjs';
 
 const TERMINAL_JOB_STATES = new Set(['complete', 'partial', 'failed', 'cancelled']);
 const KNOWN_SITES = ['chatgpt', 'claude', 'zai', 'qwen', 'deepseek', 'gemini'];
@@ -124,6 +125,86 @@ function saveAskResult({ role, rawQuestion, diffRange, filePaths, job }) {
   return file;
 }
 
+// --pattern: POST /api/v1/orchestrate (src/studio/ai-orchestrator.mjs) instead of /compare. Same
+// rules: --wait only re-polls the SAME plan id; re-running the same command while it is active
+// reattaches to that plan (the orchestrator dedupes identical active questions).
+function patternOptions(flags) {
+  const options = {};
+  if (flags.by !== undefined) options.by = flags.by;
+  if (flags.rounds !== undefined) options.rounds = flags.rounds;
+  if (flags['hedge-after'] !== undefined) options.hedgeAfterSeconds = flags['hedge-after'];
+  if (flags['deadline-minutes'] !== undefined) options.deadlineMinutes = flags['deadline-minutes'];
+  return options;
+}
+function printPlan(ctx, plan) {
+  const { out } = ctx;
+  const result = plan.result;
+  if (result?.answers?.length) {
+    for (const a of result.answers) { out.result(out.c.bold(a.label) + ':'); out.result(a.answer || '(empty answer)'); out.result(''); }
+  } else if (result?.answer) {
+    out.result(out.c.bold(result.from?.label ?? 'Answer') + ':'); out.result(result.answer); out.result('');
+  }
+  if (result?.notes) { out.result(out.c.bold('Notes') + ':'); out.result(result.notes); out.result(''); }
+  if (result?.summary) out.result(result.summary);
+  for (const s of plan.steps) {
+    const time = Number.isFinite(s.answerMs) ? ' (' + fmtMs(s.answerMs) + ')' : '';
+    out.line(out.c.dim(`  ${s.label} · ${s.role} · ${s.state}${time}${s.state === 'ready' ? '' : ' — ' + s.message}`));
+  }
+}
+function savePlanResult({ role, rawQuestion, diffRange, filePaths, plan }) {
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const dir = path.join(TOOL_ROOT, 'docs', 'session', 'ai-work');
+  mkdirSync(dir, { recursive: true });
+  const file = path.join(dir, `${stamp}-${plan.pattern}-${role ?? 'ask'}.md`);
+  const context = [diffRange ? `diff ${diffRange}` : null, filePaths?.length ? `files: ${filePaths.join(', ')}` : null].filter(Boolean);
+  const lines = [`# Ask (${plan.title}) — ${role ?? 'question'} — ${stamp}`, '', '## Question', '', truncate(rawQuestion, 2000)];
+  if (context.length) lines.push('', `Context: ${context.join('; ')}`);
+  lines.push('', '## Result', '', plan.result?.summary ?? plan.state, '');
+  if (plan.result?.answer) lines.push(`### Chosen answer (${plan.result.from?.label ?? '?'})`, '', plan.result.answer, '');
+  if (plan.result?.notes) lines.push('### Notes', '', plan.result.notes, '');
+  lines.push('## Steps', '');
+  for (const s of plan.steps) {
+    lines.push(`### ${s.label} — ${s.role} — ${s.state}${Number.isFinite(s.answerMs) ? ` (${fmtMs(s.answerMs)})` : ''}`, '',
+      s.state === 'ready' ? (s.answer || '(empty answer)') : (s.message || s.state), '');
+  }
+  writeFileSync(file, lines.join('\n'));
+  return file;
+}
+async function runPattern(ctx, { request, pattern, question, sites, role, rawQuestion, diffRange, filePaths }) {
+  const options = patternOptions(ctx.flags);
+  const mustWait = !!ctx.flags.wait || !!ctx.flags.save;
+  const started = await request('POST', '/orchestrate', { pattern, question, sites, options });
+  let plan = started.plan;
+  if (!mustWait) {
+    ctx.out.emit(started, () => ctx.out.info(`${plan.title} started (id ${plan.id}). Run the exact same "studio ask" command with --wait to follow it; it will not ask again.`));
+    return;
+  }
+  const waitSeconds = Number.isSafeInteger(ctx.flags['wait-timeout']) ? ctx.flags['wait-timeout'] : 900;
+  const deadline = Date.now() + Math.max(1, waitSeconds) * 1000;
+  const sleep = (ms) => new Promise((resolve) => { setTimeout(resolve, ms); });
+  const shown = new Set(); // events are a capped rolling log; print each one once
+  for (;;) {
+    for (const e of plan.events ?? []) {
+      const id = e.at + '|' + (e.step ?? '') + '|' + e.text;
+      if (!shown.has(id)) { shown.add(id); ctx.out.info(e.text); }
+    }
+    if (TERMINAL_JOB_STATES.has(plan.state)) break;
+    if (Date.now() >= deadline) {
+      ctx.out.info('Still waiting after ' + fmtMs(waitSeconds * 1000) + '. Nothing was sent twice; run the same "studio ask ... --wait" again to keep checking.');
+      process.exitCode = EXIT.ENVIRONMENT;
+      break;
+    }
+    await sleep(2000);
+    plan = (await request('GET', '/orchestrate/' + encodeURIComponent(plan.id))).plan;
+  }
+  ctx.out.emit({ plan }, () => printPlan(ctx, plan));
+  if (plan.state === 'failed') process.exitCode = EXIT.ENVIRONMENT;
+  if (ctx.flags.save) {
+    if (!TERMINAL_JOB_STATES.has(plan.state)) ctx.out.warn('Not saved: still waiting. Run the exact same command again with --save once it finishes; it will not ask twice.');
+    else ctx.out.info('Saved to ' + savePlanResult({ role, rawQuestion, diffRange, filePaths, plan }));
+  }
+}
+
 export async function runAsk(ctx, dependencies = {}) {
   const role = ctx.flags.role ?? null;
   const diffRange = typeof ctx.flags.diff === 'string' && ctx.flags.diff ? ctx.flags.diff : null;
@@ -131,8 +212,10 @@ export async function runAsk(ctx, dependencies = {}) {
   const printPrompt = !!ctx.flags['print-prompt'];
   const autoN = ctx.flags.auto;
 
+  const pattern = ctx.flags.pattern ?? null;
+  const autoPattern = pattern === 'auto';
   if (ctx.args.length && autoN !== undefined) throw usageError('Give site names OR --auto N, not both.');
-  if (!ctx.args.length && autoN === undefined) throw usageError('Usage: studio ask <site...|--auto N> --question "..." [--role reviewer|implementer|explainer|copywriter] [--diff REV-RANGE] [--files a,b] [--wait] [--save] [--print-prompt]', 'Example: studio ask chatgpt claude --question "What is a monorepo?" --wait');
+  if (!ctx.args.length && autoN === undefined && !autoPattern) throw usageError('Usage: studio ask <site...|--auto N|--pattern auto> --question "..." [--pattern NAME] [--role reviewer|implementer|explainer|copywriter] [--diff REV-RANGE] [--files a,b] [--wait] [--save] [--print-prompt]', 'Example: studio ask chatgpt claude --question "What is a monorepo?" --wait');
   if (autoN !== undefined && (!Number.isSafeInteger(autoN) || autoN < 1 || autoN > KNOWN_SITES.length)) throw usageError(`--auto must be an integer 1-${KNOWN_SITES.length}.`);
 
   let diffText = '';
@@ -155,10 +238,21 @@ export async function runAsk(ctx, dependencies = {}) {
     for (const w of built.warnings) ctx.out.warn(w);
   }
 
+  if (pattern === null && (ctx.flags.by !== undefined || ctx.flags.rounds !== undefined || ctx.flags['hedge-after'] !== undefined)) throw usageError('--by, --rounds and --hedge-after need --pattern.');
+  if (pattern === 'auto' && (ctx.args.length || autoN !== undefined)) throw usageError('--pattern auto picks the AIs itself; drop the site names and --auto (or name a pattern to choose them yourself).');
+  // Offline validation of the pattern + sites (same builder Studio uses), before anything is posted.
+  const checkPattern = (sites) => {
+    if (pattern === 'auto') return null; // the chooser runs inside Studio, on real signed-in evidence
+    try { return buildPlanSpec({ pattern, question, sites, options: patternOptions(ctx.flags) }); }
+    catch (e) { throw usageError(e.message, `Pattern "${pattern}": ${PATTERNS[pattern]?.summary ?? ''} AIs: ${PATTERNS[pattern]?.sites ?? '?'}.`); }
+  };
+
   if (printPrompt) {
-    ctx.out.emit({ role, sites: autoN !== undefined ? `auto:${autoN}` : ctx.args, prompt: question }, (o) => {
+    const plan = pattern && autoN === undefined ? checkPattern(ctx.args) : null;
+    ctx.out.emit({ role, pattern, sites: autoN !== undefined ? `auto:${autoN}` : ctx.args, prompt: question, ...(plan ? { steps: plan.steps.map((s) => ({ id: s.id, site: s.site, role: s.role, after: s.after })) } : {}) }, (o) => {
       o.heading(`Built prompt${role ? ` (role: ${role})` : ''}:`);
       o.result(question);
+      if (plan) { o.line(''); o.line(`${PATTERNS[pattern].title} — steps:`); for (const s of plan.steps) o.line(`  ${s.id}  ${s.label} · ${s.role}${s.after.length ? ' (after ' + s.after.join(', ') + ')' : ''}`); }
       if (autoN !== undefined) o.line(o.c.dim(`Sites would be auto-selected (top ${autoN} by saved performance) when actually asked; not resolved in --print-prompt.`));
     });
     return;
@@ -166,6 +260,10 @@ export async function runAsk(ctx, dependencies = {}) {
 
   const request = (...a) => (dependencies.request ?? callStudio)(ctx, ...a);
   const sites = autoN !== undefined ? await autoSites(request, autoN) : ctx.args;
+  if (pattern) {
+    checkPattern(sites);
+    return runPattern(ctx, { request, pattern, question, sites, role, rawQuestion, diffRange, filePaths });
+  }
   const mustWait = !!ctx.flags.wait || !!ctx.flags.save;
 
   const started = await request('POST', '/compare', { question, sites });
@@ -210,9 +308,9 @@ export async function runAsk(ctx, dependencies = {}) {
 }
 
 define({
-  name: 'ask', section: 'Knowledge', usage: '<site...|--auto N> --question "..." [--role R] [--diff REV-RANGE] [--files a,b] [--wait] [--save] [--print-prompt]',
+  name: 'ask', section: 'Knowledge', usage: '<site...|--auto N> --question "..." [--pattern NAME [--by SITE] [--rounds N] [--hedge-after S]] [--role R] [--diff REV-RANGE] [--files a,b] [--wait] [--save] [--print-prompt]',
   summary: 'Ask one or more of your own signed-in AI accounts a question — plain, or as a bounded developer-role prompt with diff/file context',
-  description: 'Posts to the existing /api/v1/compare route on an already-running Studio: each listed site (or the --auto N healthiest/fastest sites, from "studio providers performance") is one real question to that AI account, through the ONE shared browser/runtime owner. --role builds a bounded, role-specific prompt (src/studio/ask-prompts.mjs) with an explicit output format; --diff/--files attach capped, read-only local context and refuse secret-looking paths outright. --wait polls the SAME job id (never a second send) and prints each answer as it arrives, with plain-language progress ("Waiting for Claude…"). --save (implies --wait) writes the question, each answer, its time-to-answer and state to docs/session/ai-work/<timestamp>-<role>.md, never the diff/file content. --print-prompt prints the built prompt and exits without posting anything — a fully offline dry run. Without --wait/--save, prints the started job and its id; re-running the exact same command later (with --wait) reattaches to that same job instead of asking again.',
+  description: 'Posts to the existing /api/v1/compare route on an already-running Studio: each listed site (or the --auto N healthiest/fastest sites, from "studio providers performance") is one real question to that AI account, through the ONE shared browser/runtime owner. --role builds a bounded, role-specific prompt (src/studio/ask-prompts.mjs) with an explicit output format; --diff/--files attach capped, read-only local context and refuse secret-looking paths outright. --wait polls the SAME job id (never a second send) and prints each answer as it arrives, with plain-language progress ("Waiting for Claude…"). --save (implies --wait) writes the question, each answer, its time-to-answer and state to docs/session/ai-work/<timestamp>-<role>.md, never the diff/file content. --print-prompt prints the built prompt and exits without posting anything — a fully offline dry run. Without --wait/--save, prints the started job and its id; re-running the exact same command later (with --wait) reattaches to that same job instead of asking again. With --pattern NAME it posts to /api/v1/orchestrate instead (the central multi-AI orchestrator: race, fallback, hedge, council, judge, relay, critique, verify, fanout, single), prints plain-language progress and the chosen answer; the same no-resend and reattach rules apply.',
   flags: {
     'studio-port': { type: 'number', valueName: 'PORT', desc: 'Existing Studio HTTP port (default configured port)' },
     timeout: { type: 'number', valueName: 'SECONDS', default: 15, desc: 'Per-HTTP-request deadline, 1-60 seconds; never retries' },
@@ -225,7 +323,12 @@ define({
     save: { type: 'boolean', desc: 'After it finishes, save the question, each answer, time-to-answer and state to docs/session/ai-work/ (implies --wait; never saves diff/file content)' },
     'print-prompt': { type: 'boolean', desc: 'Print the built prompt and exit; never posts anything (offline dry run)' },
     wait: { type: 'boolean', desc: 'Poll until every site answers, fails, or is skipped, then print the answers' },
-    'wait-timeout': { type: 'number', valueName: 'SECONDS', default: 900, desc: 'How long this CLI command polls before giving up locally (the job itself keeps running on Studio)' } },
+    'wait-timeout': { type: 'number', valueName: 'SECONDS', default: 900, desc: 'How long this CLI command polls before giving up locally (the job itself keeps running on Studio)' },
+    pattern: { type: 'string', choices: PATTERN_NAMES, valueName: 'NAME', desc: 'Ask through the multi-AI orchestrator: single, fanout, race (first good answer), fallback (next AI only if one fails), hedge (second AI if the first is slow), council (combine), judge (pick best), relay (each improves), critique (review + improve), verify (double-check)' },
+    by: { type: 'string', valueName: 'SITE', desc: 'With --pattern council|judge: the AI that combines or judges (default: the first listed)' },
+    rounds: { type: 'number', valueName: 'N', desc: 'With --pattern critique: review rounds, 1-3 (default 1)' },
+    'hedge-after': { type: 'number', valueName: 'SECONDS', desc: 'With --pattern hedge: ask the second AI if the first has not answered after this long (default 90)' },
+    'deadline-minutes': { type: 'number', valueName: 'MIN', desc: 'With --pattern: overall time limit on Studio, 1-120 (default 20); stops waiting, never resends' } },
   examples: [
     'studio ask chatgpt --question "Summarize the CAP theorem in 3 sentences." --wait',
     'studio ask chatgpt claude zai qwen --question "Which of you can read local files?" --wait --json',
@@ -233,6 +336,10 @@ define({
     'studio ask chatgpt claude --role reviewer --diff HEAD~1..HEAD --question "Focus on error handling." --wait',
     'studio ask --auto 2 --role implementer --files bin/commands/ask.mjs --question "Add a --dry-run flag." --wait --save',
     'studio ask claude --role copywriter --question "Write the empty-state message for the Ask screen." --print-prompt',
+    'studio ask chatgpt claude zai --pattern council --by claude --question "Best way to back up a Windows PC?" --wait',
+    'studio ask chatgpt claude qwen --pattern race --question "Capital of Australia?" --wait',
+    'studio ask chatgpt claude zai --pattern fallback --question "Explain HTTP/3 in two sentences." --wait',
+    'studio ask chatgpt claude --pattern relay --question "Draft a short welcome email." --wait',
   ],
   run: runAsk,
 });
