@@ -35,3 +35,4 @@ Assume a future where the **only AI available is the user's own web AI accounts*
 
 ## Done means
 Each objective area has a live-observed outcome on the owner's real accounts and devices, recorded with evidence.
+11. **Subagent output style.** Every subagent prompt must carry the ultracave instruction: terse fragments, payload only, no preamble or restating, and code, paths, commands and error strings kept verbatim. Applies to progress notes and final reports.
