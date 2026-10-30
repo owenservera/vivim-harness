@@ -926,8 +926,10 @@ body.vivim-app {
         <p><b id="uncertainHead">We can’t confirm your message was sent. Studio will not send it again.</b></p>
         <ul class="plain" id="uncertainLines"></ul>
         <p id="chromeGuide">Open the tab in Chrome to see whether it was sent.</p>
+        <p class="note" id="autoCheckNote" role="status" style="margin-top:6px"></p>
         <div class="row">
           <button type="button" class="primary" id="btnReconcile">Check again (read-only)</button>
+          <a class="hit" id="openChatTab" hidden></a>
           <button type="button" id="btnSendAgain" hidden>Send again</button>
         </div>
         <p class="note" style="margin:6px 0 0">Checking again only reads the page. It never types or presses Send.</p>
@@ -935,6 +937,11 @@ body.vivim-app {
       </div>
 
       <p class="note" id="checkedNote"></p>
+
+      <div class="banner bad" id="blockedNotice" hidden>
+        <p><b id="blockedHead">Your message wasn’t sent. You can send it again.</b></p>
+        <p class="note" id="blockedNote"></p>
+      </div>
 
       <div class="banner" id="readyPanel" hidden>
         <p><b id="readyHead">Resolve draft in Chrome</b></p>
@@ -976,6 +983,7 @@ body.vivim-app {
           <div class="chips srcline" id="replyChips"></div>
           <p class="note" id="replyCount"></p>
           <p id="replyPartial" hidden></p>
+          <p id="replyStream" class="note"></p>
           <p class="note" id="replyTrunc"></p>
         </article>
       </div>

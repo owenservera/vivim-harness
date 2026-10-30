@@ -10,7 +10,7 @@ const RAW_KEY = 'capture-studio.chat.plain-reply';
 /* ---------------- pure helpers (no DOM, no network) ---------------- */
 const CONVERSATION_STATES = {
   disconnected: ['Disconnected', 't-mute'], attaching: ['Connecting…', 't-live'], ready: ['Ready', 't-info'],
-  busy: ['Busy', 't-live'], blocked: ['Blocked', 't-warn'], 'needs-reconciliation': ['Needs checking', 't-warn'],
+  busy: ['Busy', 't-live'], blocked: ['Not sent', 't-warn'], 'needs-reconciliation': ['Checking', 't-warn'],
   finalizing: ['Finishing…', 't-warn'], closed: ['Closed', 't-mute'],
 };
 const SEND_STATES = {
@@ -18,8 +18,8 @@ const SEND_STATES = {
   observed: ['Send observed', 't-info'], uncertain: ['Send not confirmed', 't-warn'],
 };
 const REPLY_STATES = {
-  waiting: ['Waiting for reply', 't-mute'], streaming: ['Reply streaming', 't-live'], ready: ['Reply ready', 't-info'],
-  interrupted: ['Reply interrupted', 't-warn'], unknown: ['Reply state unknown', 't-warn'],
+  waiting: ['Waiting for the answer', 't-mute'], streaming: ['Answering…', 't-live'], ready: ['Answer ready', 't-info'],
+  interrupted: ['Answer stopped early', 't-warn'], unknown: ['Answer not confirmed', 't-warn'],
 };
 const CAPTURE_STATES = {
   recording: ['Recording', 't-rec'], idle: ['Not recording', 't-mute'], finalizing: ['Finishing capture…', 't-warn'], accepted: ['Capture accepted', 't-ok'],
@@ -68,6 +68,7 @@ const ERROR_TEXT = {
   ONE_TURN_LIMIT: 'This release sends one message per conversation.',
   THREAD_FENCED: 'The previous turn in this chat isn’t complete or confirmed yet, so Studio won’t send another. Nothing was sent.',
   PRIOR_TURN_CAPTURE_NOT_FINALIZED: 'The previous turn’s recording isn’t finished, so Studio won’t start the next turn. Nothing was sent.',
+  PRIOR_REPLY_OBSERVER_PENDING: 'Still finishing the last answer — try again in a moment.',
   THREAD_CHANGED_BETWEEN_TURNS: 'This chat changed since the last turn (an earlier message was edited, removed or regenerated). Nothing was sent.',
   NOT_READY: 'Studio isn’t ready to send. Use Check again (read-only) first.',
   CONFIRM_REQUIRED: 'Sending needs your explicit confirmation.',
@@ -202,27 +203,75 @@ export function draftInfo(snap) {
   return { present: typeof reason === 'string' && /draft/i.test(reason), unknown: true, chars: null };
 }
 export const isUncertain = (snap) => snap?.turn?.send?.state === 'uncertain' || snap?.state === 'needs-reconciliation';
+// The site's own name, as a person writes it ("Claude", "ChatGPT"). Never a raw id in a sentence.
+export const providerName = (site) => { const s = siteName(site); return s ? s.charAt(0).toUpperCase() + s.slice(1) : 'your AI'; };
+// The tab this conversation is on, when the service reported a usable address. Only http(s) is ever linked.
+export function tabHref(snap) { return safeHref(snap?.binding?.url ?? snap?.binding?.origin ?? ''); }
 // pending=true: the send request got no usable answer (network loss, 5xx, unreadable reply), so no turn is known yet.
-export function uncertainView(snap, { pending = false, detail = '' } = {}) {
-  const sendUnsure = snap?.turn?.send?.state === 'uncertain' || snap?.diagnostic?.uncertainty === 'send-acknowledgement-lost';
+// `checks`/`maxChecks` are the automatic read-only checks already made; the copy says what happens next in words.
+export function uncertainView(snap, { pending = false, detail = '', checks = 0, maxChecks = 3 } = {}) {
+  const who = providerName(snap?.site);
+  const sendUnsure = pending || snap?.turn?.send?.state === 'uncertain' || snap?.diagnostic?.uncertainty === 'send-acknowledgement-lost';
   const lines = [uncertaintyText(snap?.diagnostic?.uncertainty), finishErrorText(snap?.diagnostic?.finishError), reasonText(snap?.turn?.reason)].filter(Boolean);
-  if (pending) {
-    lines.unshift('No confirmation came back for the send request.' + (detail ? ' ' + detail : ''),
-      'Send again submits your message as a new one, so it can appear twice if the first one went through.');
-    return { headline: 'We can’t confirm your message was sent. Studio will not send it again.', lines: [...new Set(lines)] };
-  }
+  if (pending) lines.unshift('No confirmation came back for the send request.' + (detail ? ' ' + detail : ''));
+  const note = checks >= maxChecks
+    ? 'Studio checked a few times and still can’t tell whether it arrived. Check again, or open the tab and look for yourself. Nothing was sent twice.'
+    : checks > 0
+      ? 'Studio is still checking the chat tab. It only reads the page; it never types or sends again.'
+      : 'Studio will check the chat tab a few times by itself. It only reads the page; it never types or sends again.';
   return {
     headline: sendUnsure
-      ? 'We can’t confirm your message was sent. Studio will not send it again.'
-      : 'Studio needs you to check this conversation. Studio will not send anything by itself.',
-    lines: [...new Set(lines)],
+      ? 'We’re not sure your message reached ' + who + '. Checking — we won’t send it twice.'
+      : 'Studio needs to check this conversation before it can go on. It won’t send anything by itself.',
+    lines: [...new Set(lines)], note,
   };
 }
-// Plain guidance beside the uncertain banner. It is text, not a control: Studio cannot switch tabs yet.
+// Plain guidance beside the uncertain banner, with the tab it is talking about.
 export function chromeGuidance(snap, sendUnsure) {
   const tab = snap?.binding?.title || (snap?.binding?.url ? shortUrl(snap.binding.url) : '');
-  const where = tab ? ' It’s the tab “' + tab + '”. Studio can’t switch to it for you yet.' : '';
-  return (sendUnsure ? 'Open the tab in Chrome to see whether it was sent.' : 'Switch to the Chrome tab for this conversation and look at the chat.') + where;
+  const where = tab ? ' It’s the tab “' + tab + '”.' : '';
+  const how = tabHref(snap) ? ' Use the button above, or switch to it in Chrome.' : ' Switch to it in Chrome.';
+  return (sendUnsure ? 'Look at the tab in Chrome to see whether it was sent.' : 'Look at the chat in the Chrome tab.') + where + how;
+}
+// A turn the service proved was rejected before anything was typed. Nothing was sent, so the same text may be
+// sent again as a NEW message, and only when the person presses Send themselves.
+const blockedTurns = (snap) => turnsOf(snap).filter(turnBlockedBeforeTyping);
+export function sendStateView(snap) {
+  const off = { show: false, head: '', note: '', resend: false };
+  if (!snap) return off;
+  if (snap.state === 'needs-reconciliation' || snap.turn?.send?.state === 'uncertain' || hasUncertainTurn(snap)) return off;
+  const blocked = blockedTurns(snap);
+  if (!blocked.length && !(snap.state === 'blocked' && turnCount(snap) > 0)) return off;
+  const reason = reasonText(blocked.at(-1)?.reason);
+  return {
+    show: true, resend: true,
+    head: 'Your message wasn’t sent. You can send it again.',
+    note: [reason, 'Nothing was typed into the chat. Your text is still in the box below; pressing Send sends it as a new message.'].filter(Boolean).join(' '),
+  };
+}
+// The answer itself: still arriving, finished, or stopped with whatever arrived. Studio never guesses which.
+const replyStopped = (snap) => snap?.reply?.state === 'interrupted' || ['closed', 'finalizing', 'needs-reconciliation'].includes(snap?.state);
+export function replyStateView(snap) {
+  const off = { show: false, kind: null, head: '', note: '', recheck: false };
+  if (!snap || !messageStarted(snap) || !snap.reply) return off;
+  const r = snap.reply, who = providerName(snap.site), text = typeof r.text === 'string' ? r.text : '';
+  if (r.settled === true) return off;
+  if (r.verified === true && r.state === 'ready') return off; // older snapshots have no settled flag
+  if (r.state === 'unknown' || r.state === 'interrupted' || (r.partial === true && replyStopped(snap))) {
+    return {
+      show: true, kind: 'partial', recheck: true,
+      head: who + ' stopped before finishing. Here’s what arrived.',
+      note: (text ? 'This is the text that came through. ' : 'No text came through. ') + 'Studio couldn’t confirm the answer was complete.',
+    };
+  }
+  if (r.state === 'waiting' || r.state === 'streaming') {
+    return {
+      show: true, kind: 'streaming', recheck: false,
+      head: who + ' is answering…',
+      note: text ? 'Shown so far: ' + text.length + (text.length === 1 ? ' character' : ' characters') + '. It can still change.' : 'Nothing has arrived yet.',
+    };
+  }
+  return off;
 }
 export function readinessChip(snap) {
   if (!snap || snap.state === 'closed' || turnInFlight(snap)) return null;
@@ -322,6 +371,8 @@ export function ownedByStudio(snap) {
   return b.ownedByStudio === true || b.freshTab === true || b.owner === 'studio';
 }
 export const canCloseTab = (snap) => ownedByStudio(snap) && !isUncertain(snap) && !snap?.diagnostic?.uncertainty;
+// Read-only automatic checks after an unknown send: bounded and spaced out. They only read the page.
+export const AUTO_CHECK_DELAYS = Object.freeze([2000, 5000, 12000]);
 export function pollDelay(snap, { hidden = false, failures = 0 } = {}) {
   if (!snap) return null;
   if (snap.state === 'closed' && snap.capture?.state !== 'finalizing') return null;
@@ -757,7 +808,7 @@ const SOURCE_TONES = { network: 't-info', page: 't-mute', differ: 't-warn', cand
 export const sourceChip = (source) => [sourceLabel(source), SOURCE_TONES[source] ?? 't-warn'];
 export const completionKnown = (c) => !(c == null || c === '' || c === 'unknown');
 export const completionChip = (c) => (completionKnown(c) ? ['Network completion: ' + word(c), 't-info'] : ['Network completion: unknown', 't-warn']);
-export const PARTIAL_TEXT = 'Text may be partial. Finish capture to keep what was recorded.';
+export const PARTIAL_TEXT = 'This answer may be incomplete. Studio couldn’t confirm that the site finished it.';
 export const replyMayBePartial = (reply) => ['interrupted', 'unknown'].includes(reply?.state);
 export function ago(ms) { const s = Math.max(0, Math.floor(ms / 1000)); return s < 2 ? 'just now' : s < 60 ? s + 's ago' : Math.floor(s / 60) + ' min ago'; }
 export function replyCountText(chars, ageMs = null) {
@@ -782,8 +833,8 @@ export function stageInfo(snap, { pending = false, submitting = false } = {}) {
   if (messageStarted(snap)) {
     const r = snap.reply?.state;
     if (r === 'ready' && turnSettled(snap.turn) && canSend(snap, { prompt: 'x' }).ok) return at(3, 'Turn ' + turnCount(snap) + ' complete. Write your next message');
-    if (r === 'ready') return at(5, snap.capture?.state === 'recording' ? 'Reply ready. Still recording' : 'Reply ready');
-    return at(4, { waiting: 'Waiting for the reply', streaming: 'Reply streaming', interrupted: 'Reply interrupted' }[r] ?? 'Reply state unknown');
+    if (r === 'ready') return at(5, snap.capture?.state === 'recording' ? 'Answer ready. Still recording' : 'Answer ready');
+    return at(4, { waiting: 'Waiting for the answer', streaming: providerName(snap.site) + ' is answering', interrupted: 'The answer stopped early' }[r] ?? 'Answer not confirmed yet');
   }
   if (snap.state === 'needs-reconciliation') return at(2, 'Needs checking');
   return canSend(snap, { prompt: 'x' }).ok ? at(3, 'Write your message') : at(2, 'Chat box not ready');
@@ -1084,6 +1135,8 @@ function boot() {
     // Opt-in live reply stream (SSE). The poll loop stays the owner of state; events only make
     // streaming text and state changes appear sooner. Never sends, never replays actions.
     stream: null, streamTimer: null,
+    // Read-only automatic checks after an unknown send. Bounded, backed off, never a send.
+    autoTimer: null, autoCheck: { id: '', tries: 0 },
   };
 
   /* ---- api ---- */
@@ -1195,6 +1248,22 @@ function boot() {
     S.timer = setTimeout(() => { if (S.snap?.id === id) refresh(id); }, delay);
   }
   function showProblem(text) { const p = $('#problem'); p.textContent = text; p.hidden = !text; }
+  // After an unknown send Studio checks a few times by itself: read-only, spaced out, then it stops and leaves the
+  // buttons to the person. It never re-posts the message and never types into the chat.
+  function maybeAutoCheck(snap, active) {
+    if (!active || !snap) {
+      clearTimeout(S.autoTimer); S.autoTimer = null; S.autoCheck = { id: '', tries: 0 }; return;
+    }
+    if (S.autoCheck.id !== snap.id) S.autoCheck = { id: snap.id, tries: 0 };
+    if (S.working || S.submitting || S.autoTimer || S.autoCheck.tries >= AUTO_CHECK_DELAYS.length) return;
+    const delay = AUTO_CHECK_DELAYS[S.autoCheck.tries];
+    S.autoTimer = setTimeout(() => {
+      S.autoTimer = null;
+      if (!stillOn(snap.id) || !S.snap) return;
+      S.autoCheck = { id: snap.id, tries: S.autoCheck.tries + 1 };
+      reconcile('#reconcileError');
+    }, delay);
+  }
 
   /* ---- live reply stream (opt-in SSE; poll loop remains the owner of state) ---- */
   function closeStream() {
@@ -1610,6 +1679,12 @@ function boot() {
     $('#replyPartial').hidden = !partial; setText($('#replyPartial'), partial ? PARTIAL_TEXT : '');
     optText('#replyTrunc', Number.isFinite(total) && total > shown && blocks.some((b) => b.kind === 'answer' && b.text != null)
       ? 'Showing ' + shown + ' of ' + total + ' characters. The full text is in the saved session.' : '');
+    const rs = replyStateView(snap);
+    const rn = $('#replyStream');
+    if (rs.show) {
+      rn.hidden = false; rn.className = 'note ' + (rs.kind === 'streaming' ? 't-live' : 't-warn');
+      setText(rn, rs.head + (rs.note ? ' ' + rs.note : ''));
+    } else { rn.hidden = true; setText(rn, ''); }
   }
   function renderBanners(snap) {
     // One banner for both kinds of "not sure it was sent": the service says so, or our own send request got no answer.
@@ -1619,19 +1694,30 @@ function boot() {
     banner.hidden = !unc;
     if (unc) {
       const sendUnsure = pend || snap.turn?.send?.state === 'uncertain' || snap.diagnostic?.uncertainty === 'send-acknowledgement-lost';
-      const v = uncertainView(snap, { pending: pend && !server, detail: S.unknownDetail });
+      const v = uncertainView(snap, { pending: pend && !server, detail: S.unknownDetail, checks: S.autoCheck.tries, maxChecks: AUTO_CHECK_DELAYS.length });
       setText($('#uncertainHead'), v.headline);
       syncList($('#uncertainLines'), v.lines);
       setText($('#chromeGuide'), chromeGuidance(snap, sendUnsure));
+      setText($('#autoCheckNote'), v.note);
+      // A tab link is offered as an address only; Studio never opens, switches or navigates anything by itself.
+      const href = tabHref(snap), link = $('#openChatTab');
+      link.hidden = !href;
+      if (href) { link.href = href; setText(link, 'Open the ' + providerName(snap.site) + ' tab'); }
+      setText($('#btnReconcile'), S.working ? 'Checking…' : 'Check again (read-only)');
     }
     $('#btnReconcile').disabled = S.working;
     // Send again exists only for our own unanswered request. A service-side uncertain turn is never re-sent.
     $('#btnSendAgain').hidden = !(pend && !server); $('#btnSendAgain').disabled = S.working || S.submitting;
     setText($('#checkedNote'), S.checkedNote);
+    // A proven pre-typing rejection: nothing was sent, so the same text may be sent again by the person.
+    const bv = sendStateView(snap);
+    $('#blockedNotice').hidden = !bv.show;
+    if (bv.show) { setText($('#blockedHead'), bv.head); setText($('#blockedNote'), bv.note); }
     // The banner takes focus once per transition, not on every poll.
     const focusKey = unc ? snap.id + ':' + (pend ? 'pending:' + S.pending.key : snap.turn?.id ?? '') : '';
     if (unc && S.bannerFocus !== focusKey) { S.bannerFocus = focusKey; banner.focus(); }
     if (!unc) S.bannerFocus = '';
+    maybeAutoCheck(snap, unc);
     // Readiness: why sending is off, with a read-only Check again even when no message exists.
     const rp = readinessPanel(snap);
     $('#readyPanel').hidden = !rp.show || pend;
@@ -1746,7 +1832,7 @@ function boot() {
     ul.replaceChildren(...shown.map((c) => {
       const row = historyRow(c), [label, tone] = row.chip;
       const b = el('button', { type: 'button', onclick: () => openConversation(c.id) }, [
-        el('span', { class: 'conv-title', text: row.title }), el('span', { class: 'pill ' + (row.attention ? 't-warn' : tone), text: row.attention && label !== 'Needs checking' ? label + ' · needs checking' : label }),
+        el('span', { class: 'conv-title', text: row.title }), el('span', { class: 'pill ' + (row.attention ? 't-warn' : tone), text: row.attention && c.state !== 'needs-reconciliation' ? label + ' · needs checking' : label }),
         row.meta ? el('span', { class: 'note conv-meta', text: row.meta }) : null]);
       if (S.snap?.id === c.id) b.setAttribute('aria-current', 'true');
       return el('li', {}, [b]);
