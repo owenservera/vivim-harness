@@ -10,7 +10,7 @@ const MAX_JOBS = 200; // latest N files per job directory, by last-modified time
 const LABELS = { chatgpt: 'ChatGPT', claude: 'Claude', zai: 'Z.ai', qwen: 'Qwen', deepseek: 'DeepSeek', gemini: 'Gemini' };
 const labelOf = (site) => LABELS[site] ?? (typeof site === 'string' && site ? site[0].toUpperCase() + site.slice(1) : 'Unknown');
 // Codes that mean "we could not prove what happened", as distinct from a plain failure.
-const UNCERTAIN_CODES = new Set(['DELIVERY_UNCONFIRMED', 'TURN_NOT_FOUND', 'CREATION_UNPINNED', 'RESUMED_UNFINISHED', 'REPLY_INTERRUPTED']);
+const UNCERTAIN_CODES = new Set(['DELIVERY_UNCONFIRMED', 'TURN_NOT_FOUND', 'CREATION_UNPINNED', 'RESUMED_UNFINISHED', 'REPLY_INTERRUPTED', 'REPLY_TIMEOUT', 'INTERRUPTED']);
 
 async function latestJsonNames(directory) {
   let names;
@@ -30,19 +30,26 @@ function bucket(map, site) {
   return map.get(site);
 }
 // Keep the most RECENT error only (by the job's own updatedAt), so an old failure never hides a fix.
+// A message that is itself a bare CODE is not plain language: store null and let the caller de-code it.
 function noteError(entry, code, message, at) {
   if (typeof at !== 'string') return;
-  if (!entry.lastError || !(entry.lastError.at > at)) entry.lastError = { code: code ?? null, message: message || null, at };
+  const text = typeof message === 'string' ? message.trim() : '';
+  const plain = text && !/^[A-Z][A-Z0-9_]{2,79}$/.test(text) ? text : null;
+  if (!entry.lastError || !(entry.lastError.at > at)) entry.lastError = { code: code ?? null, message: plain, at };
 }
 function msBetween(startIso, endIso) {
   const start = Date.parse(startIso ?? ''), end = Date.parse(endIso ?? '');
   if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) return null;
   return end - start;
 }
+// Linear-interpolated percentile over an ascending array: p50 of two samples is their mean, and p90
+// of a handful of samples sits between the slowest two instead of snapping to the slowest one.
 function percentile(sortedAsc, p) {
   if (!sortedAsc.length) return null;
-  const idx = Math.min(sortedAsc.length - 1, Math.max(0, Math.ceil((p / 100) * sortedAsc.length) - 1));
-  return Math.round(sortedAsc[idx]);
+  const pos = (sortedAsc.length - 1) * (p / 100);
+  const lo = Math.floor(pos), hi = Math.ceil(pos);
+  const value = lo === hi ? sortedAsc[lo] : sortedAsc[lo] + (sortedAsc[hi] - sortedAsc[lo]) * (pos - lo);
+  return Math.round(value);
 }
 
 // compare-jobs/*.json — src/studio/compare-service.mjs. One entry per provider PER result, since one
@@ -57,7 +64,9 @@ function foldCompareJob(job, map) {
     entry.jobs++;
     if (result.state === 'ready') {
       entry.completed++;
-      const ms = msBetween(result.startedAt ?? job.createdAt, result.answeredAt ?? job.updatedAt);
+      // Asked-at → answered-at only. Never the job's createdAt/updatedAt: after the fan-out those
+      // include time spent queueing behind other sites, which is not this provider's answer time.
+      const ms = msBetween(result.startedAt ?? result.submittedAt, result.answeredAt);
       if (ms !== null) entry.times.push(ms);
     } else if (result.state === 'skipped') {
       entry.skipped++;
@@ -88,21 +97,58 @@ function foldAiDesignJob(job, map) {
   // queued/asking/waiting-reply/discarded: not a finished observation either way.
 }
 
+// orchestrate-plans/*.json — src/studio/ai-orchestrator.mjs. One entry per SENT step (any pattern).
+// Time is submit → answer, so waiting in the shared browser queue is not blamed on the provider.
+// Steps never sent (not needed, race already won, cancelled) and race losers are not observations.
+function foldOrchestratePlan(plan, map) {
+  if (!plan || plan.schema !== 'vivim.orchestrate/1' || !Array.isArray(plan.steps)) return;
+  for (const step of plan.steps) {
+    if (typeof step?.site !== 'string' || !step.site) continue;
+    if (step.state === 'ready') {
+      const entry = bucket(map, step.site); entry.jobs++; entry.completed++;
+      const ms = msBetween(step.submittedAt, step.answeredAt);
+      if (ms !== null) entry.times.push(ms);
+    } else if (step.state === 'skipped' && step.reason === 'SIGNED_OUT') {
+      const entry = bucket(map, step.site); entry.jobs++; entry.skipped++;
+      noteError(entry, 'SIGNED_OUT', step.message, plan.updatedAt);
+    } else if (step.state === 'failed') {
+      const entry = bucket(map, step.site); entry.jobs++; entry.failed++;
+      if (UNCERTAIN_CODES.has(step.reason)) entry.uncertain++;
+      noteError(entry, step.reason, step.message, plan.updatedAt);
+    }
+  }
+}
+
+// Bounded fan-out: at most `limit` files in flight, so 600 candidate names never mean 600 open
+// handles at once on Windows. Results keep input order; a thrown read is impossible (readJsonSafe).
+async function mapBounded(items, limit, fn) {
+  let next = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (next < items.length) { const index = next++; await fn(items[index], index); }
+  });
+  await Promise.all(workers);
+}
+
 // @serves provider-performance
 export async function readProviderPerformance({ paths } = {}) {
   if (!paths?.root || typeof paths.root !== 'string') throw new TypeError('paths.root is required');
   const compareDir = path.join(paths.root, 'compare-jobs');
   const aiDesignDir = path.join(paths.root, 'personal-app-ai-jobs');
-  const [compareNames, aiDesignNames] = await Promise.all([latestJsonNames(compareDir), latestJsonNames(aiDesignDir)]);
+  const orchestrateDir = path.join(paths.root, 'orchestrate-plans');
+  const [compareNames, aiDesignNames, orchestrateNames] = await Promise.all([latestJsonNames(compareDir), latestJsonNames(aiDesignDir), latestJsonNames(orchestrateDir)]);
   const map = new Map();
-  await Promise.all([
-    ...compareNames.map(async (name) => foldCompareJob(await readJsonSafe(path.join(compareDir, name)), map)),
-    ...aiDesignNames.map(async (name) => foldAiDesignJob(await readJsonSafe(path.join(aiDesignDir, name)), map)),
-  ]);
-  const providers = [...map.values()].map(({ times, ...entry }) => ({ ...entry,
-    medianMs: percentile([...times].sort((a, b) => a - b), 50), p90Ms: percentile([...times].sort((a, b) => a - b), 90) }))
-    .sort((a, b) => a.site.localeCompare(b.site));
+  const tasks = [
+    ...compareNames.map((name) => [path.join(compareDir, name), foldCompareJob]),
+    ...aiDesignNames.map((name) => [path.join(aiDesignDir, name), foldAiDesignJob]),
+    ...orchestrateNames.map((name) => [path.join(orchestrateDir, name), foldOrchestratePlan]),
+  ];
+  // Folded one at a time after each read: the map is shared, so no two folds ever interleave.
+  await mapBounded(tasks, 16, async ([file, fold]) => fold(await readJsonSafe(file), map));
+  const providers = [...map.values()].map(({ times, ...entry }) => {
+    const sorted = [...times].sort((a, b) => a - b);
+    return { ...entry, medianMs: percentile(sorted, 50), p90Ms: percentile(sorted, 90) };
+  }).sort((a, b) => a.site.localeCompare(b.site));
   return { schema: 'vivim.provider-performance/1', generatedAt: new Date().toISOString(),
-    scanned: { compareJobs: compareNames.length, aiDesignJobs: aiDesignNames.length, maxPerKind: MAX_JOBS },
+    scanned: { compareJobs: compareNames.length, aiDesignJobs: aiDesignNames.length, orchestratePlans: orchestrateNames.length, maxPerKind: MAX_JOBS },
     providers };
 }

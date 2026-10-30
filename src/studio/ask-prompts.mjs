@@ -51,7 +51,11 @@ export function roleSpec(role) {
 // A path that looks like it holds secrets. Checked by the CLI before reading --files content and
 // before accepting a --diff range that touches such a path; never relied on as the only safeguard,
 // but every such path is kept out of a prompt sent to a third-party AI website.
-const SECRET_PATH_RE = /(^|[\\/])(\.env(\..+)?|\.npmrc|\.netrc|id_rsa(\.pub)?|[^\\/]*\.pem|[^\\/]*\.key|[^\\/]*credentials[^\\/]*|[^\\/]*secrets?\.(json|ya?ml|txt)|[^\\/]*\.pfx|[^\\/]*\.p12)$/i;
+// Covers: .env* / .npmrc / .netrc / .git-credentials / .htpasswd, private keys (id_rsa, *.pem,
+// *.key, *.ppk, *.keystore, *.jks, *.pfx, *.p12), anything named *credentials* / *secret* / *token*
+// / *cookie*, and a browser profile directory or store under %APPDATA%/%LOCALAPPDATA% (Login Data,
+// Local State, Cookies, Web Data, key4.db, logins.json) — a signed-in session is a credential too.
+const SECRET_PATH_RE = /(^|[\\/])(\.env(\..+)?|\.npmrc|\.netrc|\.git-credentials|\.htpasswd|id_(rsa|dsa|ecdsa|ed25519)(\.pub)?|[^\\/]*\.(pem|key|ppk|pfx|p12|keystore|jks)|[^\\/]*credentials[^\\/]*|[^\\/]*secrets?\.(json|ya?ml|txt)|[^\\/]*(token|tokens)[-_.]?(store|jar|file|db)[^\\/]*|[^\\/]*tokens?\.(json|txt|ya?ml)|[^\\/]*cookies(\.sqlite|\.txt|\.db)?|[^\\/]*(login data|local state|web data|key[34]\.db|logins\.json)|[^\\/]*(chrome-profile|user data|mozilla|firefox|brave-browser|microsoft[\\/]edge))$/i;
 export const isSecretPath = (p) => SECRET_PATH_RE.test(String(p ?? '').replace(/\\/g, '/'));
 
 // Unified-diff file headers ("diff --git a/X b/Y") -> any touched path that looks secret.
@@ -80,34 +84,47 @@ export function buildPrompt({ role = null, question = '', diff = '', diffRange =
   const spec = role ? roleSpec(role) : null;
   const warnings = [];
 
+  const header = spec
+    ? `You are acting in the ${spec.label} role for this question. ${spec.instructions}\n\nOutput format (follow exactly): ${spec.outputFormat}`
+    : 'Answer the question below, using the attached diff/files as context.';
+
   const q = cap(question, MAX_QUESTION_CHARS);
   if (q.trimmed) warnings.push(`Question was trimmed to ${MAX_QUESTION_CHARS} characters.`);
 
+  // Split what is LEFT after the instructions and the question between diff and files, instead of
+  // appending both at their own caps and then hard-cutting the end (which used to lose whole files
+  // mid-fence). The per-part caps stay the maximum any single part may take.
+  const SECTION_OVERHEAD = 200; // the two "--- DIFF/FILES ---" headers and their fences
+  const room = Math.max(0, MAX_PROMPT_CHARS - header.length - q.text.length - SECTION_OVERHEAD);
+  const diffCap = Math.min(MAX_DIFF_CHARS, Math.floor(room * 0.6));
+  const filesCap = Math.min(MAX_FILES_CHARS, Math.max(0, room - diffCap));
+
   let diffBlock = '';
   if (typeof diff === 'string' && diff.trim()) {
-    const d = cap(diff.trim(), MAX_DIFF_CHARS);
-    if (d.trimmed) warnings.push(`--diff${diffRange ? ` ${diffRange}` : ''} output was trimmed to ${MAX_DIFF_CHARS} characters.`);
-    diffBlock = section(`DIFF${diffRange ? ` (${diffRange})` : ''}${d.trimmed ? ' — TRIMMED' : ''}`, '```diff\n' + d.text + (d.trimmed ? '\n… (trimmed)' : '') + '\n```');
+    if (diffCap <= 0) warnings.push(`--diff${diffRange ? ` ${diffRange}` : ''} output was dropped (no room left under the size limit).`);
+    else {
+      const d = cap(diff.trim(), diffCap);
+      if (d.trimmed) warnings.push(`--diff${diffRange ? ` ${diffRange}` : ''} output was trimmed to ${diffCap} characters.`);
+      diffBlock = section(`DIFF${diffRange ? ` (${diffRange})` : ''}${d.trimmed ? ' — TRIMMED' : ''}`, '```diff\n' + d.text + (d.trimmed ? '\n… (trimmed)' : '') + '\n```');
+    }
   }
 
   let filesBlock = '';
-  if (files.length) {
-    let budget = MAX_FILES_CHARS;
+  if (Array.isArray(files) && files.length) {
+    let budget = filesCap;
     const parts = [];
     for (const f of files) {
-      if (budget <= 0) { warnings.push(`File "${f.path}" was dropped (the combined --files budget was already used).`); continue; }
-      const take = Math.min(budget, f.content.length);
-      const trimmed = f.content.length > take;
-      if (trimmed) warnings.push(`File "${f.path}" was trimmed to ${take} characters.`);
-      parts.push(`### ${f.path}${trimmed ? ' — TRIMMED' : ''}\n\`\`\`\n${f.content.slice(0, take)}${trimmed ? '\n… (trimmed)' : ''}\n\`\`\``);
+      const filePath = String(f?.path ?? '(unnamed)'), content = String(f?.content ?? '');
+      if (budget <= 0) { warnings.push(`File "${filePath}" was dropped (the combined --files budget was already used).`); continue; }
+      const take = Math.min(budget, content.length);
+      const trimmed = content.length > take;
+      if (trimmed) warnings.push(`File "${filePath}" was trimmed to ${take} characters.`);
+      parts.push(`### ${filePath}${trimmed ? ' — TRIMMED' : ''}\n\`\`\`\n${content.slice(0, take)}${trimmed ? '\n… (trimmed)' : ''}\n\`\`\``);
       budget -= take;
     }
     filesBlock = section('FILES', parts.join('\n\n'));
   }
 
-  const header = spec
-    ? `You are acting in the ${spec.label} role for this question. ${spec.instructions}\n\nOutput format (follow exactly): ${spec.outputFormat}`
-    : 'Answer the question below, using the attached diff/files as context.';
   let prompt = `${header}\n\nQuestion:\n${q.text}${diffBlock}${filesBlock}`;
 
   if (prompt.length > MAX_PROMPT_CHARS) {
