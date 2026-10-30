@@ -39,7 +39,7 @@ import { createConversationApi, defaultConversationRuntime } from './conversatio
 import { createConversationEvents } from './conversation-events.mjs';
 import { createHarnessRunStore } from '../capture/harness-runs.mjs';
 import { createHarnessApi, registerHarnessTools, conversationToolExecutor, HARNESS_RETRYABLE_TOOLS } from './harness-api.mjs';
-import { lanAddresses, pickLanAddress, lanHostHeaders, pairingUrl, isCookieSafeToken } from './lan-pair.mjs';
+import { lanAddresses, pickLanAddress, lanHostHeaders, pairingUrl, isCookieSafeToken, ensurePairingToken, readPairingToken, pairingTokenPath, pairingTokenStamp } from './lan-pair.mjs';
 
 const UI = new URL('./ui/index.html', import.meta.url);
 
@@ -78,6 +78,11 @@ function validateAcceptanceContext(body) {
 // listener binds beyond loopback, and it is only allowed together with token access mode.
 export async function startStudio({ paths, profileStore, familyStore, cdpPort = 9222, port = 7878, token, lanPair = process.env.CAPTURE_STUDIO_LAN_PAIR === '1', lanHost = process.env.CAPTURE_STUDIO_LAN_HOST || undefined, accessMode = process.env.CAPTURE_STUDIO_ACCESS_MODE ?? (token === undefined && !lanPair ? 'local' : 'token'), rawOptions, drive, campaign, conversationRuntime, conversationRuntimeFactory = defaultConversationRuntime } = {}) {
   if (!['local', 'token'].includes(accessMode)) throw new Error('CAPTURE_STUDIO_ACCESS_MODE must be local or token');
+  // Phone pairing must survive a restart, so `--lan-pair` without an explicit token uses the token
+  // stored in the data folder (created once, user-only) instead of a fresh per-run random value.
+  // An explicit token (option or CAPTURE_STUDIO_TOKEN) still wins and is never rotated.
+  const storedTokenFile = lanPair && token === undefined ? pairingTokenPath(paths.root) : null;
+  if (storedTokenFile) token = ensurePairingToken(paths.root).token;
   token ??= randomBytes(18).toString('base64url');
   // LAN pairing validation happens before any runtime is created: never expose the LAN without a token.
   let lan = null;
@@ -150,17 +155,32 @@ const learningPipeline = createStudioLearningPipeline({ sessionsDir: paths.sessi
 const hub = createIntegrationHub({ paths, profileStore, learner, recorder, conversationRuntime, harnessApi, deriveSession, previewRecord: preview, previewEvent, getPort: () => port, getAccessMode: () => accessMode, cdpPort, deriving, invalidateReplay: (id) => replayCache.delete(id), adapterFactory, learningPipeline });
   const driveApi = createDriveApi({ dataDir: paths.root, port: cdpPort, drive, campaign });
 
-  const tokenBuf = Buffer.from(token);
+  // The live token. A stored pairing token is re-read when the file changes, so `pair reset`
+  // (remove access from all phones) takes effect without restarting this Studio.
+  let activeToken = token;
+  let storedTokenStamp = storedTokenFile ? pairingTokenStamp(paths.root) : 0;
+  const currentToken = () => {
+    if (!storedTokenFile) return activeToken;
+    const stamp = pairingTokenStamp(paths.root);
+    if (stamp && stamp !== storedTokenStamp) {
+      const stored = readPairingToken(paths.root);
+      if (stored) { activeToken = stored.token; storedTokenStamp = stamp; }
+    }
+    return activeToken;
+  };
+  const tokenBuf = () => Buffer.from(currentToken());
   const authed = (req) => {
     if (accessMode === 'local') return true; // Only the loopback listener is exposed.
     const cookie = /(?:^|;\s*)studio_token=([^;]+)/.exec(req.headers.cookie ?? '')?.[1];
     const given = Buffer.from(cookie ?? req.headers['x-studio-token'] ?? '');
-    return given.length === tokenBuf.length && timingSafeEqual(given, tokenBuf);
+    const expected = tokenBuf();
+    return given.length === expected.length && timingSafeEqual(given, expected);
   };
 
   const tokenMatches = (given) => {
     const buf = Buffer.from(given ?? '');
-    return buf.length === tokenBuf.length && timingSafeEqual(buf, tokenBuf);
+    const expected = tokenBuf();
+    return buf.length === expected.length && timingSafeEqual(buf, expected);
   };
   // Trusted Host values. Loopback only by default; in LAN-pair mode additionally this machine's own
   // non-loopback IPv4 addresses and hostname (an attacker-controlled DNS name can never appear here).
@@ -184,10 +204,10 @@ const hub = createIntegrationHub({ paths, profileStore, learner, recorder, conve
       // The tokenized pairing/landing URL sets the cookie and redirects to the same clean path (token dropped).
       if (accessMode === 'token' && req.method === 'GET' && (url.pathname === '/' || url.pathname === '/mobile') && tokenMatches(url.searchParams.get('token'))) {
         // LAN pairing is for a phone that installs the PWA, so keep the cookie across browser restarts.
-        res.writeHead(302, { 'set-cookie': `studio_token=${token}; HttpOnly; SameSite=Strict; Path=/${lanPair ? '; Max-Age=2592000' : ''}`, location: url.pathname, 'cache-control': 'no-store' });
+        res.writeHead(302, { 'set-cookie': `studio_token=${currentToken()}; HttpOnly; SameSite=Strict; Path=/${lanPair ? '; Max-Age=2592000' : ''}`, location: url.pathname, 'cache-control': 'no-store' });
         return res.end();
       }
-      if (accessMode === 'token' && !authed(req)) return send(res, 401, url.pathname.startsWith('/api') ? { error: 'unauthorized' } : 'Open the studio using the tokenized URL printed in the terminal.');
+      if (accessMode === 'token' && !authed(req)) return send(res, 401, url.pathname.startsWith('/api') ? { error: 'unauthorized' } : (lanPair ? phoneRemovedPage() : 'Open the studio using the tokenized URL printed in the terminal.'));
       if (url.pathname === '/') {
         if (req.method !== 'GET') { res.setHeader('allow', 'GET'); return send(res, 405, { error: 'GET required' }); }
         res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff', 'content-security-policy': "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; img-src 'self' data:" });
@@ -564,20 +584,35 @@ const hub = createIntegrationHub({ paths, profileStore, learner, recorder, conve
     try { await conversationRuntime.close(); await driveApi.close(); if (recorder.state === 'recording') await recorder.stop({ reason: 'studio_shutdown' }); }
     finally { await hub.close(); conversationEvents.close(); await new Promise((resolve) => server.close(resolve)); }
   })();
-  const lanInfo = lan ? { bind: bindHost, address: lan.address, addresses: lanAddresses().map((a) => a.address), pairingUrl: pairingUrl({ address: lan.address, port: actualPort, token }) } : null;
-  return { server, recorder, conversationRuntime, conversationEvents, integrations: hub, port: actualPort, token, accessMode,
-    lanPair, lan: lanInfo, pairingUrl: lanInfo?.pairingUrl ?? null,
-    url: accessMode === 'token' ? `http://127.0.0.1:${actualPort}/?token=${token}` : `http://127.0.0.1:${actualPort}/`, close };
+  const lanInfo = lan ? { bind: bindHost, address: lan.address, addresses: lanAddresses().map((a) => a.address), get pairingUrl() { return pairingUrl({ address: lan.address, port: actualPort, token: currentToken() }); } } : null;
+  return { server, recorder, conversationRuntime, conversationEvents, integrations: hub, port: actualPort, get token() { return currentToken(); }, accessMode,
+    lanPair, lan: lanInfo, get pairingUrl() { return lanInfo?.pairingUrl ?? null; },
+    get url() { return accessMode === 'token' ? `http://127.0.0.1:${actualPort}/?token=${currentToken()}` : `http://127.0.0.1:${actualPort}/`; }, close };
 }
 
 function listDatasets(s) {
   try { return readdirSync(path.join(s.dir, 'datasets')).filter((f) => f.endsWith('.jsonl')).map((f) => f.replace(/\.jsonl$/, '')); } catch { return []; }
 }
 
+// What a phone sees after "Remove access from all phones" (or when its cookie is simply wrong).
+// Plain language, no token, no internal terms; the way back in is a new scan on the PC.
+function phoneRemovedPage() {
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>This phone needs pairing again</title>
+<style>body{margin:0;padding:2rem 1.25rem;font:16px/1.5 system-ui,sans-serif;color:#1c1c1e;background:#f7f7f8}h1{font-size:1.35rem;margin:0 0 .75rem}p{margin:.5rem 0}ol{padding-left:1.2rem}code{background:#ececef;border-radius:4px;padding:.1rem .3rem}</style></head>
+<body><h1>This phone needs pairing again</h1>
+<p>This phone is no longer paired with VIVIM.</p>
+<p>To use VIVIM here again:</p>
+<ol><li>On your PC, open VIVIM and choose <strong>Pair a phone</strong> (or run <code>node bin/studio.mjs pair show</code>).</li>
+<li>Scan the new code with this phone.</li></ol>
+<p>Your AIs and chats are safe; only this phone's access was removed.</p></body></html>`;
+}
+
 function send(res, code, data) {
   if (res.destroyed || res.writableEnded) return;
   const isStr = typeof data === 'string';
-  res.writeHead(code, { 'content-type': isStr ? 'text/plain; charset=utf-8' : 'application/json', 'cache-control': 'no-store' });
+  const isHtml = isStr && /^<!doctype html>/i.test(data);
+  res.writeHead(code, { 'content-type': isHtml ? 'text/html; charset=utf-8' : isStr ? 'text/plain; charset=utf-8' : 'application/json', 'cache-control': 'no-store' });
   res.end(isStr ? data : JSON.stringify(data));
 }
 

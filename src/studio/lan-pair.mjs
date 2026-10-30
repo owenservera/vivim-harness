@@ -1,7 +1,16 @@
 // LAN pairing helpers (opt-in only; see startStudio `lanPair`). Pure functions plus a minimal in-tree
 // QR encoder (byte mode, error-correction level L, versions 1-10 = up to 271 bytes) so no npm
 // dependency is needed. Nothing here opens a socket or changes any default behavior.
+//
+// Stored pairing token: phone access must survive a restart, so the token lives in
+// `<data root>/pairing.json` (user-only permissions where the OS allows it) instead of being minted
+// per run. `CAPTURE_STUDIO_TOKEN` / an explicit option still wins. `resetPairingToken` rotates the
+// file; a running Studio re-reads it, so old phone cookies stop working without a restart.
 import os from 'node:os';
+import path from 'node:path';
+import { randomBytes } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
+import { chmodSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs';
 
 const VIRTUAL_NAME = /vethernet|virtualbox|vmware|vbox|wsl|docker|hyper-v|bluetooth|veth|virbr|^br-|utun|awdl|llw|loopback/i;
 
@@ -54,6 +63,79 @@ export function lanHostHeaders(port, addresses = lanAddresses()) {
 /** The URL a phone opens; the token query is exchanged for a cookie and stripped by the server. */
 export function pairingUrl({ address, port, token }) {
   return `http://${address}:${port}/mobile?token=${encodeURIComponent(token)}`;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Stored pairing token (`<root>/pairing.json`). Never logged or printed by itself: only the pairing
+// link/QR that the owner explicitly asks for carries it.
+// ---------------------------------------------------------------------------------------------
+export const PAIRING_FILE = 'pairing.json';
+const TOKEN_BYTES = 32; // base64url => 43 characters, cookie-safe
+
+/** Path of the stored pairing token inside a data folder. */
+export function pairingTokenPath(root) {
+  return path.join(root, PAIRING_FILE);
+}
+
+const mintToken = () => randomBytes(TOKEN_BYTES).toString('base64url');
+
+/** Best-effort user-only permissions: owner-only on POSIX, ACL stripped to the current user on Windows. */
+function restrictToOwner(file) {
+  try { chmodSync(file, 0o600); } catch { /* Windows has no POSIX mode bits */ }
+  if (process.platform !== 'win32') return;
+  const user = process.env.USERNAME;
+  if (!user) return;
+  // icacls with /inheritance:r removes inherited ACEs; the grant keeps this Windows account alone.
+  try { spawnSync('icacls', [file, '/inheritance:r', '/grant:r', `${user}:F`], { stdio: 'ignore', windowsHide: true, timeout: 5000 }); } catch { /* best effort */ }
+}
+
+function parseStored(text) {
+  let data;
+  try { data = JSON.parse(text); } catch { return null; }
+  if (!data || typeof data !== 'object') return null;
+  if (!isCookieSafeToken(data.token)) return null;
+  return {
+    token: data.token,
+    createdAt: typeof data.createdAt === 'string' ? data.createdAt : null,
+    rotatedAt: typeof data.rotatedAt === 'string' ? data.rotatedAt : null,
+  };
+}
+
+/** Read the stored pairing token, or null when absent/unreadable/invalid. Never creates anything. */
+export function readPairingToken(root) {
+  try { return parseStored(readFileSync(pairingTokenPath(root), 'utf8')); } catch { return null; }
+}
+
+function writePairingToken(root, token, { createdAt, rotatedAt }) {
+  const file = pairingTokenPath(root);
+  mkdirSync(path.dirname(file), { recursive: true });
+  const body = `${JSON.stringify({ schema: 'vivim.pairing.v1', token, createdAt, rotatedAt }, null, 2)}\n`;
+  const tmp = `${file}.${process.pid}.tmp`;
+  writeFileSync(tmp, body, { mode: 0o600 });
+  restrictToOwner(tmp);
+  renameSync(tmp, file);
+  restrictToOwner(file);
+  return { token, createdAt, rotatedAt };
+}
+
+/** Stored token, created on first use so a restart keeps every paired phone working. */
+export function ensurePairingToken(root, now = () => new Date().toISOString()) {
+  const existing = readPairingToken(root);
+  if (existing) return { ...existing, created: false };
+  const stamp = now();
+  return { ...writePairingToken(root, mintToken(), { createdAt: stamp, rotatedAt: null }), created: true };
+}
+
+/** Remove access from every phone: new token, old cookies no longer match. */
+export function resetPairingToken(root, now = () => new Date().toISOString()) {
+  const previous = readPairingToken(root);
+  const stamp = now();
+  return { ...writePairingToken(root, mintToken(), { createdAt: previous?.createdAt ?? stamp, rotatedAt: stamp }), previousRotatedAt: previous?.rotatedAt ?? null };
+}
+
+/** True when the stored file changed since `stamp` (mtimeMs); used to pick up a rotation live. */
+export function pairingTokenStamp(root) {
+  try { return statSync(pairingTokenPath(root)).mtimeMs; } catch { return 0; }
 }
 
 // ---------------------------------------------------------------------------------------------

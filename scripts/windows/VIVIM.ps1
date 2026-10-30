@@ -308,14 +308,9 @@ try {
     $spawnArgs = @('spawn', $cli, "$cdpPort", "$StudioPort", $studioLog)
     $token = $env:CAPTURE_STUDIO_TOKEN
     if ($LanPair) {
+        # Phone pairing uses the code stored in this data folder, so a restart keeps phones paired.
+        # Only an explicit CAPTURE_STUDIO_TOKEN overrides it; the link is read back from the log.
         $spawnArgs += 'lan'
-        $token = $env:CAPTURE_STUDIO_TOKEN
-        if (-not $token) {
-            # Cookie-safe random token for this run only (base64url, 32 chars); passed by environment.
-            $bytes = New-Object byte[] 24
-            [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
-            $token = [Convert]::ToBase64String($bytes).Replace('+', '-').Replace('/', '_').TrimEnd('=')
-        }
     }
     if ($DryRun) {
         $mode = ''

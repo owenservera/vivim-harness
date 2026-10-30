@@ -1,5 +1,6 @@
 // start, serve, launch, targets, record, capture
 import path from 'node:path';
+import { readFileSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { launchChrome, findChrome } from '../../src/chrome/launch.mjs';
 import { verifyBrowserOwner } from '../../src/chrome/browser-ownership.mjs';
@@ -8,10 +9,10 @@ import { Recorder } from '../../src/capture/recorder.mjs';
 import { Session } from '../../src/store/session.mjs';
 import { derive } from '../../src/replay/derive.mjs';
 import { startStudio } from '../../src/studio/server.mjs';
-import { acquireCdpOwnerLock } from '../../src/studio/cdp-owner-lock.mjs';
-import { qrToTerminal } from '../../src/studio/lan-pair.mjs';
+import { acquireCdpOwnerLock, lockPath } from '../../src/studio/cdp-owner-lock.mjs';
+import { qrToTerminal, lanAddresses, pickLanAddress, pairingUrl, ensurePairingToken, resetPairingToken } from '../../src/studio/lan-pair.mjs';
 import { exportTranscript, exportReport, exportKnowledge, exportBundle, exportSchemas, exportGraphRanked } from '../../src/export/export.mjs';
-import { define } from '../lib/registry.mjs';
+import { define, defineGroup } from '../lib/registry.mjs';
 import { CliError, usageError, envError, fmtBytes } from '../lib/ui.mjs';
 import { capability } from '../lib/capabilities.mjs';
 
@@ -88,7 +89,8 @@ async function runStudio(ctx, { launch }) {
     catch (e) { cdpLock.release(); throw e; }
     if (!r.alreadyRunning) out.info(`Capture browser opened (${r.browser}).`);
   }
-  // LAN pairing forces token mode (CAPTURE_STUDIO_TOKEN if set, else a fresh random token); the default stays loopback/no-token.
+  // LAN pairing forces token mode. The token is the one stored in the data folder, so phones stay
+  // paired across restarts; CAPTURE_STUDIO_TOKEN still overrides it.
   const lanOptions = lanPair ? { lanPair: true, accessMode: 'token', lanHost: flags['lan-host'], ...(process.env.CAPTURE_STUDIO_TOKEN ? { token: process.env.CAPTURE_STUDIO_TOKEN } : {}) } : { lanPair: false };
   let st;
   try { st = await startStudio({ paths: ctx.paths, profileStore: ctx.profiles(), familyStore: ctx.families(), cdpPort: ctx.port, port: Number(flags['studio-port'] ?? ctx.settings.studioPort), ...lanOptions }); }
@@ -125,6 +127,96 @@ async function runStudio(ctx, { launch }) {
 
 define({ name: 'start', section: 'Get started', summary: 'Open the capture browser and the studio UI (first-run friendly)', flags: studioFlags, async run(ctx) { await runStudio(ctx, { launch: true }); } });
 define({ name: 'serve', section: 'Get started', summary: 'Run the studio UI only', flags: studioFlags, async run(ctx) { await runStudio(ctx, { launch: false }); } });
+
+// ---------------------------------------------------------------------------------------------
+// Phone pairing: the link/QR the owner asks for, and "remove access from all phones".
+// The token lives in <data root>/pairing.json, so a restart keeps every paired phone working.
+// ---------------------------------------------------------------------------------------------
+const pairFlags = {
+  'studio-port': { type: 'number', valueName: 'N', desc: 'Studio port to check (default: the running VIVIM, else the usual studio port)' },
+  'lan-host': { type: 'string', valueName: 'IP', desc: 'Which of this PC\'s IPv4 addresses to put in the link (default: best guess)' },
+};
+
+function runningStudioPort(ctx) {
+  try {
+    const lock = JSON.parse(readFileSync(lockPath(ctx.paths.root, ctx.port), 'utf8'));
+    if (lock && Number.isSafeInteger(lock.studioPort) && lock.studioPort > 0) return lock.studioPort;
+  } catch { /* no Studio owns the browser right now */ }
+  return null;
+}
+
+// Ask the machine's own LAN address, so "phone reachable" is the real check: a loopback-only
+// Studio refuses that connection and this reports not-ready instead of printing a dead link.
+async function lanStudioProbe(address, port, token) {
+  try {
+    const res = await fetch(`http://${address}:${port}/api/v1/health`, { headers: { 'x-studio-token': token }, signal: AbortSignal.timeout(2000) });
+    if (res.status === 401) return { state: 'locked' };
+    if (!res.ok) return { state: 'other', status: res.status };
+    const body = await res.json();
+    return body?.apiVersion === 1 ? { state: 'ok' } : { state: 'other', status: res.status };
+  } catch { return { state: 'none' }; }
+}
+
+function pairingTarget(ctx) {
+  const addresses = lanAddresses();
+  const chosen = pickLanAddress(addresses, ctx.flags['lan-host']);
+  if (!chosen) throw envError('This PC has no WiFi or network address yet.', 'Connect this PC to the same WiFi as your phone, then run the command again.');
+  const port = runningStudioPort(ctx) ?? Number(ctx.flags['studio-port'] ?? ctx.settings.studioPort);
+  return { address: chosen.address, port, others: addresses.filter((a) => a.address !== chosen.address).map((a) => a.address) };
+}
+
+function printPairing(out, { link, others, address }) {
+  out.result('');
+  out.result('On your phone, joined to the same WiFi, scan this code or open:');
+  out.result(`  ${link}`);
+  if (process.stdout.isTTY) { try { out.result(`\n${qrToTerminal(link)}\n`); } catch { /* the link above is enough */ } }
+  if (others.length) out.result(`Other addresses of this PC: ${others.join(', ')} (use --lan-host IP if the phone cannot reach ${address}).`);
+  out.result('Anyone with this link can use your VIVIM while it runs. Do not share it.');
+}
+
+defineGroup('pair', { section: 'Get started', default: 'show', summary: 'Show the phone pairing link, or remove access from all phones' });
+
+define({
+  name: 'pair show', section: 'Get started', summary: 'Show the phone link and QR code (phones stay paired after a restart)',
+  description: 'Prints the pairing link for the running phone-paired VIVIM. The pairing token is kept in this data folder, so restarting VIVIM does not un-pair your phone.',
+  flags: pairFlags,
+  async run(ctx) {
+    const { out } = ctx;
+    const stored = ensurePairingToken(ctx.paths.root);
+    const target = pairingTarget(ctx);
+    const link = pairingUrl({ address: target.address, port: target.port, token: stored.token });
+    const probe = await lanStudioProbe(target.address, target.port, stored.token);
+    out.emit({ pairingUrl: link, address: target.address, port: target.port, reachable: probe.state === 'ok' }, (o) => {
+      if (probe.state === 'ok') { o.result(`Phone pairing is on (VIVIM is running on port ${target.port}).`); printPairing(o, { link, others: target.others, address: target.address }); return; }
+      o.result('Phone pairing is not running right now, so this link will not work yet.');
+      o.result('Start it with:');
+      o.result(`  node bin/studio.mjs serve --lan-pair --studio-port ${target.port}`);
+      o.result('or open "VIVIM phone pairing" on Windows. Once it is running, scan this code:');
+      printPairing(o, { link, others: target.others, address: target.address });
+    });
+  },
+});
+
+define({
+  name: 'pair reset', section: 'Get started', summary: 'Remove access from all phones (a new code is needed to pair again)',
+  description: 'Rotates the stored pairing token. Every phone that was paired stops working and shows the pairing screen; scan the new link to pair a phone again. A running VIVIM picks up the new token by itself.',
+  flags: pairFlags,
+  async run(ctx) {
+    const { out } = ctx;
+    const rotated = resetPairingToken(ctx.paths.root);
+    if (process.env.CAPTURE_STUDIO_TOKEN) out.warn('CAPTURE_STUDIO_TOKEN is set on this PC and overrides the stored code; remove it so the new code is used.');
+    const target = pairingTarget(ctx);
+    const link = pairingUrl({ address: target.address, port: target.port, token: rotated.token });
+    const probe = await lanStudioProbe(target.address, target.port, rotated.token);
+    out.emit({ rotated: true, pairingUrl: link, address: target.address, port: target.port, pickedUp: probe.state === 'ok' }, (o) => {
+      o.result('Access was removed from all phones. Any phone that was paired now shows the pairing screen.');
+      if (probe.state === 'ok') o.result('This running VIVIM already uses the new code; nothing to restart.');
+      else if (probe.state === 'locked') o.result('Restart VIVIM to finish removing access.');
+      o.result('To pair a phone again, scan this new code:');
+      printPairing(o, { link, others: target.others, address: target.address });
+    });
+  },
+});
 
 // ---------------------------------------------------------------------------------------------
 // Recording engine shared by `record` and `capture`
