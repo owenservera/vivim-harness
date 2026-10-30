@@ -28,6 +28,9 @@ const CHAIN_SEED = createHash('sha256').update(SCHEMA).digest();
 // residue left behind by those versions. Compared on the loose form.
 export const LEGACY_PROMPT_STEMS = Object.freeze([
   'You are helping design a small personal mobile app',
+  // Harness live-test prompt typed by an earlier session before it was ledgered; ChatGPT restored it
+  // into every new chat as DRAFT_PRESENT (seen 2026-10-30, 108 characters).
+  'Multiline fidelity retest',
 ]);
 
 // Quotes, nbsp, zero-width characters and markdown/code-block structure are exactly what rich editors

@@ -561,7 +561,11 @@ export function createConversationBrowserAdapter({ paths, profileStore, familySt
           if (!state.evalOk) throw problem('COMPOSER_UNREADABLE');
           page = await d.readTurnPage(recorder.page, siteAdapter);
         }
-        if (state.draftChars !== 0 || page?.draft?.chars !== 0) throw problem('DRAFT_PRESENT');
+        if (state.draftChars !== 0 || page?.draft?.chars !== 0) {
+          // Lengths only, never the text: enough to tell VIVIM residue from a user draft when tracing.
+          console.error('[conv] fresh tab draft present:', siteAdapter.id, 'sendStateChars=', state.draftChars, 'pageChars=', page?.draft?.chars, 'looseLen=', [...String(page?.draft?.text ?? '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '')].length);
+          throw problem('DRAFT_PRESENT');
+        }
         if (!freshComposerReady(page)) throw problem('GENERATION_CONTROLS_UNAVAILABLE_OR_BUSY');
         const boundary = { sessionId: recorder.session.id, sequence: recorder.session.raw.seq, transcriptCount: 0 };
         pending = { baseline: [], boundary, creation: true };
